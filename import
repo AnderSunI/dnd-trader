@@ -1,0 +1,27 @@
+import json
+from app.models import SessionLocal, Trader, engine, Base
+
+Base.metadata.create_all(bind=engine)
+
+db = SessionLocal()
+
+# Очистить таблицу, если нужно (осторожно!)
+# db.query(Trader).delete()
+
+with open('data/traders.json', 'r') as f:
+    traders_data = json.load(f)
+
+for data in traders_data:
+    trader = Trader(
+        name=data['name'],
+        category=data['category'],
+        items=json.dumps(data['items']),
+        region=data['region'],
+        level_min=data['level_min'],
+        level_max=data['level_max']
+    )
+    db.add(trader)
+
+db.commit()
+db.close()
+print("Импорт завершён")

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://trader:traderpass@db:5432/dnd_trader
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: traderpass
+      POSTGRES_DB: dnd_trader
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>D&D Trader</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+        .trader { border: 1px solid #ccc; margin: 10px; padding: 10px; border-radius: 5px; }
+        .category { font-weight: bold; }
+        .items { list-style: none; padding-left: 0; }
+        .items li { display: inline-block; background: #eee; margin: 2px; padding: 2px 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>D&D Trader</h1>
+    <div id="traders"></div>
+
+    <script>
+        fetch('/traders')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('traders');
+                data.forEach(trader => {
+                    const div = document.createElement('div');
+                    div.className = 'trader';
+                    div.innerHTML = `
+                        <h3>${trader.name}</h3>
+                        <div class="category">${trader.category}</div>
+                        <div>Регион: ${trader.region}</div>
+                        <div>Уровни: ${trader.level_min}–${trader.level_max}</div>
+                        <div>Предметы:</div>
+                        <ul class="items">
+                            ${trader.items.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+    </script>
+</body>
+</html>
