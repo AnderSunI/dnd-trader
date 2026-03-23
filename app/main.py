@@ -5,9 +5,9 @@ import json
 
 app = FastAPI(title="D&D Trader")
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello, D&D trader!"}
+#@app.get("/")
+#def read_root():
+#    return {"message": "Hello, D&D trader!"}
 
 @app.get("/traders")
 def get_traders():
