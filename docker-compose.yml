@@ -9,7 +9,8 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql://trader:traderpass@db:5432/dnd_trader
-
+    volumes:
+      - ./frontend:/app/frontend
   db:
     image: postgres:15
     environment:

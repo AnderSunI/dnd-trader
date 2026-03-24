@@ -1,41 +1,404 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>D&D Trader</title>
+    <title>D&D Trader — Генератор торговцев</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
-        .trader { border: 1px solid #ccc; margin: 10px; padding: 10px; border-radius: 5px; }
-        .category { font-weight: bold; }
-        .items { list-style: none; padding-left: 0; }
-        .items li { display: inline-block; background: #eee; margin: 2px; padding: 2px 6px; border-radius: 3px; }
+       body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-image: url('/images/background.jpg');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+
+
+            
+        }
+        h1 {
+            text-align: center;
+            color: #f9c20d;
+        }
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .filters select, .filters input {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        .traders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .trader-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .trader-card:hover {
+            transform: translateY(-5px);
+        }
+        .trader-image {
+            width: 100%;
+            height: 160px;
+            background: #e9ecef;
+            background-size: cover;
+            background-position: center;
+            background-color: #dee2e6;
+        }
+        .trader-info {
+            padding: 15px;
+        }
+        .trader-name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1e466e;
+        }
+        .trader-type {
+            color: #6c757d;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        .trader-desc {
+            font-size: 0.9rem;
+            margin: 10px 0;
+            color: #495057;
+        }
+        .trader-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+            font-size: 0.85rem;
+        }
+        .meta-item {
+            background: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .items-list {
+            margin-top: 12px;
+            border-top: 1px solid #e9ecef;
+            padding-top: 10px;
+        }
+        .items-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .items li {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .no-items {
+            color: #999;
+            font-size: 0.8rem;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #ffffff;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 1000px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+        }
+        .magical {
+            color: #9b59b6;
+            font-weight: bold;
+        }
+        .buy-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .buy-btn:hover {
+            background-color: #2ecc71;
+        }
+        .stat {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
-    <h1>Привествую ГМ!</h1>
-    <h1>D&D Trader</h1>
-    <div id="traders"></div>
+    <h1>🏪 D&D Trader — Помощник ГМ</h1>
+    <div class="filters">
+        <select id="filterType">
+            <option value="">Все типы</option>
+        </select>
+        <select id="filterRegion">
+            <option value="">Все регионы</option>
+        </select>
+        <input type="number" id="filterLevel" placeholder="Мин. уровень" min="1">
+    </div>
+    <div id="tradersGrid" class="traders-grid"></div>
+    <footer>Генератор торговцев для D&D 5e | По мотивам «Принцев Апокалипсиса»</footer>
+
+    <!-- Модальное окно -->
+    <div id="traderModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
 
     <script>
+        let allTraders = [];
+
         fetch('/traders')
             .then(response => response.json())
             .then(data => {
-                const container = document.getElementById('traders');
-                data.forEach(trader => {
-                    const div = document.createElement('div');
-                    div.className = 'trader';
-                    div.innerHTML = `
-                        <h3>${trader.name}</h3>
-                        <div class="category">${trader.category}</div>
-                        <div>Регион: ${trader.region}</div>
-                        <div>Уровни: ${trader.level_min}–${trader.level_max}</div>
-                        <div>Предметы:</div>
-                        <ul class="items">
-                            ${trader.items.map(item => `<li>${item}</li>`).join('')}
-                        </ul>
-                    `;
-                    container.appendChild(div);
+                allTraders = data;
+                populateFilters();
+                renderTraders();
+            })
+            .catch(err => console.error('Ошибка загрузки:', err));
+
+        function populateFilters() {
+            const typeSet = new Set();
+            const regionSet = new Set();
+            allTraders.forEach(t => {
+                if (t.type) typeSet.add(t.type);
+                if (t.region) regionSet.add(t.region);
+            });
+            const typeSelect = document.getElementById('filterType');
+            typeSelect.innerHTML = '<option value="">Все типы</option>';
+            Array.from(typeSet).sort().forEach(t => {
+                typeSelect.innerHTML += `<option value="${t}">${t}</option>`;
+            });
+            const regionSelect = document.getElementById('filterRegion');
+            regionSelect.innerHTML = '<option value="">Все регионы</option>';
+            Array.from(regionSet).sort().forEach(r => {
+                regionSelect.innerHTML += `<option value="${r}">${r}</option>`;
+            });
+        }
+
+        function getFilteredTraders() {
+            const type = document.getElementById('filterType').value;
+            const region = document.getElementById('filterRegion').value;
+            const level = parseInt(document.getElementById('filterLevel').value) || 0;
+            return allTraders.filter(t => {
+                if (type && t.type !== type) return false;
+                if (region && t.region !== region) return false;
+                if (level && t.level_min > level) return false;
+                return true;
+            });
+        }
+
+        function renderTraders() {
+            const filtered = getFilteredTraders();
+            const container = document.getElementById('tradersGrid');
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align:center;">Нет торговцев, удовлетворяющих фильтрам.</p>';
+                return;
+            }
+            container.innerHTML = filtered.map(t => {
+                let itemsHtml = '';
+                if (t.items && t.items.length) {
+                    itemsHtml = `<div class="items-list">
+                                    <div class="items-title">📦 Товары:</div>
+                                    <ul class="items">
+                                        ${t.items.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}
+                                    </ul>
+                                </div>`;
+                } else {
+                    itemsHtml = `<div class="items-list"><div class="no-items">Нет товаров</div></div>`;
+                }
+
+                let reputationStars = '';
+                if (t.reputation !== undefined) {
+                    const stars = Math.max(0, Math.min(5, Math.floor((t.reputation + 10) / 4)));
+                    reputationStars = '⭐'.repeat(stars) + '☆'.repeat(5-stars);
+                }
+
+                const avatarStyle = t.image_url ? `background-image: url('${t.image_url}');` : '';
+
+                return `
+                    <div class="trader-card" data-trader-id="${t.id}">
+                        <div class="trader-image" style="${avatarStyle}"></div>
+                        <div class="trader-info">
+                            <div class="trader-name">${t.name}</div>
+                            <div class="trader-type">${t.type || 'Торговец'}</div>
+                            <div class="trader-desc">${t.description || 'Описание отсутствует'}</div>
+                            <div class="trader-meta">
+                                ${t.specialization ? `<span class="meta-item" title="Категории товаров">🎯 ${Array.isArray(t.specialization) ? t.specialization.join(', ') : t.specialization}</span>` : ''}
+                                ${t.region ? `<span class="meta-item" title="Регион">🌍 ${t.region}</span>` : ''}
+                                ${t.settlement ? `<span class="meta-item">🏘️ ${t.settlement}</span>` : ''}
+                                ${t.level_min ? `<span class="meta-item" title="Уровни персонажей">🎚️ ${t.level_min}–${t.level_max || '∞'}</span>` : ''}
+                                ${reputationStars ? `<span class="meta-item" title="Репутация (влияет на цены)">${reputationStars}</span>` : ''}
+                                ${t.currency ? `<span class="meta-item">💰 ${t.currency}</span>` : ''}
+                            </div>
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.trader-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const traderId = card.dataset.traderId;
+                    const trader = allTraders.find(t => t.id == traderId);
+                    if (trader) showTraderModal(trader);
                 });
             });
+        }
+
+        function showTraderModal(trader) {
+            const modalContent = document.getElementById('modalContent');
+            let itemsHtml = '';
+            if (trader.items && trader.items.length) {
+                itemsHtml = `
+                    <h3>📦 Товары (цены в ${trader.currency || 'золотых'}):</h3>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Цена</th>
+                                <th>Характеристики</th>
+                                <th>Описание</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${trader.items.map(item => {
+                                // Формируем строку характеристик
+                                let stats = [];
+                                if (item.properties) {
+                                    let props = typeof item.properties === 'string' ? JSON.parse(item.properties) : item.properties;
+                                    if (props.damage) stats.push(`Урон: ${props.damage}`);
+                                    if (props.ac) stats.push(`КД: ${props.ac}`);
+                                    if (props.bonus) stats.push(`Бонус: +${props.bonus}`);
+                                }
+                                if (item.weight) stats.push(`Вес: ${item.weight} фунтов`);
+                                if (item.requirements) {
+                                    let req = typeof item.requirements === 'string' ? JSON.parse(item.requirements) : item.requirements;
+                                    if (req.strength) stats.push(`Треб.: Сила ${req.strength}`);
+                                    if (req.level) stats.push(`Ур. ${req.level}`);
+                                }
+                                if (item.is_magical) stats.push('Магический');
+                                if (item.attunement) stats.push('Требует настройки');
+                                const statsHtml = stats.length ? `<div class="stat">${stats.join(' | ')}</div>` : '';
+
+                                return `
+                                    <tr>
+                                        <td>${item.name}${item.is_magical ? ' ✨' : ''}</td>
+                                        <td>${item.price_gold || '?'}</td>
+                                        <td>${statsHtml}</td>
+                                        <td>${item.description || '—'}</td>
+                                        <td><button class="buy-btn" data-item-id="${item.id}">Купить</button></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                itemsHtml = '<p>У этого торговца пока нет товаров.</p>';
+            }
+
+            modalContent.innerHTML = `
+                <h2>${trader.name}</h2>
+                <p><strong>Тип:</strong> ${trader.type || '—'}</p>
+                <p><strong>Регион:</strong> ${trader.region || '—'} | ${trader.settlement || '—'}</p>
+                <p><strong>Уровни:</strong> ${trader.level_min}–${trader.level_max || '∞'}</p>
+                <p><strong>Репутация:</strong> ${trader.reputation}</p>
+                <p>${trader.description || ''}</p>
+                ${itemsHtml}
+            `;
+            document.getElementById('traderModal').style.display = 'block';
+
+            document.querySelectorAll('.buy-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const itemId = btn.dataset.itemId;
+                    alert(`Покупка предмета ${itemId} пока не реализована.`);
+                });
+            });
+        }
+
+        // Закрытие модального окна
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('traderModal').style.display = 'none';
+        });
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('traderModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Слушатели фильтров
+        document.getElementById('filterType').addEventListener('change', renderTraders);
+        document.getElementById('filterRegion').addEventListener('change', renderTraders);
+        document.getElementById('filterLevel').addEventListener('input', renderTraders);
     </script>
 </body>
 </html>

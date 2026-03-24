@@ -1,5 +1,17 @@
-__pycahe__/
-*.pyc
+# Python
+__pycache__/
+*.py[cod]
+*.so
 .env
 venv/
+.venv/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
