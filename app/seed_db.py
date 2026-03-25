@@ -1,17 +1,32 @@
 from app.models import SessionLocal, Trader, Item, Base, engine, trader_items
 import json
+from sqlalchemy import text
 
+# Создаём таблицы, если их нет
 Base.metadata.create_all(bind=engine)
+
+# Добавляем недостающие колонки (если их ещё нет)
+with engine.connect() as conn:
+    conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0"))
+    conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_silver INTEGER DEFAULT 0"))
+    conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_copper INTEGER DEFAULT 0"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS personality TEXT"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS possessions JSON"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS rumors TEXT"))
+    conn.commit()
 
 db = SessionLocal()
 
+# Очистка старых данных
 db.query(trader_items).delete()
 db.query(Item).delete()
 db.query(Trader).delete()
 db.commit()
 print("Старые данные удалены.")
 
-# Торговцы (те же, что у тебя, но с новыми предметами)
+# ------------------------------------------------------------
+# Торговцы (все 26, с новыми полями)
+# ------------------------------------------------------------
 traders_data = [
     {
         "name": "Элдрас Тантур",
@@ -25,7 +40,10 @@ traders_data = [
         "restock_days": 7,
         "currency": "золотые",
         "description": "Суровый, немногословный кузнец. Его семья куёт оружие и доспехи уже три поколения. Работает от зари до зари, ценит надёжность, а не красоту.",
-        "image_url": "/static/images/eldras.jpg"
+        "image_url": "/static/images/eldras.jpg",
+        "personality": "Молчалив и суров. Не терпит брака. Уважает тех, кто умеет работать руками. Может дать скидку, если попросить его о помощи в кузнечном деле.",
+        "possessions": json.dumps(["Старый семейный молот", "Амулет с руной Морадина", "Кусок метеоритного железа"]),
+        "rumors": "Говорят, у него в подвале хранится незаконченный клинок из звёздного металла. Если помочь ему найти редкий ингредиент, он, возможно, закончит его для героев."
     },
     {
         "name": "Фенг Железноголовый",
@@ -39,7 +57,10 @@ traders_data = [
         "restock_days": 7,
         "currency": "золотые",
         "description": "Полуорк, отставной наёмник. Знает толк в оружии, сам чинит и продаёт. Добродушен, но сразу определит, какой меч прослужит дольше.",
-        "image_url": "/static/images/feng.jpg"
+        "image_url": "/static/images/feng.jpg",
+        "personality": "Добродушный, но не терпит халтуры. Любит рассказывать байки о своих приключениях. Всегда предложит что-то крепкое выпить.",
+        "possessions": json.dumps(["Старый боевой топор", "Пара самодельных наручей", "Фляга с крепким элем"]),
+        "rumors": "В молодости служил в наёмниках у одного лорда. Говорят, знает тайный проход в старые рудники."
     },
     {
         "name": "Хельвур Тарнлар",
@@ -53,7 +74,10 @@ traders_data = [
         "restock_days": 10,
         "currency": "золотые",
         "description": "Надменный портной, строит из себя знатока высшего света. Продаёт добротные плащи и сапоги, но любит приврать о своих клиентах из Невервинтера.",
-        "image_url": "/static/images/helvur.jpg"
+        "image_url": "/static/images/helvur.jpg",
+        "personality": "Надменный, любит приврать о знатных клиентах. Ценит тонкие ткани и хорошие манеры.",
+        "possessions": json.dumps(["Золотая игла", "Ткань из эльфийской паутины", "Список 'важных' клиентов"]),
+        "rumors": "Поговаривают, что он шьёт для членов Культа Дракона, но сам он отрицает."
     },
     {
         "name": "Мэйгла Тарнлар",
@@ -67,8 +91,12 @@ traders_data = [
         "restock_days": 10,
         "currency": "золотые",
         "description": "Жена Хельвура, настоящий талант в шитье. Более приятна в общении, может подобрать одежду для любого случая.",
-        "image_url": "/static/images/maegla.jpg"
+        "image_url": "/static/images/maegla.jpg",
+        "personality": "Добрая и заботливая. Умеет успокоить клиента, всегда даст полезный совет.",
+        "possessions": json.dumps(["Семейный напёрсток", "Коллекция образцов тканей", "Портрет мужа"]),
+        "rumors": "Она тайно помогает Арфистам, передавая информацию через одежду."
     },
+    # Остальные торговцы (без кастомных полей – оставляем пустыми)
     {
         "name": "Фаендра Чансирл",
         "type": "кожевник",
@@ -81,7 +109,10 @@ traders_data = [
         "restock_days": 8,
         "currency": "золотые",
         "description": "Молодая женщина, мечтающая о приключениях. Шьёт отличные кожаные доспехи и упряжь. Сама носит кожаный доспех с тиснением.",
-        "image_url": "/static/images/phaendra.jpg"
+        "image_url": "/static/images/phaendra.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Улро Лурут",
@@ -95,7 +126,10 @@ traders_data = [
         "restock_days": 14,
         "currency": "золотые",
         "description": "Пропах дубильными растворами, но шкуры выделывает на совесть. Продаёт готовую кожу, меха, ремни. Молчалив, но может рассказать о зверях в округе.",
-        "image_url": "/static/images/ulro.jpg"
+        "image_url": "/static/images/ulro.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Кайлесса Иркелл",
@@ -109,7 +143,10 @@ traders_data = [
         "restock_days": 3,
         "currency": "золотые",
         "description": "Хозяйка «Раскачивающегося меча». Заботливая, знает все новости. Готовит сытные обеды, наливает отличный эль.",
-        "image_url": "/static/images/kaylessa.jpg"
+        "image_url": "/static/images/kaylessa.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Гарлен Харлатурл",
@@ -123,7 +160,10 @@ traders_data = [
         "restock_days": 3,
         "currency": "золотые",
         "description": "Владелец «Полуденного шлема». Циничный, но внимательный хозяин. У него всегда есть местное пиво и недорогие закуски.",
-        "image_url": "/static/images/garlen.jpg"
+        "image_url": "/static/images/garlen.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Мангобарл Лоррен",
@@ -137,7 +177,10 @@ traders_data = [
         "restock_days": 1,
         "currency": "золотые",
         "description": "Энергичный пекарь, знает все сплетни. Его «крошковый пирог» знаменит на всю округу. Втайне сотрудничает с Жентаримом.",
-        "image_url": "/static/images/mangobarl.jpg"
+        "image_url": "/static/images/mangobarl.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Нахазлья Дроут",
@@ -151,7 +194,10 @@ traders_data = [
         "restock_days": 2,
         "currency": "золотые",
         "description": "Владелица «Домашней птицы Дроут». Продаёт живую птицу, яйца, потроха. Практичная женщина, не любит пустых разговоров.",
-        "image_url": "/static/images/nahaeliya.jpg"
+        "image_url": "/static/images/nahaeliya.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Ялесса Орнра",
@@ -165,7 +211,10 @@ traders_data = [
         "restock_days": 2,
         "currency": "золотые",
         "description": "Крепкая женщина, забивает скот и продаёт мясо. Живёт вместе с констеблем. Умеет разделать тушу и посоветовать лучший кусок.",
-        "image_url": "/static/images/yalesa.jpg"
+        "image_url": "/static/images/yalesa.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Минтра Мандивьер",
@@ -179,7 +228,10 @@ traders_data = [
         "restock_days": 2,
         "currency": "золотые",
         "description": "Милая старушка, торгует живностью и соленьями. Знает многие городские тайны, но не болтлива.",
-        "image_url": "/static/images/minthra.jpg"
+        "image_url": "/static/images/minthra.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Грунд",
@@ -193,7 +245,10 @@ traders_data = [
         "restock_days": 3,
         "currency": "золотые",
         "description": "Полуорк, местный дурачок. Торгует соленьями на рынке. Наивный и добрый, часто раздаёт товар даром.",
-        "image_url": "/static/images/grund.jpg"
+        "image_url": "/static/images/grund.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Эндрит Валливой",
@@ -207,7 +262,10 @@ traders_data = [
         "restock_days": 14,
         "currency": "золотые",
         "description": "Застенчивый коллекционер. В его лавке можно найти всё: от старых книг до загадочных артефактов. Сотрудничает с Арфистами.",
-        "image_url": "/static/images/endrith.jpg"
+        "image_url": "/static/images/endrith.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Марландро Газлькур",
@@ -221,7 +279,10 @@ traders_data = [
         "restock_days": 7,
         "currency": "золотые",
         "description": "Цирюльник и торговец подержанными вещами. Сомнительная личность, но у него можно узнать последние новости и купить недорогой инструмент.",
-        "image_url": "/static/images/marlandro.jpg"
+        "image_url": "/static/images/marlandro.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Хазлия Ханадроум",
@@ -235,7 +296,10 @@ traders_data = [
         "restock_days": 7,
         "currency": "золотые",
         "description": "Управляет купальней и шьёт женские платья. Помогает Изумрудному Анклаву. В её заведении приятно отдохнуть после дороги.",
-        "image_url": "/static/images/hazlia.jpg"
+        "image_url": "/static/images/hazlia.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Мамаша Яланта Дрин",
@@ -249,7 +313,10 @@ traders_data = [
         "restock_days": 1,
         "currency": "золотые",
         "description": "Сдаёт дешёвые комнаты. Любит послушать и рассказать сплетни. Иногда может найти подёнщика для работы.",
-        "image_url": "/static/images/yalanta.jpg"
+        "image_url": "/static/images/yalanta.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Тёрск Телорн",
@@ -263,7 +330,10 @@ traders_data = [
         "restock_days": 10,
         "currency": "золотые",
         "description": "Вместе с братом Асданом делает лучшие фургоны на Север. Всегда занят, но найдёт время помочь путнику.",
-        "image_url": "/static/images/thorsk.jpg"
+        "image_url": "/static/images/thorsk.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Асдан Телорн",
@@ -277,7 +347,10 @@ traders_data = [
         "restock_days": 10,
         "currency": "золотые",
         "description": "Младший брат Тёрска, такой же умелец. С ним можно договориться о срочном ремонте.",
-        "image_url": "/static/images/asdan.jpg"
+        "image_url": "/static/images/asdan.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Ильмет Вэльвур",
@@ -291,7 +364,10 @@ traders_data = [
         "restock_days": 14,
         "currency": "золотые",
         "description": "Конкурент Телорнов, делает более дешёвые фургоны. Пьющий, но с ним можно поторговаться.",
-        "image_url": "/static/images/ilmet.jpg"
+        "image_url": "/static/images/ilmet.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Албери Миллико",
@@ -305,7 +381,10 @@ traders_data = [
         "restock_days": 14,
         "currency": "золотые",
         "description": "Владелица каменоломни. Поставщик камня для Глубоководья. Весёлая женщина, но скрывает тайну подземного хода.",
-        "image_url": "/static/images/albaeri.jpg"
+        "image_url": "/static/images/albaeri.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Эйриго Бетендур",
@@ -319,7 +398,10 @@ traders_data = [
         "restock_days": 30,
         "currency": "золотые",
         "description": "Сдаёт складские помещения. Не задаёт лишних вопросов. Может помочь с перевозкой грузов.",
-        "image_url": "/static/images/aerego.jpg"
+        "image_url": "/static/images/aerego.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Херивин Дардрагон",
@@ -333,7 +415,10 @@ traders_data = [
         "restock_days": 5,
         "currency": "золотые",
         "description": "Полурослик, владелец «Урожая». Коллекционирует картины. Радушный хозяин, знает всё о дорогах.",
-        "image_url": "/static/images/herivin.jpg"
+        "image_url": "/static/images/herivin.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Нешор Флёрдин",
@@ -347,7 +432,10 @@ traders_data = [
         "restock_days": 5,
         "currency": "золотые",
         "description": "Владелец «Бдительного рыцаря». Гостеприимный, любит поговорить о делегации из Мирабара.",
-        "image_url": "/static/images/neshor.jpg"
+        "image_url": "/static/images/neshor.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Шоалар Куандерил",
@@ -361,7 +449,10 @@ traders_data = [
         "restock_days": 20,
         "currency": "золотые",
         "description": "Дженази воды, капитан лодки. Торгует крадеными товарами и редкими книгами. Опасный тип.",
-        "image_url": "/static/images/shoalar.jpg"
+        "image_url": "/static/images/shoalar.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     },
     {
         "name": "Гариена",
@@ -375,17 +466,23 @@ traders_data = [
         "restock_days": 14,
         "currency": "золотые",
         "description": "Эльфийка-друид, ищущая ритуал Плетёного Гиганта. Продаёт целебные травы и зелья. Добра, но осторожна.",
-        "image_url": "/static/images/gariena.jpg"
+        "image_url": "/static/images/gariena.jpg",
+        "personality": None,
+        "possessions": None,
+        "rumors": None
     }
 ]
 
+# Добавляем торговцев
 for data in traders_data:
     trader = Trader(**data)
     db.add(trader)
 db.commit()
 print(f"Добавлено {len(traders_data)} торговцев.")
 
-# --- Предметы с полными статами ---
+# ------------------------------------------------------------
+# Предметы (полный список из предыдущей версии)
+# ------------------------------------------------------------
 items_by_trader = {
     "Элдрас Тантур": [
         {"name": "Длинный меч", "category": "оружие", "subcategory": "меч", "rarity": "обычный", "price_gold": 15, "weight": 3, "description": "Простой, но надёжный длинный меч. Хорош для пехоты.", "properties": json.dumps({"damage": "1d8", "damage_type": "колющий"}), "requirements": json.dumps({"strength": 13}), "is_magical": False, "attunement": False},
@@ -524,6 +621,34 @@ items_by_trader = {
     ],
 }
 
+# ------------------------------------------------------------
+# Вспомогательная функция для добавления валют и stock
+# ------------------------------------------------------------
+def enrich_item(item_data):
+    # Добавляем валюты, если их нет
+    if "price_silver" not in item_data:
+        price_gold = item_data.get("price_gold", 0)
+        item_data["price_silver"] = int(price_gold * 100)
+        item_data["price_copper"] = int(price_gold * 10000)
+    # Добавляем stock, если его нет
+    if "stock" not in item_data:
+        cat = item_data.get("category", "")
+        if cat in ["еда", "напитки", "услуга", "материалы", "лекарство", "животные", "искусство", "товар"]:
+            item_data["stock"] = 20
+        elif cat in ["оружие", "броня", "инструменты", "снаряжение", "транспорт", "запчасти", "одежда"]:
+            item_data["stock"] = 5
+        elif cat in ["зелье", "свиток", "яд", "книга", "карта", "сокровище"] or item_data.get("is_magical") or item_data.get("rarity") in ["редкий", "необычный"]:
+            item_data["stock"] = 1
+        else:
+            item_data["stock"] = 3
+    # Добавляем quality по умолчанию
+    if "quality" not in item_data:
+        item_data["quality"] = "стандартное"
+    return item_data
+
+# ------------------------------------------------------------
+# Сохранение предметов и связей
+# ------------------------------------------------------------
 traders_dict = {t.name: t for t in db.query(Trader).all()}
 existing_items = {}
 
@@ -533,16 +658,22 @@ for trader_name, items_list in items_by_trader.items():
         print(f"Торговец '{trader_name}' не найден, пропускаем.")
         continue
     for item_data in items_list:
+        # Обогащаем данными
+        item_data = enrich_item(item_data)
+
+        # Проверяем, есть ли уже такой предмет (по имени)
         if item_data["name"] in existing_items:
             item = existing_items[item_data["name"]]
         else:
-            # убираем weight, если нет
             item = Item(**item_data)
             db.add(item)
             db.flush()
             existing_items[item_data["name"]] = item
+
+        # Добавляем связь, если ещё нет
         if item not in trader.items:
             trader.items.append(item)
+
     print(f"Торговцу '{trader_name}' добавлено {len(items_list)} предметов.")
 
 db.commit()

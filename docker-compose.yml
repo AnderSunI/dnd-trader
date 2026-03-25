@@ -5,12 +5,16 @@ services:
     build: .
     ports:
       - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./frontend:/app/frontend
+    environment:
+      - DATABASE_URL=postgresql://trader:traderpass@db:5432/dnd_trader
     depends_on:
       - db
-    environment:
-      DATABASE_URL: postgresql://trader:traderpass@db:5432/dnd_trader
-    volumes:
-      - ./frontend:/app/frontend
+    # Для авто-перезагрузки при изменении кода можно добавить:
+    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
   db:
     image: postgres:15
     environment:

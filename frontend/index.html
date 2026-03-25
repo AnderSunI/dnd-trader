@@ -1,102 +1,136 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>D&D Trader — Генератор торговцев</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>D&D Trader — Помощник ГМ</title>
     <style>
-       body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    background-image: url('/images/background.jpg');
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
-
-
-            
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-image: url('/static/background.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
         }
-        h1 {
-            text-align: center;
-            color: #f9c20d;
-        }
-        .filters {
+        h1 { text-align: center; color: #f9c20d; font-size: 1.6rem; }
+        .cart-widget {
+            background: #fff3e0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
             display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        .filters select, .filters input {
-            padding: 8px 12px;
-            border-radius: 5px;
+        .cart-info {
+            font-weight: bold;
+            color: #2c3e50;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+        .cart-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button.primary { background-color: #3498db; color: white; }
+        button.primary:hover { background-color: #2980b9; }
+        button.danger { background-color: #e74c3c; color: white; }
+        button.danger:hover { background-color: #c0392b; }
+        .filters-panel {
+            background: rgba(255,255,240,0.95);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+        .filters-left, .filters-right {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .filter-group input, .filter-group select {
+            padding: 6px 10px;
+            border-radius: 8px;
             border: 1px solid #ccc;
             font-size: 14px;
         }
+        .price-range {
+            display: flex;
+            gap: 8px;
+        }
+        .price-range input { width: 90px; }
         .traders-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
         .trader-card {
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow: hidden;
             transition: transform 0.2s;
             cursor: pointer;
         }
-        .trader-card:hover {
-            transform: translateY(-5px);
-        }
+        .trader-card:hover { transform: translateY(-3px); }
         .trader-image {
             width: 100%;
-            height: 160px;
+            height: 150px;
             background: #e9ecef;
             background-size: cover;
             background-position: center;
-            background-color: #dee2e6;
         }
-        .trader-info {
-            padding: 15px;
-        }
-        .trader-name {
-            font-size: 1.4rem;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #1e466e;
-        }
-        .trader-type {
-            color: #6c757d;
-            font-style: italic;
-            margin-bottom: 10px;
-        }
-        .trader-desc {
-            font-size: 0.9rem;
-            margin: 10px 0;
-            color: #495057;
-        }
+        .trader-info { padding: 15px; }
+        .trader-name { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: #1e466e; }
+        .trader-type { color: #6c757d; font-style: italic; margin-bottom: 8px; }
+        .trader-desc { font-size: 0.85rem; margin: 8px 0; color: #495057; }
         .trader-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin: 10px 0;
-            font-size: 0.85rem;
+            gap: 6px;
+            margin: 8px 0;
+            font-size: 0.8rem;
         }
         .meta-item {
             background: #f1f3f5;
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 2px 8px;
+            border-radius: 20px;
         }
         .items-list {
-            margin-top: 12px;
+            margin-top: 10px;
             border-top: 1px solid #e9ecef;
-            padding-top: 10px;
+            padding-top: 8px;
         }
-        .items-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
+        .items-title { font-weight: bold; margin-bottom: 5px; }
         .items {
             display: flex;
             flex-wrap: wrap;
@@ -108,20 +142,14 @@
         .items li {
             background: #e9ecef;
             padding: 2px 8px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-        }
-        .no-items {
-            color: #999;
-            font-size: 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
         }
         footer {
             text-align: center;
             margin-top: 40px;
             color: #ffffff;
         }
-
-        /* Модальное окно */
         .modal {
             display: none;
             position: fixed;
@@ -138,10 +166,12 @@
             margin: 5% auto;
             padding: 20px;
             border: 1px solid #888;
-            width: 80%;
-            max-width: 1000px;
-            border-radius: 8px;
+            width: 90%;
+            max-width: 1100px;
+            border-radius: 12px;
             position: relative;
+            max-height: 90%;
+            overflow-y: auto;
         }
         .close {
             color: #aaa;
@@ -150,74 +180,329 @@
             font-weight: bold;
             cursor: pointer;
         }
-        .close:hover {
-            color: black;
-        }
+        .close:hover { color: black; }
         .items-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            font-size: 14px;
         }
         .items-table th, .items-table td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
+            vertical-align: top;
         }
-        .items-table th {
-            background-color: #f2f2f2;
-        }
-        .magical {
-            color: #9b59b6;
-            font-weight: bold;
-        }
-        .buy-btn {
-            background-color: #27ae60;
+        .items-table th { background-color: #f2f2f2; }
+        .add-to-cart-btn {
+            background-color: #e67e22;
             color: white;
             border: none;
-            padding: 5px 10px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .add-to-cart-btn:hover { background-color: #f39c12; }
+        .add-to-cart-btn:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        .remove-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 11px;
         }
-        .buy-btn:hover {
-            background-color: #2ecc71;
-        }
+        .remove-btn:hover { background-color: #c0392b; }
         .stat {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #555;
             margin-top: 4px;
+        }
+        .quality-badge {
+            display: inline-block;
+            background: #f1c40f;
+            color: #2c3e50;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 12px;
+        }
+        #playerGoldInput {
+            width: 100px;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            z-index: 2000;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .quantity-input {
+            width: 60px;
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        .add-cell { white-space: nowrap; }
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-item-info { flex: 3; }
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .cart-item-controls button {
+            background: #e9ecef;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .cart-item-controls button:hover { background: #ced4da; }
+        .cart-item-controls input {
+            width: 50px;
+            text-align: center;
+        }
+        .cart-item-price { min-width: 80px; text-align: right; }
+        .trader-detail-section {
+            background: #f9f9f9;
+            border-left: 4px solid #f39c12;
+            padding: 8px 12px;
+            margin: 12px 0;
+            border-radius: 8px;
+        }
+        .trader-detail-section h4 {
+            margin: 0 0 6px 0;
+            color: #2c3e50;
+        }
+        .gm-notes {
+            background: #fff8e7;
+            border: 1px solid #ffe0a3;
+            padding: 8px 12px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        .gm-notes textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 6px;
+            font-family: inherit;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-top: 6px;
+        }
+        .gm-notes label {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .items-table th, .items-table td { padding: 4px; font-size: 12px; }
+            .add-to-cart-btn { padding: 4px 8px; font-size: 10px; }
+            .quantity-input { width: 50px; }
+            .cart-info { font-size: 12px; }
+            .trader-name { font-size: 1.1rem; }
+            .cart-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .cart-item-price { text-align: left; }
+            .filters-panel { flex-direction: column; align-items: stretch; }
+            .filter-group { width: 100%; }
+            .price-range input { width: 100%; }
         }
     </style>
 </head>
 <body>
     <h1>🏪 D&D Trader — Помощник ГМ</h1>
-    <div class="filters">
-        <select id="filterType">
-            <option value="">Все типы</option>
-        </select>
-        <select id="filterRegion">
-            <option value="">Все регионы</option>
-        </select>
-        <input type="number" id="filterLevel" placeholder="Мин. уровень" min="1">
-    </div>
-    <div id="tradersGrid" class="traders-grid"></div>
-    <footer>Генератор торговцев для D&D 5e | По мотивам «Принцев Апокалипсиса»</footer>
 
-    <!-- Модальное окно -->
-    <div id="traderModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modalContent"></div>
+    <div class="cart-widget" id="cartWidget">
+        <div class="cart-info">
+            🪙 Ваше золото: <input type="number" id="playerGoldInput" value="1000" step="100">
+            🛒 Корзина: <span id="cartCount">0</span> товаров, <span id="cartTotal">0</span> зол.
+        </div>
+        <div class="cart-buttons">
+            <button id="viewCartBtn" class="primary">Просмотр корзины</button>
+            <button id="clearCartBtn" class="danger">Очистить корзину</button>
+            <button id="updateGoldBtn" class="primary">Обновить</button>
         </div>
     </div>
 
+    <div class="filters-panel">
+        <div class="filters-left">
+            <div class="filter-group">
+                <label>🔍 Поиск торговца</label>
+                <input type="text" id="searchTrader" placeholder="Имя торговца">
+            </div>
+            <div class="filter-group">
+                <label>🏷️ Тип торговца</label>
+                <select id="filterType"><option value="">Все типы</option></select>
+            </div>
+            <div class="filter-group">
+                <label>🌍 Регион</label>
+                <select id="filterRegion"><option value="">Все регионы</option></select>
+            </div>
+            <div class="filter-group">
+                <label>🎚️ Уровень игрока</label>
+                <input type="number" id="filterLevel" placeholder="Уровень" min="1" value="1">
+            </div>
+            <div class="filter-group">
+                <label>⭐ Репутация (мин.)</label>
+                <select id="reputationFilter">
+                    <option value="">Любая</option>
+                    <option value="1">1 ★ и выше</option>
+                    <option value="2">2 ★ и выше</option>
+                    <option value="3">3 ★ и выше</option>
+                </select>
+            </div>
+        </div>
+        <div class="filters-right">
+            <div class="filter-group">
+                <label>🔍 Поиск предмета</label>
+                <input type="text" id="searchItem" placeholder="Название предмета">
+            </div>
+            <div class="filter-group">
+                <label>💰 Цена (золотые)</label>
+                <div class="price-range">
+                    <input type="number" id="priceMin" placeholder="от" min="0" step="0.01">
+                    <input type="number" id="priceMax" placeholder="до" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>⭐ Редкость</label>
+                <select id="rarityFilter">
+                    <option value="">Любая</option>
+                    <option value="обычный">Обычный</option>
+                    <option value="необычный">Необычный</option>
+                    <option value="редкий">Редкий</option>
+                    <option value="очень редкий">Очень редкий</option>
+                    <option value="легендарный">Легендарный</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>📦 Категория</label>
+                <select id="categoryFilter">
+                    <option value="">Любая</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>✨ Магия</label>
+                <input type="checkbox" id="magicOnly">
+            </div>
+            <div class="filter-group">
+                <label>📊 Сортировка</label>
+                <select id="sortBy">
+                    <option value="name">Названию (А→Я)</option>
+                    <option value="price_asc">Цене (сначала дешёвые)</option>
+                    <option value="price_desc">Цене (сначала дорогие)</option>
+                    <option value="reputation">Репутации торговца</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="tradersGrid" class="traders-grid"></div>
+    <footer>Генератор торговцев для D&D 5e | По мотивам «Принцев Апокалипсиса»</footer>
+
+    <div id="traderModal" class="modal"><div class="modal-content"><span class="close">&times;</span><div id="modalContent"></div></div></div>
+    <div id="cartModal" class="modal"><div class="modal-content"><span class="close" id="closeCartModal">&times;</span><div id="cartModalContent"></div></div></div>
+    <div id="toast" class="toast"></div>
+
     <script>
         let allTraders = [];
+        let cart = [];
+        let playerGold = 1000;
+        let selectedReputation = null;
+        let gmNotes = {};
+
+        function loadGMNotes() {
+            const stored = localStorage.getItem('dnd_gm_notes');
+            if (stored) {
+                try {
+                    gmNotes = JSON.parse(stored);
+                } catch(e) {}
+            }
+        }
+        function saveGMNotes() {
+            localStorage.setItem('dnd_gm_notes', JSON.stringify(gmNotes));
+        }
+
+        function formatPrice(gold, silver = null) {
+            if (silver === null) {
+                let goldPart = Math.floor(gold);
+                let silverPart = Math.round((gold - goldPart) * 100);
+                if (silverPart === 100) { goldPart++; silverPart = 0; }
+                if (goldPart === 0 && silverPart === 0) return "0 зол.";
+                if (goldPart === 0) return `${silverPart} сер.`;
+                if (silverPart === 0) return `${goldPart} зол.`;
+                return `${goldPart} зол. ${silverPart} сер.`;
+            } else {
+                if (gold === 0 && silver === 0) return "0 зол.";
+                if (gold === 0) return `${silver} сер.`;
+                if (silver === 0) return `${gold} зол.`;
+                return `${gold} зол. ${silver} сер.`;
+            }
+        }
+
+        function showToast(msg, duration = 2000) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', duration);
+        }
+
+        function updateCartWidget() {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalGold = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cartCount').innerText = totalItems;
+            document.getElementById('cartTotal').innerText = totalGold.toFixed(2);
+            localStorage.setItem('dnd_cart', JSON.stringify(cart));
+        }
+
+        function savePlayerGold(value) {
+            localStorage.setItem('playerGold', value);
+            playerGold = value;
+            document.getElementById('playerGoldInput').value = playerGold;
+        }
+
+        function getReputationStars(reputation) {
+            let stars = Math.max(0, Math.min(5, reputation));
+            return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+        }
 
         fetch('/traders')
             .then(response => response.json())
             .then(data => {
                 allTraders = data;
                 populateFilters();
+                const savedCart = localStorage.getItem('dnd_cart');
+                if (savedCart) {
+                    try { cart = JSON.parse(savedCart); updateCartWidget(); } catch(e) {}
+                }
+                const savedGold = localStorage.getItem('playerGold');
+                if (savedGold !== null) {
+                    playerGold = parseInt(savedGold);
+                    document.getElementById('playerGoldInput').value = playerGold;
+                }
                 renderTraders();
             })
             .catch(err => console.error('Ошибка загрузки:', err));
@@ -225,32 +510,87 @@
         function populateFilters() {
             const typeSet = new Set();
             const regionSet = new Set();
+            const categorySet = new Set();
             allTraders.forEach(t => {
                 if (t.type) typeSet.add(t.type);
                 if (t.region) regionSet.add(t.region);
+                t.items.forEach(item => {
+                    if (item.category) categorySet.add(item.category);
+                });
             });
             const typeSelect = document.getElementById('filterType');
             typeSelect.innerHTML = '<option value="">Все типы</option>';
-            Array.from(typeSet).sort().forEach(t => {
-                typeSelect.innerHTML += `<option value="${t}">${t}</option>`;
-            });
+            Array.from(typeSet).sort().forEach(t => typeSelect.innerHTML += `<option value="${t}">${t}</option>`);
             const regionSelect = document.getElementById('filterRegion');
             regionSelect.innerHTML = '<option value="">Все регионы</option>';
-            Array.from(regionSet).sort().forEach(r => {
-                regionSelect.innerHTML += `<option value="${r}">${r}</option>`;
-            });
+            Array.from(regionSet).sort().forEach(r => regionSelect.innerHTML += `<option value="${r}">${r}</option>`);
+            const categorySelect = document.getElementById('categoryFilter');
+            categorySelect.innerHTML = '<option value="">Любая</option>';
+            Array.from(categorySet).sort().forEach(c => categorySelect.innerHTML += `<option value="${c}">${c}</option>`);
+        }
+
+        function itemMatchesFilters(item, searchText, priceMin, priceMax, rarity, category, magicOnly) {
+            if (searchText && !item.name.toLowerCase().includes(searchText.toLowerCase())) return false;
+            const totalGoldValue = item.price_gold + (item.price_silver || 0) / 100;
+            if (priceMin !== null && totalGoldValue < priceMin) return false;
+            if (priceMax !== null && totalGoldValue > priceMax) return false;
+            if (rarity && item.rarity !== rarity) return false;
+            if (category && item.category !== category) return false;
+            if (magicOnly && !item.is_magical) return false;
+            return true;
+        }
+
+        function traderHasMatchingItems(trader, searchText, priceMin, priceMax, rarity, category, magicOnly) {
+            return trader.items.some(item => itemMatchesFilters(item, searchText, priceMin, priceMax, rarity, category, magicOnly));
         }
 
         function getFilteredTraders() {
+            const traderSearch = document.getElementById('searchTrader').value.toLowerCase();
             const type = document.getElementById('filterType').value;
             const region = document.getElementById('filterRegion').value;
-            const level = parseInt(document.getElementById('filterLevel').value) || 0;
-            return allTraders.filter(t => {
+            const level = parseInt(document.getElementById('filterLevel').value) || 1;
+            const repFilter = document.getElementById('reputationFilter').value;
+            const repValue = repFilter ? parseInt(repFilter) : null;
+
+            const searchText = document.getElementById('searchItem').value;
+            const priceMinRaw = document.getElementById('priceMin').value;
+            const priceMaxRaw = document.getElementById('priceMax').value;
+            const priceMin = priceMinRaw !== '' ? parseFloat(priceMinRaw) : null;
+            const priceMax = priceMaxRaw !== '' ? parseFloat(priceMaxRaw) : null;
+            const rarity = document.getElementById('rarityFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const magicOnly = document.getElementById('magicOnly').checked;
+            const sortBy = document.getElementById('sortBy').value;
+
+            let filtered = allTraders.filter(t => {
+                // Поиск по имени торговца
+                if (traderSearch && !t.name.toLowerCase().includes(traderSearch)) return false;
                 if (type && t.type !== type) return false;
                 if (region && t.region !== region) return false;
-                if (level && t.level_min > level) return false;
-                return true;
+                const traderMinLevel = (t.level_min !== undefined && t.level_min !== null) ? t.level_min : 1;
+                if (traderMinLevel > level) return false;
+                if (repValue !== null && t.reputation < repValue) return false;
+                return traderHasMatchingItems(t, searchText, priceMin, priceMax, rarity, category, magicOnly);
             });
+
+            if (sortBy === 'name') {
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortBy === 'price_asc') {
+                filtered.sort((a, b) => {
+                    const minPriceA = Math.min(...a.items.map(i => i.price_gold + (i.price_silver || 0)/100));
+                    const minPriceB = Math.min(...b.items.map(i => i.price_gold + (i.price_silver || 0)/100));
+                    return minPriceA - minPriceB;
+                });
+            } else if (sortBy === 'price_desc') {
+                filtered.sort((a, b) => {
+                    const minPriceA = Math.min(...a.items.map(i => i.price_gold + (i.price_silver || 0)/100));
+                    const minPriceB = Math.min(...b.items.map(i => i.price_gold + (i.price_silver || 0)/100));
+                    return minPriceB - minPriceA;
+                });
+            } else if (sortBy === 'reputation') {
+                filtered.sort((a, b) => b.reputation - a.reputation);
+            }
+            return filtered;
         }
 
         function renderTraders() {
@@ -263,37 +603,24 @@
             container.innerHTML = filtered.map(t => {
                 let itemsHtml = '';
                 if (t.items && t.items.length) {
-                    itemsHtml = `<div class="items-list">
-                                    <div class="items-title">📦 Товары:</div>
-                                    <ul class="items">
-                                        ${t.items.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}
-                                    </ul>
-                                </div>`;
+                    itemsHtml = `<div class="items-list"><div class="items-title">📦 Товары:</div><ul class="items">${t.items.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}</ul></div>`;
                 } else {
                     itemsHtml = `<div class="items-list"><div class="no-items">Нет товаров</div></div>`;
                 }
-
-                let reputationStars = '';
-                if (t.reputation !== undefined) {
-                    const stars = Math.max(0, Math.min(5, Math.floor((t.reputation + 10) / 4)));
-                    reputationStars = '⭐'.repeat(stars) + '☆'.repeat(5-stars);
-                }
-
-                const avatarStyle = t.image_url ? `background-image: url('${t.image_url}');` : '';
-
+                const reputationStars = getReputationStars(t.reputation);
                 return `
                     <div class="trader-card" data-trader-id="${t.id}">
-                        <div class="trader-image" style="${avatarStyle}"></div>
+                        <div class="trader-image" style="background-color: #ccc;"></div>
                         <div class="trader-info">
                             <div class="trader-name">${t.name}</div>
                             <div class="trader-type">${t.type || 'Торговец'}</div>
                             <div class="trader-desc">${t.description || 'Описание отсутствует'}</div>
                             <div class="trader-meta">
-                                ${t.specialization ? `<span class="meta-item" title="Категории товаров">🎯 ${Array.isArray(t.specialization) ? t.specialization.join(', ') : t.specialization}</span>` : ''}
-                                ${t.region ? `<span class="meta-item" title="Регион">🌍 ${t.region}</span>` : ''}
+                                ${t.specialization ? `<span class="meta-item">🎯 ${Array.isArray(t.specialization) ? t.specialization.join(', ') : t.specialization}</span>` : ''}
+                                ${t.region ? `<span class="meta-item">🌍 ${t.region}</span>` : ''}
                                 ${t.settlement ? `<span class="meta-item">🏘️ ${t.settlement}</span>` : ''}
-                                ${t.level_min ? `<span class="meta-item" title="Уровни персонажей">🎚️ ${t.level_min}–${t.level_max || '∞'}</span>` : ''}
-                                ${reputationStars ? `<span class="meta-item" title="Репутация (влияет на цены)">${reputationStars}</span>` : ''}
+                                ${t.level_min ? `<span class="meta-item">🎚️ ${t.level_min}–${t.level_max || '∞'}</span>` : ''}
+                                <span class="meta-item">⭐ ${reputationStars}</span>
                                 ${t.currency ? `<span class="meta-item">💰 ${t.currency}</span>` : ''}
                             </div>
                             ${itemsHtml}
@@ -301,7 +628,6 @@
                     </div>
                 `;
             }).join('');
-
             document.querySelectorAll('.trader-card').forEach(card => {
                 card.addEventListener('click', () => {
                     const traderId = card.dataset.traderId;
@@ -318,18 +644,27 @@
                 itemsHtml = `
                     <h3>📦 Товары (цены в ${trader.currency || 'золотых'}):</h3>
                     <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th>Название</th>
-                                <th>Цена</th>
-                                <th>Характеристики</th>
-                                <th>Описание</th>
-                                <th>Действие</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действие</th></tr></thead>
                         <tbody>
                             ${trader.items.map(item => {
-                                // Формируем строку характеристик
+                                const quality = item.quality || 'стандартное';
+                                const qualityHtml = `<span class="quality-badge">${quality}</span>`;
+                                const originalStock = item.stock !== undefined ? item.stock : 0;
+                                const cartItem = cart.find(i => i.traderId === trader.id && i.itemId === item.id);
+                                const cartQty = cartItem ? cartItem.quantity : 0;
+                                const remaining = originalStock - cartQty;
+                                const stockHtml = remaining > 0 ? `${remaining}` : '<span style="color:red;">нет в наличии</span>';
+                                
+                                let discount = 0;
+                                if (trader.reputation > 0) discount = trader.reputation / 100;
+                                let finalGold = item.price_gold * (1 - discount);
+                                let finalSilver = (item.price_silver || 0) * (1 - discount);
+                                if (finalSilver >= 100) {
+                                    finalGold += Math.floor(finalSilver / 100);
+                                    finalSilver = finalSilver % 100;
+                                }
+                                const priceFormatted = formatPrice(finalGold, Math.round(finalSilver));
+                                
                                 let stats = [];
                                 if (item.properties) {
                                     let props = typeof item.properties === 'string' ? JSON.parse(item.properties) : item.properties;
@@ -346,14 +681,21 @@
                                 if (item.is_magical) stats.push('Магический');
                                 if (item.attunement) stats.push('Требует настройки');
                                 const statsHtml = stats.length ? `<div class="stat">${stats.join(' | ')}</div>` : '';
-
+                                
+                                const canAdd = remaining > 0;
+                                const inputDisabled = !canAdd ? 'disabled' : '';
+                                const addBtnDisabled = !canAdd ? 'disabled' : '';
+                                
                                 return `
-                                    <tr>
+                                    <tr data-trader-id="${trader.id}" data-item-id="${item.id}" data-original-stock="${originalStock}" data-price-gold="${finalGold}" data-price-silver="${finalSilver}" data-name="${item.name}">
                                         <td>${item.name}${item.is_magical ? ' ✨' : ''}</td>
-                                        <td>${item.price_gold || '?'}</td>
+                                        <td>${priceFormatted}</td>
+                                        <td>${qualityHtml}</td>
+                                        <td class="stock-cell">${stockHtml}</td>
                                         <td>${statsHtml}</td>
                                         <td>${item.description || '—'}</td>
-                                        <td><button class="buy-btn" data-item-id="${item.id}">Купить</button></td>
+                                        <td><input type="number" class="quantity-input" min="1" max="${remaining}" value="1" ${inputDisabled}></td>
+                                        <td class="add-cell"><button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button></td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -364,41 +706,241 @@
                 itemsHtml = '<p>У этого торговца пока нет товаров.</p>';
             }
 
+            // Блоки расширенной информации, если они есть
+            let personalityHtml = '';
+            if (trader.personality) {
+                personalityHtml = `<div class="trader-detail-section"><h4>🧠 Особенности</h4><p>${trader.personality}</p></div>`;
+            }
+            let possessionsHtml = '';
+            if (trader.possessions) {
+                let possessions = trader.possessions;
+                if (typeof possessions === 'string') possessions = JSON.parse(possessions);
+                if (Array.isArray(possessions) && possessions.length) {
+                    possessionsHtml = `<div class="trader-detail-section"><h4>🎒 Личные вещи</h4><ul><li>${possessions.join('</li><li>')}</li></ul></div>`;
+                }
+            }
+            let rumorsHtml = '';
+            if (trader.rumors) {
+                rumorsHtml = `<div class="trader-detail-section"><h4>🔍 Слухи / Квесты</h4><p>${trader.rumors}</p></div>`;
+            }
+
+            const notes = gmNotes[trader.id] || '';
+            const notesHtml = `
+                <div class="gm-notes">
+                    <label>📝 Заметки ГМ:</label>
+                    <textarea id="gmNote-${trader.id}" placeholder="Ваши заметки о торговце...">${notes}</textarea>
+                </div>
+            `;
+
             modalContent.innerHTML = `
                 <h2>${trader.name}</h2>
                 <p><strong>Тип:</strong> ${trader.type || '—'}</p>
                 <p><strong>Регион:</strong> ${trader.region || '—'} | ${trader.settlement || '—'}</p>
                 <p><strong>Уровни:</strong> ${trader.level_min}–${trader.level_max || '∞'}</p>
-                <p><strong>Репутация:</strong> ${trader.reputation}</p>
+                <p><strong>Репутация:</strong> ${trader.reputation} (${getReputationStars(trader.reputation)})</p>
                 <p>${trader.description || ''}</p>
+                ${personalityHtml}
+                ${possessionsHtml}
+                ${rumorsHtml}
                 ${itemsHtml}
+                ${notesHtml}
             `;
             document.getElementById('traderModal').style.display = 'block';
 
-            document.querySelectorAll('.buy-btn').forEach(btn => {
+            // Сохраняем заметку при изменении
+            const textarea = document.getElementById(`gmNote-${trader.id}`);
+            if (textarea) {
+                textarea.addEventListener('change', () => {
+                    gmNotes[trader.id] = textarea.value;
+                    saveGMNotes();
+                });
+            }
+
+            // Обработчики кнопок "В корзину"
+            document.querySelectorAll('.add-to-cart-btn:not([disabled])').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const itemId = btn.dataset.itemId;
-                    alert(`Покупка предмета ${itemId} пока не реализована.`);
+                    const row = btn.closest('tr');
+                    const traderId = parseInt(row.dataset.traderId);
+                    const itemId = parseInt(row.dataset.itemId);
+                    const name = row.dataset.name;
+                    const priceGold = parseFloat(row.dataset.priceGold);
+                    const priceSilver = parseFloat(row.dataset.priceSilver);
+                    const totalGold = priceGold + priceSilver/100;
+                    const originalStock = parseInt(row.dataset.originalStock);
+                    const quantityInput = row.querySelector('.quantity-input');
+                    let qty = parseInt(quantityInput.value);
+                    if (isNaN(qty) || qty < 1) qty = 1;
+                    
+                    let cartItem = cart.find(i => i.traderId === traderId && i.itemId === itemId);
+                    const alreadyInCart = cartItem ? cartItem.quantity : 0;
+                    const remaining = originalStock - alreadyInCart;
+                    if (qty > remaining) {
+                        showToast(`Нельзя добавить больше, чем есть в наличии (осталось ${remaining})`);
+                        quantityInput.value = remaining;
+                        return;
+                    }
+                    if (cartItem) {
+                        cartItem.quantity += qty;
+                    } else {
+                        cart.push({ traderId, itemId, name, price: totalGold, quantity: qty });
+                    }
+                    updateCartWidget();
+                    showToast(`Добавлено ${qty} × "${name}" в корзину`);
+                    
+                    const stockCell = row.querySelector('.stock-cell');
+                    const newRemaining = originalStock - (cartItem ? cartItem.quantity : qty);
+                    stockCell.innerText = newRemaining > 0 ? newRemaining : '<span style="color:red;">нет в наличии</span>';
+                    quantityInput.max = newRemaining;
+                    if (newRemaining === 0) {
+                        btn.disabled = true;
+                        quantityInput.disabled = true;
+                    } else {
+                        quantityInput.value = 1;
+                    }
                 });
             });
         }
 
-        // Закрытие модального окна
-        document.querySelector('.close').addEventListener('click', () => {
-            document.getElementById('traderModal').style.display = 'none';
+        // Закрытие модалок
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', () => {
+                document.getElementById('traderModal').style.display = 'none';
+                document.getElementById('cartModal').style.display = 'none';
+            });
         });
         window.addEventListener('click', (event) => {
             const modal = document.getElementById('traderModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
+            const cartModal = document.getElementById('cartModal');
+            if (event.target == modal) modal.style.display = 'none';
+            if (event.target == cartModal) cartModal.style.display = 'none';
+        });
+
+        // Обновление золота
+        document.getElementById('updateGoldBtn').addEventListener('click', () => {
+            const val = parseInt(document.getElementById('playerGoldInput').value);
+            if (!isNaN(val)) savePlayerGold(val);
+        });
+
+        // Очистка корзины
+        document.getElementById('clearCartBtn').addEventListener('click', () => {
+            cart = [];
+            updateCartWidget();
+            showToast('Корзина очищена');
+            if (document.getElementById('cartModal').style.display === 'block') renderCartModal();
+        });
+
+        function renderCartModal() {
+            const cartModalContent = document.getElementById('cartModalContent');
+            if (cart.length === 0) {
+                cartModalContent.innerHTML = '<p>Корзина пуста.</p>';
+                return;
+            }
+            let itemsHtml = '<div>';
+            cart.forEach((item, idx) => {
+                const total = item.price * item.quantity;
+                itemsHtml += `
+                    <div class="cart-item" data-cart-index="${idx}">
+                        <div class="cart-item-info">
+                            <strong>${item.name}</strong>
+                            <div class="cart-item-price">${item.price.toFixed(2)} зол. × ${item.quantity} = ${total.toFixed(2)} зол.</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <button class="cart-decr" data-index="${idx}">-</button>
+                            <input type="number" class="cart-qty" data-index="${idx}" value="${item.quantity}" min="1">
+                            <button class="cart-incr" data-index="${idx}">+</button>
+                            <button class="remove-btn" data-index="${idx}">Удалить</button>
+                        </div>
+                    </div>
+                `;
+            });
+            itemsHtml += '</div>';
+            const totalGold = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+            cartModalContent.innerHTML = `
+                <h3>Ваша корзина</h3>
+                ${itemsHtml}
+                <p><strong>Итого:</strong> ${totalGold.toFixed(2)} зол.</p>
+                <p><strong>Ваше золото:</strong> ${playerGold} зол.</p>
+                <button id="checkoutBtn" class="primary">Оформить заказ</button>
+            `;
+            document.querySelectorAll('.cart-decr').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.index);
+                    if (cart[idx] && cart[idx].quantity > 1) {
+                        cart[idx].quantity--;
+                        updateCartWidget();
+                        renderCartModal();
+                    } else if (cart[idx] && cart[idx].quantity === 1) {
+                        cart.splice(idx, 1);
+                        updateCartWidget();
+                        renderCartModal();
+                    }
+                });
+            });
+            document.querySelectorAll('.cart-incr').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.index);
+                    if (cart[idx]) {
+                        cart[idx].quantity++;
+                        updateCartWidget();
+                        renderCartModal();
+                    }
+                });
+            });
+            document.querySelectorAll('.cart-qty').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(input.dataset.index);
+                    let newQty = parseInt(input.value);
+                    if (isNaN(newQty) || newQty < 1) newQty = 1;
+                    cart[idx].quantity = newQty;
+                    updateCartWidget();
+                    renderCartModal();
+                });
+            });
+            document.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.index);
+                    cart.splice(idx, 1);
+                    updateCartWidget();
+                    renderCartModal();
+                });
+            });
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            if (checkoutBtn) {
+                checkoutBtn.addEventListener('click', () => {
+                    const totalGold = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                    if (totalGold > playerGold) {
+                        showToast(`Не хватает золота! Нужно ${totalGold.toFixed(2)}, у вас ${playerGold}`);
+                        return;
+                    }
+                    playerGold -= totalGold;
+                    savePlayerGold(playerGold);
+                    cart = [];
+                    updateCartWidget();
+                    showToast(`Заказ оформлен! Списано ${totalGold.toFixed(2)} зол.`);
+                    document.getElementById('cartModal').style.display = 'none';
+                });
+            }
+        }
+
+        document.getElementById('viewCartBtn').addEventListener('click', () => {
+            renderCartModal();
+            document.getElementById('cartModal').style.display = 'block';
+        });
+
+        // Подключаем обработчики событий для всех фильтров
+        const filterIds = ['searchTrader', 'filterType', 'filterRegion', 'filterLevel', 'reputationFilter', 'searchItem', 'priceMin', 'priceMax', 'rarityFilter', 'categoryFilter', 'magicOnly', 'sortBy'];
+        filterIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.type === 'checkbox' || el.type === 'number' || id === 'searchTrader' || id === 'searchItem') {
+                    el.addEventListener('input', renderTraders);
+                } else {
+                    el.addEventListener('change', renderTraders);
+                }
             }
         });
 
-        // Слушатели фильтров
-        document.getElementById('filterType').addEventListener('change', renderTraders);
-        document.getElementById('filterRegion').addEventListener('change', renderTraders);
-        document.getElementById('filterLevel').addEventListener('input', renderTraders);
+        loadGMNotes();
     </script>
 </body>
 </html>
