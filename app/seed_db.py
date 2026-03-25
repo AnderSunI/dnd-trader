@@ -1,37 +1,44 @@
+# ============================================================
+# seed_db.py – Скрипт наполнения базы данных начальными данными
+# ============================================================
+
 from app.models import SessionLocal, Trader, Item, Base, engine, trader_items
 import json
 from sqlalchemy import text
 
-# Создаём таблицы, если их нет
+# -------------------- 1. СОЗДАНИЕ ТАБЛИЦ И ДОБАВЛЕНИЕ НОВЫХ КОЛОНОК --------------------
+# Создаём таблицы, если их ещё нет (на основе моделей)
 Base.metadata.create_all(bind=engine)
 
-# Добавляем недостающие колонки (если их ещё нет)
+# Добавляем колонки, которые могли появиться позже, чтобы не сломать старые базы
 with engine.connect() as conn:
+    # Для предметов
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_silver INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_copper INTEGER DEFAULT 0"))
+    # Для торговцев (расширенная информация и золото)
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS personality TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS possessions JSON"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS rumors TEXT"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0"))
     conn.commit()
 
 db = SessionLocal()
 
-# Очистка старых данных
+# Очистка старых данных (чтобы не было дублей)
 db.query(trader_items).delete()
 db.query(Item).delete()
 db.query(Trader).delete()
 db.commit()
 print("Старые данные удалены.")
 
-# ------------------------------------------------------------
-# Торговцы (все 26, с новыми полями)
-# ------------------------------------------------------------
+# -------------------- 2. ТОРГОВЦЫ (26 штук, с золотом и расширенными полями) --------------------
 traders_data = [
     {
         "name": "Элдрас Тантур",
         "type": "кузнец",
         "specialization": json.dumps(["оружие", "доспехи", "инструменты", "цепи"]),
+        "gold": 500,
         "reputation": 2,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -49,6 +56,7 @@ traders_data = [
         "name": "Фенг Железноголовый",
         "type": "оружейник",
         "specialization": json.dumps(["мечи", "луки", "арбалеты", "щиты"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -66,6 +74,7 @@ traders_data = [
         "name": "Хельвур Тарнлар",
         "type": "портной",
         "specialization": json.dumps(["мужская одежда", "плащи", "шляпы", "обувь"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -83,6 +92,7 @@ traders_data = [
         "name": "Мэйгла Тарнлар",
         "type": "портниха",
         "specialization": json.dumps(["женская одежда", "платья", "шарфы", "перчатки"]),
+        "gold": 500,
         "reputation": 2,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -96,11 +106,12 @@ traders_data = [
         "possessions": json.dumps(["Семейный напёрсток", "Коллекция образцов тканей", "Портрет мужа"]),
         "rumors": "Она тайно помогает Арфистам, передавая информацию через одежду."
     },
-    # Остальные торговцы (без кастомных полей – оставляем пустыми)
+    # Остальные торговцы – без кастомных personality/possessions/rumors, но с золотом
     {
         "name": "Фаендра Чансирл",
         "type": "кожевник",
         "specialization": json.dumps(["кожаные доспехи", "сбруя", "сумки", "сапоги"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -118,6 +129,7 @@ traders_data = [
         "name": "Улро Лурут",
         "type": "дубильщик",
         "specialization": json.dumps(["кожа", "меха", "шкуры", "ремни"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -135,6 +147,7 @@ traders_data = [
         "name": "Кайлесса Иркелл",
         "type": "трактирщица",
         "specialization": json.dumps(["горячие блюда", "эль", "вино", "ночлег"]),
+        "gold": 500,
         "reputation": 3,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -152,6 +165,7 @@ traders_data = [
         "name": "Гарлен Харлатурл",
         "type": "тавернщик",
         "specialization": json.dumps(["эль", "пиво", "жаркое", "суп"]),
+        "gold": 500,
         "reputation": -1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -169,6 +183,7 @@ traders_data = [
         "name": "Мангобарл Лоррен",
         "type": "пекарь",
         "specialization": json.dumps(["хлеб", "пироги", "булочки", "кексы"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -186,6 +201,7 @@ traders_data = [
         "name": "Нахазлья Дроут",
         "type": "птицевод",
         "specialization": json.dumps(["куры", "гуси", "яйца", "перья"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -203,6 +219,7 @@ traders_data = [
         "name": "Ялесса Орнра",
         "type": "мясник",
         "specialization": json.dumps(["говядина", "свинина", "колбасы", "копчёности"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -220,6 +237,7 @@ traders_data = [
         "name": "Минтра Мандивьер",
         "type": "птицевод",
         "specialization": json.dumps(["цыплята", "яйца", "маринованные яйца"]),
+        "gold": 500,
         "reputation": 2,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -237,6 +255,7 @@ traders_data = [
         "name": "Грунд",
         "type": "торговец",
         "specialization": json.dumps(["соленья", "овощи", "грибы"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -254,6 +273,7 @@ traders_data = [
         "name": "Эндрит Валливой",
         "type": "старьёвщик",
         "specialization": json.dumps(["книги", "карты", "инструменты", "раритеты"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -271,6 +291,7 @@ traders_data = [
         "name": "Марландро Газлькур",
         "type": "цирюльник / старьёвщик",
         "specialization": json.dumps(["стрижка", "подержанные вещи", "слухи", "фальшивомонетничество"]),
+        "gold": 500,
         "reputation": -2,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -288,6 +309,7 @@ traders_data = [
         "name": "Хазлия Ханадроум",
         "type": "банщица / портниха",
         "specialization": json.dumps(["баня", "женские платья", "аромамасла"]),
+        "gold": 500,
         "reputation": 2,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -305,6 +327,7 @@ traders_data = [
         "name": "Мамаша Яланта Дрин",
         "type": "пансион",
         "specialization": json.dumps(["ночлег", "слухи", "временные работники"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -322,6 +345,7 @@ traders_data = [
         "name": "Тёрск Телорн",
         "type": "мастер фургонов",
         "specialization": json.dumps(["фургоны", "колёса", "ремонт"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -339,6 +363,7 @@ traders_data = [
         "name": "Асдан Телорн",
         "type": "мастер фургонов",
         "specialization": json.dumps(["фургоны", "колёса", "ремонт"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -356,6 +381,7 @@ traders_data = [
         "name": "Ильмет Вэльвур",
         "type": "мастер фургонов",
         "specialization": json.dumps(["дешёвые фургоны", "запчасти", "б/у"]),
+        "gold": 500,
         "reputation": -1,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -373,6 +399,7 @@ traders_data = [
         "name": "Албери Миллико",
         "type": "каменотёс",
         "specialization": json.dumps(["каменные блоки", "мрамор", "строительный камень"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -390,6 +417,7 @@ traders_data = [
         "name": "Эйриго Бетендур",
         "type": "складской владелец",
         "specialization": json.dumps(["хранение", "аренда", "пересылка"]),
+        "gold": 500,
         "reputation": 0,
         "region": "Долина Дессарин",
         "settlement": "Красная Лиственница",
@@ -407,6 +435,7 @@ traders_data = [
         "name": "Херивин Дардрагон",
         "type": "трактирщик",
         "specialization": json.dumps(["эль", "комнаты", "картины", "безделушки"]),
+        "gold": 500,
         "reputation": 2,
         "region": "Долина Дессарин",
         "settlement": "Вестбридж",
@@ -424,6 +453,7 @@ traders_data = [
         "name": "Нешор Флёрдин",
         "type": "трактирщик",
         "specialization": json.dumps(["эль", "горячее", "ночлег"]),
+        "gold": 500,
         "reputation": 1,
         "region": "Долина Дессарин",
         "settlement": "Белиард",
@@ -441,6 +471,7 @@ traders_data = [
         "name": "Шоалар Куандерил",
         "type": "контрабандист",
         "specialization": json.dumps(["книги", "редкие товары", "информация"]),
+        "gold": 500,
         "reputation": -2,
         "region": "Долина Дессарин",
         "settlement": "Вомфорд",
@@ -458,6 +489,7 @@ traders_data = [
         "name": "Гариена",
         "type": "друид-травница",
         "specialization": json.dumps(["зелья", "яды", "лекарства", "свитки"]),
+        "gold": 500,
         "reputation": 2,
         "region": "Долина Дессарин",
         "settlement": "Чертоги Алой Луны",
@@ -473,16 +505,17 @@ traders_data = [
     }
 ]
 
-# Добавляем торговцев
+# Сохраняем торговцев в БД
 for data in traders_data:
     trader = Trader(**data)
     db.add(trader)
 db.commit()
 print(f"Добавлено {len(traders_data)} торговцев.")
 
-# ------------------------------------------------------------
-# Предметы (полный список из предыдущей версии)
-# ------------------------------------------------------------
+# -------------------- 3. ПРЕДМЕТЫ (связка торговец–предмет) --------------------
+# Здесь описываются все предметы, которые будут у каждого торговца.
+# Структура: ключ – имя торговца (должно совпадать с именем в traders_data),
+# значение – список предметов с полями.
 items_by_trader = {
     "Элдрас Тантур": [
         {"name": "Длинный меч", "category": "оружие", "subcategory": "меч", "rarity": "обычный", "price_gold": 15, "weight": 3, "description": "Простой, но надёжный длинный меч. Хорош для пехоты.", "properties": json.dumps({"damage": "1d8", "damage_type": "колющий"}), "requirements": json.dumps({"strength": 13}), "is_magical": False, "attunement": False},
@@ -621,16 +654,21 @@ items_by_trader = {
     ],
 }
 
-# ------------------------------------------------------------
-# Вспомогательная функция для добавления валют и stock
-# ------------------------------------------------------------
+# -------------------- 4. ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ enrich_item --------------------
 def enrich_item(item_data):
-    # Добавляем валюты, если их нет
+    """
+    Добавляет в словарь предмета недостающие поля:
+    - price_silver и price_copper из price_gold (1 золотой = 100 серебряных = 10000 медных)
+    - stock – количество в наличии (зависит от категории)
+    - quality – качество (по умолчанию "стандартное")
+    """
+    # Конвертируем цену из золотых в три валюты
     if "price_silver" not in item_data:
         price_gold = item_data.get("price_gold", 0)
         item_data["price_silver"] = int(price_gold * 100)
         item_data["price_copper"] = int(price_gold * 10000)
-    # Добавляем stock, если его нет
+
+    # Устанавливаем stock по умолчанию, если не указан
     if "stock" not in item_data:
         cat = item_data.get("category", "")
         if cat in ["еда", "напитки", "услуга", "материалы", "лекарство", "животные", "искусство", "товар"]:
@@ -641,14 +679,14 @@ def enrich_item(item_data):
             item_data["stock"] = 1
         else:
             item_data["stock"] = 3
-    # Добавляем quality по умолчанию
+
+    # Устанавливаем качество по умолчанию
     if "quality" not in item_data:
         item_data["quality"] = "стандартное"
+
     return item_data
 
-# ------------------------------------------------------------
-# Сохранение предметов и связей
-# ------------------------------------------------------------
+# -------------------- 5. СОХРАНЕНИЕ ПРЕДМЕТОВ И СВЯЗЕЙ --------------------
 traders_dict = {t.name: t for t in db.query(Trader).all()}
 existing_items = {}
 
@@ -657,11 +695,12 @@ for trader_name, items_list in items_by_trader.items():
     if not trader:
         print(f"Торговец '{trader_name}' не найден, пропускаем.")
         continue
+
     for item_data in items_list:
-        # Обогащаем данными
+        # Обогащаем предмет дополнительными полями
         item_data = enrich_item(item_data)
 
-        # Проверяем, есть ли уже такой предмет (по имени)
+        # Ищем предмет по имени (чтобы не дублировать)
         if item_data["name"] in existing_items:
             item = existing_items[item_data["name"]]
         else:
@@ -670,7 +709,7 @@ for trader_name, items_list in items_by_trader.items():
             db.flush()
             existing_items[item_data["name"]] = item
 
-        # Добавляем связь, если ещё нет
+        # Добавляем связь торговец ↔ предмет
         if item not in trader.items:
             trader.items.append(item)
 

@@ -1,14 +1,27 @@
+# ============================================================
+# update_items_stats.py – Скрипт для обновления характеристик предметов
+# Используется, когда нужно подправить статы, не пересоздавая всю БД.
+# ============================================================
+
 from app.models import SessionLocal, Item
 import json
+import sys
+import os
+
+# Добавляем путь к проекту, чтобы импорты работали из любого места
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 db = SessionLocal()
 
-# Словарь с полными данными для каждого предмета, который у нас есть в базе
+# ------------------------------------------------------------
+# Словарь с новыми данными для предметов
+# Ключ – название предмета (должно точно совпадать с названием в БД)
+# ------------------------------------------------------------
 stats_map = {
-    # Оружие
+    # ===== ОРУЖИЕ =====
     "Длинный меч": {
         "weight": 3,
-        "price_gold": 15,
+        "price_gold": 15.0,               # цена в золотых (будет разложена на золото/серебро)
         "properties": json.dumps({"damage": "1d8", "damage_type": "колющий"}),
         "requirements": json.dumps({"strength": 13}),
         "is_magical": False,
@@ -16,7 +29,7 @@ stats_map = {
     },
     "Короткий меч": {
         "weight": 2,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({"damage": "1d6", "damage_type": "колющий"}),
         "requirements": json.dumps({"strength": 11}),
         "is_magical": False,
@@ -24,7 +37,7 @@ stats_map = {
     },
     "Короткий меч +1": {
         "weight": 2,
-        "price_gold": 200,
+        "price_gold": 200.0,
         "properties": json.dumps({"damage": "1d6+1", "damage_type": "колющий", "bonus": 1}),
         "requirements": json.dumps({"strength": 11}),
         "is_magical": True,
@@ -32,7 +45,7 @@ stats_map = {
     },
     "Боевой топор": {
         "weight": 4,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({"damage": "1d8", "versatile": "1d10"}),
         "requirements": json.dumps({"strength": 13}),
         "is_magical": False,
@@ -40,7 +53,7 @@ stats_map = {
     },
     "Длинный лук": {
         "weight": 2,
-        "price_gold": 50,
+        "price_gold": 50.0,
         "properties": json.dumps({"damage": "1d8", "range": "150/600"}),
         "requirements": json.dumps({"strength": 11}),
         "is_magical": False,
@@ -48,7 +61,7 @@ stats_map = {
     },
     "Лёгкий арбалет": {
         "weight": 5,
-        "price_gold": 25,
+        "price_gold": 25.0,
         "properties": json.dumps({"damage": "1d8", "range": "80/320", "loading": True}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -56,7 +69,7 @@ stats_map = {
     },
     "Лук охотника": {
         "weight": 2,
-        "price_gold": 50,
+        "price_gold": 50.0,
         "properties": json.dumps({"damage": "1d8", "range": "150/600"}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -64,16 +77,24 @@ stats_map = {
     },
     "Кинжал культистов": {
         "weight": 1,
-        "price_gold": 300,
+        "price_gold": 300.0,
         "properties": json.dumps({"damage": "1d4", "damage_type": "колющий", "curse": "проклятие при ударе"}),
         "requirements": json.dumps({}),
         "is_magical": True,
         "attunement": True
     },
-    # Доспехи
+    "Старый кинжал": {
+        "weight": 1,
+        "price_gold": 2.0,
+        "properties": json.dumps({"damage": "1d4"}),
+        "requirements": json.dumps({}),
+        "is_magical": False,
+        "attunement": False
+    },
+    # ===== ДОСПЕХИ =====
     "Кольчуга": {
         "weight": 20,
-        "price_gold": 75,
+        "price_gold": 75.0,
         "properties": json.dumps({"ac": 16, "stealth": "disadvantage"}),
         "requirements": json.dumps({"strength": 13}),
         "is_magical": False,
@@ -81,7 +102,7 @@ stats_map = {
     },
     "Кожаный доспех": {
         "weight": 10,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({"ac": 11, "type": "light"}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -89,16 +110,16 @@ stats_map = {
     },
     "Щит": {
         "weight": 6,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({"ac": 2}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Инструменты и материалы
+    # ===== ИНСТРУМЕНТЫ И МАТЕРИАЛЫ =====
     "Набор кузнечных инструментов": {
         "weight": 8,
-        "price_gold": 20,
+        "price_gold": 20.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -106,7 +127,7 @@ stats_map = {
     },
     "Набор столярных инструментов": {
         "weight": 6,
-        "price_gold": 8,
+        "price_gold": 8.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -114,7 +135,7 @@ stats_map = {
     },
     "Железная цепь (10 футов)": {
         "weight": 10,
-        "price_gold": 5,
+        "price_gold": 5.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -122,7 +143,7 @@ stats_map = {
     },
     "Подковы (4 шт)": {
         "weight": 12,
-        "price_gold": 4,
+        "price_gold": 4.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -130,7 +151,7 @@ stats_map = {
     },
     "Выделанная воловья шкура": {
         "weight": 15,
-        "price_gold": 5,
+        "price_gold": 5.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -138,7 +159,7 @@ stats_map = {
     },
     "Мех лисы": {
         "weight": 1,
-        "price_gold": 3,
+        "price_gold": 3.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -146,13 +167,13 @@ stats_map = {
     },
     "Кожаный ремень": {
         "weight": 0.5,
-        "price_gold": 1,
+        "price_gold": 1.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Еда и напитки
+    # ===== ЕДА И НАПИТКИ =====
     "Крошковый пирог": {
         "weight": 0.5,
         "price_gold": 0.3,
@@ -195,7 +216,7 @@ stats_map = {
     },
     "Тарелка жаркого": {
         "weight": 0.5,
-        "price_gold": 1,
+        "price_gold": 1.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -203,16 +224,16 @@ stats_map = {
     },
     "Дорожный паёк (7 дней)": {
         "weight": 5,
-        "price_gold": 5,
+        "price_gold": 5.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Книги, карты, прочее
+    # ===== КНИГИ, КАРТЫ, СОКРОВИЩА =====
     "Путевой дневник купца": {
         "weight": 1,
-        "price_gold": 5,
+        "price_gold": 5.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -220,7 +241,7 @@ stats_map = {
     },
     "Старая карта долины Дессарин": {
         "weight": 0.2,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -228,21 +249,13 @@ stats_map = {
     },
     "Серебряное зеркальце": {
         "weight": 0.5,
-        "price_gold": 15,
+        "price_gold": 15.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    "Старый кинжал": {
-        "weight": 1,
-        "price_gold": 2,
-        "properties": json.dumps({"damage": "1d4"}),
-        "requirements": json.dumps({}),
-        "is_magical": False,
-        "attunement": False
-    },
-    # Услуги
+    # ===== УСЛУГИ =====
     "Стрижка и бритьё": {
         "weight": 0,
         "price_gold": 0.2,
@@ -267,10 +280,10 @@ stats_map = {
         "is_magical": False,
         "attunement": False
     },
-    # Зелья и свитки
+    # ===== ЗЕЛЬЯ, СВИТКИ =====
     "Зелье лечения": {
         "weight": 0.5,
-        "price_gold": 50,
+        "price_gold": 50.0,
         "properties": json.dumps({"healing": "2d4+2"}),
         "requirements": json.dumps({}),
         "is_magical": True,
@@ -278,7 +291,7 @@ stats_map = {
     },
     "Свиток «Небесные письмена»": {
         "weight": 0,
-        "price_gold": 100,
+        "price_gold": 100.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({"spellcasting": True}),
         "is_magical": True,
@@ -286,7 +299,7 @@ stats_map = {
     },
     "Яд слабости": {
         "weight": 0.1,
-        "price_gold": 75,
+        "price_gold": 75.0,
         "properties": json.dumps({"effect": "ослабление"}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -294,16 +307,16 @@ stats_map = {
     },
     "Сбор трав (10 доз)": {
         "weight": 1,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Транспорт и запчасти
+    # ===== ТРАНСПОРТ =====
     "Фургон (обычный)": {
         "weight": 500,
-        "price_gold": 35,
+        "price_gold": 35.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -311,7 +324,7 @@ stats_map = {
     },
     "Повозка (лёгкая)": {
         "weight": 300,
-        "price_gold": 25,
+        "price_gold": 25.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -319,7 +332,7 @@ stats_map = {
     },
     "Запасное колесо": {
         "weight": 30,
-        "price_gold": 5,
+        "price_gold": 5.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -327,7 +340,7 @@ stats_map = {
     },
     "Ось": {
         "weight": 20,
-        "price_gold": 3,
+        "price_gold": 3.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -335,7 +348,7 @@ stats_map = {
     },
     "Б/у фургон": {
         "weight": 500,
-        "price_gold": 20,
+        "price_gold": 20.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -343,16 +356,16 @@ stats_map = {
     },
     "Колёса (б/у)": {
         "weight": 30,
-        "price_gold": 2,
+        "price_gold": 2.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Камень и строительные материалы
+    # ===== КАМЕНЬ И СТРОЙМАТЕРИАЛЫ =====
     "Мраморная плита (2х2)": {
         "weight": 150,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -360,16 +373,16 @@ stats_map = {
     },
     "Бутовый камень (корзина)": {
         "weight": 50,
-        "price_gold": 1,
+        "price_gold": 1.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Одежда и аксессуары (несколько примеров)
+    # ===== ОДЕЖДА =====
     "Плащ с капюшоном": {
         "weight": 2,
-        "price_gold": 2,
+        "price_gold": 2.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -377,7 +390,7 @@ stats_map = {
     },
     "Шляпа с широкими полями": {
         "weight": 0.5,
-        "price_gold": 1,
+        "price_gold": 1.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -385,7 +398,7 @@ stats_map = {
     },
     "Сапоги на меху": {
         "weight": 1,
-        "price_gold": 5,
+        "price_gold": 5.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
@@ -393,30 +406,73 @@ stats_map = {
     },
     "Шёлковая рубашка": {
         "weight": 0.5,
-        "price_gold": 10,
+        "price_gold": 10.0,
         "properties": json.dumps({}),
         "requirements": json.dumps({}),
         "is_magical": False,
         "attunement": False
     },
-    # Добавь сюда другие предметы по необходимости
+    # Добавь сюда остальные предметы, если нужно
 }
 
+
+# ------------------------------------------------------------
+# Вспомогательная функция для конвертации цены из float в (золото, серебро, медь)
+# ------------------------------------------------------------
+def convert_price(price_gold_float):
+    """
+    Принимает цену в золотых как число с плавающей точкой (например, 1.23)
+    Возвращает кортеж (gold, silver, copper) целых чисел
+    """
+    total_copper = int(round(price_gold_float * 10000))  # 1 зол. = 10000 медных
+    gold = total_copper // 10000
+    remaining = total_copper % 10000
+    silver = remaining // 100
+    copper = remaining % 100
+    return gold, silver, copper
+
+
+# ------------------------------------------------------------
+# Основной цикл обновления
+# ------------------------------------------------------------
 items = db.query(Item).all()
 updated = 0
+skipped = 0
+
 for item in items:
     if item.name in stats_map:
         data = stats_map[item.name]
-        item.weight = data.get("weight", item.weight)
-        item.price_gold = data.get("price_gold", item.price_gold)
-        item.properties = data.get("properties", item.properties)
-        item.requirements = data.get("requirements", item.requirements)
-        item.is_magical = data.get("is_magical", item.is_magical)
-        item.attunement = data.get("attunement", item.attunement)
-        print(f"Обновлён: {item.name}")
+        # Обновляем поля, если они есть в словаре
+        if "weight" in data:
+            item.weight = data["weight"]
+        if "properties" in data:
+            item.properties = data["properties"]
+        if "requirements" in data:
+            item.requirements = data["requirements"]
+        if "is_magical" in data:
+            item.is_magical = data["is_magical"]
+        if "attunement" in data:
+            item.attunement = data["attunement"]
+
+        # Обработка цены: если указан price_gold, пересчитываем gold, silver, copper
+        if "price_gold" in data:
+            gold_int, silver_int, copper_int = convert_price(data["price_gold"])
+            item.price_gold = gold_int
+            item.price_silver = silver_int
+            item.price_copper = copper_int
+
+        # Если нужно, можно добавить обновление stock или quality,
+        # но в данном словаре их нет – оставляем как есть.
+
+        print(f"Обновлён: {item.name} | нов.цена: {item.price_gold}з {item.price_silver}с {item.price_copper}м")
         updated += 1
     else:
-        print(f"Предмет не найден в словаре: {item.name}")
+        # Предмет не найден в словаре – просто пропускаем
+        # (можно раскомментировать следующую строку для отладки)
+        # print(f"Предмет не найден в словаре: {item.name}")
+        skipped += 1
+
 db.commit()
 db.close()
-print(f"\nГотово. Обновлено {updated} предметов.")
+
+print(f"\n✅ Готово. Обновлено {updated} предметов. Пропущено {skipped} (не были в словаре).")

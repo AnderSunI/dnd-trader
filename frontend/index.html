@@ -106,6 +106,10 @@
             width: 100%;
             height: 150px;
             background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
             background-size: cover;
             background-position: center;
         }
@@ -194,7 +198,7 @@
             vertical-align: top;
         }
         .items-table th { background-color: #f2f2f2; }
-        .add-to-cart-btn {
+        .add-to-cart-btn, .sell-confirm {
             background-color: #e67e22;
             color: white;
             border: none;
@@ -203,8 +207,8 @@
             cursor: pointer;
             font-size: 12px;
         }
-        .add-to-cart-btn:hover { background-color: #f39c12; }
-        .add-to-cart-btn:disabled {
+        .add-to-cart-btn:hover, .sell-confirm:hover { background-color: #f39c12; }
+        .add-to-cart-btn:disabled, .sell-confirm:disabled {
             background-color: #aaa;
             cursor: not-allowed;
         }
@@ -259,21 +263,21 @@
             text-align: center;
         }
         .add-cell { white-space: nowrap; }
-        .cart-item {
+        .cart-item, .inventory-item {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #eee;
         }
-        .cart-item-info { flex: 3; }
-        .cart-item-controls {
+        .cart-item-info, .inventory-item-info { flex: 3; }
+        .cart-item-controls, .inventory-item-controls {
             display: flex;
             align-items: center;
             gap: 10px;
             flex-wrap: wrap;
         }
-        .cart-item-controls button {
+        .cart-item-controls button, .inventory-item-controls button {
             background: #e9ecef;
             border: none;
             padding: 4px 8px;
@@ -281,12 +285,12 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .cart-item-controls button:hover { background: #ced4da; }
-        .cart-item-controls input {
+        .cart-item-controls button:hover, .inventory-item-controls button:hover { background: #ced4da; }
+        .cart-item-controls input, .inventory-item-controls input {
             width: 50px;
             text-align: center;
         }
-        .cart-item-price { min-width: 80px; text-align: right; }
+        .cart-item-price, .inventory-item-price { min-width: 80px; text-align: right; }
         .trader-detail-section {
             background: #f9f9f9;
             border-left: 4px solid #f39c12;
@@ -298,37 +302,140 @@
             margin: 0 0 6px 0;
             color: #2c3e50;
         }
+        /* Пергамент для заметок ГМ */
         .gm-notes {
-            background: #fff8e7;
-            border: 1px solid #ffe0a3;
-            padding: 8px 12px;
+            background: #fdf8e7;
+            border: 1px solid #e0c8a0;
+            padding: 12px 16px;
             margin-top: 20px;
             border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.1);
+            font-family: 'Segoe UI', 'Book Antiqua', serif;
         }
         .gm-notes textarea {
             width: 100%;
-            min-height: 80px;
-            padding: 6px;
+            min-height: 100px;
+            padding: 10px;
             font-family: inherit;
             border-radius: 6px;
-            border: 1px solid #ccc;
-            margin-top: 6px;
+            border: 1px solid #d4b87a;
+            background: #fffcf0;
+            margin-top: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         }
         .gm-notes label {
             font-weight: bold;
             font-size: 0.9rem;
+            color: #6b4c2c;
+            letter-spacing: 0.5px;
         }
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .qty-control button {
+            background: #e9ecef;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .inv-item-details {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        .inv-item-details span {
+            background: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 12px;
+            margin-right: 6px;
+            display: inline-block;
+        }
+        /* Вкладки в модалке торговца */
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #6c757d;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            color: #e67e22;
+            border-bottom-color: #e67e22;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Адаптация для мобильных: таблицы в карточки */
         @media (max-width: 768px) {
-            .items-table th, .items-table td { padding: 4px; font-size: 12px; }
-            .add-to-cart-btn { padding: 4px 8px; font-size: 10px; }
-            .quantity-input { width: 50px; }
-            .cart-info { font-size: 12px; }
-            .trader-name { font-size: 1.1rem; }
-            .cart-item { flex-direction: column; align-items: flex-start; gap: 8px; }
-            .cart-item-price { text-align: left; }
-            .filters-panel { flex-direction: column; align-items: stretch; }
-            .filter-group { width: 100%; }
-            .price-range input { width: 100%; }
+            .items-table, .items-table tbody, .items-table tr, .items-table td, .items-table th {
+                display: block;
+            }
+            .items-table thead {
+                display: none;
+            }
+            .items-table tr {
+                border: 1px solid #ddd;
+                margin-bottom: 12px;
+                border-radius: 8px;
+                padding: 8px;
+            }
+            .items-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 6px 8px;
+                border: none;
+                border-bottom: 1px solid #eee;
+            }
+            .items-table td:last-child {
+                border-bottom: none;
+            }
+            .items-table td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                width: 40%;
+            }
+            .add-cell, .quantity-input, .add-to-cart-btn {
+                width: 100%;
+                text-align: center;
+            }
+            .filters-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-group {
+                width: 100%;
+            }
+            .price-range input {
+                width: 100%;
+            }
+            .cart-item, .inventory-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .cart-item-price, .inventory-item-price {
+                text-align: left;
+            }
         }
     </style>
 </head>
@@ -344,6 +451,16 @@
             <button id="viewCartBtn" class="primary">Просмотр корзины</button>
             <button id="clearCartBtn" class="danger">Очистить корзину</button>
             <button id="updateGoldBtn" class="primary">Обновить</button>
+        </div>
+    </div>
+
+    <!-- Виджет инвентаря -->
+    <div class="cart-widget" style="margin-top: -10px;">
+        <div class="cart-info">
+            🎒 Инвентарь: <span id="inventoryCount">0</span> предметов
+        </div>
+        <div class="cart-buttons">
+            <button id="viewInventoryBtn" class="primary">Просмотр инвентаря</button>
         </div>
     </div>
 
@@ -372,6 +489,8 @@
                     <option value="1">1 ★ и выше</option>
                     <option value="2">2 ★ и выше</option>
                     <option value="3">3 ★ и выше</option>
+                    <option value="4">4 ★ и выше</option>
+                    <option value="5">5 ★</option>
                 </select>
             </div>
         </div>
@@ -423,27 +542,97 @@
     <div id="tradersGrid" class="traders-grid"></div>
     <footer>Генератор торговцев для D&D 5e | По мотивам «Принцев Апокалипсиса»</footer>
 
+    <!-- Модалки -->
     <div id="traderModal" class="modal"><div class="modal-content"><span class="close">&times;</span><div id="modalContent"></div></div></div>
     <div id="cartModal" class="modal"><div class="modal-content"><span class="close" id="closeCartModal">&times;</span><div id="cartModalContent"></div></div></div>
+    <div id="inventoryModal" class="modal"><div class="modal-content"><span class="close" id="closeInventoryModal">&times;</span><div id="inventoryModalContent"></div></div></div>
     <div id="toast" class="toast"></div>
 
     <script>
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+        let inventory = [];            // каждый элемент: { itemId, name, quantity, price_gold, price_silver, weight, rarity, is_magical, quality, description, category }
         let allTraders = [];
-        let cart = [];
+        let cart = [];                // { traderId, itemId, name, price, quantity, originalStock }
         let playerGold = 1000;
-        let selectedReputation = null;
         let gmNotes = {};
 
+        // ==================== ЗВУКИ (заглушки, можно заменить на реальные файлы) ====================
+        function playSound(type) {
+            try {
+                if (type === 'coin') {
+                    new Audio('/sounds/coin.mp3').play().catch(e=>console.log('звук не загружен'));
+                } else if (type === 'door') {
+                    new Audio('/sounds/door.mp3').play().catch(e=>console.log('звук не загружен'));
+                }
+            } catch(e) {}
+        }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
         function loadGMNotes() {
             const stored = localStorage.getItem('dnd_gm_notes');
             if (stored) {
-                try {
-                    gmNotes = JSON.parse(stored);
-                } catch(e) {}
+                try { gmNotes = JSON.parse(stored); } catch(e) {}
             }
         }
         function saveGMNotes() {
             localStorage.setItem('dnd_gm_notes', JSON.stringify(gmNotes));
+        }
+
+        function saveInventory() {
+            localStorage.setItem('dnd_inventory', JSON.stringify(inventory));
+            updateInventoryWidget();
+        }
+        function updateInventoryWidget() {
+            const totalItems = inventory.reduce((sum, i) => sum + i.quantity, 0);
+            const invCountSpan = document.getElementById('inventoryCount');
+            if (invCountSpan) invCountSpan.innerText = totalItems;
+        }
+
+        function addToInventory(itemId, qty = 1) {
+            let fullItem = null;
+            for (let trader of allTraders) {
+                const found = trader.items.find(i => i.id === itemId);
+                if (found) {
+                    fullItem = found;
+                    break;
+                }
+            }
+            if (!fullItem) {
+                console.warn(`Предмет с id ${itemId} не найден`);
+                return;
+            }
+            let existing = inventory.find(i => i.itemId === itemId);
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                inventory.push({
+                    itemId: itemId,
+                    name: fullItem.name,
+                    quantity: qty,
+                    price_gold: fullItem.price_gold,
+                    price_silver: fullItem.price_silver || 0,
+                    weight: fullItem.weight,
+                    rarity: fullItem.rarity,
+                    is_magical: fullItem.is_magical,
+                    quality: fullItem.quality || 'стандартное',
+                    description: fullItem.description || '',
+                    category: fullItem.category || ''
+                });
+            }
+            saveInventory();
+        }
+
+        function removeFromInventory(itemId, qtyToRemove = 1) {
+            let index = inventory.findIndex(i => i.itemId === itemId);
+            if (index !== -1) {
+                inventory[index].quantity -= qtyToRemove;
+                if (inventory[index].quantity <= 0) inventory.splice(index, 1);
+                saveInventory();
+            }
+        }
+        function getInventoryQuantity(itemId) {
+            let inv = inventory.find(i => i.itemId === itemId);
+            return inv ? inv.quantity : 0;
         }
 
         function formatPrice(gold, silver = null) {
@@ -489,6 +678,30 @@
             return '★'.repeat(stars) + '☆'.repeat(5 - stars);
         }
 
+        // ==================== СЕРВЕРНЫЕ ЗАПРОСЫ ====================
+        async function updateItemStock(itemId, newStock) {
+            try {
+                const res = await fetch(`/items/${itemId}/stock?stock=${newStock}`, { method: 'PATCH' });
+                if (!res.ok) throw new Error('Ошибка обновления запаса');
+                return await res.json();
+            } catch(e) {
+                showToast('Ошибка обновления запаса предмета');
+                console.error(e);
+            }
+        }
+
+        async function updateTraderGold(traderId, newGold) {
+            try {
+                const res = await fetch(`/traders/${traderId}/gold?gold=${newGold}`, { method: 'PATCH' });
+                if (!res.ok) throw new Error('Ошибка обновления золота торговца');
+                return await res.json();
+            } catch(e) {
+                showToast('Ошибка обновления золота торговца');
+                console.error(e);
+            }
+        }
+
+        // ==================== ЗАГРУЗКА ДАННЫХ ====================
         fetch('/traders')
             .then(response => response.json())
             .then(data => {
@@ -503,10 +716,15 @@
                     playerGold = parseInt(savedGold);
                     document.getElementById('playerGoldInput').value = playerGold;
                 }
+                const savedInventory = localStorage.getItem('dnd_inventory');
+                if (savedInventory) {
+                    try { inventory = JSON.parse(savedInventory); updateInventoryWidget(); } catch(e) {}
+                }
                 renderTraders();
             })
             .catch(err => console.error('Ошибка загрузки:', err));
 
+        // ==================== ФИЛЬТРЫ И ОТРИСОВКА ====================
         function populateFilters() {
             const typeSet = new Set();
             const regionSet = new Set();
@@ -563,12 +781,13 @@
             const sortBy = document.getElementById('sortBy').value;
 
             let filtered = allTraders.filter(t => {
-                // Поиск по имени торговца
                 if (traderSearch && !t.name.toLowerCase().includes(traderSearch)) return false;
                 if (type && t.type !== type) return false;
                 if (region && t.region !== region) return false;
                 const traderMinLevel = (t.level_min !== undefined && t.level_min !== null) ? t.level_min : 1;
                 if (traderMinLevel > level) return false;
+                const traderMaxLevel = (t.level_max !== undefined && t.level_max !== null) ? t.level_max : Infinity;
+                if (traderMaxLevel < level) return false;
                 if (repValue !== null && t.reputation < repValue) return false;
                 return traderHasMatchingItems(t, searchText, priceMin, priceMax, rarity, category, magicOnly);
             });
@@ -601,16 +820,27 @@
                 return;
             }
             container.innerHTML = filtered.map(t => {
-                let itemsHtml = '';
-                if (t.items && t.items.length) {
-                    itemsHtml = `<div class="items-list"><div class="items-title">📦 Товары:</div><ul class="items">${t.items.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}</ul></div>`;
-                } else {
-                    itemsHtml = `<div class="items-list"><div class="no-items">Нет товаров</div></div>`;
+                // Иконка для аватарки в зависимости от типа
+                let icon = '🏪';
+                if (t.type) {
+                    if (t.type.includes('кузнец')) icon = '⚒️';
+                    else if (t.type.includes('оружейник')) icon = '⚔️';
+                    else if (t.type.includes('портной') || t.type.includes('портниха')) icon = '👗';
+                    else if (t.type.includes('трактирщик') || t.type.includes('тавернщик')) icon = '🍺';
+                    else if (t.type.includes('кожевник')) icon = '🧵';
+                    else if (t.type.includes('пекарь')) icon = '🍞';
+                    else if (t.type.includes('мясник')) icon = '🥩';
+                    else if (t.type.includes('старьёвщик')) icon = '📦';
+                    else if (t.type.includes('контрабандист')) icon = '💎';
+                    else if (t.type.includes('друид')) icon = '🌿';
                 }
+                const itemsHtml = (t.items && t.items.length) ? `
+                    <div class="items-list"><div class="items-title">📦 Товары:</div><ul class="items">${t.items.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}</ul></div>
+                ` : '<div class="items-list"><div class="no-items">Нет товаров</div></div>';
                 const reputationStars = getReputationStars(t.reputation);
                 return `
                     <div class="trader-card" data-trader-id="${t.id}">
-                        <div class="trader-image" style="background-color: #ccc;"></div>
+                        <div class="trader-image">${icon}</div>
                         <div class="trader-info">
                             <div class="trader-name">${t.name}</div>
                             <div class="trader-type">${t.type || 'Торговец'}</div>
@@ -632,31 +862,35 @@
                 card.addEventListener('click', () => {
                     const traderId = card.dataset.traderId;
                     const trader = allTraders.find(t => t.id == traderId);
-                    if (trader) showTraderModal(trader);
+                    if (trader) {
+                        playSound('door');
+                        showTraderModal(trader);
+                    }
                 });
             });
         }
 
+        // ==================== МОДАЛКА ТОРГОВЦА С ВКЛАДКАМИ ====================
         function showTraderModal(trader) {
             const modalContent = document.getElementById('modalContent');
-            let itemsHtml = '';
+            // ----- Таблица покупки (товары торговца) -----
+            let buyHtml = '';
             if (trader.items && trader.items.length) {
-                itemsHtml = `
-                    <h3>📦 Товары (цены в ${trader.currency || 'золотых'}):</h3>
+                buyHtml = `
+                    <p><strong id="traderGoldDisplay">💰 Золото торговца: ${trader.gold} зол.</strong></p>
+                    <h3>📦 Покупка (цены в ${trader.currency || 'золотых'}):</h3>
                     <table class="items-table">
-                        <thead><tr><th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действие</th></tr></thead>
+                        <thead> <th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действие</th> </thead>
                         <tbody>
                             ${trader.items.map(item => {
                                 const quality = item.quality || 'стандартное';
-                                const qualityHtml = `<span class="quality-badge">${quality}</span>`;
                                 const originalStock = item.stock !== undefined ? item.stock : 0;
                                 const cartItem = cart.find(i => i.traderId === trader.id && i.itemId === item.id);
                                 const cartQty = cartItem ? cartItem.quantity : 0;
                                 const remaining = originalStock - cartQty;
                                 const stockHtml = remaining > 0 ? `${remaining}` : '<span style="color:red;">нет в наличии</span>';
                                 
-                                let discount = 0;
-                                if (trader.reputation > 0) discount = trader.reputation / 100;
+                                let discount = trader.reputation > 0 ? trader.reputation / 100 : 0;
                                 let finalGold = item.price_gold * (1 - discount);
                                 let finalSilver = (item.price_silver || 0) * (1 - discount);
                                 if (finalSilver >= 100) {
@@ -687,15 +921,15 @@
                                 const addBtnDisabled = !canAdd ? 'disabled' : '';
                                 
                                 return `
-                                    <tr data-trader-id="${trader.id}" data-item-id="${item.id}" data-original-stock="${originalStock}" data-price-gold="${finalGold}" data-price-silver="${finalSilver}" data-name="${item.name}">
-                                        <td>${item.name}${item.is_magical ? ' ✨' : ''}</td>
-                                        <td>${priceFormatted}</td>
-                                        <td>${qualityHtml}</td>
-                                        <td class="stock-cell">${stockHtml}</td>
-                                        <td>${statsHtml}</td>
-                                        <td>${item.description || '—'}</td>
-                                        <td><input type="number" class="quantity-input" min="1" max="${remaining}" value="1" ${inputDisabled}></td>
-                                        <td class="add-cell"><button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button></td>
+                                    <tr data-buy-trader-id="${trader.id}" data-buy-item-id="${item.id}" data-buy-original-stock="${originalStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-name="${item.name}">
+                                        <td data-label="Название">${item.name}${item.is_magical ? ' ✨' : ''}</td>
+                                        <td data-label="Цена">${priceFormatted}</td>
+                                        <td data-label="Качество"><span class="quality-badge">${quality}</span></td>
+                                        <td data-label="Осталось" class="stock-cell">${stockHtml}</td>
+                                        <td data-label="Характеристики">${statsHtml}</td>
+                                        <td data-label="Описание">${item.description || '—'}</td>
+                                        <td data-label="Кол-во"><input type="number" class="quantity-input" min="1" max="${remaining}" value="1" ${inputDisabled}></td>
+                                        <td data-label="Действие" class="add-cell"><button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button></td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -703,27 +937,64 @@
                     </table>
                 `;
             } else {
-                itemsHtml = '<p>У этого торговца пока нет товаров.</p>';
+                buyHtml = '<p>У этого торговца пока нет товаров.</p>';
             }
 
-            // Блоки расширенной информации, если они есть
-            let personalityHtml = '';
-            if (trader.personality) {
-                personalityHtml = `<div class="trader-detail-section"><h4>🧠 Особенности</h4><p>${trader.personality}</p></div>`;
-            }
-            let possessionsHtml = '';
-            if (trader.possessions) {
-                let possessions = trader.possessions;
-                if (typeof possessions === 'string') possessions = JSON.parse(possessions);
-                if (Array.isArray(possessions) && possessions.length) {
-                    possessionsHtml = `<div class="trader-detail-section"><h4>🎒 Личные вещи</h4><ul><li>${possessions.join('</li><li>')}</li></ul></div>`;
-                }
-            }
-            let rumorsHtml = '';
-            if (trader.rumors) {
-                rumorsHtml = `<div class="trader-detail-section"><h4>🔍 Слухи / Квесты</h4><p>${trader.rumors}</p></div>`;
+            // ----- Таблица продажи (предметы из инвентаря) -----
+            let sellHtml = '';
+            const sellableItems = inventory.filter(inv => trader.items.some(item => item.id === inv.itemId));
+            if (sellableItems.length) {
+                sellHtml = `
+                    <div id="sellSection">
+                        <h3>💰 Продажа торговцу</h3>
+                        <table class="items-table">
+                            <thead> <th>Название</th><th>У вас</th><th>Цена за шт.</th><th>Кол-во к продаже</th><th>Действие</th> </thead>
+                            <tbody>
+                                ${sellableItems.map(inv => {
+                                    const traderItem = trader.items.find(i => i.id === inv.itemId);
+                                    let discount = trader.reputation > 0 ? trader.reputation / 100 : 0;
+                                    let sellPrice = traderItem.price_gold * 0.5 * (1 + discount);
+                                    sellPrice = Math.round(sellPrice * 100) / 100;
+                                    return `
+                                        <tr data-sell-item-id="${inv.itemId}" data-sell-price="${sellPrice}" data-sell-name="${inv.name}" data-sell-max-qty="${inv.quantity}">
+                                            <td data-label="Название">${inv.name}</td>
+                                            <td data-label="У вас" class="sell-inv-qty">${inv.quantity}</td>
+                                            <td data-label="Цена за шт.">${sellPrice} зол.</td>
+                                            <td data-label="Кол-во к продаже">
+                                                <div class="qty-control">
+                                                    <button class="sell-dec">-</button>
+                                                    <input type="number" class="sell-qty" value="1" min="1" max="${inv.quantity}" step="1">
+                                                    <button class="sell-inc">+</button>
+                                                </div>
+                                            </td>
+                                            <td data-label="Действие"><button class="sell-confirm">Продать</button></td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
             }
 
+            // Информационная вкладка (личные вещи, слухи)
+            let infoHtml = '';
+            if (trader.personality || trader.possessions || trader.rumors) {
+                infoHtml = `
+                    <div>
+                        ${trader.personality ? `<div class="trader-detail-section"><h4>🧠 Особенности</h4><p>${trader.personality}</p></div>` : ''}
+                        ${trader.possessions ? (() => {
+                            let possessions = typeof trader.possessions === 'string' ? JSON.parse(trader.possessions) : trader.possessions;
+                            return `<div class="trader-detail-section"><h4>🎒 Личные вещи</h4><ul><li>${possessions.join('</li><li>')}</li></ul></div>`;
+                        })() : ''}
+                        ${trader.rumors ? `<div class="trader-detail-section"><h4>🔍 Слухи / Квесты</h4><p>${trader.rumors}</p></div>` : ''}
+                    </div>
+                `;
+            } else {
+                infoHtml = '<p>Нет дополнительной информации.</p>';
+            }
+
+            // Заметки ГМ
             const notes = gmNotes[trader.id] || '';
             const notesHtml = `
                 <div class="gm-notes">
@@ -732,6 +1003,7 @@
                 </div>
             `;
 
+            // Собираем модалку с вкладками
             modalContent.innerHTML = `
                 <h2>${trader.name}</h2>
                 <p><strong>Тип:</strong> ${trader.type || '—'}</p>
@@ -739,15 +1011,31 @@
                 <p><strong>Уровни:</strong> ${trader.level_min}–${trader.level_max || '∞'}</p>
                 <p><strong>Репутация:</strong> ${trader.reputation} (${getReputationStars(trader.reputation)})</p>
                 <p>${trader.description || ''}</p>
-                ${personalityHtml}
-                ${possessionsHtml}
-                ${rumorsHtml}
-                ${itemsHtml}
-                ${notesHtml}
+                <div class="tab-bar">
+                    <button class="tab-btn active" data-tab="buy">Товары</button>
+                    <button class="tab-btn" data-tab="sell">Продажа</button>
+                    <button class="tab-btn" data-tab="info">Информация</button>
+                    <button class="tab-btn" data-tab="notes">Заметки ГМ</button>
+                </div>
+                <div id="tab-buy" class="tab-content active">${buyHtml}</div>
+                <div id="tab-sell" class="tab-content">${sellHtml}</div>
+                <div id="tab-info" class="tab-content">${infoHtml}</div>
+                <div id="tab-notes" class="tab-content">${notesHtml}</div>
             `;
             document.getElementById('traderModal').style.display = 'block';
 
-            // Сохраняем заметку при изменении
+            // Переключение вкладок
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.dataset.tab;
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                });
+            });
+
+            // Сохранение заметок
             const textarea = document.getElementById(`gmNote-${trader.id}`);
             if (textarea) {
                 textarea.addEventListener('change', () => {
@@ -756,17 +1044,17 @@
                 });
             }
 
-            // Обработчики кнопок "В корзину"
+            // ===== Обработчики покупки (добавление в корзину) =====
             document.querySelectorAll('.add-to-cart-btn:not([disabled])').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const row = btn.closest('tr');
-                    const traderId = parseInt(row.dataset.traderId);
-                    const itemId = parseInt(row.dataset.itemId);
-                    const name = row.dataset.name;
-                    const priceGold = parseFloat(row.dataset.priceGold);
-                    const priceSilver = parseFloat(row.dataset.priceSilver);
+                    const traderId = parseInt(row.dataset.buyTraderId);
+                    const itemId = parseInt(row.dataset.buyItemId);
+                    const name = row.dataset.buyName;
+                    const priceGold = parseFloat(row.dataset.buyPriceGold);
+                    const priceSilver = parseFloat(row.dataset.buyPriceSilver);
                     const totalGold = priceGold + priceSilver/100;
-                    const originalStock = parseInt(row.dataset.originalStock);
+                    const originalStock = parseInt(row.dataset.buyOriginalStock);
                     const quantityInput = row.querySelector('.quantity-input');
                     let qty = parseInt(quantityInput.value);
                     if (isNaN(qty) || qty < 1) qty = 1;
@@ -782,9 +1070,10 @@
                     if (cartItem) {
                         cartItem.quantity += qty;
                     } else {
-                        cart.push({ traderId, itemId, name, price: totalGold, quantity: qty });
+                        cart.push({ traderId, itemId, name, price: totalGold, quantity: qty, originalStock: originalStock });
                     }
                     updateCartWidget();
+                    playSound('coin');
                     showToast(`Добавлено ${qty} × "${name}" в корзину`);
                     
                     const stockCell = row.querySelector('.stock-cell');
@@ -799,36 +1088,92 @@
                     }
                 });
             });
+
+            // ===== Обработчики продажи =====
+            document.querySelectorAll('.sell-dec').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const row = btn.closest('tr');
+                    const qtyInput = row.querySelector('.sell-qty');
+                    let val = parseInt(qtyInput.value);
+                    if (val > 1) qtyInput.value = val - 1;
+                });
+            });
+            document.querySelectorAll('.sell-inc').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const row = btn.closest('tr');
+                    const qtyInput = row.querySelector('.sell-qty');
+                    const max = parseInt(qtyInput.max);
+                    let val = parseInt(qtyInput.value);
+                    if (val < max) qtyInput.value = val + 1;
+                });
+            });
+            document.querySelectorAll('.sell-confirm').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const row = btn.closest('tr');
+                    const itemId = parseInt(row.dataset.sellItemId);
+                    const sellPrice = parseFloat(row.dataset.sellPrice);
+                    const itemName = row.dataset.sellName;
+                    const maxQty = parseInt(row.dataset.sellMaxQty);
+                    const qtyInput = row.querySelector('.sell-qty');
+                    let qty = parseInt(qtyInput.value);
+                    if (isNaN(qty) || qty < 1) qty = 1;
+                    if (qty > maxQty) qty = maxQty;
+
+                    const traderItem = trader.items.find(i => i.id === itemId);
+                    const newStock = (traderItem.stock || 0) + qty;
+                    const totalPrice = sellPrice * qty;
+                    const newGold = trader.gold - totalPrice;
+
+                    await updateItemStock(itemId, newStock);
+                    await updateTraderGold(trader.id, newGold);
+
+                    traderItem.stock = newStock;
+                    trader.gold = newGold;
+                    const goldSpan = document.getElementById('traderGoldDisplay');
+                    if (goldSpan) goldSpan.innerText = `💰 Золото торговца: ${trader.gold} зол.`;
+
+                    removeFromInventory(itemId, qty);
+                    playerGold += totalPrice;
+                    savePlayerGold(playerGold);
+                    playSound('coin');
+
+                    const invQtyCell = row.querySelector('.sell-inv-qty');
+                    const newInvQty = getInventoryQuantity(itemId);
+                    invQtyCell.innerText = newInvQty;
+                    row.dataset.sellMaxQty = newInvQty;
+                    qtyInput.max = newInvQty;
+                    if (newInvQty === 0) {
+                        row.remove();
+                        if (document.querySelectorAll('#sellSection tbody tr').length === 0) {
+                            const sellSection = document.getElementById('sellSection');
+                            if (sellSection) sellSection.remove();
+                        }
+                    } else {
+                        qtyInput.value = 1;
+                    }
+
+                    const buyRow = document.querySelector(`tr[data-buy-item-id="${itemId}"]`);
+                    if (buyRow) {
+                        const stockCell = buyRow.querySelector('.stock-cell');
+                        const cartQty = cart.find(i => i.traderId === trader.id && i.itemId === itemId)?.quantity || 0;
+                        const newRemaining = traderItem.stock - cartQty;
+                        stockCell.innerText = newRemaining > 0 ? newRemaining : '<span style="color:red;">нет в наличии</span>';
+                        const buyBtn = buyRow.querySelector('.add-to-cart-btn');
+                        const buyQtyInput = buyRow.querySelector('.quantity-input');
+                        if (newRemaining === 0) {
+                            if (buyBtn) buyBtn.disabled = true;
+                            if (buyQtyInput) buyQtyInput.disabled = true;
+                        } else {
+                            if (buyBtn) buyBtn.disabled = false;
+                            if (buyQtyInput) { buyQtyInput.disabled = false; buyQtyInput.max = newRemaining; }
+                        }
+                    }
+                    showToast(`Продано ${qty} × "${itemName}" за ${totalPrice} зол.`);
+                });
+            });
         }
 
-        // Закрытие модалок
-        document.querySelectorAll('.close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', () => {
-                document.getElementById('traderModal').style.display = 'none';
-                document.getElementById('cartModal').style.display = 'none';
-            });
-        });
-        window.addEventListener('click', (event) => {
-            const modal = document.getElementById('traderModal');
-            const cartModal = document.getElementById('cartModal');
-            if (event.target == modal) modal.style.display = 'none';
-            if (event.target == cartModal) cartModal.style.display = 'none';
-        });
-
-        // Обновление золота
-        document.getElementById('updateGoldBtn').addEventListener('click', () => {
-            const val = parseInt(document.getElementById('playerGoldInput').value);
-            if (!isNaN(val)) savePlayerGold(val);
-        });
-
-        // Очистка корзины
-        document.getElementById('clearCartBtn').addEventListener('click', () => {
-            cart = [];
-            updateCartWidget();
-            showToast('Корзина очищена');
-            if (document.getElementById('cartModal').style.display === 'block') renderCartModal();
-        });
-
+        // ==================== МОДАЛКА КОРЗИНЫ ====================
         function renderCartModal() {
             const cartModalContent = document.getElementById('cartModalContent');
             if (cart.length === 0) {
@@ -862,6 +1207,7 @@
                 <p><strong>Ваше золото:</strong> ${playerGold} зол.</p>
                 <button id="checkoutBtn" class="primary">Оформить заказ</button>
             `;
+            // Обработчики
             document.querySelectorAll('.cart-decr').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const idx = parseInt(btn.dataset.index);
@@ -904,30 +1250,239 @@
                     renderCartModal();
                 });
             });
+
             const checkoutBtn = document.getElementById('checkoutBtn');
             if (checkoutBtn) {
-                checkoutBtn.addEventListener('click', () => {
+                checkoutBtn.addEventListener('click', async () => {
                     const totalGold = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
                     if (totalGold > playerGold) {
                         showToast(`Не хватает золота! Нужно ${totalGold.toFixed(2)}, у вас ${playerGold}`);
                         return;
                     }
+                    for (let cartItem of cart) {
+                        const newStock = cartItem.originalStock - cartItem.quantity;
+                        if (newStock < 0) {
+                            showToast(`Ошибка: у предмета "${cartItem.name}" недостаточно запаса!`);
+                            return;
+                        }
+                        await updateItemStock(cartItem.itemId, newStock);
+                        const trader = allTraders.find(t => t.id === cartItem.traderId);
+                        if (trader) {
+                            const newGold = trader.gold + (cartItem.price * cartItem.quantity);
+                            await updateTraderGold(trader.id, newGold);
+                            trader.gold = newGold;
+                            const item = trader.items.find(i => i.id === cartItem.itemId);
+                            if (item) item.stock = newStock;
+                        }
+                    }
                     playerGold -= totalGold;
                     savePlayerGold(playerGold);
+                    cart.forEach(cartItem => {
+                        addToInventory(cartItem.itemId, cartItem.quantity);
+                    });
                     cart = [];
                     updateCartWidget();
+                    playSound('coin');
                     showToast(`Заказ оформлен! Списано ${totalGold.toFixed(2)} зол.`);
                     document.getElementById('cartModal').style.display = 'none';
+                    renderTraders();
+                    document.getElementById('traderModal').style.display = 'none';
                 });
             }
         }
 
+        // ==================== МОДАЛКА ИНВЕНТАРЯ С ФИЛЬТРАМИ ====================
+        function renderInventoryModal() {
+            // Получаем текущий инвентарь для отображения (будем фильтровать)
+            let filteredInventory = [...inventory];
+            // Получаем значения фильтров и сортировки
+            const search = document.getElementById('invSearch')?.value?.toLowerCase() || '';
+            const category = document.getElementById('invCategory')?.value || '';
+            const sortBy = document.getElementById('invSort')?.value || 'name';
+
+            if (search) {
+                filteredInventory = filteredInventory.filter(item => item.name.toLowerCase().includes(search));
+            }
+            if (category) {
+                filteredInventory = filteredInventory.filter(item => item.category === category);
+            }
+            // Сортировка
+            if (sortBy === 'name') {
+                filteredInventory.sort((a,b) => a.name.localeCompare(b.name));
+            } else if (sortBy === 'price') {
+                filteredInventory.sort((a,b) => (a.price_gold + a.price_silver/100) - (b.price_gold + b.price_silver/100));
+            } else if (sortBy === 'weight') {
+                filteredInventory.sort((a,b) => (a.weight||0) - (b.weight||0));
+            } else if (sortBy === 'rarity') {
+                const rarityOrder = { 'обычный':1, 'необычный':2, 'редкий':3, 'очень редкий':4, 'легендарный':5 };
+                filteredInventory.sort((a,b) => (rarityOrder[a.rarity]||0) - (rarityOrder[b.rarity]||0));
+            }
+
+            const invModalContent = document.getElementById('inventoryModalContent');
+            if (inventory.length === 0) {
+                invModalContent.innerHTML = '<p>Инвентарь пуст.</p>';
+                return;
+            }
+
+            // Собираем уникальные категории для выпадающего списка
+            const categories = [...new Set(inventory.map(i => i.category).filter(c => c))];
+            const categoryOptions = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            let itemsHtml = `
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                    <div class="filter-group" style="flex:1;">
+                        <label>🔍 Поиск</label>
+                        <input type="text" id="invSearch" placeholder="Название предмета" style="width:100%;">
+                    </div>
+                    <div class="filter-group" style="flex:1;">
+                        <label>📦 Категория</label>
+                        <select id="invCategory"><option value="">Любая</option>${categoryOptions}</select>
+                    </div>
+                    <div class="filter-group" style="flex:1;">
+                        <label>📊 Сортировка</label>
+                        <select id="invSort">
+                            <option value="name">По названию</option>
+                            <option value="price">По цене (дешёвые → дорогие)</option>
+                            <option value="weight">По весу (лёгкие → тяжёлые)</option>
+                            <option value="rarity">По редкости</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="inventoryList">
+            `;
+            filteredInventory.forEach((item, idx) => {
+                const priceFormatted = formatPrice(item.price_gold, item.price_silver);
+                const details = [];
+                if (item.rarity) details.push(`⭐ ${item.rarity}`);
+                if (item.is_magical) details.push('✨ Магический');
+                if (item.quality && item.quality !== 'стандартное') details.push(`🏷️ ${item.quality}`);
+                if (item.weight) details.push(`⚖️ ${item.weight} ф.`);
+                const detailsHtml = details.length ? `<div class="inv-item-details">${details.map(d => `<span>${d}</span>`).join('')}</div>` : '';
+                
+                itemsHtml += `
+                    <div class="inventory-item" data-inv-index="${idx}">
+                        <div class="inventory-item-info">
+                            <strong>${item.name}</strong> x ${item.quantity}
+                            <div>💰 ${priceFormatted}</div>
+                            ${detailsHtml}
+                            ${item.description ? `<div class="inv-item-desc" style="font-size:0.75rem; color:#6c757d; margin-top:4px;">${item.description}</div>` : ''}
+                        </div>
+                        <div class="inventory-item-controls">
+                            <button class="inv-decr" data-id="${item.itemId}">-</button>
+                            <input type="number" class="inv-qty" data-id="${item.itemId}" value="${item.quantity}" min="1">
+                            <button class="inv-incr" data-id="${item.itemId}">+</button>
+                            <button class="inv-remove" data-id="${item.itemId}">Удалить всё</button>
+                        </div>
+                    </div>
+                `;
+            });
+            itemsHtml += '</div>';
+            invModalContent.innerHTML = `
+                <h3>Ваш инвентарь</h3>
+                ${itemsHtml}
+                <p><em>Продать можно в модалке торговца, если он покупает этот предмет.</em></p>
+            `;
+
+            // Обработчики для фильтров
+            const invSearch = document.getElementById('invSearch');
+            const invCategory = document.getElementById('invCategory');
+            const invSort = document.getElementById('invSort');
+            if (invSearch) invSearch.addEventListener('input', renderInventoryModal);
+            if (invCategory) invCategory.addEventListener('change', renderInventoryModal);
+            if (invSort) invSort.addEventListener('change', renderInventoryModal);
+
+            // Обработчики изменения количества (работаем по itemId)
+            document.querySelectorAll('.inv-decr').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = parseInt(btn.dataset.id);
+                    const invItem = inventory.find(i => i.itemId === itemId);
+                    if (invItem && invItem.quantity > 1) {
+                        invItem.quantity--;
+                        saveInventory();
+                        renderInventoryModal();
+                    } else if (invItem && invItem.quantity === 1) {
+                        const idx = inventory.findIndex(i => i.itemId === itemId);
+                        inventory.splice(idx, 1);
+                        saveInventory();
+                        renderInventoryModal();
+                    }
+                });
+            });
+            document.querySelectorAll('.inv-incr').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = parseInt(btn.dataset.id);
+                    const invItem = inventory.find(i => i.itemId === itemId);
+                    if (invItem) {
+                        invItem.quantity++;
+                        saveInventory();
+                        renderInventoryModal();
+                    }
+                });
+            });
+            document.querySelectorAll('.inv-qty').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const itemId = parseInt(input.dataset.id);
+                    let newQty = parseInt(input.value);
+                    if (isNaN(newQty) || newQty < 1) newQty = 1;
+                    const invItem = inventory.find(i => i.itemId === itemId);
+                    if (invItem) {
+                        invItem.quantity = newQty;
+                        saveInventory();
+                        renderInventoryModal();
+                    }
+                });
+            });
+            document.querySelectorAll('.inv-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = parseInt(btn.dataset.id);
+                    const idx = inventory.findIndex(i => i.itemId === itemId);
+                    if (idx !== -1) {
+                        inventory.splice(idx, 1);
+                        saveInventory();
+                        renderInventoryModal();
+                    }
+                });
+            });
+        }
+
+        // ==================== ОБРАБОТЧИКИ ОСНОВНЫХ КНОПОК ====================
         document.getElementById('viewCartBtn').addEventListener('click', () => {
             renderCartModal();
             document.getElementById('cartModal').style.display = 'block';
         });
+        document.getElementById('clearCartBtn').addEventListener('click', () => {
+            cart = [];
+            updateCartWidget();
+            showToast('Корзина очищена');
+            if (document.getElementById('cartModal').style.display === 'block') renderCartModal();
+        });
+        document.getElementById('updateGoldBtn').addEventListener('click', () => {
+            const val = parseInt(document.getElementById('playerGoldInput').value);
+            if (!isNaN(val)) savePlayerGold(val);
+        });
+        document.getElementById('viewInventoryBtn').addEventListener('click', () => {
+            renderInventoryModal();
+            document.getElementById('inventoryModal').style.display = 'block';
+        });
 
-        // Подключаем обработчики событий для всех фильтров
+        // Закрытие модалок
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', () => {
+                document.getElementById('traderModal').style.display = 'none';
+                document.getElementById('cartModal').style.display = 'none';
+                document.getElementById('inventoryModal').style.display = 'none';
+            });
+        });
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('traderModal');
+            const cartModal = document.getElementById('cartModal');
+            const invModal = document.getElementById('inventoryModal');
+            if (event.target == modal) modal.style.display = 'none';
+            if (event.target == cartModal) cartModal.style.display = 'none';
+            if (event.target == invModal) invModal.style.display = 'none';
+        });
+
+        // Фильтры
         const filterIds = ['searchTrader', 'filterType', 'filterRegion', 'filterLevel', 'reputationFilter', 'searchItem', 'priceMin', 'priceMax', 'rarityFilter', 'categoryFilter', 'magicOnly', 'sortBy'];
         filterIds.forEach(id => {
             const el = document.getElementById(id);

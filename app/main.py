@@ -1,11 +1,14 @@
-from fastapi import FastAPI
+# main.py (дополненный)
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from .models import SessionLocal, Trader
+from .models import SessionLocal, Trader, Item
 import json
 
 app = FastAPI(title="D&D Trader")
 
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
+
+# ==================== ЭНДПОИНТЫ ====================
 
 @app.get("/traders")
 def get_traders():
@@ -43,9 +46,11 @@ def get_traders():
                     "stock": i.stock,
                     "quality": i.quality,
                 })
+
             trader_data = {
                 "id": t.id,
                 "name": t.name,
+                "gold": t.gold,
                 "type": t.type,
                 "specialization": spec,
                 "reputation": t.reputation,
@@ -67,4 +72,35 @@ def get_traders():
         db.close()
     return result
 
+
+@app.patch("/traders/{trader_id}/gold")
+def update_trader_gold(trader_id: int, gold: int):
+    db = SessionLocal()
+    trader = db.query(Trader).filter(Trader.id == trader_id).first()
+    if not trader:
+        raise HTTPException(status_code=404, detail="Trader not found")
+    trader.gold = gold
+    db.commit()
+    db.close()
+    return {"success": True, "gold": gold}
+
+
+@app.patch("/items/{item_id}/stock")
+def update_item_stock(item_id: int, stock: int):
+    """
+    Обновляет количество (stock) предмета.
+    Используется при продаже предмета торговцу (увеличиваем stock)
+    или при покупке (уменьшаем). Здесь ожидаем новое значение stock.
+    """
+    db = SessionLocal()
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item.stock = stock
+    db.commit()
+    db.close()
+    return {"success": True, "stock": stock}
+
+
+# Монтируем фронтенд
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
