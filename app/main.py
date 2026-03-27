@@ -1,4 +1,4 @@
-# main.py (дополненный)
+# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from .models import SessionLocal, Trader, Item
@@ -6,15 +6,45 @@ import json
 import random
 import subprocess
 import os
+import threading
 
 app = FastAPI(title="D&D Trader")
 
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
 
+# Флаг, чтобы запустить скрипт только один раз
+_seed_executed = False
+
+def ensure_traders():
+    """Проверяет наличие торговцев и запускает seed_render.py при необходимости"""
+    global _seed_executed
+    if _seed_executed:
+        return
+    db = SessionLocal()
+    try:
+        count = db.query(Trader).count()
+        if count == 0:
+            # Запускаем seed_render.py в фоне, чтобы не тормозить ответ
+            def run_seed():
+                base_dir = os.path.dirname(os.path.dirname(__file__))
+                seed_script = os.path.join(base_dir, "seed_render.py")
+                if os.path.exists(seed_script):
+                    subprocess.run(["python", seed_script], cwd=base_dir, capture_output=True)
+                else:
+                    print(f"seed_render.py не найден в {seed_script}")
+            thread = threading.Thread(target=run_seed)
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=30)  # ждём до 30 секунд, чтобы данные успели добавиться
+    finally:
+        db.close()
+    _seed_executed = True
+
 # ==================== ЭНДПОИНТЫ ====================
 
 @app.get("/traders")
 def get_traders():
+    ensure_traders()  # ← при первом запросе заполнит базу, если пусто
     db = SessionLocal()
     try:
         traders = db.query(Trader).all()
@@ -88,58 +118,17 @@ def update_trader_gold(trader_id: int, gold: int):
 
 @app.post("/traders/{trader_id}/restock")
 def restock_trader(trader_id: int):
-    """
-    Обновляет ассортимент торговца: для каждого его предмета случайным образом
-    меняет количество в наличии (stock) от 1 до 10.
-    """
     db = SessionLocal()
     try:
         trader = db.query(Trader).filter(Trader.id == trader_id).first()
         if not trader:
             raise HTTPException(status_code=404, detail="Trader not found")
-
         for item in trader.items:
-            new_stock = random.randint(1, 10)
-            item.stock = new_stock
-
+            item.stock = random.randint(1, 10)
         db.commit()
         return {"success": True, "message": f"Ассортимент торговца {trader.name} обновлён"}
     finally:
         db.close()
-
-# =============== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ЗАПОЛНЕНИЯ БАЗЫ ===============
-# Удалить после использования!
-@app.get("/run-seed")
-def run_seed():
-    """
-    Запускает скрипт seed_render.py для наполнения базы торговцами.
-    ВНИМАНИЕ: временный эндпоинт, после использования удалить!
-    """
-    try:
-        # Получаем путь к директории, где находится main.py
-        base_dir = os.path.dirname(__file__)
-        seed_script = os.path.join(base_dir, "seed_render.py")
-
-        if not os.path.exists(seed_script):
-            return {"error": f"Файл {seed_script} не найден"}
-
-        # Запускаем скрипт
-        result = subprocess.run(
-            ["python", seed_script],
-            cwd=base_dir,
-            capture_output=True,
-            text=True,
-            timeout=120
-        )
-
-        return {
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode
-        }
-    except Exception as e:
-        return {"error": str(e)}
-# ===================================================================
 
 # Монтируем фронтенд
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
