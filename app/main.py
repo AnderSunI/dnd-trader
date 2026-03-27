@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from .models import SessionLocal, Trader, Item
 import json
+import random
 
 app = FastAPI(title="D&D Trader")
 
@@ -85,22 +86,52 @@ def update_trader_gold(trader_id: int, gold: int):
     return {"success": True, "gold": gold}
 
 
-@app.patch("/items/{item_id}/stock")
-def update_item_stock(item_id: int, stock: int):
+@app.post("/traders/{trader_id}/restock")
+def restock_trader(trader_id: int):
     """
-    Обновляет количество (stock) предмета.
-    Используется при продаже предмета торговцу (увеличиваем stock)
-    или при покупке (уменьшаем). Здесь ожидаем новое значение stock.
+    Обновляет ассортимент торговца: для каждого его предмета случайным образом
+    меняет количество в наличии (stock) от 1 до 10.
     """
     db = SessionLocal()
-    item = db.query(Item).filter(Item.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    item.stock = stock
-    db.commit()
-    db.close()
-    return {"success": True, "stock": stock}
+    try:
+        trader = db.query(Trader).filter(Trader.id == trader_id).first()
+        if not trader:
+            raise HTTPException(status_code=404, detail="Trader not found")
 
+        # Для каждого предмета, который есть у торговца, меняем stock
+        for item in trader.items:
+            # Генерируем случайное число от 1 до 10 (можно настроить)
+            new_stock = random.randint(1, 10)
+            item.stock = new_stock
+
+        db.commit()
+        return {"success": True, "message": f"Ассортимент торговца {trader.name} обновлён"}
+    finally:
+        db.close()
+
+
+@app.post("/traders/{trader_id}/restock")
+def restock_trader(trader_id: int):
+    """
+    Обновляет ассортимент торговца: для каждого его предмета случайным образом
+    меняет количество в наличии (stock) от 1 до 10.
+    """
+    db = SessionLocal()
+    try:
+        trader = db.query(Trader).filter(Trader.id == trader_id).first()
+        if not trader:
+            raise HTTPException(status_code=404, detail="Trader not found")
+
+        # Для каждого предмета, который есть у торговца, меняем stock
+        for item in trader.items:
+            # Генерируем случайное число от 1 до 10 (можно настроить)
+            new_stock = random.randint(1, 10)
+            item.stock = new_stock
+
+        db.commit()
+        return {"success": True, "message": f"Ассортимент торговца {trader.name} обновлён"}
+    finally:
+        db.close()
 
 # Монтируем фронтенд
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
