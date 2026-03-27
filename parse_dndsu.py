@@ -8,43 +8,57 @@ def parse_items():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto('https://dnd.su/items/')
-        # Ждём, пока появятся карточки
-        page.wait_for_selector('.item-card', timeout=30000)
+        # Ждём 10 секунд для полной загрузки динамического контента
+        page.wait_for_timeout(10000)
+        # Прокручиваем вниз, чтобы подгрузить элементы (если есть бесконечный скроллинг)
+        page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+        page.wait_for_timeout(2000)
+        # Сохраняем HTML для анализа
+        html = page.content()
+        with open('debug_page_full.html', 'w', encoding='utf-8') as f:
+            f.write(html)
+        print("HTML сохранён в debug_page_full.html")
+        # Ищем возможные контейнеры с предметами
+        possible_containers = [
+            '.items-grid',
+            '.items-list',
+            '.item-list',
+            '[data-testid="items-grid"]',
+            '.catalog-items',
+            '.goods-items'
+        ]
+        container = None
+        for sel in possible_containers:
+            container = page.query_selector(sel)
+            if container:
+                print(f"Найден контейнер: {sel}")
+                break
+        if not container:
+            print("Контейнер не найден. Анализируем debug_page_full.html")
+            browser.close()
+            return []
+        
+        # Теперь внутри контейнера ищем карточки
+        cards = container.query_selector_all('.item, .card, .goods-item, .product')
+        print(f"Найдено карточек: {len(cards)}")
+        if not cards:
+            browser.close()
+            return []
+        
         items = []
-        page_num = 1
-        while True:
-            print(f"Обработка страницы {page_num}")
-            # Получаем все карточки на текущей странице
-            cards = page.query_selector_all('.item-card')
-            if not cards:
-                print("Карточки не найдены, возможно, изменились классы.")
-                break
-            print(f"Найдено карточек: {len(cards)}")
-            for card in cards:
-                try:
-                    name_elem = card.query_selector('.item-name')
-                    name = name_elem.inner_text().strip() if name_elem else ''
-                    price_elem = card.query_selector('.price-value')
-                    price = price_elem.inner_text().strip() if price_elem else ''
-                    desc_elem = card.query_selector('.item-description')
-                    desc = desc_elem.inner_text().strip() if desc_elem else ''
-                    # Можно добавить категорию, редкость и т.д., если есть
-                    items.append({
-                        'name': name,
-                        'price': price,
-                        'description': desc,
-                    })
-                except Exception as e:
-                    print(f"Ошибка при обработке карточки: {e}")
-            # Переход на следующую страницу
-            next_btn = page.query_selector('.pagination .next-page')
-            if next_btn and 'disabled' not in (next_btn.get_attribute('class') or ''):
-                next_btn.click()
-                page.wait_for_timeout(2000)  # пауза для загрузки
-                page_num += 1
-            else:
-                print("Достигнут конец списка.")
-                break
+        for card in cards:
+            # Ищем название
+            name_elem = card.query_selector('.name, .item-name, .title, h3, h4')
+            # Ищем цену
+            price_elem = card.query_selector('.price, .cost, .item-price')
+            # Ищем описание
+            desc_elem = card.query_selector('.description, .item-description, .desc')
+            name = name_elem.inner_text().strip() if name_elem else ''
+            price = price_elem.inner_text().strip() if price_elem else ''
+            desc = desc_elem.inner_text().strip() if desc_elem else ''
+            if name:
+                items.append({'name': name, 'price': price, 'description': desc})
+        
         browser.close()
         return items
 
