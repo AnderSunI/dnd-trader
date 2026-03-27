@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from .models import SessionLocal, Trader, Item
+from .models import SessionLocal, Trader, Item, Base
 import json
 import random
 import subprocess
@@ -12,19 +12,21 @@ app = FastAPI(title="D&D Trader")
 
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
 
-# Флаг, чтобы запустить скрипт только один раз
+# Флаг для однократного выполнения
 _seed_executed = False
 
 def ensure_traders():
-    """Если таблица traders пуста, запускаем seed_render.py (один раз)"""
     global _seed_executed
     if _seed_executed:
         return
     db = SessionLocal()
     try:
+        # Создаём таблицы, если их ещё нет
+        Base.metadata.create_all(bind=db.get_bind())
+
+        # Проверяем, есть ли торговцы
         count = db.query(Trader).count()
         if count == 0:
-            # Запускаем seed_render.py в фоне, чтобы не тормозить ответ
             def run_seed():
                 # Путь к корню проекта (поднимаемся из app/ на уровень выше)
                 base_dir = os.path.dirname(os.path.dirname(__file__))
@@ -36,7 +38,7 @@ def ensure_traders():
             thread = threading.Thread(target=run_seed)
             thread.daemon = True
             thread.start()
-            thread.join(timeout=30)   # ждём до 30 секунд, чтобы данные успели добавиться
+            thread.join(timeout=30)   # ждём 30 секунд, чтобы данные успели добавиться
     finally:
         db.close()
     _seed_executed = True
@@ -45,9 +47,7 @@ def ensure_traders():
 
 @app.get("/traders")
 def get_traders():
-    # При первом обращении заполнит базу, если она пуста
     ensure_traders()
-
     db = SessionLocal()
     try:
         traders = db.query(Trader).all()
