@@ -21,6 +21,7 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Создаём таблицы, если их нет
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="D&D Trader")
@@ -135,15 +136,80 @@ def restock_trader(trader_id: int):
     finally:
         db.close()
 
-# =============== ВРЕМЕННЫЙ ЭНДПОИНТ (УДАЛИ ПОСЛЕ) ===============
+# =============== ВРЕМЕННЫЕ ЭНДПОИНТЫ (УДАЛИТЬ ПОСЛЕ ИСПОЛЬЗОВАНИЯ) ===============
+@app.get("/import-items")
+def import_items():
+    """Импорт предметов из dndsu_items_detailed3.json в таблицу items"""
+    import json
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    json_path = os.path.join(base_dir, "dndsu_items_detailed3.json")
+    if not os.path.exists(json_path):
+        return {"error": f"Файл {json_path} не найден"}
+    with open(json_path, "r", encoding="utf-8") as f:
+        items_data = json.load(f)
+    db = SessionLocal()
+    try:
+        imported = 0
+        for item_data in items_data:
+            existing = db.query(Item).filter_by(name=item_data.get("name")).first()
+            if existing:
+                continue
+            # Преобразуем поля в JSON, если это словари/списки
+            properties = item_data.get("properties")
+            if properties and isinstance(properties, (dict, list)):
+                properties = json.dumps(properties)
+            requirements = item_data.get("requirements")
+            if requirements and isinstance(requirements, (dict, list)):
+                requirements = json.dumps(requirements)
+
+            item = Item(
+                name=item_data.get("name"),
+                category=item_data.get("category"),
+                subcategory=item_data.get("subcategory"),
+                rarity=item_data.get("rarity"),
+                price_gold=item_data.get("price_gold", 0),
+                price_silver=item_data.get("price_silver", 0),
+                price_copper=item_data.get("price_copper", 0),
+                weight=item_data.get("weight"),
+                description=item_data.get("description"),
+                properties=properties,
+                requirements=requirements,
+                is_magical=item_data.get("is_magical", False),
+                attunement=item_data.get("attunement", False),
+                stock=item_data.get("stock", 0),
+                quality=item_data.get("quality", "стандартное")
+            )
+            db.add(item)
+            imported += 1
+            if imported % 100 == 0:
+                db.flush()
+        db.commit()
+        return {"imported": imported, "total": len(items_data)}
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
+    finally:
+        db.close()
+
 @app.get("/seed")
 def manual_seed():
+    """Ручной запуск seed_render.py (для наполнения торговцев)"""
     base_dir = os.path.dirname(os.path.dirname(__file__))
     seed_script = os.path.join(base_dir, "seed_render.py")
     if not os.path.exists(seed_script):
         return {"error": f"Файл {seed_script} не найден"}
-    result = subprocess.run(["python", seed_script], cwd=base_dir, capture_output=True, text=True, timeout=120)
-    return {"stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
-# ==============================================================
+    result = subprocess.run(
+        ["python", seed_script],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+        timeout=120
+    )
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "returncode": result.returncode
+    }
+# ===================================================================
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
