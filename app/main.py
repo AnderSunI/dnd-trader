@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from .models import SessionLocal, Trader, Item
 import json
 import random
+import subprocess
+import os
 
 app = FastAPI(title="D&D Trader")
 
@@ -73,7 +75,6 @@ def get_traders():
         db.close()
     return result
 
-
 @app.patch("/traders/{trader_id}/gold")
 def update_trader_gold(trader_id: int, gold: int):
     db = SessionLocal()
@@ -85,7 +86,6 @@ def update_trader_gold(trader_id: int, gold: int):
     db.close()
     return {"success": True, "gold": gold}
 
-
 @app.post("/traders/{trader_id}/restock")
 def restock_trader(trader_id: int):
     """
@@ -98,9 +98,7 @@ def restock_trader(trader_id: int):
         if not trader:
             raise HTTPException(status_code=404, detail="Trader not found")
 
-        # Для каждого предмета, который есть у торговца, меняем stock
         for item in trader.items:
-            # Генерируем случайное число от 1 до 10 (можно настроить)
             new_stock = random.randint(1, 10)
             item.stock = new_stock
 
@@ -109,29 +107,39 @@ def restock_trader(trader_id: int):
     finally:
         db.close()
 
-
-@app.post("/traders/{trader_id}/restock")
-def restock_trader(trader_id: int):
+# =============== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ЗАПОЛНЕНИЯ БАЗЫ ===============
+# Удалить после использования!
+@app.get("/run-seed")
+def run_seed():
     """
-    Обновляет ассортимент торговца: для каждого его предмета случайным образом
-    меняет количество в наличии (stock) от 1 до 10.
+    Запускает скрипт seed_render.py для наполнения базы торговцами.
+    ВНИМАНИЕ: временный эндпоинт, после использования удалить!
     """
-    db = SessionLocal()
     try:
-        trader = db.query(Trader).filter(Trader.id == trader_id).first()
-        if not trader:
-            raise HTTPException(status_code=404, detail="Trader not found")
+        # Получаем путь к директории, где находится main.py
+        base_dir = os.path.dirname(__file__)
+        seed_script = os.path.join(base_dir, "seed_render.py")
 
-        # Для каждого предмета, который есть у торговца, меняем stock
-        for item in trader.items:
-            # Генерируем случайное число от 1 до 10 (можно настроить)
-            new_stock = random.randint(1, 10)
-            item.stock = new_stock
+        if not os.path.exists(seed_script):
+            return {"error": f"Файл {seed_script} не найден"}
 
-        db.commit()
-        return {"success": True, "message": f"Ассортимент торговца {trader.name} обновлён"}
-    finally:
-        db.close()
+        # Запускаем скрипт
+        result = subprocess.run(
+            ["python", seed_script],
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode
+        }
+    except Exception as e:
+        return {"error": str(e)}
+# ===================================================================
 
 # Монтируем фронтенд
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
