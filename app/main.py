@@ -7,10 +7,28 @@ import random
 import subprocess
 import os
 import threading
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 app = FastAPI(title="D&D Trader")
 
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
+
+# Создаем engine из переменной окружения
+import os as _os
+from dotenv import load_dotenv
+load_dotenv()
+DATABASE_URL = _os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    # Для локальной разработки можно захардкодить, но на Render будет из переменной
+    # Используем значение по умолчанию для локального Docker
+    DATABASE_URL = "postgresql://postgres:postgres@db:5432/dnd_trader"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Создаем таблицы при старте (один раз)
+Base.metadata.create_all(bind=engine)
 
 # Флаг для однократного выполнения
 _seed_executed = False
@@ -21,9 +39,6 @@ def ensure_traders():
         return
     db = SessionLocal()
     try:
-        # Создаём таблицы, если их ещё нет
-        Base.metadata.create_all(bind=db.get_bind())
-
         # Проверяем, есть ли торговцы
         count = db.query(Trader).count()
         if count == 0:
@@ -38,7 +53,7 @@ def ensure_traders():
             thread = threading.Thread(target=run_seed)
             thread.daemon = True
             thread.start()
-            thread.join(timeout=30)   # ждём 30 секунд, чтобы данные успели добавиться
+            thread.join(timeout=30)   # ждём до 30 секунд, чтобы данные успели добавиться
     finally:
         db.close()
     _seed_executed = True
