@@ -3,6 +3,9 @@
 # ============================================================
 
 from app.models import SessionLocal, Trader, Item, Base, engine, trader_items
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import json
 from sqlalchemy import text
 
