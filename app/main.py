@@ -16,7 +16,7 @@ app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
 _seed_executed = False
 
 def ensure_traders():
-    """Проверяет наличие торговцев и запускает seed_render.py при необходимости"""
+    """Если таблица traders пуста, запускаем seed_render.py (один раз)"""
     global _seed_executed
     if _seed_executed:
         return
@@ -26,6 +26,7 @@ def ensure_traders():
         if count == 0:
             # Запускаем seed_render.py в фоне, чтобы не тормозить ответ
             def run_seed():
+                # Путь к корню проекта (поднимаемся из app/ на уровень выше)
                 base_dir = os.path.dirname(os.path.dirname(__file__))
                 seed_script = os.path.join(base_dir, "seed_render.py")
                 if os.path.exists(seed_script):
@@ -35,7 +36,7 @@ def ensure_traders():
             thread = threading.Thread(target=run_seed)
             thread.daemon = True
             thread.start()
-            thread.join(timeout=30)  # ждём до 30 секунд, чтобы данные успели добавиться
+            thread.join(timeout=30)   # ждём до 30 секунд, чтобы данные успели добавиться
     finally:
         db.close()
     _seed_executed = True
@@ -44,7 +45,9 @@ def ensure_traders():
 
 @app.get("/traders")
 def get_traders():
-    ensure_traders()  # ← при первом запросе заполнит базу, если пусто
+    # При первом обращении заполнит базу, если она пуста
+    ensure_traders()
+
     db = SessionLocal()
     try:
         traders = db.query(Trader).all()
