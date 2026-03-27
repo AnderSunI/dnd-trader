@@ -141,7 +141,7 @@ def restock_trader(trader_id: int):
         db.close()
 
 # =============== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ЗАПОЛНЕНИЯ БАЗЫ ===============
-@app.get("/seed")
+# ================@app.get("/seed")=====================================
 def manual_seed():
     """Запускает seed_db.py для полного заполнения базы (торговцы + предметы)"""
     base_dir = os.path.dirname(os.path.dirname(__file__))
