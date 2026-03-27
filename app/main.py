@@ -1,36 +1,31 @@
-# main.py
+# app/main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from .models import SessionLocal, Trader, Item, Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 import json
 import random
 import subprocess
 import os
 import threading
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-app = FastAPI(title="D&D Trader")
-
-app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
-
-# Создаем engine из переменной окружения
-import os as _os
 from dotenv import load_dotenv
+
+from .models import Trader, Item, Base
+
 load_dotenv()
-DATABASE_URL = _os.getenv("DATABASE_URL")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    # Для локальной разработки можно захардкодить, но на Render будет из переменной
-    # Используем значение по умолчанию для локального Docker
     DATABASE_URL = "postgresql://postgres:postgres@db:5432/dnd_trader"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Создаем таблицы при старте (один раз)
 Base.metadata.create_all(bind=engine)
 
-# Флаг для однократного выполнения
+app = FastAPI(title="D&D Trader")
+app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
+
 _seed_executed = False
 
 def ensure_traders():
@@ -39,26 +34,20 @@ def ensure_traders():
         return
     db = SessionLocal()
     try:
-        # Проверяем, есть ли торговцы
         count = db.query(Trader).count()
         if count == 0:
             def run_seed():
-                # Путь к корню проекта (поднимаемся из app/ на уровень выше)
                 base_dir = os.path.dirname(os.path.dirname(__file__))
                 seed_script = os.path.join(base_dir, "seed_render.py")
                 if os.path.exists(seed_script):
                     subprocess.run(["python", seed_script], cwd=base_dir, capture_output=True)
-                else:
-                    print(f"seed_render.py не найден в {seed_script}")
             thread = threading.Thread(target=run_seed)
             thread.daemon = True
             thread.start()
-            thread.join(timeout=30)   # ждём до 30 секунд, чтобы данные успели добавиться
+            thread.join(timeout=30)
     finally:
         db.close()
     _seed_executed = True
-
-# ==================== ЭНДПОИНТЫ ====================
 
 @app.get("/traders")
 def get_traders():
@@ -76,7 +65,6 @@ def get_traders():
                     spec = []
             else:
                 spec = spec or []
-
             items_data = []
             for i in t.items:
                 items_data.append({
@@ -97,7 +85,6 @@ def get_traders():
                     "stock": i.stock,
                     "quality": i.quality,
                 })
-
             trader_data = {
                 "id": t.id,
                 "name": t.name,
@@ -148,5 +135,15 @@ def restock_trader(trader_id: int):
     finally:
         db.close()
 
-# Монтируем фронтенд
+# =============== ВРЕМЕННЫЙ ЭНДПОИНТ (УДАЛИ ПОСЛЕ) ===============
+@app.get("/seed")
+def manual_seed():
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    seed_script = os.path.join(base_dir, "seed_render.py")
+    if not os.path.exists(seed_script):
+        return {"error": f"Файл {seed_script} не найден"}
+    result = subprocess.run(["python", seed_script], cwd=base_dir, capture_output=True, text=True, timeout=120)
+    return {"stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
+# ==============================================================
+
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
