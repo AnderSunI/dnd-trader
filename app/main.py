@@ -162,4 +162,33 @@ def manual_seed():
     }
 # ===================================================================
 
+# ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ УДАЛЕНИЯ ДУБЛИКАТОВ ТОРГОВЦЕВ ==========
+# После использования закомментировать или удалить
+@app.get("/dedupe-traders")
+def dedupe_traders():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        traders = db.query(Trader).all()
+        names = {}
+        for t in traders:
+            names.setdefault(t.name, []).append(t)
+        deleted = 0
+        for name, trader_list in names.items():
+            if len(trader_list) <= 1:
+                continue
+            trader_list.sort(key=lambda x: x.id)
+            keeper = trader_list[0]
+            for dup in trader_list[1:]:
+                db.execute(
+                    text("UPDATE trader_items SET trader_id = :keeper_id WHERE trader_id = :dup_id"),
+                    {"keeper_id": keeper.id, "dup_id": dup.id}
+                )
+                db.delete(dup)
+                deleted += 1
+        db.commit()
+        return {"deleted": deleted}
+    finally:
+        db.close()
+
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
