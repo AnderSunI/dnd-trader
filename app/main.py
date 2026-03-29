@@ -163,32 +163,46 @@ def manual_seed():
 # ===================================================================
 
 # ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ УДАЛЕНИЯ ДУБЛИКАТОВ ТОРГОВЦЕВ ==========
-# После использования закомментировать или удалить
-@app.get("/dedupe-traders")
-def dedupe_traders():
-    from sqlalchemy import text
+# # После использования закомментировать или удалить
+# @app.get("/dedupe-traders")
+# def dedupe_traders():
+#     ... (закомментировано)
+
+# ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ КАТЕГОРИЙ ==========
+@app.post("/admin/update-categories")
+async def update_categories():
+    import json
+    from pathlib import Path
+    from app.database import SessionLocal
+    from app.models import Item
+
+    json_path = Path(__file__).parent.parent / "data" / "dndsu_items_cleaned.json"
+    if not json_path.exists():
+        raise HTTPException(status_code=404, detail="JSON file not found")
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        items_data = json.load(f)
+
     db = SessionLocal()
+    updated = 0
+    not_found = 0
     try:
-        traders = db.query(Trader).all()
-        names = {}
-        for t in traders:
-            names.setdefault(t.name, []).append(t)
-        deleted = 0
-        for name, trader_list in names.items():
-            if len(trader_list) <= 1:
+        for data in items_data:
+            url = data.get("url")
+            if not url:
                 continue
-            trader_list.sort(key=lambda x: x.id)
-            keeper = trader_list[0]
-            for dup in trader_list[1:]:
-                db.execute(
-                    text("UPDATE trader_items SET trader_id = :keeper_id WHERE trader_id = :dup_id"),
-                    {"keeper_id": keeper.id, "dup_id": dup.id}
-                )
-                db.delete(dup)
-                deleted += 1
+            item = db.query(Item).filter(Item.url == url).first()
+            if item:
+                new_cat = data.get("category_clean")
+                if new_cat and item.category != new_cat:
+                    item.category = new_cat
+                    updated += 1
+            else:
+                not_found += 1
         db.commit()
-        return {"deleted": deleted}
     finally:
         db.close()
+
+    return {"updated": updated, "not_found": not_found}
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
