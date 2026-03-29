@@ -163,6 +163,7 @@ def manual_seed():
 # (закомментирован)
 
 # ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ КАТЕГОРИЙ ==========
+# ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ КАТЕГОРИЙ ==========
 @app.post("/admin/update-categories")
 async def update_categories():
     import json
@@ -180,13 +181,15 @@ async def update_categories():
     not_found = 0
     try:
         for data in items_data:
-            url = data.get("url")
-            if not url:
+            name = data.get("name")
+            if not name:
                 continue
-            item = db.query(Item).filter(Item.url == url).first()
+            new_cat = data.get("category_clean")
+            if not new_cat:
+                continue
+            item = db.query(Item).filter(Item.name == name).first()
             if item:
-                new_cat = data.get("category_clean")
-                if new_cat and item.category != new_cat:
+                if item.category != new_cat:
                     item.category = new_cat
                     updated += 1
             else:
