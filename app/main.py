@@ -159,10 +159,19 @@ def manual_seed():
         "returncode": result.returncode
     }
 
-# ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ УДАЛЕНИЯ ДУБЛИКАТОВ ТОРГОВЦЕВ ==========
-# (закомментирован)
+# ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ПРОВЕРКИ КАТЕГОРИЙ
+@app.get("/admin/category-stats")
+def category_stats():
+    from collections import Counter
+    db = SessionLocal()
+    try:
+        items = db.query(Item).all()
+        cats = [item.category for item in items if item.category]
+        count = Counter(cats)
+        return dict(count)
+    finally:
+        db.close()
 
-# ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ КАТЕГОРИЙ ==========
 # ========== ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ КАТЕГОРИЙ ==========
 @app.post("/admin/update-categories")
 async def update_categories():
