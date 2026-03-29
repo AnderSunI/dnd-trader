@@ -5,4 +5,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY seed_render.py .
 COPY app/ ./app
 COPY frontend/ ./frontend
+COPY data /app/data
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
