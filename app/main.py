@@ -10,7 +10,7 @@ import os
 import threading
 from dotenv import load_dotenv
 
-from .models import Trader, Item, Base
+from .models import Trader, Item, Base, trader_items
 
 load_dotenv()
 
