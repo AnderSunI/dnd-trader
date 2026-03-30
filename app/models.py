@@ -43,15 +43,12 @@ class Trader(Base):
     restock_days = Column(Integer, default=7)            # через сколько дней обновляется ассортимент
     last_restock = Column(String)                        # дата последнего обновления
     currency = Column(String, default="gold")            # основная валюта (золотые, серебряные и т.д.)
-        # Поля для ГМ (персональные данные торговца)
-    race = Column(String)                    # раса
-    class_name = Column(String)              # класс (class зарезервирован, поэтому class_name)
-    trader_level = Column(Integer, default=0) # уровень торговца как персонажа
-    stats = Column(JSON)                     # характеристики (str, dex, con, int, wis, cha)
-    abilities = Column(JSON)                 # способности / черты
-    description = Column(String)                         # описание торговца
-    image_url = Column(String)                           # ссылка на картинку
-
+        # Поля для ГМ
+    race = Column(String)
+    class_name = Column(String)
+    trader_level = Column(Integer, default=0)
+    stats = Column(JSON)
+    abilities = Column(JSON)    
     # Новые поля (добавлены для расширенной ролевой игры)
     personality = Column(String)                         # особенности поведения, характер
     possessions = Column(JSON)                           # личные вещи (список)
