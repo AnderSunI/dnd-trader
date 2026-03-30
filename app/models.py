@@ -84,6 +84,7 @@ class Item(Base):
 
     is_magical = Column(Boolean, default=False)          # магический предмет?
     attunement = Column(Boolean, default=False)          # требует настройки?
+    rarity_tier = Column(Integer, default=0, nullable=False)   # 0-обычный,1-необычный,2-редкий,3-очень редкий,4-легендарный
 
     stock = Column(Integer, default=0)                   # сколько штук в наличии у торговца
 
