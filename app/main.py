@@ -25,23 +25,6 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="D&D Trader")
 @app.post("/admin/normalize-rarity")
 def normalize_rarity():
-    """Понижает редкость всех предметов, кроме 'обычный' и 'необычный', до 'обычный'"""
-    db = SessionLocal()
-    try:
-        items = db.query(Item).all()
-        updated = 0
-        for item in items:
-            if item.rarity not in ["обычный", "необычный"]:
-                item.rarity = "обычный"
-                item.rarity_tier = 0
-                updated += 1
-        db.commit()
-        return {"updated": updated}
-    finally:
-        db.close()
-
-@app.post("/admin/normalize-rarity")
-def normalize_rarity():
     db = SessionLocal()
     try:
         items = db.query(Item).all()
