@@ -1,4 +1,3 @@
-# app/main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
@@ -70,7 +69,6 @@ def get_traders():
             else:
                 spec = spec or []
 
-            # Получаем связи trader_items для этого торговца
             items_with_qty = db.query(trader_items).filter(trader_items.c.trader_id == t.id).all()
             items_data = []
             for link in items_with_qty:
@@ -91,7 +89,7 @@ def get_traders():
                         "requirements": item.requirements,
                         "is_magical": item.is_magical,
                         "attunement": item.attunement,
-                        "stock": link.quantity,   # здесь количество из связки
+                        "stock": link.quantity,
                         "quality": item.quality,
                     })
             trader_data = {
@@ -254,7 +252,7 @@ def relink_items():
             else:
                 return 1
 
-        # Функция определения категорий торговца (оставляем как было)
+        # Функция определения категорий торговца
         def get_trader_categories(trader):
             type_to_categories = {
                 "кузнец": ["weapon", "armor", "оружие", "броня"],
@@ -335,7 +333,6 @@ def relink_items():
                     for item in chosen:
                         used_rare_ids.add(item.id)
 
-            # Вставляем связи с quantity
             for item in selected:
                 qty = get_quantity(item.rarity_tier)
                 db.execute(
@@ -358,7 +355,6 @@ def relink_items():
 
 @app.post("/admin/run-seed")
 def run_seed():
-    """Перезапускает seed_db.py для полной очистки и заполнения таблиц (торговцы + предметы)."""
     base_dir = os.path.dirname(os.path.dirname(__file__))
     seed_script = os.path.join(base_dir, "app", "seed_db.py")
     if not os.path.exists(seed_script):
@@ -376,10 +372,8 @@ def run_seed():
         "returncode": result.returncode
     }
 
-# ========== ЭНДПОИНТ ДЛЯ ИСПРАВЛЕНИЯ КАТЕГОРИЙ ==========
 @app.post("/admin/fix-categories")
 def fix_categories():
-    """Приводит категории к русским названиям на основе subcategory или имени."""
     from sqlalchemy import text
     db = SessionLocal()
     try:
@@ -388,14 +382,10 @@ def fix_categories():
         for item in items:
             old_cat = item.category
             if old_cat not in ["adventuring_gear", None]:
-                continue  # уже нормальная категория
-
-            # Определяем новую категорию
-            new_cat = "снаряжение"  # по умолчанию
+                continue
+            new_cat = "снаряжение"
             sub = (item.subcategory or "").lower()
             name = (item.name or "").lower()
-
-            # По subcategory
             if sub in ["меч", "лук", "арбалет", "топор", "кинжал", "копье", "булава", "моргенштерн"]:
                 new_cat = "оружие"
             elif sub in ["средняя", "тяжелая", "лёгкая", "щит"]:
@@ -412,7 +402,6 @@ def fix_categories():
                 new_cat = "книги/карты"
             elif "одежда" in name or "плащ" in name or "сапоги" in name:
                 new_cat = "одежда"
-
             if new_cat != old_cat:
                 item.category = new_cat
                 updated += 1
@@ -420,5 +409,6 @@ def fix_categories():
         return {"updated": updated}
     finally:
         db.close()
+
 # ==================== МОНТАЖ СТАТИКИ ====================
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
