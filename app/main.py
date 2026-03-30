@@ -215,11 +215,8 @@ def relink_items():
     from sqlalchemy import text
     db = SessionLocal()
     try:
-        # 1. Удаляем все старые связи
         db.execute(text("DELETE FROM trader_items"))
-        # 2. Получаем всех торговцев
         traders = db.query(Trader).all()
-        # 3. Словарь соответствия типов и категорий (включая русские)
         type_to_categories = {
             "кузнец": ["weapon", "armor", "оружие", "броня"],
             "оружейник": ["weapon", "оружие"],
@@ -270,6 +267,10 @@ def relink_items():
                     cat_list = ["adventuring_gear", "транспорт", "запчасти", "услуга"]
                 else:
                     cat_list = ["adventuring_gear"]
+
+            # Добавляем снаряжение для всех (если ещё не добавлено)
+            if "снаряжение" not in cat_list:
+                cat_list.append("снаряжение")
 
             items = db.query(Item).filter(Item.category.in_(cat_list)).all()
             for item in items:
