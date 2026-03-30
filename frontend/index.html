@@ -118,7 +118,17 @@
         .trader-info { padding: 15px; }
         .trader-name { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: #1e466e; }
         .trader-type { color: #6c757d; font-style: italic; margin-bottom: 8px; }
-        .trader-desc { font-size: 0.85rem; margin: 8px 0; color: #495057; }
+        .trader-desc {
+            font-size: 0.85rem;
+            margin: 8px 0;
+            color: #495057;
+            max-height: 4.2em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
         .trader-meta {
             display: flex;
             flex-wrap: wrap;
@@ -150,6 +160,12 @@
             padding: 2px 8px;
             border-radius: 20px;
             font-size: 0.75rem;
+        }
+        .more-items {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 6px;
+            font-style: italic;
         }
         footer {
             text-align: center;
@@ -385,6 +401,17 @@
         .tab-content.active {
             display: block;
         }
+        /* Вкладки категорий внутри товаров */
+        .category-tabs {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .category-tabs .tab-btn {
+            font-size: 0.9rem;
+            padding: 4px 12px;
+        }
         @media (max-width: 768px) {
             .items-table, .items-table tbody, .items-table tr, .items-table td, .items-table th {
                 display: block;
@@ -579,7 +606,6 @@
         }
 
         function addToInventory(itemId, name, qty = 1, customData = null) {
-            // Если передан customData, используем его, иначе ищем среди торговцев
             let fullItem;
             if (customData) {
                 fullItem = customData;
@@ -833,17 +859,24 @@
                     else if (t.type.includes('контрабандист')) icon = '💎';
                     else if (t.type.includes('друид')) icon = '🌿';
                 }
-                const itemsHtml = (t.items && t.items.length) ? `
-                    <div class="items-list"><div class="items-title">📦 Товары:</div><ul class="items">${t.items.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}</ul></div>
+                // Ограничиваем отображение товаров до 5, случайным образом (но стабильно)
+                const displayItems = t.items.slice(0, 5);
+                const itemsHtml = displayItems.length ? `
+                    <div class="items-list">
+                        <div class="items-title">📦 Товары (витрина):</div>
+                        <ul class="items">${displayItems.map(item => `<li title="${item.description}">${item.name}</li>`).join('')}</ul>
+                        ${t.items.length > 5 ? `<div class="more-items">и ещё ${t.items.length - 5}...</div>` : ''}
+                    </div>
                 ` : '<div class="items-list"><div class="no-items">Нет товаров</div></div>';
                 const reputationStars = getReputationStars(t.reputation);
+                const shortDesc = t.description ? (t.description.length > 120 ? t.description.substring(0, 120) + '…' : t.description) : 'Описание отсутствует';
                 return `
                     <div class="trader-card" data-trader-id="${t.id}">
                         <div class="trader-image">${icon}</div>
                         <div class="trader-info">
                             <div class="trader-name">${t.name}</div>
                             <div class="trader-type">${t.type || 'Торговец'}</div>
-                            <div class="trader-desc">${t.description || 'Описание отсутствует'}</div>
+                            <div class="trader-desc">${shortDesc}</div>
                             <div class="trader-meta">
                                 ${t.specialization ? `<span class="meta-item">🎯 ${Array.isArray(t.specialization) ? t.specialization.join(', ') : t.specialization}</span>` : ''}
                                 ${t.region ? `<span class="meta-item">🌍 ${t.region}</span>` : ''}
@@ -873,74 +906,82 @@
         function showTraderModal(trader) {
             const modalContent = document.getElementById('modalContent');
 
-            // ----- Таблица покупки -----
-            let buyHtml = '';
-            if (trader.items && trader.items.length) {
-                buyHtml = `
-                    <p><strong id="traderGoldDisplay">💰 Золото торговца: ${trader.gold} зол.</strong></p>
-                    <h3>📦 Покупка (цены в ${trader.currency || 'золотых'}):</h3>
-                    <table class="items-table">
-                        <thead> <th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действие</th> </thead>
-                        <tbody>
-                            ${trader.items.map(item => {
-                                const quality = item.quality || 'стандартное';
-                                const originalStock = item.stock !== undefined ? item.stock : 0;
-                                const cartItem = cart.find(i => i.traderId === trader.id && i.itemId === item.id);
-                                const cartQty = cartItem ? cartItem.quantity : 0;
-                                const remaining = originalStock - cartQty;
-                                const stockHtml = remaining > 0 ? `${remaining}` : '<span style="color:red;">нет в наличии</span>';
-                                
-                                let discount = trader.reputation > 0 ? trader.reputation / 100 : 0;
-                                let finalGold = item.price_gold * (1 - discount);
-                                let finalSilver = (item.price_silver || 0) * (1 - discount);
-                                if (finalSilver >= 100) {
-                                    finalGold += Math.floor(finalSilver / 100);
-                                    finalSilver = finalSilver % 100;
-                                }
-                                const priceFormatted = formatPrice(finalGold, Math.round(finalSilver));
-                                
-                                let stats = [];
-                                if (item.properties) {
-                                    let props = typeof item.properties === 'string' ? JSON.parse(item.properties) : item.properties;
-                                    if (props.damage) stats.push(`Урон: ${props.damage}`);
-                                    if (props.ac) stats.push(`КД: ${props.ac}`);
-                                    if (props.bonus) stats.push(`Бонус: +${props.bonus}`);
-                                }
-                                if (item.weight) stats.push(`Вес: ${item.weight} фунтов`);
-                                if (item.requirements) {
-                                    let req = typeof item.requirements === 'string' ? JSON.parse(item.requirements) : item.requirements;
-                                    if (req.strength) stats.push(`Треб.: Сила ${req.strength}`);
-                                    if (req.level) stats.push(`Ур. ${req.level}`);
-                                }
-                                if (item.is_magical) stats.push('Магический');
-                                if (item.attunement) stats.push('Требует настройки');
-                                const statsHtml = stats.length ? `<div class="stat">${stats.join(' | ')}</div>` : '';
-                                
-                                const canAdd = remaining > 0;
-                                const inputDisabled = !canAdd ? 'disabled' : '';
-                                const addBtnDisabled = !canAdd ? 'disabled' : '';
-                                
-                                return `
-                                    <tr data-buy-trader-id="${trader.id}" data-buy-item-id="${item.id}" data-buy-original-stock="${originalStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-name="${item.name}">
-                                        <td data-label="Название">${item.name}${item.is_magical ? ' ✨' : ''}   </td>
-                                        <td data-label="Цена">${priceFormatted}   </td>
-                                        <td data-label="Качество"><span class="quality-badge">${quality}</span>   </td>
-                                        <td data-label="Осталось" class="stock-cell">${stockHtml}   </td>
-                                        <td data-label="Характеристики">${statsHtml}   </td>
-                                        <td data-label="Описание">${item.description || '—'}   </td>
-                                        <td data-label="Кол-во"><input type="number" class="quantity-input" min="1" max="${remaining}" value="1" ${inputDisabled}>   </td>
-                                        <td data-label="Действие" class="add-cell"><button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button>   </td>
-                                       </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                     </table>
-                `;
-            } else {
-                buyHtml = '<p>У этого торговца пока нет товаров.</p>';
-            }
+            // Группируем товары по категориям
+            const grouped = {};
+            trader.items.forEach(item => {
+                const cat = item.category || 'другое';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(item);
+            });
+            const categories = Object.keys(grouped).sort();
 
-            // ----- Таблица продажи -----
+            // Строим вкладки для категорий
+            let categoryTabsHtml = '';
+            let categoryContentsHtml = '';
+            categories.forEach((cat, idx) => {
+                const activeClass = idx === 0 ? 'active' : '';
+                categoryTabsHtml += `<button class="tab-btn category-tab ${activeClass}" data-cat="${cat}">${cat}</button>`;
+                // Таблица товаров для этой категории
+                const items = grouped[cat];
+                let tableHtml = `
+                    <table class="items-table">
+                        <thead>
+                            <tr><th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действие</th></tr>
+                        </thead>
+                        <tbody>
+                `;
+                items.forEach(item => {
+                    const quality = item.quality || 'стандартное';
+                    const originalStock = item.stock !== undefined ? item.stock : 0;
+                    const cartItem = cart.find(i => i.traderId === trader.id && i.itemId === item.id);
+                    const cartQty = cartItem ? cartItem.quantity : 0;
+                    const remaining = originalStock - cartQty;
+                    const stockHtml = remaining > 0 ? `${remaining}` : '<span style="color:red;">нет в наличии</span>';
+                    let discount = trader.reputation > 0 ? trader.reputation / 100 : 0;
+                    let finalGold = item.price_gold * (1 - discount);
+                    let finalSilver = (item.price_silver || 0) * (1 - discount);
+                    if (finalSilver >= 100) {
+                        finalGold += Math.floor(finalSilver / 100);
+                        finalSilver = finalSilver % 100;
+                    }
+                    const priceFormatted = formatPrice(finalGold, Math.round(finalSilver));
+                    let stats = [];
+                    if (item.properties) {
+                        let props = typeof item.properties === 'string' ? JSON.parse(item.properties) : item.properties;
+                        if (props.damage) stats.push(`Урон: ${props.damage}`);
+                        if (props.ac) stats.push(`КД: ${props.ac}`);
+                        if (props.bonus) stats.push(`Бонус: +${props.bonus}`);
+                    }
+                    if (item.weight) stats.push(`Вес: ${item.weight} фунтов`);
+                    if (item.requirements) {
+                        let req = typeof item.requirements === 'string' ? JSON.parse(item.requirements) : item.requirements;
+                        if (req.strength) stats.push(`Треб.: Сила ${req.strength}`);
+                        if (req.level) stats.push(`Ур. ${req.level}`);
+                    }
+                    if (item.is_magical) stats.push('Магический');
+                    if (item.attunement) stats.push('Требует настройки');
+                    const statsHtml = stats.length ? `<div class="stat">${stats.join(' | ')}</div>` : '';
+                    const canAdd = remaining > 0;
+                    const inputDisabled = !canAdd ? 'disabled' : '';
+                    const addBtnDisabled = !canAdd ? 'disabled' : '';
+                    tableHtml += `
+                        <tr data-buy-trader-id="${trader.id}" data-buy-item-id="${item.id}" data-buy-original-stock="${originalStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-name="${item.name}">
+                            <td data-label="Название">${item.name}${item.is_magical ? ' ✨' : ''}</td>
+                            <td data-label="Цена">${priceFormatted}</td>
+                            <td data-label="Качество"><span class="quality-badge">${quality}</span></td>
+                            <td data-label="Осталось" class="stock-cell">${stockHtml}</td>
+                            <td data-label="Характеристики">${statsHtml}</td>
+                            <td data-label="Описание">${item.description || '—'}</td>
+                            <td data-label="Кол-во"><input type="number" class="quantity-input" min="1" max="${remaining}" value="1" ${inputDisabled}></td>
+                            <td data-label="Действие" class="add-cell"><button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button></td>
+                        </tr>
+                    `;
+                });
+                tableHtml += '</tbody></table>';
+                categoryContentsHtml += `<div class="tab-content category-content ${activeClass}" data-cat="${cat}">${tableHtml}</div>`;
+            });
+
+            // Таблица продажи
             let sellHtml = '';
             const sellableItems = inventory.filter(inv => trader.items.some(item => item.id === inv.itemId));
             if (sellableItems.length) {
@@ -948,7 +989,7 @@
                     <div id="sellSection">
                         <h3>💰 Продажа торговцу</h3>
                         <table class="items-table">
-                            <thead> <th>Название</th><th>У вас</th><th>Цена за шт.</th><th>Кол-во к продаже</th><th>Действие</th> </thead>
+                            <thead><tr><th>Название</th><th>У вас</th><th>Цена за шт.</th><th>Кол-во к продаже</th><th>Действие</th></tr></thead>
                             <tbody>
                                 ${sellableItems.map(inv => {
                                     const traderItem = trader.items.find(i => i.id === inv.itemId);
@@ -968,11 +1009,11 @@
                                                 </div>
                                             </td>
                                             <td data-label="Действие"><button class="sell-confirm">Продать</button></td>
-                                         </tr>
+                                        </tr>
                                     `;
                                 }).join('')}
                             </tbody>
-                         </table>
+                        </table>
                     </div>
                 `;
             }
@@ -1003,7 +1044,6 @@
                 </div>
             `;
 
-            // Собираем модалку с вкладками
             modalContent.innerHTML = `
                 <h2>${trader.name}</h2>
                 <p><strong>Тип:</strong> ${trader.type || '—'}</p>
@@ -1018,7 +1058,10 @@
                     <button class="tab-btn" data-tab="info">Информация</button>
                     <button class="tab-btn" data-tab="notes">Заметки ГМ</button>
                 </div>
-                <div id="tab-buy" class="tab-content active">${buyHtml}</div>
+                <div id="tab-buy" class="tab-content active">
+                    <div class="tab-bar category-tabs">${categoryTabsHtml}</div>
+                    ${categoryContentsHtml}
+                </div>
                 <div id="tab-sell" class="tab-content">${sellHtml}</div>
                 <div id="tab-info" class="tab-content">${infoHtml}</div>
                 <div id="tab-notes" class="tab-content">${notesHtml}</div>
@@ -1047,14 +1090,29 @@
                 });
             }
 
-            // Переключение вкладок
-            document.querySelectorAll('.tab-btn').forEach(btn => {
+            // Переключение вкладок (основные)
+            document.querySelectorAll('.tab-bar:not(.category-tabs) .tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const tabId = btn.dataset.tab;
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-bar:not(.category-tabs) .tab-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                     document.getElementById(`tab-${tabId}`).classList.add('active');
+                });
+            });
+
+            // Переключение вкладок категорий внутри товаров
+            const categoryTabs = document.querySelectorAll('.category-tab');
+            const categoryContents = document.querySelectorAll('.category-content');
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const cat = tab.dataset.cat;
+                    categoryTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    categoryContents.forEach(content => {
+                        if (content.dataset.cat === cat) content.classList.add('active');
+                        else content.classList.remove('active');
+                    });
                 });
             });
 
@@ -1274,15 +1332,7 @@
                 </div>
                 <table class="items-table">
                     <thead>
-                         <tr>
-                            <th>Название</th>
-                            <th>Цена</th>
-                            <th>Качество</th>
-                            <th>Характеристики</th>
-                            <th>Описание</th>
-                            <th>Кол-во</th>
-                            <th>Действия</th>
-                         </tr>
+                         <tr><th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действия</th></tr>
                     </thead>
                     <tbody>
             `;
@@ -1325,14 +1375,14 @@
                         <td data-label="Действия">
                             <button class="remove-btn" data-index="${idx}">Удалить</button>
                         </td>
-                     </tr>
+                    </tr>
                 `;
             });
 
             const totalGold = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
             itemsHtml += `
                     </tbody>
-                 </table>
+                </table>
                 <p><strong>Итого:</strong> ${totalGold.toFixed(2)} зол.</p>
                 <p><strong>Ваше золото:</strong> ${playerGold} зол.</p>
                 <button id="checkoutBtn" class="primary">Оформить заказ</button>
@@ -1682,14 +1732,12 @@
                     return;
                 }
                 const priceGold = parseFloat(document.getElementById('customPrice').value);
-                if (isNaN(priceGold)) priceGold = 0;
                 const weight = parseFloat(document.getElementById('customWeight').value) || 0;
                 const rarity = document.getElementById('customRarity').value;
                 const isMagical = document.getElementById('customMagic').checked;
                 const quality = document.getElementById('customQuality').value;
                 const description = document.getElementById('customDesc').value.trim();
 
-                // Создаём объект предмета
                 const goldPart = Math.floor(priceGold);
                 const silverPart = Math.round((priceGold - goldPart) * 100);
                 const customItem = {
@@ -1706,7 +1754,6 @@
                     requirements: null,
                     attunement: false
                 };
-                // Генерируем уникальный отрицательный ID, чтобы не конфликтовать с реальными предметами
                 const newId = -Date.now();
                 addToInventory(newId, name, 1, customItem);
                 document.getElementById('addItemModal').style.display = 'none';
