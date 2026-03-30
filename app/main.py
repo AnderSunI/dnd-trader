@@ -294,7 +294,9 @@ def relink_items():
 
         # 6. Для каждого торговца собираем ассортимент
         for trader in traders:
-            print(f"Обрабатываю торговца: {trader.name}, уровень {trader.level_max}")
+            # Уровень торговца (по умолчанию 5, если не задан)
+            level = trader.level_max if trader.level_max is not None else 5
+            print(f"Обрабатываю торговца: {trader.name}, уровень {level}")
 
             # Получаем категории
             categories = get_trader_categories(trader)
@@ -302,6 +304,7 @@ def relink_items():
             # Получаем все предметы, подходящие по категориям
             all_items = db.query(Item).filter(Item.category.in_(categories)).all()
             if not all_items:
+                print(f"  Нет предметов для категорий {categories}")
                 continue
 
             # Группируем по rarity_tier
@@ -314,7 +317,7 @@ def relink_items():
                 items_by_tier[tier].append(item)
 
             # Квоты для этого уровня
-            quotas = get_quotas(trader.level_max)
+            quotas = get_quotas(level)
 
             # Выбранные предметы
             selected = []
@@ -322,14 +325,21 @@ def relink_items():
                 min_q, max_q = quotas[tier]
                 pool = items_by_tier[tier]
                 if not pool:
+                    print(f"  Tier {tier}: пул пуст, пропускаем")
                     continue
-                qty = random.randint(min_q, min(max_q, len(pool)))
+                max_available = min(max_q, len(pool))
+                if max_available < min_q:
+                    qty = max_available
+                    print(f"  Tier {tier}: доступно меньше минимума ({max_available} < {min_q}), берём все")
+                else:
+                    qty = random.randint(min_q, max_available)
                 chosen = random.sample(pool, qty)
                 selected.extend(chosen)
                 # Запоминаем ID редких+ предметов
                 if tier >= 2:
                     for item in chosen:
                         used_rare_ids.add(item.id)
+                print(f"  Tier {tier}: выбрано {qty} предметов из {len(pool)}")
 
             # Добавляем связи для выбранных предметов
             for item in selected:
@@ -337,145 +347,13 @@ def relink_items():
                     text("INSERT INTO trader_items (trader_id, item_id) VALUES (:tid, :iid) ON CONFLICT DO NOTHING"),
                     {"tid": trader.id, "iid": item.id}
                 )
-            print(f"  Добавлено предметов: {len(selected)}")
+            print(f"  Итого добавлено предметов: {len(selected)}")
 
         db.commit()
         return {"status": "ok", "traders_processed": len(traders), "unique_rare_items": len(used_rare_ids)}
     except Exception as e:
         db.rollback()
         print(f"Ошибка: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        db.close()
-
-# ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ИМПОРТА ПРЕДМЕТОВ ИЗ cleaned_items.json
-@app.post("/admin/import-items")
-def import_items():
-    import json
-    from pathlib import Path
-
-    json_path = Path(__file__).parent.parent / "cleaned_items.json"
-    if not json_path.exists():
-        raise HTTPException(status_code=404, detail="JSON file not found")
-
-    with open(json_path, "r", encoding="utf-8") as f:
-        items_data = json.load(f)
-
-    db = SessionLocal()
-    try:
-        # Собираем существующие имена и URL
-        existing_names = set()
-        existing_urls = set()
-        for item in db.query(Item).all():
-            if item.name:
-                existing_names.add(item.name.strip().lower())
-            if hasattr(item, 'url') and item.url:
-                existing_urls.add(item.url)
-
-        added = 0
-        skipped = 0
-        for data in items_data:
-            name = data.get("name", "").strip()
-            url = data.get("url", "")
-            if not name:
-                continue
-            if name.lower() in existing_names or (url and url in existing_urls):
-                skipped += 1
-                continue
-
-            # Парсим цену
-            price_str = data.get("price", "")
-            price_gold_float = 0.0
-            if price_str:
-                price_str = price_str.replace(' ', '').replace('зм', '').strip()
-                if '-' in price_str:
-                    parts = price_str.split('-')
-                    try:
-                        low = float(parts[0])
-                        high = float(parts[1])
-                        price_gold_float = (low + high) / 2
-                    except:
-                        price_gold_float = 0.0
-                else:
-                    try:
-                        price_gold_float = float(price_str)
-                    except:
-                        price_gold_float = 0.0
-
-            price_gold = int(price_gold_float)
-            price_silver = int((price_gold_float - price_gold) * 100)
-
-            category = data.get("category_clean", "adventuring_gear")
-            rarity = data.get("rarity", "обычный")
-            description = data.get("description", "")
-
-            new_item = Item(
-                name=name,
-                category=category,
-                rarity=rarity,
-                price_gold=price_gold,
-                price_silver=price_silver,
-                price_copper=0,
-                weight=0.0,
-                description=description,
-                properties="{}",
-                requirements="{}",
-                is_magical=False,
-                attunement=False,
-                stock=5
-            )
-            db.add(new_item)
-            added += 1
-            if added % 100 == 0:
-                db.flush()
-
-        db.commit()
-        return {"added": added, "skipped": skipped}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        db.close()
-
-# ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ УДАЛЕНИЯ ДУБЛИКАТОВ ПРЕДМЕТОВ И ИСПРАВЛЕНИЯ КАТЕГОРИИ
-@app.post("/admin/fix-duplicates")
-def fix_duplicates():
-    from sqlalchemy import text
-    db = SessionLocal()
-    try:
-        # 1. Найти дубликаты предметов по имени
-        dup_query = text("""
-            SELECT name, MIN(id) as keep_id
-            FROM items
-            GROUP BY name
-            HAVING COUNT(*) > 1
-        """)
-        dup_rows = db.execute(dup_query).fetchall()
-        if not dup_rows:
-            return {"message": "Дубликатов не найдено"}
-
-        deleted = 0
-        for name, keep_id in dup_rows:
-            # Удаляем связи для всех предметов с этим именем, кроме keep_id
-            db.execute(
-                text("DELETE FROM trader_items WHERE item_id IN (SELECT id FROM items WHERE name = :name AND id != :keep_id)"),
-                {"name": name, "keep_id": keep_id}
-            )
-            # Удаляем сами предметы
-            del_res = db.execute(
-                text("DELETE FROM items WHERE name = :name AND id != :keep_id"),
-                {"name": name, "keep_id": keep_id}
-            )
-            deleted += del_res.rowcount
-        db.commit()
-
-        # 2. Исправить категорию adventuring_gear на снаряжение
-        upd = db.execute(text("UPDATE items SET category = 'снаряжение' WHERE category = 'adventuring_gear'"))
-        db.commit()
-
-        return {"deleted_items": deleted, "updated_categories": upd.rowcount}
-    except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
