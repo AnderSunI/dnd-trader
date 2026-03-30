@@ -167,6 +167,7 @@ def get_traders():
         traders = db.query(Trader).all()
         result = []
         for t in traders:
+            # Обработка specialization
             spec = t.specialization
             if isinstance(spec, str):
                 try:
@@ -176,6 +177,20 @@ def get_traders():
             else:
                 spec = spec or []
 
+            # Обработка possessions (если строка -> в список)
+            possessions = t.possessions
+            if isinstance(possessions, str):
+                try:
+                    possessions = json.loads(possessions)
+                except:
+                    possessions = []
+            elif possessions is None:
+                possessions = []
+
+            # Обработка rumors (просто текст, но на всякий случай)
+            rumors = t.rumors
+
+            # Получаем связи trader_items
             items_with_qty = db.query(trader_items).filter(trader_items.c.trader_id == t.id).all()
             items_data = []
             for link in items_with_qty:
@@ -199,6 +214,7 @@ def get_traders():
                         "stock": link.quantity,
                         "quality": item.quality,
                     })
+
             trader_data = {
                 "id": t.id,
                 "name": t.name,
@@ -215,8 +231,8 @@ def get_traders():
                 "description": t.description,
                 "image_url": t.image_url,
                 "personality": t.personality,
-                "possessions": t.possessions,
-                "rumors": t.rumors,
+                "possessions": possessions,
+                "rumors": rumors,
                 "items": items_data
             }
             result.append(trader_data)
