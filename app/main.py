@@ -358,5 +358,25 @@ def relink_items():
     finally:
         db.close()
 
+@app.post("/admin/run-seed")
+def run_seed():
+    """Перезапускает seed_db.py для полной очистки и заполнения таблиц (торговцы + предметы)."""
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    seed_script = os.path.join(base_dir, "app", "seed_db.py")
+    if not os.path.exists(seed_script):
+        raise HTTPException(status_code=404, detail=f"Файл {seed_script} не найден")
+    result = subprocess.run(
+        ["python", seed_script],
+        cwd=base_dir,
+        capture_output=True,
+        text=True,
+        timeout=120
+    )
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "returncode": result.returncode
+    }
+    
 # ==================== МОНТАЖ СТАТИКИ ====================
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
