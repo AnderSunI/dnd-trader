@@ -17,18 +17,14 @@ from sqlalchemy import text
 Base.metadata.create_all(bind=engine)
 
 with engine.connect() as conn:
-    # Стандартные колонки
-    with engine.connect() as conn:
-    # Для предметов
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_silver INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_copper INTEGER DEFAULT 0"))
-    # Для торговцев
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS personality TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS possessions JSON"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS rumors TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0"))
-    # Новые поля для ГМ
+    # Новые поля
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS race TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS class_name TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS trader_level INTEGER DEFAULT 0"))
