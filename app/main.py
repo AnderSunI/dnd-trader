@@ -23,6 +23,85 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="D&D Trader")
+@app.post("/admin/fix-items")
+def fix_items():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        items = db.query(Item).all()
+        updated = 0
+        for item in items:
+            name_lower = item.name.lower()
+            old_cat = item.category
+            old_rarity = item.rarity
+            old_price = item.price_gold + item.price_silver/100
+
+            # 1. Категория
+            new_cat = "снаряжение"
+            if "меч" in name_lower or "лук" in name_lower or "топор" in name_lower or "кинжал" in name_lower or "копье" in name_lower or "арбалет" in name_lower:
+                new_cat = "оружие"
+            elif "кольчуга" in name_lower or "латы" in name_lower or "доспех" in name_lower or "щит" in name_lower:
+                new_cat = "броня"
+            elif "зелье" in name_lower:
+                new_cat = "зелье"
+            elif "свиток" in name_lower:
+                new_cat = "свиток"
+            elif "плащ" in name_lower or "сапоги" in name_lower or "одежда" in name_lower:
+                new_cat = "одежда"
+            elif "книга" in name_lower or "карта" in name_lower:
+                new_cat = "книги/карты"
+            elif "инструмент" in name_lower:
+                new_cat = "инструменты"
+            elif "еда" in name_lower or "пиво" in name_lower or "эль" in name_lower or "хлеб" in name_lower:
+                new_cat = "еда/напитки"
+
+            # 2. Редкость (на основе ключевых слов)
+            is_magical_keywords = ["магический", "волшебный", "+1", "+2", "+3", "огненный", "ледяной", "молнии", "защиты", "удара", "чародейский", "летучий", "паука", "левитации", "невидимости"]
+            is_magical = any(kw in name_lower for kw in is_magical_keywords)
+
+            if is_magical:
+                if "+3" in name_lower or "легендарный" in name_lower:
+                    new_rarity = "очень редкий"
+                    new_tier = 3
+                elif "+2" in name_lower or "редкий" in name_lower:
+                    new_rarity = "редкий"
+                    new_tier = 2
+                else:
+                    new_rarity = "необычный"
+                    new_tier = 1
+            else:
+                new_rarity = "обычный"
+                new_tier = 0
+
+            # 3. Цена
+            if new_tier == 0:
+                price_mult = 0.5   # обычные дешевеют
+            elif new_tier == 1:
+                price_mult = 1.0   # необычные остаются как есть
+            elif new_tier == 2:
+                price_mult = 2.0   # редкие дорожают
+            elif new_tier == 3:
+                price_mult = 5.0   # очень редкие
+            else:
+                price_mult = 10.0  # легендарные
+
+            new_price_gold_float = old_price * price_mult
+            new_price_gold = int(new_price_gold_float)
+            new_price_silver = int((new_price_gold_float - new_price_gold) * 100)
+
+            if (new_cat != old_cat) or (new_rarity != old_rarity) or (new_price_gold != item.price_gold) or (new_price_silver != item.price_silver):
+                item.category = new_cat
+                item.rarity = new_rarity
+                item.rarity_tier = new_tier
+                item.price_gold = new_price_gold
+                item.price_silver = new_price_silver
+                item.is_magical = is_magical
+                updated += 1
+
+        db.commit()
+        return {"updated": updated}
+    finally:
+        db.close()
 @app.post("/admin/normalize-rarity")
 def normalize_rarity():
     db = SessionLocal()
