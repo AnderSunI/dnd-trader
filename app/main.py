@@ -282,6 +282,95 @@ def relink_items():
     finally:
         db.close()
 
+# ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ ИМПОРТА ПРЕДМЕТОВ ИЗ cleaned_items.json
+@app.post("/admin/import-items")
+def import_items():
+    import json
+    from pathlib import Path
+
+    json_path = Path(__file__).parent.parent / "cleaned_items.json"
+    if not json_path.exists():
+        raise HTTPException(status_code=404, detail="JSON file not found")
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        items_data = json.load(f)
+
+    db = SessionLocal()
+    try:
+        # Собираем существующие имена и URL
+        existing_names = set()
+        existing_urls = set()
+        for item in db.query(Item).all():
+            if item.name:
+                existing_names.add(item.name.strip().lower())
+            if hasattr(item, 'url') and item.url:
+                existing_urls.add(item.url)
+
+        added = 0
+        skipped = 0
+        for data in items_data:
+            name = data.get("name", "").strip()
+            url = data.get("url", "")
+            if not name:
+                continue
+            if name.lower() in existing_names or (url and url in existing_urls):
+                skipped += 1
+                continue
+
+            # Парсим цену
+            price_str = data.get("price", "")
+            price_gold_float = 0.0
+            if price_str:
+                price_str = price_str.replace(' ', '').replace('зм', '').strip()
+                if '-' in price_str:
+                    parts = price_str.split('-')
+                    try:
+                        low = float(parts[0])
+                        high = float(parts[1])
+                        price_gold_float = (low + high) / 2
+                    except:
+                        price_gold_float = 0.0
+                else:
+                    try:
+                        price_gold_float = float(price_str)
+                    except:
+                        price_gold_float = 0.0
+
+            price_gold = int(price_gold_float)
+            price_silver = int((price_gold_float - price_gold) * 100)
+
+            category = data.get("category_clean", "adventuring_gear")
+            rarity = data.get("rarity", "обычный")
+            description = data.get("description", "")
+
+            new_item = Item(
+                name=name,
+                category=category,
+                rarity=rarity,
+                price_gold=price_gold,
+                price_silver=price_silver,
+                price_copper=0,
+                weight=0.0,
+                description=description,
+                properties="{}",
+                requirements="{}",
+                is_magical=False,
+                attunement=False,
+                stock=5
+            )
+            db.add(new_item)
+            added += 1
+            if added % 100 == 0:
+                db.flush()
+
+        db.commit()
+        return {"added": added, "skipped": skipped}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
 @app.post("/admin/fix-duplicates")
 def fix_duplicates():
     from sqlalchemy import text
