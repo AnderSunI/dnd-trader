@@ -38,6 +38,46 @@ def normalize_rarity():
         return {"updated": updated}
     finally:
         db.close()
+@app.get("/admin/debug-table")
+def debug_table():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        cols = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='traders'")).fetchall()
+        col_names = [c[0] for c in cols]
+        return {"columns": col_names}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
+@app.post("/admin/fix-trader-columns")
+def fix_trader_columns():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # Список колонок, которые должны быть в таблице traders
+        needed_columns = [
+            ("race", "TEXT"),
+            ("class_name", "TEXT"),
+            ("trader_level", "INTEGER DEFAULT 0"),
+            ("stats", "JSON"),
+            ("abilities", "JSON"),
+            ("description", "TEXT"),
+            ("image_url", "TEXT"),
+        ]
+        added = []
+        for col_name, col_type in needed_columns:
+            try:
+                db.execute(text(f"ALTER TABLE traders ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                added.append(col_name)
+            except Exception as e:
+                print(f"Error adding {col_name}: {e}")
+        db.commit()
+        return {"added_columns": added}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
 @app.post("/admin/add-quantity-column")
 def add_quantity_column():
     from sqlalchemy import text
