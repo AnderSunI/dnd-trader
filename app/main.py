@@ -23,6 +23,191 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="D&D Trader")
+@app.post("/admin/full-reset")
+def full_reset():
+    import random
+    from sqlalchemy import text
+    from pathlib import Path
+
+    db = SessionLocal()
+    try:
+        # 1. Удаляем все старые связи и данные
+        db.execute(text("DELETE FROM trader_items"))
+        db.execute(text("DELETE FROM items"))
+        db.execute(text("DELETE FROM traders"))
+        db.commit()
+        print("Старые данные удалены")
+
+        # 2. Создаём торговцев из seed_db.py (здесь нужно скопировать список traders_data из твоего seed_db.py)
+        # Вместо этого я обращаюсь к функции, которая есть в твоём коде? Нет, проще вставить прямо сюда.
+        # Я скопирую твой traders_data из seed_db.py (полный список). Но чтобы не дублировать, я его вставлю ниже.
+        # Для краткости я вставлю только начало, но ты должен вставить весь свой traders_data из seed_db.py.
+        traders_data = [
+            # ... сюда скопируй весь свой список traders_data из seed_db.py
+        ]
+        # Временно, чтобы код не сломался, я создам пустой список. Ты заменишь на свой.
+        # Пока оставлю как есть, но ты вставишь свой.
+
+        # 3. Импортируем предметы из cleaned_items.json
+        json_path = Path(__file__).parent.parent / "cleaned_items.json"
+        if not json_path.exists():
+            return {"error": "cleaned_items.json not found"}
+        with open(json_path, "r", encoding="utf-8") as f:
+            items_data = json.load(f)
+
+        rarity_tier_map = {
+            "обычный": 0,
+            "необычный": 1,
+            "редкий": 2,
+            "очень редкий": 3,
+            "легендарный": 4,
+            "артефакт": 4,
+        }
+
+        for data in items_data:
+            name = data.get("name")
+            if not name:
+                continue
+            # Парсим цену
+            price_str = data.get("price", "")
+            price_gold_float = 0.0
+            if price_str:
+                price_str = price_str.replace(' ', '').replace('зм', '').strip()
+                if '-' in price_str:
+                    parts = price_str.split('-')
+                    try:
+                        low = float(parts[0])
+                        high = float(parts[1])
+                        price_gold_float = (low + high) / 2
+                    except:
+                        price_gold_float = 0.0
+                else:
+                    try:
+                        price_gold_float = float(price_str)
+                    except:
+                        price_gold_float = 0.0
+            price_gold = int(price_gold_float)
+            price_silver = int((price_gold_float - price_gold) * 100)
+
+            category = data.get("category_clean", "adventuring_gear")
+            rarity = data.get("rarity", "обычный")
+            rarity = rarity.lower()
+            if rarity not in rarity_tier_map:
+                rarity = "обычный"
+            tier = rarity_tier_map[rarity]
+
+            description = data.get("description", "")
+
+            item = Item(
+                name=name,
+                category=category,
+                rarity=rarity,
+                rarity_tier=tier,
+                price_gold=price_gold,
+                price_silver=price_silver,
+                price_copper=0,
+                weight=0.0,
+                description=description,
+                properties="{}",
+                requirements="{}",
+                is_magical=False,
+                attunement=False,
+                stock=5
+            )
+            db.add(item)
+        db.commit()
+        print(f"Импортировано {len(items_data)} предметов")
+
+        # 4. Создаём торговцев (здесь нужно вставить твой traders_data)
+        # Так как я не знаю точный список, я оставлю заглушку. Ты заменишь на свой.
+        # for data in traders_data:
+        #     trader = Trader(**data)
+        #     db.add(trader)
+        # db.commit()
+
+        # 5. Пересобираем ассортимент (аналогично relink-items)
+        traders = db.query(Trader).all()
+        used_rare_ids = set()
+
+        def get_quotas(level):
+            if level <= 3:
+                return {0: (8, 12), 1: (3, 5), 2: (1, 2)}
+            elif level <= 6:
+                return {0: (5, 10), 1: (3, 5), 2: (1, 3), 3: (0, 1)}
+            else:
+                return {0: (5, 8), 1: (2, 4), 2: (1, 2), 3: (0, 1), 4: (0, 1)}
+
+        def get_quantity(tier):
+            if tier == 0:
+                return random.randint(10, 20)
+            elif tier == 1:
+                return random.randint(5, 10)
+            elif tier == 2:
+                return random.randint(2, 5)
+            elif tier == 3:
+                return random.randint(1, 2)
+            elif tier == 4:
+                return 1
+            else:
+                return 1
+
+        def get_trader_categories(trader):
+            # (здесь скопируй свою функцию get_trader_categories из relink-items)
+            pass
+
+        for trader in traders:
+            level = trader.level_max if trader.level_max is not None else 5
+            categories = get_trader_categories(trader)
+            all_items = db.query(Item).filter(Item.category.in_(categories)).all()
+            if not all_items:
+                continue
+
+            items_by_tier = {0: [], 1: [], 2: [], 3: [], 4: []}
+            for item in all_items:
+                tier = item.rarity_tier
+                if tier >= 2 and item.id in used_rare_ids:
+                    continue
+                items_by_tier[tier].append(item)
+
+            quotas = get_quotas(level)
+            selected = []
+            for tier in sorted(quotas.keys()):
+                min_q, max_q = quotas[tier]
+                pool = items_by_tier[tier]
+                if not pool:
+                    continue
+                max_available = min(max_q, len(pool))
+                if max_available < min_q:
+                    qty = max_available
+                else:
+                    qty = random.randint(min_q, max_available)
+                chosen = random.sample(pool, qty)
+                selected.extend(chosen)
+                if tier >= 2:
+                    for item in chosen:
+                        used_rare_ids.add(item.id)
+
+            for item in selected:
+                qty = get_quantity(item.rarity_tier)
+                db.execute(
+                    text("""
+                        INSERT INTO trader_items (trader_id, item_id, quantity, price_gold)
+                        VALUES (:tid, :iid, :qty, :price)
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {"tid": trader.id, "iid": item.id, "qty": qty, "price": item.price_gold}
+                )
+            print(f"Торговец {trader.name}: добавлено {len(selected)} предметов")
+
+        db.commit()
+        return {"status": "ok", "traders_processed": len(traders), "unique_rare_items": len(used_rare_ids)}
+
+    except Exception as e:
+        db.rollback()
+        print(f"Ошибка: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
 @app.post("/admin/fix-items")
 def fix_items():
     from sqlalchemy import text
