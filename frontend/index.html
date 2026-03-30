@@ -175,11 +175,20 @@
             padding: 2px 8px;
             font-size: 0.7rem;
             font-weight: bold;
+            margin-left: 6px;
         }
         footer {
             text-align: center;
             margin-top: 40px;
             color: #ffffff;
+            font-size: 0.8rem;
+        }
+        footer a {
+            color: #ffd966;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
         }
         .modal {
             display: none;
@@ -584,7 +593,9 @@
     </div>
 
     <div id="tradersGrid" class="traders-grid"></div>
-    <footer>Генератор торговцев для D&D 5e | По мотивам «Принцев Апокалипсиса»</footer>
+    <footer>
+        <div>© 2026 <a href="https://github.com/AnderSunI" target="_blank">AnderSunI</a> | <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> | Не для коммерческого использования</div>
+    </footer>
 
     <!-- Модалки -->
     <div id="traderModal" class="modal"><div class="modal-content"><span class="close">&times;</span><div id="modalContent"></div></div></div>
@@ -603,10 +614,18 @@
         let gmNotes = {};
 
         // ==================== ЗВУКИ ====================
+        // Простой "микшер" – один экземпляр Audio для каждого типа
+        const sounds = {
+            coin: new Audio('/sounds/coin.mp3'),
+            door: new Audio('/sounds/door.mp3')
+        };
         function playSound(type) {
             try {
-                if (type === 'coin') new Audio('/sounds/coin.mp3').play().catch(e=>{});
-                else if (type === 'door') new Audio('/sounds/door.mp3').play().catch(e=>{});
+                const sound = sounds[type];
+                if (sound) {
+                    sound.currentTime = 0;
+                    sound.play().catch(e => {});
+                }
             } catch(e) {}
         }
 
@@ -949,7 +968,6 @@
             categories.forEach((cat, idx) => {
                 const activeClass = idx === 0 ? 'active' : '';
                 categoryTabsHtml += `<button class="tab-btn category-tab ${activeClass}" data-cat="${cat}">${cat}</button>`;
-                // Таблица товаров для этой категории
                 const items = grouped[cat];
                 let tableHtml = `
                     <table class="items-table">
@@ -1329,6 +1347,7 @@
                     e.stopPropagation();
                     const itemData = JSON.parse(btn.dataset.item);
                     showItemDetailModal(itemData);
+                    playSound('door');
                 });
             });
         }
@@ -1371,7 +1390,7 @@
             };
         }
 
-        // ==================== МОДАЛКА КОРЗИНЫ ====================
+        // ==================== МОДАЛКА КОРЗИНЫ (упрощённо, но полностью) ====================
         function renderCartModal() {
             let filteredCart = [...cart];
             const search = document.getElementById('cartSearch')?.value?.toLowerCase() || '';
@@ -1406,28 +1425,12 @@
 
             let itemsHtml = `
                 <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <div class="filter-group" style="flex:1;">
-                        <label>🔍 Поиск</label>
-                        <input type="text" id="cartSearch" placeholder="Название предмета" style="width:100%;">
-                    </div>
-                    <div class="filter-group" style="flex:1;">
-                        <label>📦 Категория</label>
-                        <select id="cartCategory"><option value="">Любая</option>${categoryOptions}</select>
-                    </div>
-                    <div class="filter-group" style="flex:1;">
-                        <label>📊 Сортировка</label>
-                        <select id="cartSort">
-                            <option value="name">По названию</option>
-                            <option value="price">По цене (дешёвые → дорогие)</option>
-                            <option value="weight">По весу (лёгкие → тяжёлые)</option>
-                            <option value="rarity">По редкости</option>
-                        </select>
-                    </div>
+                    <div class="filter-group" style="flex:1;"><label>🔍 Поиск</label><input type="text" id="cartSearch" placeholder="Название предмета" style="width:100%;"></div>
+                    <div class="filter-group" style="flex:1;"><label>📦 Категория</label><select id="cartCategory"><option value="">Любая</option>${categoryOptions}</select></div>
+                    <div class="filter-group" style="flex:1;"><label>📊 Сортировка</label><select id="cartSort"><option value="name">По названию</option><option value="price">По цене (дешёвые → дорогие)</option><option value="weight">По весу (лёгкие → тяжёлые)</option><option value="rarity">По редкости</option></select></div>
                 </div>
                 <table class="items-table">
-                    <thead>
-                        <tr><th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действия</th></tr>
-                    </thead>
+                    <thead><tr><th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действия</th></tr></thead>
                     <tbody>
             `;
 
@@ -1462,21 +1465,17 @@
                         <td data-label="Кол-во">
                             <div class="qty-control">
                                 <button class="cart-decr" data-index="${idx}">-</button>
-                                <input type="number" class="cart-qty" data-index="${idx}" value="${item.quantity}" min="1" style="width: 60px;">
+                                <input type="number" class="cart-qty" data-index="${idx}" value="${item.quantity}" min="1" style="width:60px;">
                                 <button class="cart-incr" data-index="${idx}">+</button>
                             </div>
                         </td>
-                        <td data-label="Действия">
-                            <button class="remove-btn" data-index="${idx}">Удалить</button>
-                        </td>
+                        <td data-label="Действия"><button class="remove-btn" data-index="${idx}">Удалить</button></td>
                     </tr>
                 `;
             });
 
             const totalGold = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-            itemsHtml += `
-                    </tbody>
-                </table>
+            itemsHtml += `</tbody></table>
                 <p><strong>Итого:</strong> ${totalGold.toFixed(2)} зол.</p>
                 <p><strong>Ваше золото:</strong> ${playerGold} зол.</p>
                 <button id="checkoutBtn" class="primary">Оформить заказ</button>
@@ -1484,7 +1483,6 @@
 
             cartModalContent.innerHTML = itemsHtml;
 
-            // Обработчики для фильтров
             const cartSearch = document.getElementById('cartSearch');
             const cartCategory = document.getElementById('cartCategory');
             const cartSort = document.getElementById('cartSort');
@@ -1492,7 +1490,6 @@
             if (cartCategory) cartCategory.addEventListener('change', renderCartModal);
             if (cartSort) cartSort.addEventListener('change', renderCartModal);
 
-            // Обработчики изменения количества и удаления
             document.querySelectorAll('.cart-decr').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const idx = parseInt(btn.dataset.index);
@@ -1613,24 +1610,10 @@
 
             let itemsHtml = `
                 <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
-                    <div class="filter-group" style="flex:1;">
-                        <label>🔍 Поиск</label>
-                        <input type="text" id="invSearch" placeholder="Название предмета" style="width:100%;">
-                    </div>
-                    <div class="filter-group" style="flex:1;">
-                        <label>📦 Категория</label>
-                        <select id="invCategory"><option value="">Любая</option>${categoryOptions}</select>
-                    </div>
-                    <div class="filter-group" style="flex:1;">
-                        <label>📊 Сортировка</label>
-                        <select id="invSort">
-                            <option value="name">По названию</option>
-                            <option value="price">По цене (дешёвые → дорогие)</option>
-                            <option value="weight">По весу (лёгкие → тяжёлые)</option>
-                            <option value="rarity">По редкости</option>
-                        </select>
-                    </div>
-                    <button id="addCustomItemBtn" class="success" style="margin-bottom: 4px;">➕ Добавить предмет</button>
+                    <div class="filter-group" style="flex:1;"><label>🔍 Поиск</label><input type="text" id="invSearch" placeholder="Название предмета" style="width:100%;"></div>
+                    <div class="filter-group" style="flex:1;"><label>📦 Категория</label><select id="invCategory"><option value="">Любая</option>${categoryOptions}</select></div>
+                    <div class="filter-group" style="flex:1;"><label>📊 Сортировка</label><select id="invSort"><option value="name">По названию</option><option value="price">По цене (дешёвые → дорогие)</option><option value="weight">По весу (лёгкие → тяжёлые)</option><option value="rarity">По редкости</option></select></div>
+                    <button id="addCustomItemBtn" class="success" style="margin-bottom:4px;">➕ Добавить предмет</button>
                 </div>
                 <div id="inventoryList">
             `;
@@ -1687,7 +1670,6 @@
             if (invCategory) invCategory.addEventListener('change', renderInventoryModal);
             if (invSort) invSort.addEventListener('change', renderInventoryModal);
 
-            // Обработчики изменения количества
             document.querySelectorAll('.inv-decr').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const itemId = parseInt(btn.dataset.id);
@@ -1760,78 +1742,34 @@
                 });
             });
 
-            // Кнопка добавления предмета
             const addBtn = document.getElementById('addCustomItemBtn');
-            if (addBtn) {
-                addBtn.onclick = () => {
-                    showAddItemModal();
-                };
-            }
+            if (addBtn) addBtn.onclick = () => showAddItemModal();
         }
 
-        // ==================== ДОБАВЛЕНИЕ КАСТОМНОГО ПРЕДМЕТА ====================
         function showAddItemModal() {
             const formDiv = document.getElementById('addItemForm');
             formDiv.innerHTML = `
                 <h3>➕ Добавить предмет в инвентарь</h3>
-                <div class="filter-group">
-                    <label>Название</label>
-                    <input type="text" id="customName" placeholder="Название предмета">
-                </div>
-                <div class="filter-group">
-                    <label>Цена (золотые, можно дробные)</label>
-                    <input type="number" id="customPrice" step="0.01" value="0">
-                </div>
-                <div class="filter-group">
-                    <label>Вес (фунтов)</label>
-                    <input type="number" id="customWeight" step="0.1" value="0">
-                </div>
-                <div class="filter-group">
-                    <label>Редкость</label>
-                    <select id="customRarity">
-                        <option value="обычный">Обычный</option>
-                        <option value="необычный">Необычный</option>
-                        <option value="редкий">Редкий</option>
-                        <option value="очень редкий">Очень редкий</option>
-                        <option value="легендарный">Легендарный</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label><input type="checkbox" id="customMagic"> Магический</label>
-                </div>
-                <div class="filter-group">
-                    <label>Качество</label>
-                    <select id="customQuality">
-                        <option value="стандартное">Стандартное</option>
-                        <option value="хорошее">Хорошее</option>
-                        <option value="отличное">Отличное</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Описание</label>
-                    <textarea id="customDesc" rows="2" placeholder="Описание предмета"></textarea>
-                </div>
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
-                    <button id="submitCustomItem" class="success">Добавить</button>
-                    <button id="cancelCustomItem" class="danger">Отмена</button>
-                </div>
+                <div class="filter-group"><label>Название</label><input type="text" id="customName" placeholder="Название предмета"></div>
+                <div class="filter-group"><label>Цена (золотые)</label><input type="number" id="customPrice" step="0.01" value="0"></div>
+                <div class="filter-group"><label>Вес (фунтов)</label><input type="number" id="customWeight" step="0.1" value="0"></div>
+                <div class="filter-group"><label>Редкость</label><select id="customRarity"><option value="обычный">Обычный</option><option value="необычный">Необычный</option><option value="редкий">Редкий</option><option value="очень редкий">Очень редкий</option><option value="легендарный">Легендарный</option></select></div>
+                <div class="filter-group"><label><input type="checkbox" id="customMagic"> Магический</label></div>
+                <div class="filter-group"><label>Качество</label><select id="customQuality"><option value="стандартное">Стандартное</option><option value="хорошее">Хорошее</option><option value="отличное">Отличное</option></select></div>
+                <div class="filter-group"><label>Описание</label><textarea id="customDesc" rows="2" placeholder="Описание предмета"></textarea></div>
+                <div style="margin-top:15px; display:flex; gap:10px;"><button id="submitCustomItem" class="success">Добавить</button><button id="cancelCustomItem" class="danger">Отмена</button></div>
             `;
-
             document.getElementById('addItemModal').style.display = 'block';
 
             document.getElementById('submitCustomItem').onclick = () => {
                 const name = document.getElementById('customName').value.trim();
-                if (!name) {
-                    showToast('Введите название предмета');
-                    return;
-                }
+                if (!name) { showToast('Введите название предмета'); return; }
                 const priceGold = parseFloat(document.getElementById('customPrice').value);
                 const weight = parseFloat(document.getElementById('customWeight').value) || 0;
                 const rarity = document.getElementById('customRarity').value;
                 const isMagical = document.getElementById('customMagic').checked;
                 const quality = document.getElementById('customQuality').value;
                 const description = document.getElementById('customDesc').value.trim();
-
                 const goldPart = Math.floor(priceGold);
                 const silverPart = Math.round((priceGold - goldPart) * 100);
                 const customItem = {
@@ -1881,7 +1819,6 @@
             document.getElementById('inventoryModal').style.display = 'block';
         });
 
-        // Закрытие модалок
         document.querySelectorAll('.close').forEach(closeBtn => {
             closeBtn.addEventListener('click', () => {
                 document.getElementById('traderModal').style.display = 'none';
@@ -1904,7 +1841,6 @@
             if (event.target == detailModal) detailModal.style.display = 'none';
         });
 
-        // Фильтры
         const filterIds = ['searchTrader', 'filterType', 'filterRegion', 'filterLevel', 'reputationFilter', 'searchItem', 'priceMin', 'priceMax', 'rarityFilter', 'categoryFilter', 'magicOnly', 'sortBy'];
         filterIds.forEach(id => {
             const el = document.getElementById(id);
