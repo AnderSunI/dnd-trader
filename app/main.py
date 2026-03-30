@@ -282,5 +282,42 @@ def relink_items():
     finally:
         db.close()
 
+# ВРЕМЕННЫЙ ЭНДПОИНТ ДЛЯ УДАЛЕНИЯ ДУБЛИКАТОВ ПРЕДМЕТОВ И ИСПРАВЛЕНИЯ КАТЕГОРИИ
+@app.post("/admin/fix-duplicates")
+def fix_duplicates():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # 1. Найти дубликаты предметов по имени
+        dup_query = text("""
+            SELECT name, MIN(id) as keep_id
+            FROM items
+            GROUP BY name
+            HAVING COUNT(*) > 1
+        """)
+        dup_rows = db.execute(dup_query).fetchall()
+        if not dup_rows:
+            return {"message": "Дубликатов не найдено"}
+
+        deleted = 0
+        for name, keep_id in dup_rows:
+            # Удаляем все предметы с таким именем, кроме keep_id
+            del_res = db.execute(
+                text("DELETE FROM items WHERE name = :name AND id != :keep_id"),
+                {"name": name, "keep_id": keep_id}
+            )
+            deleted += del_res.rowcount
+        db.commit()
+
+        # 2. Исправить категорию adventuring_gear на снаряжение
+        upd = db.execute(text("UPDATE items SET category = 'снаряжение' WHERE category = 'adventuring_gear'"))
+        db.commit()
+
+        return {"deleted_items": deleted, "updated_categories": upd.rowcount}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
 # ==================== МОНТАЖ СТАТИКИ ====================
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
