@@ -17,20 +17,25 @@ from sqlalchemy import text
 Base.metadata.create_all(bind=engine)
 
 with engine.connect() as conn:
-    conn.execute(text("ALTER TABLE trader_items ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1"))
+    # Для предметов
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_silver INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_copper INTEGER DEFAULT 0"))
+    # Для торговцев (расширенная информация и золото)
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS personality TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS possessions JSON"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS rumors TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0"))
-    # Новые поля
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS description TEXT"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS image_url TEXT"))
+    # Новые поля для ГМ
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS race TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS class_name TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS trader_level INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS stats JSON"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS abilities JSON"))
+    # Колонка quantity в связующей таблице
+    conn.execute(text("ALTER TABLE trader_items ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1"))
     conn.commit()
     
 
