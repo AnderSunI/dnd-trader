@@ -69,26 +69,31 @@ def get_traders():
                     spec = []
             else:
                 spec = spec or []
+
+            # Получаем связи trader_items для этого торговца
+            items_with_qty = db.query(trader_items).filter(trader_items.c.trader_id == t.id).all()
             items_data = []
-            for i in t.items:
-                items_data.append({
-                    "id": i.id,
-                    "name": i.name,
-                    "price_gold": i.price_gold,
-                    "price_silver": i.price_silver,
-                    "price_copper": i.price_copper,
-                    "description": i.description,
-                    "category": i.category,
-                    "subcategory": i.subcategory,
-                    "rarity": i.rarity,
-                    "weight": i.weight,
-                    "properties": i.properties,
-                    "requirements": i.requirements,
-                    "is_magical": i.is_magical,
-                    "attunement": i.attunement,
-                    "stock": i.stock,
-                    "quality": i.quality,
-                })
+            for link in items_with_qty:
+                item = db.query(Item).filter(Item.id == link.item_id).first()
+                if item:
+                    items_data.append({
+                        "id": item.id,
+                        "name": item.name,
+                        "price_gold": link.price_gold if link.price_gold is not None else item.price_gold,
+                        "price_silver": item.price_silver,
+                        "price_copper": item.price_copper,
+                        "description": item.description,
+                        "category": item.category,
+                        "subcategory": item.subcategory,
+                        "rarity": item.rarity,
+                        "weight": item.weight,
+                        "properties": item.properties,
+                        "requirements": item.requirements,
+                        "is_magical": item.is_magical,
+                        "attunement": item.attunement,
+                        "stock": link.quantity,   # здесь количество из связки
+                        "quality": item.quality,
+                    })
             trader_data = {
                 "id": t.id,
                 "name": t.name,
