@@ -23,6 +23,21 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="D&D Trader")
+@app.post("/admin/normalize-rarity")
+def normalize_rarity():
+    db = SessionLocal()
+    try:
+        items = db.query(Item).all()
+        updated = 0
+        for item in items:
+            if item.rarity not in ["обычный", "необычный"]:
+                item.rarity = "обычный"
+                item.rarity_tier = 0
+                updated += 1
+        db.commit()
+        return {"updated": updated}
+    finally:
+        db.close()
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
 
 _seed_executed = False
