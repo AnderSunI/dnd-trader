@@ -215,34 +215,31 @@ def relink_items():
     from sqlalchemy import text
     db = SessionLocal()
     try:
-        # 1. Удаляем все старые связи
         db.execute(text("DELETE FROM trader_items"))
-        # 2. Получаем всех торговцев
         traders = db.query(Trader).all()
-        # 3. Словарь соответствия типов и категорий
         type_to_categories = {
-            "кузнец": ["weapon", "armor"],
-            "оружейник": ["weapon"],
-            "кожевник": ["armor"],
-            "дубильщик": ["armor", "adventuring_gear"],
-            "портной": ["adventuring_gear"],
-            "портниха": ["adventuring_gear"],
-            "трактирщик": ["adventuring_gear"],
-            "трактирщица": ["adventuring_gear"],
-            "тавернщик": ["adventuring_gear"],
-            "пекарь": ["adventuring_gear"],
-            "птицевод": ["adventuring_gear"],
-            "мясник": ["adventuring_gear"],
+            "кузнец": ["weapon", "armor", "оружие", "броня"],
+            "оружейник": ["weapon", "оружие"],
+            "кожевник": ["armor", "броня", "adventuring_gear"],
+            "дубильщик": ["armor", "adventuring_gear", "броня"],
+            "портной": ["adventuring_gear", "одежда"],
+            "портниха": ["adventuring_gear", "одежда"],
+            "трактирщик": ["adventuring_gear", "еда", "напитки"],
+            "трактирщица": ["adventuring_gear", "еда", "напитки"],
+            "тавернщик": ["adventuring_gear", "еда", "напитки"],
+            "пекарь": ["adventuring_gear", "еда"],
+            "птицевод": ["adventuring_gear", "животные", "еда"],
+            "мясник": ["adventuring_gear", "еда"],
             "торговец": ["adventuring_gear"],
-            "старьёвщик": ["adventuring_gear", "wondrous_item", "scroll"],
-            "цирюльник": ["adventuring_gear"],
-            "банщица": ["adventuring_gear"],
-            "пансион": ["adventuring_gear"],
-            "мастер фургонов": ["adventuring_gear"],
-            "каменотёс": ["adventuring_gear"],
-            "складской владелец": ["adventuring_gear"],
-            "контрабандист": ["adventuring_gear", "wondrous_item", "scroll"],
-            "друид-травница": ["potion", "scroll", "adventuring_gear"]
+            "старьёвщик": ["adventuring_gear", "wondrous_item", "scroll", "книга", "карта", "сокровище", "безделушка"],
+            "цирюльник": ["adventuring_gear", "услуга"],
+            "банщица": ["adventuring_gear", "услуга"],
+            "пансион": ["adventuring_gear", "услуга"],
+            "мастер фургонов": ["adventuring_gear", "транспорт", "запчасти"],
+            "каменотёс": ["adventuring_gear", "материалы"],
+            "складской владелец": ["adventuring_gear", "услуга"],
+            "контрабандист": ["adventuring_gear", "wondrous_item", "scroll", "книга", "сокровище"],
+            "друид-травница": ["potion", "scroll", "adventuring_gear", "зелье", "лекарство", "яд"]
         }
         default_categories = ["adventuring_gear"]
 
@@ -253,21 +250,21 @@ def relink_items():
             else:
                 name_lower = trader.name.lower()
                 if "кузнец" in name_lower or "оружейник" in name_lower:
-                    cat_list = ["weapon", "armor"]
+                    cat_list = ["weapon", "armor", "оружие", "броня"]
                 elif "кожевник" in name_lower or "дубильщик" in name_lower:
-                    cat_list = ["armor", "adventuring_gear"]
+                    cat_list = ["armor", "adventuring_gear", "броня"]
                 elif "портной" in name_lower or "портниха" in name_lower:
-                    cat_list = ["adventuring_gear"]
+                    cat_list = ["adventuring_gear", "одежда"]
                 elif "трактир" in name_lower or "таверн" in name_lower or "пекарь" in name_lower or "мясник" in name_lower or "птицевод" in name_lower:
-                    cat_list = ["adventuring_gear"]
+                    cat_list = ["adventuring_gear", "еда", "напитки", "животные"]
                 elif "старьёвщик" in name_lower or "цирюльник" in name_lower or "контрабандист" in name_lower:
-                    cat_list = ["adventuring_gear", "wondrous_item", "scroll"]
+                    cat_list = ["adventuring_gear", "wondrous_item", "scroll", "книга", "карта", "сокровище", "безделушка"]
                 elif "друид" in name_lower or "травница" in name_lower:
-                    cat_list = ["potion", "scroll", "adventuring_gear"]
+                    cat_list = ["potion", "scroll", "adventuring_gear", "зелье", "лекарство", "яд"]
                 elif "каменотёс" in name_lower:
-                    cat_list = ["adventuring_gear"]
+                    cat_list = ["adventuring_gear", "материалы"]
                 elif "фургонов" in name_lower or "складской" in name_lower:
-                    cat_list = ["adventuring_gear"]
+                    cat_list = ["adventuring_gear", "транспорт", "запчасти", "услуга"]
                 else:
                     cat_list = ["adventuring_gear"]
 
