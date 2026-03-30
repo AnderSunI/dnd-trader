@@ -38,6 +38,36 @@ def normalize_rarity():
         return {"updated": updated}
     finally:
         db.close()
+@app.post("/admin/add-quantity-column")
+def add_quantity_column():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("ALTER TABLE trader_items ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1"))
+        db.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
+@app.post("/admin/mark-magical")
+def mark_magical():
+    db = SessionLocal()
+    try:
+        magical_keywords = ["магический", "волшебный", "+1", "+2", "+3", "огненный", "ледяной", "молнии", "защиты", "удара", "чародейский"]
+        items = db.query(Item).all()
+        updated = 0
+        for item in items:
+            name_lower = item.name.lower()
+            if any(kw in name_lower for kw in magical_keywords):
+                if not item.is_magical:
+                    item.is_magical = True
+                    updated += 1
+        db.commit()
+        return {"updated": updated}
+    finally:
+        db.close()
+
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
 
 _seed_executed = False
