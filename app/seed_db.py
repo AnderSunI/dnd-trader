@@ -18,20 +18,24 @@ Base.metadata.create_all(bind=engine)
 
 with engine.connect() as conn:
     # Стандартные колонки
+    with engine.connect() as conn:
+    # Для предметов
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_silver INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_copper INTEGER DEFAULT 0"))
+    # Для торговцев
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS personality TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS possessions JSON"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS rumors TEXT"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS gold INTEGER DEFAULT 0"))
-    # Новые колонки для ГМ (если ещё нет)
+    # Новые поля для ГМ
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS race TEXT"))
-    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS class TEXT"))
-    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 0"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS class_name TEXT"))
+    conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS trader_level INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS stats JSON"))
     conn.execute(text("ALTER TABLE traders ADD COLUMN IF NOT EXISTS abilities JSON"))
     conn.commit()
+    
 
 db = SessionLocal()
 
@@ -63,8 +67,8 @@ traders_data = [
         "possessions": json.dumps(["Старый семейный молот", "Амулет с руной Морадина", "Кусок метеоритного железа"]),
         "rumors": "Говорят, у него в подвале хранится незаконченный клинок из звёздного металла. Если помочь ему найти редкий ингредиент, он, возможно, закончит его для героев.",
         "race": "человек",
-        "class": "воин",
-        "level": 8,
+        "class_name": "воин",
+        "trader_level": 8,
         "stats": json.dumps({"str": 18, "dex": 12, "con": 16, "int": 10, "wis": 12, "cha": 10}),
         "abilities": json.dumps(["кузнечное дело", "владение всеми видами оружия и доспехов", "ремонт", "металлургия"])
     },
@@ -86,8 +90,8 @@ traders_data = [
         "possessions": json.dumps(["Старый боевой топор", "Пара самодельных наручей", "Фляга с крепким элем"]),
         "rumors": "В молодости служил в наёмниках у одного лорда. Говорят, знает тайный проход в старые рудники.",
         "race": "полуорк",
-        "class": "воин",
-        "level": 7,
+        "class_name": "воин",
+        "trader_level": 7,
         "stats": json.dumps({"str": 17, "dex": 14, "con": 15, "int": 9, "wis": 10, "cha": 12}),
         "abilities": json.dumps(["владение всеми видами оружия", "оценка качества", "тактика", "ночное зрение"])
     },
@@ -109,8 +113,8 @@ traders_data = [
         "possessions": json.dumps(["Золотая игла", "Ткань из эльфийской паутины", "Список 'важных' клиентов"]),
         "rumors": "Поговаривают, что он шьёт для членов Культа Дракона, но сам он отрицает.",
         "race": "человек",
-        "class": "ремесленник",
-        "level": 3,
+        "class_name": "ремесленник",
+        "trader_level": 3,
         "stats": json.dumps({"str": 8, "dex": 14, "con": 10, "int": 12, "wis": 10, "cha": 15}),
         "abilities": json.dumps(["портняжное дело", "распознавание тканей", "дипломатия", "лёгкая атлетика (?)"])
     },
@@ -132,8 +136,8 @@ traders_data = [
         "possessions": json.dumps(["Семейный напёрсток", "Коллекция образцов тканей", "Портрет мужа"]),
         "rumors": "Она тайно помогает Арфистам, передавая информацию через одежду.",
         "race": "человек",
-        "class": "ремесленник",
-        "level": 3,
+        "class_name": "ремесленник",
+        "trader_level": 3,
         "stats": json.dumps({"str": 8, "dex": 16, "con": 10, "int": 14, "wis": 12, "cha": 14}),
         "abilities": json.dumps(["портняжное дело", "вышивка", "знание тканей", "легенды и истории"])
     },
@@ -155,8 +159,8 @@ traders_data = [
         "possessions": json.dumps(["Самодельный тиснёный доспех", "Книга о героях", "Письмо от отца"]),
         "rumors": "Говорят, она знает, где находится заброшенный лагерь искателей приключений.",
         "race": "человек",
-        "class": "следопыт",
-        "level": 4,
+        "class_name": "следопыт",
+        "trader_level": 4,
         "stats": json.dumps({"str": 12, "dex": 16, "con": 12, "int": 10, "wis": 14, "cha": 13}),
         "abilities": json.dumps(["кожевничество", "выживание", "верховая езда", "следопытство"])
     },
@@ -178,8 +182,8 @@ traders_data = [
         "possessions": json.dumps(["Старый дубильный нож", "Коллекция редких шкур", "Фляга с настойкой"]),
         "rumors": "Знает места обитания редких зверей в холмах Самбер.",
         "race": "человек",
-        "class": "ремесленник",
-        "level": 2,
+        "class_name": "ремесленник",
+        "trader_level": 2,
         "stats": json.dumps({"str": 14, "dex": 10, "con": 14, "int": 8, "wis": 12, "cha": 8}),
         "abilities": json.dumps(["дубление кожи", "охота", "знание зверей", "трудолюбие"])
     },
@@ -201,8 +205,8 @@ traders_data = [
         "possessions": json.dumps(["Семейная поваренная книга", "Ключи от всех комнат", "Старый меч мужа"]),
         "rumors": "Слышала разговоры культистов в своей таверне, но боится говорить об этом открыто.",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 2,
+        "class_name": "простолюдин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 10, "dex": 12, "con": 12, "int": 12, "wis": 16, "cha": 14}),
         "abilities": json.dumps(["кулинария", "ведение хозяйства", "дипломатия", "слухи"])
     },
@@ -224,8 +228,8 @@ traders_data = [
         "possessions": json.dumps(["Старая бухгалтерская книга", "Нож для разделки мяса", "Тайная полка с дорогим вином"]),
         "rumors": "Имеет долги перед неизвестными лицами.",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 2,
+        "class_name": "простолюдин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 12, "dex": 10, "con": 12, "int": 10, "wis": 12, "cha": 10}),
         "abilities": json.dumps(["торговля", "ведение учёта", "приготовление простой еды"])
     },
@@ -247,8 +251,8 @@ traders_data = [
         "possessions": json.dumps(["Секретный рецепт", "Записная книжка с именами", "Деньги в тайнике"]),
         "rumors": "Передаёт информацию Жентариму за золото.",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 2,
+        "class_name": "простолюдин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 10, "dex": 12, "con": 12, "int": 12, "wis": 10, "cha": 14}),
         "abilities": json.dumps(["выпечка", "сбор слухов", "конспирация"])
     },
@@ -270,8 +274,8 @@ traders_data = [
         "possessions": json.dumps(["Корзина с яйцами", "Нож для ощипывания", "Амулет от болезней птиц"]),
         "rumors": "Знает, где водятся дикие гуси, и может показать дорогу.",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 1,
+        "class_name": "простолюдин",
+        "trader_level": 1,
         "stats": json.dumps({"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 12, "cha": 8}),
         "abilities": json.dumps(["птицеводство", "ведение хозяйства", "знание животных"])
     },
@@ -293,8 +297,8 @@ traders_data = [
         "possessions": json.dumps(["Большой мясницкий нож", "Кольцо констебля", "Копчёности в подарок"]),
         "rumors": "Знает о недавних убийствах в округе, но молчит по просьбе мужа.",
         "race": "человек",
-        "class": "воин",
-        "level": 2,
+        "class_name": "воин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 16, "dex": 10, "con": 14, "int": 8, "wis": 10, "cha": 12}),
         "abilities": json.dumps(["разделка туш", "владение топором", "знание анатомии"])
     },
@@ -316,8 +320,8 @@ traders_data = [
         "possessions": json.dumps(["Дневник", "Семейный рецепт маринада", "Вязание"]),
         "rumors": "Знает о тайном обществе Верующих, но молчит.",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 2,
+        "class_name": "простолюдин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 6, "dex": 8, "con": 12, "int": 14, "wis": 16, "cha": 12}),
         "abilities": json.dumps(["консервирование", "знание трав", "наблюдательность"])
     },
@@ -339,8 +343,8 @@ traders_data = [
         "possessions": json.dumps(["Большая кадка с огурцами", "Тряпичная кукла", "Грязный фартук"]),
         "rumors": "Не помнит своего прошлого, но иногда говорит о «тёмных людях».",
         "race": "полуорк",
-        "class": "простолюдин",
-        "level": 1,
+        "class_name": "простолюдин",
+        "trader_level": 1,
         "stats": json.dumps({"str": 14, "dex": 8, "con": 12, "int": 6, "wis": 8, "cha": 12}),
         "abilities": json.dumps(["засолка", "доверие", "физическая сила"])
     },
@@ -362,8 +366,8 @@ traders_data = [
         "possessions": json.dumps(["Увеличительное стекло", "Блокнот с заметками", "Амулет Арфистов"]),
         "rumors": "Знает легенду о четырёх камнях стихий.",
         "race": "человек",
-        "class": "учёный",
-        "level": 6,
+        "class_name": "учёный",
+        "trader_level": 6,
         "stats": json.dumps({"str": 8, "dex": 10, "con": 10, "int": 18, "wis": 14, "cha": 10}),
         "abilities": json.dumps(["история", "археология", "идентификация магии", "знание древних языков"])
     },
@@ -385,8 +389,8 @@ traders_data = [
         "possessions": json.dumps(["Набор инструментов фальшивомонетчика", "Колода краплёных карт", "Записная книжка с компроматом"]),
         "rumors": "Знает, как пройти в подземелье под Красной Лиственницей.",
         "race": "человек",
-        "class": "плут",
-        "level": 4,
+        "class_name": "плут",
+        "trader_level": 4,
         "stats": json.dumps({"str": 8, "dex": 16, "con": 10, "int": 14, "wis": 12, "cha": 14}),
         "abilities": json.dumps(["цирюльник", "фальшивомонетничество", "сбор слухов", "ловкость рук"])
     },
@@ -408,8 +412,8 @@ traders_data = [
         "possessions": json.dumps(["Сборник рецептов бальзамов", "Швейная машинка", "Сухие травы"]),
         "rumors": "Знает, где найти редкие растения для зелий.",
         "race": "человек",
-        "class": "друид",
-        "level": 3,
+        "class_name": "друид",
+        "trader_level": 3,
         "stats": json.dumps({"str": 8, "dex": 12, "con": 12, "int": 12, "wis": 16, "cha": 14}),
         "abilities": json.dumps(["травничество", "банное дело", "шитьё", "знание природы"])
     },
@@ -431,8 +435,8 @@ traders_data = [
         "possessions": json.dumps(["Большой чайник", "Связка ключей", "Список должников"]),
         "rumors": "Слышала странные разговоры о «движущихся камнях».",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 1,
+        "class_name": "простолюдин",
+        "trader_level": 1,
         "stats": json.dumps({"str": 8, "dex": 8, "con": 10, "int": 10, "wis": 12, "cha": 14}),
         "abilities": json.dumps(["ведение хозяйства", "сбор слухов", "поиск работников"])
     },
@@ -454,8 +458,8 @@ traders_data = [
         "possessions": json.dumps(["Набор плотницких инструментов", "Чертёж нового фургона", "Медальон клана"]),
         "rumors": "Знает, где найти редкие породы дерева.",
         "race": "человек",
-        "class": "ремесленник",
-        "level": 4,
+        "class_name": "ремесленник",
+        "trader_level": 4,
         "stats": json.dumps({"str": 14, "dex": 12, "con": 14, "int": 12, "wis": 10, "cha": 10}),
         "abilities": json.dumps(["столярное дело", "кузнечное дело (частично)", "черчение", "ремонт"])
     },
@@ -477,8 +481,8 @@ traders_data = [
         "possessions": json.dumps(["Складной метр", "Сумка с инструментами", "Записная книжка заказов"]),
         "rumors": "Видел странные фигуры в лесу, но думает, что это показалось.",
         "race": "человек",
-        "class": "ремесленник",
-        "level": 4,
+        "class_name": "ремесленник",
+        "trader_level": 4,
         "stats": json.dumps({"str": 14, "dex": 12, "con": 14, "int": 10, "wis": 10, "cha": 12}),
         "abilities": json.dumps(["столярное дело", "торговля", "быстрый ремонт"])
     },
@@ -500,8 +504,8 @@ traders_data = [
         "possessions": json.dumps(["Фляга с дешёвым элем", "Запчасти сомнительного качества", "Долговая расписка"]),
         "rumors": "Связан с Верующими, но отрицает.",
         "race": "человек",
-        "class": "ремесленник",
-        "level": 3,
+        "class_name": "ремесленник",
+        "trader_level": 3,
         "stats": json.dumps({"str": 14, "dex": 10, "con": 12, "int": 10, "wis": 8, "cha": 12}),
         "abilities": json.dumps(["столярное дело", "торговля", "алкогольная стойкость"])
     },
@@ -523,8 +527,8 @@ traders_data = [
         "possessions": json.dumps(["Коллекция минералов", "Ключ от подземного хода", "Письма от клиентов"]),
         "rumors": "Знает о Гробнице Движущихся Камней, но никому не говорит.",
         "race": "дварф",
-        "class": "ремесленник",
-        "level": 5,
+        "class_name": "ремесленник",
+        "trader_level": 5,
         "stats": json.dumps({"str": 16, "dex": 8, "con": 16, "int": 12, "wis": 10, "cha": 14}),
         "abilities": json.dumps(["камнерезное дело", "ведение бизнеса", "знание геологии", "дварфийская стойкость"])
     },
@@ -546,8 +550,8 @@ traders_data = [
         "possessions": json.dumps(["Амбарная книга", "Набор весов", "Связка ключей"]),
         "rumors": "Видел, как культисты перевозили странные ящики.",
         "race": "человек",
-        "class": "торговец",
-        "level": 4,
+        "class_name": "торговец",
+        "trader_level": 4,
         "stats": json.dumps({"str": 10, "dex": 10, "con": 12, "int": 14, "wis": 12, "cha": 12}),
         "abilities": json.dumps(["логистика", "учёт", "безопасность"])
     },
@@ -569,8 +573,8 @@ traders_data = [
         "possessions": json.dumps(["Коллекция миниатюрных картин", "Путевой дневник", "Бочонок эля"]),
         "rumors": "У него есть карта старых дварфийских троп.",
         "race": "полурослик",
-        "class": "простолюдин",
-        "level": 2,
+        "class_name": "простолюдин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 8, "dex": 12, "con": 10, "int": 12, "wis": 12, "cha": 16}),
         "abilities": json.dumps(["гостеприимство", "коллекционирование", "знание дорог"])
     },
@@ -592,8 +596,8 @@ traders_data = [
         "possessions": json.dumps(["Книга учёта постояльцев", "Медальон «Бдительный рыцарь»", "Старый меч"]),
         "rumors": "Видел, как делегация из Мирабара уходила в холмы.",
         "race": "человек",
-        "class": "простолюдин",
-        "level": 2,
+        "class_name": "простолюдин",
+        "trader_level": 2,
         "stats": json.dumps({"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 12, "cha": 14}),
         "abilities": json.dumps(["ведение хозяйства", "сбор слухов", "знание местности"])
     },
@@ -615,8 +619,8 @@ traders_data = [
         "possessions": json.dumps(["Карта речных путей", "Список клиентов", "Кинжал с водяной магией"]),
         "rumors": "Имеет связи с культом Сокрушительной Волны.",
         "race": "дженази (вода)",
-        "class": "плут",
-        "level": 7,
+        "class_name": "плут",
+        "trader_level": 7,
         "stats": json.dumps({"str": 12, "dex": 18, "con": 14, "int": 14, "wis": 10, "cha": 16}),
         "abilities": json.dumps(["контрабанда", "водная магия", "навигация", "скрытность"])
     },
@@ -638,8 +642,8 @@ traders_data = [
         "possessions": json.dumps(["Сумка с редкими травами", "Дневник друида", "Амулет из корня"]),
         "rumors": "Знает, где находится тайная роща для ритуала.",
         "race": "эльф",
-        "class": "друид",
-        "level": 8,
+        "class_name": "друид",
+        "trader_level": 8,
         "stats": json.dumps({"str": 8, "dex": 14, "con": 12, "int": 12, "wis": 18, "cha": 14}),
         "abilities": json.dumps(["травничество", "алхимия", "магия природы", "следопытство"])
     }
