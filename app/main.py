@@ -67,6 +67,28 @@ def mark_magical():
         return {"updated": updated}
     finally:
         db.close()
+@app.get("/admin/debug-trader-items")
+def debug_trader_items():
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        # Проверяем наличие колонки quantity
+        cols = db.execute(text("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='trader_items'
+        """)).fetchall()
+        col_names = [c[0] for c in cols]
+        # Берём первые 5 связей с quantity
+        sample = db.execute(text("SELECT trader_id, item_id, quantity FROM trader_items LIMIT 5")).fetchall()
+        return {
+            "columns": col_names,
+            "sample": [{"trader_id": r[0], "item_id": r[1], "quantity": r[2]} for r in sample]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
 
 app.mount("/static", StaticFiles(directory="frontend/images"), name="static")
 
