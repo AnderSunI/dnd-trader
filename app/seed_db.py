@@ -17,6 +17,7 @@ from sqlalchemy import text
 Base.metadata.create_all(bind=engine)
 
 with engine.connect() as conn:
+    conn.execute(text("ALTER TABLE trader_items ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_silver INTEGER DEFAULT 0"))
     conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS price_copper INTEGER DEFAULT 0"))
