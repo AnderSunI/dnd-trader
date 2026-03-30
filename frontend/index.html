@@ -17,6 +17,18 @@
             background-position: center;
         }
         h1 { text-align: center; color: #f9c20d; font-size: 1.6rem; }
+        .mode-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            z-index: 10;
+        }
         .cart-widget {
             background: #fff3e0;
             border-radius: 12px;
@@ -441,6 +453,11 @@
             margin-right: 16px;
             float: left;
         }
+        .rarity-common { background: #ddd; color: #333; }
+        .rarity-uncommon { background: #9bc; color: #123; }
+        .rarity-rare { background: #b9c; color: #fff; }
+        .rarity-veryrare { background: #f7b; color: #fff; }
+        .rarity-legendary { background: #f90; color: #fff; }
         @media (max-width: 768px) {
             .items-table, .items-table tbody, .items-table tr, .items-table td, .items-table th {
                 display: block;
@@ -496,6 +513,7 @@
     </style>
 </head>
 <body>
+    <div class="mode-switch" id="modeSwitch">👤 Игрок</div>
     <h1>🏪 D&D Trader — Помощник ГМ</h1>
 
     <div class="cart-widget" id="cartWidget">
@@ -612,9 +630,9 @@
         let cart = [];
         let playerGold = 1000;
         let gmNotes = {};
+        let userMode = 'player'; // 'player' or 'gm'
 
         // ==================== ЗВУКИ ====================
-        // Простой "микшер" – один экземпляр Audio для каждого типа
         const sounds = {
             coin: new Audio('/sounds/coin.mp3'),
             door: new Audio('/sounds/door.mp3')
@@ -794,6 +812,11 @@
                 const savedInventory = localStorage.getItem('dnd_inventory');
                 if (savedInventory) try { inventory = JSON.parse(savedInventory); updateInventoryWidget(); } catch(e) {}
                 renderTraders();
+
+                // Восстанавливаем режим
+                const savedMode = localStorage.getItem('userMode');
+                if (savedMode === 'gm') userMode = 'gm';
+                document.getElementById('modeSwitch').innerText = userMode === 'player' ? '👤 Игрок' : '🎭 ГМ';
             })
             .catch(err => console.error('Ошибка загрузки:', err));
 
@@ -949,7 +972,7 @@
             });
         }
 
-        // ==================== МОДАЛКА ТОРГОВЦА ====================
+        // ==================== МОДАЛКА ТОРГОВЦА (с группировкой по категориям и кнопкой подробнее) ====================
         function showTraderModal(trader) {
             const modalContent = document.getElementById('modalContent');
 
@@ -1029,7 +1052,7 @@
 
                     tableHtml += `
                         <tr data-buy-trader-id="${trader.id}" data-buy-item-id="${item.id}" data-buy-original-stock="${originalStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-name="${item.name}">
-                            <td data-label="Название">${item.name}${item.is_magical ? ' ✨' : ''}</td>
+                            <td data-label="Название">${item.name}${item.is_magical ? ' ✨' : ''}${item.rarity ? `<span class="rarity-badge" style="margin-left:6px; font-size:0.7rem; background:#ccc; padding:2px 4px; border-radius:8px;">${item.rarity}</span>` : ''}</td>
                             <td data-label="Цена">${priceFormatted}</td>
                             <td data-label="Качество"><span class="quality-badge">${quality}</span></td>
                             <td data-label="Осталось" class="stock-cell">${stockHtml}</td>
@@ -1042,11 +1065,11 @@
                         </tr>
                     `;
                 });
-                tableHtml += '</tbody></table>';
+                tableHtml += '</tbody> </table>';
                 categoryContentsHtml += `<div class="tab-content category-content ${activeClass}" data-cat="${cat}">${tableHtml}</div>`;
             });
 
-            // Таблица продажи
+            // Таблица продажи (оставляем как было)
             let sellHtml = '';
             const sellableItems = inventory.filter(inv => trader.items.some(item => item.id === inv.itemId));
             if (sellableItems.length) {
@@ -1390,19 +1413,15 @@
             };
         }
 
-        // ==================== МОДАЛКА КОРЗИНЫ (упрощённо, но полностью) ====================
+        // ==================== МОДАЛКА КОРЗИНЫ (оставляем как есть) ====================
         function renderCartModal() {
             let filteredCart = [...cart];
             const search = document.getElementById('cartSearch')?.value?.toLowerCase() || '';
             const category = document.getElementById('cartCategory')?.value || '';
             const sortBy = document.getElementById('cartSort')?.value || 'name';
 
-            if (search) {
-                filteredCart = filteredCart.filter(item => item.name.toLowerCase().includes(search));
-            }
-            if (category) {
-                filteredCart = filteredCart.filter(item => item.category === category);
-            }
+            if (search) filteredCart = filteredCart.filter(item => item.name.toLowerCase().includes(search));
+            if (category) filteredCart = filteredCart.filter(item => item.category === category);
             if (sortBy === 'name') {
                 filteredCart.sort((a, b) => a.name.localeCompare(b.name));
             } else if (sortBy === 'price') {
@@ -1578,7 +1597,7 @@
             }
         }
 
-        // ==================== МОДАЛКА ИНВЕНТАРЯ ====================
+        // ==================== МОДАЛКА ИНВЕНТАРЯ (оставляем как есть) ====================
         function renderInventoryModal() {
             let filteredInventory = [...inventory];
             const search = document.getElementById('invSearch')?.value?.toLowerCase() || '';
@@ -1817,6 +1836,13 @@
         document.getElementById('viewInventoryBtn').addEventListener('click', () => {
             renderInventoryModal();
             document.getElementById('inventoryModal').style.display = 'block';
+        });
+        document.getElementById('modeSwitch').addEventListener('click', () => {
+            userMode = userMode === 'player' ? 'gm' : 'player';
+            localStorage.setItem('userMode', userMode);
+            document.getElementById('modeSwitch').innerText = userMode === 'player' ? '👤 Игрок' : '🎭 ГМ';
+            showToast(`Режим: ${userMode === 'player' ? 'Игрок' : 'ГМ'}`);
+            // Здесь можно добавить скрытие/показ ГМ-элементов
         });
 
         document.querySelectorAll('.close').forEach(closeBtn => {
