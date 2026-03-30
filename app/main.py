@@ -177,7 +177,7 @@ def get_traders():
             else:
                 spec = spec or []
 
-            # Обработка possessions (если строка -> в список)
+            # Обработка possessions
             possessions = t.possessions
             if isinstance(possessions, str):
                 try:
@@ -187,8 +187,27 @@ def get_traders():
             elif possessions is None:
                 possessions = []
 
-            # Обработка rumors (просто текст, но на всякий случай)
-            rumors = t.rumors
+            # Обработка stats
+            stats = t.stats
+            if isinstance(stats, str):
+                try:
+                    stats = json.loads(stats)
+                except:
+                    stats = {}
+            elif stats is None:
+                stats = {}
+
+            # Обработка abilities
+            abilities = t.abilities
+            if isinstance(abilities, str):
+                try:
+                    abilities = json.loads(abilities)
+                except:
+                    abilities = []
+            elif abilities is None:
+                abilities = []
+
+            rumors = t.rumors or ""
 
             # Получаем связи trader_items
             items_with_qty = db.query(trader_items).filter(trader_items.c.trader_id == t.id).all()
@@ -233,9 +252,19 @@ def get_traders():
                 "personality": t.personality,
                 "possessions": possessions,
                 "rumors": rumors,
+                "stats": stats,
+                "abilities": abilities,
+                "trader_level": t.trader_level,
+                "race": t.race,
+                "class_name": t.class_name,
                 "items": items_data
             }
             result.append(trader_data)
+    except Exception as e:
+        print(f"Error in /traders: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
     return result
