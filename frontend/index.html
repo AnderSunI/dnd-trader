@@ -167,6 +167,15 @@
             margin-top: 6px;
             font-style: italic;
         }
+        .trader-quality {
+            display: inline-block;
+            background: #ffd966;
+            color: #8b5a2b;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
         footer {
             text-align: center;
             margin-top: 40px;
@@ -401,7 +410,6 @@
         .tab-content.active {
             display: block;
         }
-        /* Вкладки категорий внутри товаров */
         .category-tabs {
             margin-top: 10px;
             margin-bottom: 10px;
@@ -411,6 +419,18 @@
         .category-tabs .tab-btn {
             font-size: 0.9rem;
             padding: 4px 12px;
+        }
+        .item-image-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            border-radius: 8px;
+            margin-right: 16px;
+            float: left;
         }
         @media (max-width: 768px) {
             .items-table, .items-table tbody, .items-table tr, .items-table td, .items-table th {
@@ -566,10 +586,12 @@
     <div id="tradersGrid" class="traders-grid"></div>
     <footer>Генератор торговцев для D&D 5e | По мотивам «Принцев Апокалипсиса»</footer>
 
+    <!-- Модалки -->
     <div id="traderModal" class="modal"><div class="modal-content"><span class="close">&times;</span><div id="modalContent"></div></div></div>
     <div id="cartModal" class="modal"><div class="modal-content"><span class="close" id="closeCartModal">&times;</span><div id="cartModalContent"></div></div></div>
     <div id="inventoryModal" class="modal"><div class="modal-content"><span class="close" id="closeInventoryModal">&times;</span><div id="inventoryModalContent"></div></div></div>
     <div id="addItemModal" class="modal"><div class="modal-content" style="max-width: 500px;"><span class="close" id="closeAddItemModal">&times;</span><div id="addItemForm"></div></div></div>
+    <div id="itemDetailModal" class="modal"><div class="modal-content" style="max-width: 600px;"><span class="close" id="closeItemDetailModal">&times;</span><div id="itemDetailContent"></div></div></div>
     <div id="toast" class="toast"></div>
 
     <script>
@@ -706,6 +728,12 @@
         function getReputationStars(reputation) {
             let stars = Math.max(0, Math.min(5, reputation));
             return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+        }
+
+        function getTraderQuality(reputation) {
+            if (reputation <= 1) return 'Новичок';
+            if (reputation <= 3) return 'Опытный';
+            return 'Мастер';
         }
 
         // ==================== СЕРВЕРНЫЕ ЗАПРОСЫ ====================
@@ -859,7 +887,6 @@
                     else if (t.type.includes('контрабандист')) icon = '💎';
                     else if (t.type.includes('друид')) icon = '🌿';
                 }
-                // Ограничиваем отображение товаров до 5, случайным образом (но стабильно)
                 const displayItems = t.items.slice(0, 5);
                 const itemsHtml = displayItems.length ? `
                     <div class="items-list">
@@ -870,12 +897,13 @@
                 ` : '<div class="items-list"><div class="no-items">Нет товаров</div></div>';
                 const reputationStars = getReputationStars(t.reputation);
                 const shortDesc = t.description ? (t.description.length > 120 ? t.description.substring(0, 120) + '…' : t.description) : 'Описание отсутствует';
+                const qualityLabel = getTraderQuality(t.reputation);
                 return `
                     <div class="trader-card" data-trader-id="${t.id}">
                         <div class="trader-image">${icon}</div>
                         <div class="trader-info">
                             <div class="trader-name">${t.name}</div>
-                            <div class="trader-type">${t.type || 'Торговец'}</div>
+                            <div class="trader-type">${t.type || 'Торговец'} <span class="trader-quality">${qualityLabel}</span></div>
                             <div class="trader-desc">${shortDesc}</div>
                             <div class="trader-meta">
                                 ${t.specialization ? `<span class="meta-item">🎯 ${Array.isArray(t.specialization) ? t.specialization.join(', ') : t.specialization}</span>` : ''}
@@ -926,7 +954,7 @@
                 let tableHtml = `
                     <table class="items-table">
                         <thead>
-                            <tr><th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действие</th></tr>
+                            <th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Кол-во</th><th>Действие</th>
                         </thead>
                         <tbody>
                 `;
@@ -964,6 +992,23 @@
                     const canAdd = remaining > 0;
                     const inputDisabled = !canAdd ? 'disabled' : '';
                     const addBtnDisabled = !canAdd ? 'disabled' : '';
+
+                    // Подготовка данных для модалки деталей
+                    const fullItemData = {
+                        name: item.name,
+                        description: item.description || 'Описание отсутствует',
+                        priceFormatted: priceFormatted,
+                        statsHtml: statsHtml,
+                        is_magical: item.is_magical,
+                        quality: quality,
+                        rarity: item.rarity,
+                        weight: item.weight,
+                        properties: item.properties,
+                        requirements: item.requirements,
+                        attunement: item.attunement
+                    };
+                    const fullItemJson = JSON.stringify(fullItemData).replace(/"/g, '&quot;');
+
                     tableHtml += `
                         <tr data-buy-trader-id="${trader.id}" data-buy-item-id="${item.id}" data-buy-original-stock="${originalStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-name="${item.name}">
                             <td data-label="Название">${item.name}${item.is_magical ? ' ✨' : ''}</td>
@@ -971,9 +1016,11 @@
                             <td data-label="Качество"><span class="quality-badge">${quality}</span></td>
                             <td data-label="Осталось" class="stock-cell">${stockHtml}</td>
                             <td data-label="Характеристики">${statsHtml}</td>
-                            <td data-label="Описание">${item.description || '—'}</td>
                             <td data-label="Кол-во"><input type="number" class="quantity-input" min="1" max="${remaining}" value="1" ${inputDisabled}></td>
-                            <td data-label="Действие" class="add-cell"><button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button></td>
+                            <td data-label="Действие" class="add-cell">
+                                <button class="add-to-cart-btn" ${addBtnDisabled}>В корзину</button>
+                                <button class="details-btn" data-item='${fullItemJson}' style="margin-left:5px;">📄</button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -1275,6 +1322,53 @@
                     showToast(`Продано ${qty} × "${itemName}" за ${totalPrice} зол.`);
                 });
             });
+
+            // ===== Обработчики кнопок "Подробнее" =====
+            document.querySelectorAll('.details-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const itemData = JSON.parse(btn.dataset.item);
+                    showItemDetailModal(itemData);
+                });
+            });
+        }
+
+        function showItemDetailModal(item) {
+            const modalContent = document.getElementById('itemDetailContent');
+            modalContent.innerHTML = `
+                <div style="display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+                    <div class="item-image-placeholder">📦</div>
+                    <div style="flex: 1;">
+                        <h3>${item.name} ${item.is_magical ? '✨' : ''}</h3>
+                        <p><strong>Цена:</strong> ${item.priceFormatted}</p>
+                        <p><strong>Качество:</strong> ${item.quality}</p>
+                        <p><strong>Редкость:</strong> ${item.rarity}</p>
+                        ${item.weight ? `<p><strong>Вес:</strong> ${item.weight} фунтов</p>` : ''}
+                        ${item.attunement ? '<p><strong>Требует настройки</strong></p>' : ''}
+                        ${item.statsHtml ? `<div><strong>Характеристики:</strong> ${item.statsHtml}</div>` : ''}
+                    </div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <strong>Описание:</strong>
+                    <div style="margin-top:8px; padding:8px; background:#f9f9f9; border-radius:8px; max-height:300px; overflow-y:auto; white-space:pre-wrap;">
+                        ${item.description}
+                    </div>
+                </div>
+                <div style="margin-top:16px; text-align:right;">
+                    <button class="primary" id="closeDetailModal">Закрыть</button>
+                </div>
+            `;
+            document.getElementById('itemDetailModal').style.display = 'block';
+            document.getElementById('closeDetailModal').onclick = () => {
+                document.getElementById('itemDetailModal').style.display = 'none';
+            };
+            document.getElementById('closeItemDetailModal').onclick = () => {
+                document.getElementById('itemDetailModal').style.display = 'none';
+            };
+            window.onclick = (event) => {
+                const modal = document.getElementById('itemDetailModal');
+                if (event.target == modal) modal.style.display = 'none';
+            };
         }
 
         // ==================== МОДАЛКА КОРЗИНЫ ====================
@@ -1332,7 +1426,7 @@
                 </div>
                 <table class="items-table">
                     <thead>
-                         <tr><th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действия</th></tr>
+                        <tr><th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Описание</th><th>Кол-во</th><th>Действия</th></tr>
                     </thead>
                     <tbody>
             `;
@@ -1794,6 +1888,7 @@
                 document.getElementById('cartModal').style.display = 'none';
                 document.getElementById('inventoryModal').style.display = 'none';
                 document.getElementById('addItemModal').style.display = 'none';
+                document.getElementById('itemDetailModal').style.display = 'none';
             });
         });
         window.addEventListener('click', (event) => {
@@ -1801,10 +1896,12 @@
             const cartModal = document.getElementById('cartModal');
             const invModal = document.getElementById('inventoryModal');
             const addModal = document.getElementById('addItemModal');
+            const detailModal = document.getElementById('itemDetailModal');
             if (event.target == modal) modal.style.display = 'none';
             if (event.target == cartModal) cartModal.style.display = 'none';
             if (event.target == invModal) invModal.style.display = 'none';
             if (event.target == addModal) addModal.style.display = 'none';
+            if (event.target == detailModal) detailModal.style.display = 'none';
         });
 
         // Фильтры
