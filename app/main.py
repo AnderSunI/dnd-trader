@@ -209,7 +209,7 @@ async def update_categories():
 
     return {"updated": updated, "not_found": not_found}
 
-# ========== ЭНДПОИНТ ДЛЯ ПЕРЕПРИВЯЗКИ ПРЕДМЕТОВ (С УЧЁТОМ RARITY_TIER И УРОВНЯ) ==========
+# ========== ЭНДПОИНТ ДЛЯ ПЕРЕПРИВЯЗКИ ПРЕДМЕТОВ (С quantity по редкости) ==========
 @app.post("/admin/relink-items")
 def relink_items():
     import random
@@ -217,31 +217,39 @@ def relink_items():
 
     db = SessionLocal()
     try:
-        # 1. Удаляем все старые связи
+        # Удаляем старые связи
         db.execute(text("DELETE FROM trader_items"))
         db.commit()
         print("Старые связи удалены")
 
-        # 2. Получаем всех торговцев
         traders = db.query(Trader).all()
-
-        # 3. Глобальный список ID использованных редких+ предметов
         used_rare_ids = set()
 
-        # 4. Квоты по редкости в зависимости от уровня торговца
+        # Квоты количества предметов по уровню торговца
         def get_quotas(level):
-            # level_max торговца
             if level <= 3:
-                # 1–3 уровень: обычные, необычные, редкие
                 return {0: (8, 12), 1: (3, 5), 2: (1, 2)}
             elif level <= 6:
-                # 4–6 уровень: добавляем очень редкие
                 return {0: (5, 10), 1: (3, 5), 2: (1, 3), 3: (0, 1)}
             else:
-                # 7+ уровень: добавляем легендарные
                 return {0: (5, 8), 1: (2, 4), 2: (1, 2), 3: (0, 1), 4: (0, 1)}
 
-        # 5. Функция для определения категорий торговца (как раньше)
+        # Количество (quantity) в зависимости от редкости
+        def get_quantity(tier):
+            if tier == 0:      # обычный
+                return random.randint(10, 20)
+            elif tier == 1:    # необычный
+                return random.randint(5, 10)
+            elif tier == 2:    # редкий
+                return random.randint(2, 5)
+            elif tier == 3:    # очень редкий
+                return random.randint(1, 2)
+            elif tier == 4:    # легендарный
+                return 1
+            else:
+                return 1
+
+        # Функция определения категорий торговца (оставляем как было)
         def get_trader_categories(trader):
             type_to_categories = {
                 "кузнец": ["weapon", "armor", "оружие", "броня"],
@@ -268,11 +276,8 @@ def relink_items():
                 "друид-травница": ["potion", "scroll", "adventuring_gear", "зелье", "лекарство", "яд"]
             }
             default_categories = ["adventuring_gear"]
-
-            # Определяем по типу
             if trader.type and trader.type.lower() in type_to_categories:
                 return type_to_categories[trader.type.lower()]
-            # Если не нашли, пробуем по имени
             name_lower = trader.name.lower()
             if "кузнец" in name_lower or "оружейник" in name_lower:
                 return ["weapon", "armor", "оружие", "броня"]
@@ -292,68 +297,56 @@ def relink_items():
                 return ["adventuring_gear", "транспорт", "запчасти", "услуга"]
             return default_categories
 
-        # 6. Для каждого торговца собираем ассортимент
+        # Основной цикл по торговцам
         for trader in traders:
-            # Уровень торговца (по умолчанию 5, если не задан)
             level = trader.level_max if trader.level_max is not None else 5
-            print(f"Обрабатываю торговца: {trader.name}, уровень {level}")
-
-            # Получаем категории
             categories = get_trader_categories(trader)
-
-            # Получаем все предметы, подходящие по категориям
             all_items = db.query(Item).filter(Item.category.in_(categories)).all()
             if not all_items:
-                print(f"  Нет предметов для категорий {categories}")
                 continue
 
-            # Группируем по rarity_tier
             items_by_tier = {0: [], 1: [], 2: [], 3: [], 4: []}
             for item in all_items:
                 tier = item.rarity_tier
-                # Исключаем уже использованные редкие+ предметы
                 if tier >= 2 and item.id in used_rare_ids:
                     continue
                 items_by_tier[tier].append(item)
 
-            # Квоты для этого уровня
             quotas = get_quotas(level)
-
-            # Выбранные предметы
             selected = []
             for tier in sorted(quotas.keys()):
                 min_q, max_q = quotas[tier]
                 pool = items_by_tier[tier]
                 if not pool:
-                    print(f"  Tier {tier}: пул пуст, пропускаем")
                     continue
                 max_available = min(max_q, len(pool))
                 if max_available < min_q:
                     qty = max_available
-                    print(f"  Tier {tier}: доступно меньше минимума ({max_available} < {min_q}), берём все")
                 else:
                     qty = random.randint(min_q, max_available)
                 chosen = random.sample(pool, qty)
                 selected.extend(chosen)
-                # Запоминаем ID редких+ предметов
                 if tier >= 2:
                     for item in chosen:
                         used_rare_ids.add(item.id)
-                print(f"  Tier {tier}: выбрано {qty} предметов из {len(pool)}")
 
-            # Добавляем связи для выбранных предметов
+            # Вставляем связи с quantity
             for item in selected:
+                qty = get_quantity(item.rarity_tier)
                 db.execute(
-                    text("INSERT INTO trader_items (trader_id, item_id) VALUES (:tid, :iid) ON CONFLICT DO NOTHING"),
-                    {"tid": trader.id, "iid": item.id}
+                    text("""
+                        INSERT INTO trader_items (trader_id, item_id, quantity, price_gold)
+                        VALUES (:tid, :iid, :qty, :price)
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {"tid": trader.id, "iid": item.id, "qty": qty, "price": item.price_gold}
                 )
-            print(f"  Итого добавлено предметов: {len(selected)}")
+            print(f"Торговец {trader.name}: добавлено {len(selected)} предметов")
 
         db.commit()
         return {"status": "ok", "traders_processed": len(traders), "unique_rare_items": len(used_rare_ids)}
     except Exception as e:
         db.rollback()
-        print(f"Ошибка: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
@@ -377,6 +370,50 @@ def run_seed():
         "stderr": result.stderr,
         "returncode": result.returncode
     }
-    
+
+# ========== ЭНДПОИНТ ДЛЯ ИСПРАВЛЕНИЯ КАТЕГОРИЙ ==========
+@app.post("/admin/fix-categories")
+def fix_categories():
+    """Приводит категории к русским названиям на основе subcategory или имени."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        items = db.query(Item).all()
+        updated = 0
+        for item in items:
+            old_cat = item.category
+            if old_cat not in ["adventuring_gear", None]:
+                continue  # уже нормальная категория
+
+            # Определяем новую категорию
+            new_cat = "снаряжение"  # по умолчанию
+            sub = (item.subcategory or "").lower()
+            name = (item.name or "").lower()
+
+            # По subcategory
+            if sub in ["меч", "лук", "арбалет", "топор", "кинжал", "копье", "булава", "моргенштерн"]:
+                new_cat = "оружие"
+            elif sub in ["средняя", "тяжелая", "лёгкая", "щит"]:
+                new_cat = "броня"
+            elif "зелье" in name or "potion" in name:
+                new_cat = "зелье"
+            elif "свиток" in name or "scroll" in name:
+                new_cat = "свиток"
+            elif "инструмент" in name:
+                new_cat = "инструменты"
+            elif "еда" in name or "напитки" in name or "пиво" in name or "эль" in name:
+                new_cat = "еда/напитки"
+            elif "книга" in name or "карта" in name:
+                new_cat = "книги/карты"
+            elif "одежда" in name or "плащ" in name or "сапоги" in name:
+                new_cat = "одежда"
+
+            if new_cat != old_cat:
+                item.category = new_cat
+                updated += 1
+        db.commit()
+        return {"updated": updated}
+    finally:
+        db.close()
 # ==================== МОНТАЖ СТАТИКИ ====================
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
