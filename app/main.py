@@ -272,7 +272,15 @@ def full_reset():
                 rarity = "обычный"
             tier = rarity_tier_map[rarity]
             description = data.get("description", "")
+            properties = data.get("properties", "{}")
+            requirements = data.get("requirements", "{}")
             quality = data.get("quality", "стандартное")
+
+                        # Убеждаемся, что properties и requirements — строки JSON
+            if not isinstance(properties, str):
+                properties = json.dumps(properties) if properties else "{}"
+            if not isinstance(requirements, str):
+                requirements = json.dumps(requirements) if requirements else "{}"
 
             item = Item(
                 name=name,
@@ -284,13 +292,14 @@ def full_reset():
                 price_copper=0,
                 weight=0.0,
                 description=description,
-                properties="{}",
-                requirements="{}",
+                properties=properties,
+                requirements=requirements,
                 is_magical=False,
                 attunement=False,
                 stock=5,
                 quality=quality
             )
+            
             db.add(item)
             item_count += 1
         db.commit()
@@ -641,10 +650,23 @@ def get_traders():
                 return val if val is not None else default
 
             items_with_qty = db.query(trader_items).filter(trader_items.c.trader_id == t.id).all()
-            items_data = []
+            items_data = []   # ← убрать лишние пробелы
             for link in items_with_qty:
                 item = db.query(Item).filter(Item.id == link.item_id).first()
                 if item:
+                    # Парсим JSON-поля
+                    props = item.properties
+                    if isinstance(props, str):
+                        try:
+                            props = json.loads(props)
+                        except:
+                            props = {}
+                    reqs = item.requirements
+                    if isinstance(reqs, str):
+                        try:
+                            reqs = json.loads(reqs)
+                        except:
+                            reqs = {}
                     items_data.append({
                         "id": item.id,
                         "name": item.name,
@@ -656,14 +678,13 @@ def get_traders():
                         "subcategory": item.subcategory,
                         "rarity": item.rarity,
                         "weight": item.weight,
-                        "properties": item.properties,
-                        "requirements": item.requirements,
+                        "properties": props,
+                        "requirements": reqs,
                         "is_magical": item.is_magical,
                         "attunement": item.attunement,
                         "stock": link.quantity,
                         "quality": item.quality,
                     })
-
             trader_data = {
                 "id": t.id,
                 "name": t.name,
