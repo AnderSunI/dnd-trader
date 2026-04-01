@@ -529,5 +529,3 @@ print(f"✅ Добавлено {added} новых предметов")
 # -------------------- 7. СОХРАНЕНИЕ --------------------
 with open("dndsu_items_cleaned.json", "w", encoding="utf-8") as f:
     json.dump(items, f, ensure_ascii=False, indent=2)
-
-print(f"💾 Файл dndsu_items_cleaned.json сохранён. Всего предметов: {len(items)}")
