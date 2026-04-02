@@ -56,32 +56,6 @@ def _parse_price(price_str):
         silver_int %= 100
     return gold_int, silver_int
 
-def _guess_category(name, subcategory):
-    name_lower = name.lower()
-    if "меч" in name_lower or "лук" in name_lower or "топор" in name_lower or "кинжал" in name_lower or "копье" in name_lower or "арбалет" in name_lower:
-        return "оружие"
-    if "кольчуга" in name_lower or "латы" in name_lower or "доспех" in name_lower or "щит" in name_lower:
-        return "броня"
-    if "зелье" in name_lower:
-        return "зелье"
-    if "свиток" in name_lower:
-        return "свиток"
-    if "плащ" in name_lower or "сапоги" in name_lower or "одежда" in name_lower:
-        return "одежда"
-    if "книга" in name_lower or "карта" in name_lower:
-        return "книги/карты"
-    if "инструмент" in name_lower:
-        return "инструменты"
-    if "еда" in name_lower or "пиво" in name_lower or "эль" in name_lower or "хлеб" in name_lower:
-        return "еда/напитки"
-    if subcategory:
-        sub_lower = subcategory.lower()
-        if sub_lower in ["меч", "лук", "арбалет", "топор", "кинжал", "копье", "булава"]:
-            return "оружие"
-        if sub_lower in ["средняя", "тяжелая", "лёгкая", "щит"]:
-            return "броня"
-    return "снаряжение"
-
 def _get_quantity_by_tier(tier):
     if tier == 0:
         return random.randint(10, 20)
@@ -93,46 +67,59 @@ def _get_quantity_by_tier(tier):
         return random.randint(1, 2)
     elif tier == 4:
         return 1
+    elif tier == 5:
+        return 1
     else:
         return 1
 
+# Новая функция для маппинга типа торговца на категории (новая сетка)
 def _get_trader_categories(trader):
     type_map = {
-        "кузнец": ["оружие", "броня", "инструменты"],
-        "оружейник": ["оружие"],
-        "кожевник": ["броня", "снаряжение"],
-        "портной": ["одежда", "снаряжение"],
-        "трактирщик": ["еда/напитки", "снаряжение"],
-        "тавернщик": ["еда/напитки", "снаряжение"],
-        "пекарь": ["еда/напитки"],
-        "мясник": ["еда/напитки"],
-        "торговец": ["снаряжение", "книги/карты", "безделушка"],
-        "старьёвщик": ["снаряжение", "книги/карты", "безделушка"],
-        "друид-травница": ["зелье", "снаряжение"],
-        "алхимик": ["зелье", "снаряжение"],
-        "библиотекарь": ["книги/карты"],
-        "картограф": ["книги/карты"],
-        "оружейный мастер": ["оружие", "броня"],
-        "бронник": ["броня"],
+        "кузнец": ["weapon", "armor", "tools"],
+        "оружейник": ["weapon"],
+        "кожевник": ["armor", "accessory"],
+        "портной": ["accessory"],
+        "трактирщик": ["food_drink", "potions_elixirs", "consumables"],
+        "тавернщик": ["food_drink", "potions_elixirs"],
+        "пекарь": ["food_drink"],
+        "мясник": ["food_drink"],
+        "торговец": ["accessory", "scrolls_books", "alchemy", "misc"],
+        "старьёвщик": ["accessory", "scrolls_books", "misc"],
+        "друид-травница": ["potions_elixirs", "alchemy", "accessory"],
+        "алхимик": ["potions_elixirs", "alchemy", "consumables"],
+        "библиотекарь": ["scrolls_books"],
+        "картограф": ["scrolls_books", "tools"],
+        "оружейный мастер": ["weapon", "armor"],
+        "бронник": ["armor"],
+        "птицевод": ["food_drink", "alchemy"],
+        "цирюльник": ["accessory", "tools"],
+        "банщица": ["accessory", "alchemy"],
+        "пансион": ["food_drink", "accessory"],
+        "мастер фургонов": ["tools", "accessory"],
+        "каменотёс": ["tools", "accessory"],
+        "складской владелец": ["tools", "accessory"],
     }
-    default = ["снаряжение"]
+    default = ["accessory", "misc"]
     if trader.type and trader.type.lower() in type_map:
         return type_map[trader.type.lower()]
+    # fallback по имени
     name_lower = trader.name.lower()
     if "кузнец" in name_lower:
-        return ["оружие", "броня"]
+        return ["weapon", "armor", "tools"]
     if "оружейник" in name_lower:
-        return ["оружие"]
+        return ["weapon"]
     if "кожевник" in name_lower:
-        return ["броня", "снаряжение"]
+        return ["armor", "accessory"]
     if "портной" in name_lower:
-        return ["одежда", "снаряжение"]
+        return ["accessory"]
     if any(x in name_lower for x in ["трактир", "таверн", "пекарь", "мясник"]):
-        return ["еда/напитки", "снаряжение"]
+        return ["food_drink", "consumables", "potions_elixirs"]
     if any(x in name_lower for x in ["старьёвщик", "торговец"]):
-        return ["снаряжение", "книги/карты", "безделушка"]
+        return ["accessory", "scrolls_books", "misc"]
     if "друид" in name_lower or "травница" in name_lower:
-        return ["зелье", "снаряжение"]
+        return ["potions_elixirs", "alchemy", "accessory"]
+    if "алхимик" in name_lower:
+        return ["potions_elixirs", "alchemy", "consumables"]
     return default
 
 def _relink_all_items(db):
@@ -155,16 +142,17 @@ def _relink_all_items(db):
         elif level <= 6:
             return {0: (5, 10), 1: (3, 5), 2: (1, 3), 3: (0, 1)}
         else:
-            return {0: (5, 8), 1: (2, 4), 2: (1, 2), 3: (0, 1), 4: (0, 1)}
+            return {0: (5, 8), 1: (2, 4), 2: (1, 2), 3: (0, 1), 4: (0, 1), 5: (0, 1)}
 
     for trader in traders:
         level = trader.level_max if trader.level_max is not None else 5
         categories = _get_trader_categories(trader)
         all_items = db.query(Item).filter(Item.category.in_(categories)).all()
         if not all_items:
+            print(f"Нет предметов для {trader.name} (категории: {categories})")
             continue
 
-        items_by_tier = {0: [], 1: [], 2: [], 3: [], 4: []}
+        items_by_tier = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
         for item in all_items:
             tier = item.rarity_tier
             if tier >= 2 and item.id in used_rare_ids:
@@ -183,6 +171,8 @@ def _relink_all_items(db):
                 qty = max_available
             else:
                 qty = random.randint(min_q, max_available)
+            if qty == 0:
+                continue
             chosen = random.sample(pool, qty)
             selected.extend(chosen)
             if tier >= 2:
@@ -202,6 +192,7 @@ def _relink_all_items(db):
         print(f"{trader.name}: добавлено {len(selected)} предметов")
 
     db.commit()
+    print(f"Всего добавлено связей: {total_selected}")
     return total_selected
 
 # ==================== АДМИНИСТРАТИВНЫЕ ЭНДПОИНТЫ ====================
@@ -242,43 +233,22 @@ def full_reset():
         with open(json_path, "r", encoding="utf-8") as f:
             items_data = json.load(f)
 
-        rarity_tier_map = {
-            "обычный": 0, "необычный": 1, "редкий": 2,
-            "очень редкий": 3, "легендарный": 4, "артефакт": 4
-        }
-
         item_count = 0
         for data in items_data:
             name = data.get("name")
             if not name:
                 continue
 
-            # Цена: сначала из готовых полей
-            price_gold = data.get("price_gold")
-            price_silver = data.get("price_silver")
-            if price_gold is None or price_silver is None:
-                gold, silver = _parse_price(data.get("price", ""))
-                price_gold = gold
-                price_silver = silver
+            category = data.get("category_clean", "misc")
+            price_gold = data.get("price_gold", 0)
+            price_silver = data.get("price_silver", 0)
+            rarity = data.get("rarity", "common")
+            rarity_tier = data.get("rarity_tier", 0)
 
-            # Категория: используем category_clean, если есть
-            category = data.get("category_clean", "adventuring_gear")
-            if not category or category == "adventuring_gear":
-                category = _guess_category(name, data.get("subcategory"))
-
-            # Редкость: используем из JSON
-            rarity = data.get("rarity", "обычный").lower()
-            if rarity not in rarity_tier_map:
-                rarity = "обычный"
-            tier = rarity_tier_map[rarity]
-            description = data.get("description", "")
-            properties = data.get("properties", "{}")
-            requirements = data.get("requirements", "{}")
-            quality = data.get("quality", "стандартное")
-
-                        # Убеждаемся, что properties и requirements — строки JSON
+            properties = data.get("properties", {})
             if not isinstance(properties, str):
                 properties = json.dumps(properties) if properties else "{}"
+            requirements = data.get("requirements", {})
             if not isinstance(requirements, str):
                 requirements = json.dumps(requirements) if requirements else "{}"
 
@@ -286,22 +256,23 @@ def full_reset():
                 name=name,
                 category=category,
                 rarity=rarity,
-                rarity_tier=tier,
+                rarity_tier=rarity_tier,
                 price_gold=price_gold,
                 price_silver=price_silver,
                 price_copper=0,
-                weight=0.0,
-                description=description,
+                weight=data.get("weight", 0.0),
+                description=data.get("description", ""),
                 properties=properties,
                 requirements=requirements,
-                is_magical=False,
-                attunement=False,
+                is_magical=data.get("is_magical", False),
+                attunement=data.get("attunement", False),
                 stock=5,
-                quality=quality
+                quality=data.get("quality", "стандартное"),
+                source=data.get("source", "merged")
             )
-            
             db.add(item)
             item_count += 1
+
         db.commit()
         print(f"Импортировано {item_count} предметов")
 
@@ -334,7 +305,6 @@ def fix_items():
             old_cat = item.category
             old_price = item.price_gold + item.price_silver/100
 
-            # 1. Категория (только если ещё не определена)
             new_cat = old_cat
             if old_cat in [None, "adventuring_gear", "снаряжение"]:
                 new_cat = "снаряжение"
@@ -355,7 +325,6 @@ def fix_items():
                 elif "еда" in name_lower or "пиво" in name_lower or "эль" in name_lower or "хлеб" in name_lower:
                     new_cat = "еда/напитки"
 
-            # 2. Редкость
             magical_keywords = ["магический", "волшебный", "+1", "+2", "+3", "огненный", "ледяной", "молнии", "защиты", "удара", "чародейский", "летучий", "паука", "левитации", "невидимости"]
             is_magical = any(kw in name_lower for kw in magical_keywords)
 
@@ -373,7 +342,6 @@ def fix_items():
                 new_rarity = "обычный"
                 new_tier = 0
 
-            # 3. Цена (если текущая цена 0, генерируем примерную)
             if old_price == 0:
                 if new_tier == 0:
                     new_price_gold_float = random.randint(1, 50)
@@ -650,11 +618,10 @@ def get_traders():
                 return val if val is not None else default
 
             items_with_qty = db.query(trader_items).filter(trader_items.c.trader_id == t.id).all()
-            items_data = []   # ← убрать лишние пробелы
+            items_data = []
             for link in items_with_qty:
                 item = db.query(Item).filter(Item.id == link.item_id).first()
                 if item:
-                    # Парсим JSON-поля
                     props = item.properties
                     if isinstance(props, str):
                         try:
