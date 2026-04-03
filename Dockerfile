@@ -3,7 +3,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY cleaned_items.json .
-COPY seed_render.py .
 COPY app/ ./app
 COPY frontend/ ./frontend
 COPY data /app/data

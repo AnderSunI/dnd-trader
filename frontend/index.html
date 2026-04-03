@@ -486,71 +486,39 @@
             color: #555;
         }
         .stat-item span { font-size: 1.2rem; font-weight: bold; }
-        /* Сетка для инвентарного вида */
-        .items-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-        }
-        .item-card {
-            background: #fff;
+        /* Аутентификация */
+        .auth-container {
+            background: rgba(255,255,240,0.95);
             border-radius: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            padding: 12px;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
-            border: 1px solid #eee;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .item-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .auth-form {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: center;
         }
-        .item-card__name {
-            font-weight: bold;
-            font-size: 1rem;
-            margin-bottom: 4px;
+        .auth-form input {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .guest-warning {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .item-card__price {
-            font-size: 0.8rem;
-            color: #2c3e50;
-            margin: 4px 0;
-        }
-        .item-card__stats {
-            font-size: 0.7rem;
-            color: #6c757d;
-            margin-top: 6px;
-            display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-        }
-        .item-card__stat {
-            background: #f1f3f5;
-            padding: 2px 6px;
-            border-radius: 12px;
-        }
-        .view-toggle {
-            margin-left: 12px;
-            display: inline-flex;
-            gap: 4px;
-            background: #f8f9fa;
-            border-radius: 20px;
-            padding: 2px;
-        }
-        .view-toggle button {
-            background: none;
-            border: none;
-            padding: 4px 10px;
-            font-size: 0.8rem;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-        .view-toggle button.active {
-            background: #e67e22;
-            color: white;
+            gap: 10px;
         }
         @media (max-width: 768px) {
             .items-table, .items-table tbody, .items-table tr, .items-table td, .items-table th { display: block; }
@@ -582,12 +550,32 @@
             .cart-item, .inventory-item, .reserved-item { flex-direction: column; align-items: flex-start; gap: 8px; }
             .cart-item-price, .inventory-item-price, .reserved-item-price { text-align: left; }
             .filter-bar { flex-direction: column; align-items: stretch; }
+            .auth-form input { width: 100%; }
         }
     </style>
 </head>
 <body>
     <div class="mode-switch" id="modeSwitch">👤 Игрок</div>
     <h1>🏪 D&D Trader — Помощник ГМ</h1>
+
+    <!-- Контейнер аутентификации -->
+    <div id="authContainer" class="auth-container" style="display: none;">
+        <div class="auth-form">
+            <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+            <input type="password" id="loginPassword" placeholder="Пароль" autocomplete="current-password">
+            <button id="doLogin" class="primary">Войти</button>
+            <button id="doRegister" class="success">Регистрация</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button id="logoutBtn" class="danger" style="display: none;">Выйти</button>
+        </div>
+    </div>
+
+    <!-- Гостевое предупреждение -->
+    <div id="guestWarning" class="guest-warning" style="display: none;">
+        <span>⚠️ Вы не авторизованы. Ваши данные могут быть потеряны.</span>
+        <button id="showAuthBtn" class="primary">Войти / Зарегистрироваться</button>
+    </div>
 
     <div class="cart-widget" id="cartWidget">
         <div class="cart-info">
@@ -638,7 +626,7 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // Маппинг категорий для отображения на русском
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
         const categoryNames = {
             "weapon": "Оружие",
             "armor": "Броня",
@@ -651,27 +639,97 @@
             "tools": "Инструменты",
             "misc": "Разное"
         };
-
         let inventory = [], allTraders = [], cart = [], reserved = [], playerGold = 1000, gmNotes = {}, userMode = 'player';
         let cabinetData = { history: '', quests: [], files: [], playerNotes: '', mapImage: '' };
+        let currentUser = null, currentCharacter = null;
         const sounds = { coin: new Audio('/sounds/coin.mp3'), door: new Audio('/sounds/door.mp3') };
         function playSound(t) { try { sounds[t] && (sounds[t].currentTime = 0, sounds[t].play().catch(e=>{})); } catch(e) {} }
 
-        function loadGMNotes() { const s = localStorage.getItem('dnd_gm_notes'); if(s) try{ gmNotes=JSON.parse(s); }catch(e){} }
-        function saveGMNotes() { localStorage.setItem('dnd_gm_notes', JSON.stringify(gmNotes)); }
-        function saveInventory() { localStorage.setItem('dnd_inventory', JSON.stringify(inventory)); updateInventoryWidget(); }
-        function updateInventoryWidget() { document.getElementById('inventoryCount').innerText = inventory.reduce((s,i)=>s+i.quantity,0); }
-        function addToInventory(id, name, qty=1, custom=null) {
-            let item = custom;
-            if(!item) for(let t of allTraders) { let f = t.items.find(i=>i.id===id); if(f){ item=f; break; } }
-            if(!item) return;
-            let ex = inventory.find(i=>i.itemId===id);
-            if(ex) ex.quantity += qty;
-            else inventory.push({ itemId:id, name, quantity:qty, price_gold:Number(item.price_gold)||0, price_silver:Number(item.price_silver)||0, price_copper:Number(item.price_copper)||0, weight:item.weight||0, rarity:item.rarity||'common', is_magical:item.is_magical||false, quality:item.quality||'стандартное', description:item.description||'', category:item.category||'', properties:item.properties, requirements:item.requirements, attunement:item.attunement||false });
-            saveInventory();
+        // ==================== API ВЫЗОВЫ ====================
+        async function apiRequest(url, method = 'GET', body = null, token = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const options = { method, headers };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text);
+            }
+            return response.json();
         }
-        function removeFromInventory(id, q=1) { let idx = inventory.findIndex(i=>i.itemId===id); if(idx!==-1){ inventory[idx].quantity-=q; if(inventory[idx].quantity<=0) inventory.splice(idx,1); saveInventory(); } }
-        function getInventoryQuantity(id) { let i = inventory.find(i=>i.itemId===id); return i ? i.quantity : 0; }
+
+        async function login(email, password) {
+            const data = await apiRequest(`/auth/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, 'POST');
+            localStorage.setItem('token', data.access_token);
+            return data;
+        }
+
+        async function register(email, password) {
+            return await apiRequest(`/auth/register?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, 'POST');
+        }
+
+        async function loadCharacters(token) {
+            return await apiRequest('/characters', 'GET', null, token);
+        }
+
+        async function loadCharacter(charId, token) {
+            return await apiRequest(`/characters/${charId}`, 'GET', null, token);
+        }
+
+        async function updateCharacter(charId, token, payload) {
+            return await apiRequest(`/characters/${charId}`, 'PUT', payload, token);
+        }
+
+        async function afterLogin() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const chars = await loadCharacters(token);
+                if (chars.length === 0) {
+                    await apiRequest('/characters', 'POST', { name: 'Мой персонаж' }, token);
+                    const newChars = await loadCharacters(token);
+                    currentCharacter = newChars[0];
+                } else {
+                    currentCharacter = chars[0];
+                }
+                const fullChar = await loadCharacter(currentCharacter.id, token);
+                currentUser = fullChar;
+                playerGold = fullChar.gold;
+                document.getElementById('playerGoldInput').value = playerGold;
+                inventory = fullChar.inventory || [];
+                cart = fullChar.cart || [];
+                reserved = fullChar.reserved || [];
+                cabinetData = fullChar.cabinet_data || cabinetData;
+                gmNotes = fullChar.gm_notes || {};
+                updateCartWidget();
+                updateInventoryWidget();
+                document.getElementById('authContainer').style.display = 'none';
+                document.getElementById('guestWarning').style.display = 'none';
+                document.getElementById('logoutBtn').style.display = 'inline-block';
+                showToast(`Добро пожаловать, ${fullChar.name}`);
+                renderTraders(); // обновить отображение торговцев (чтобы учесть золото)
+            } catch(e) {
+                console.error(e);
+                showToast('Ошибка загрузки персонажа');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            currentUser = null;
+            currentCharacter = null;
+            showToast('Вы вышли');
+            location.reload();
+        }
+
+        function showAuthForm() {
+            document.getElementById('guestWarning').style.display = 'none';
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'none';
+        }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЦЕНЫ, ТОСТЫ И Т.Д.) ====================
         function formatPrice(g,s,c) {
             let gold = Number(g) || 0;
             let silver = Number(s) || 0;
@@ -699,7 +757,6 @@
                 total_silver += price_silver * q;
                 total_copper += price_copper * q;
             }
-            // нормализация
             total_gold += Math.floor(total_silver / 100);
             total_silver %= 100;
             total_gold += Math.floor(total_copper / 10000);
@@ -708,15 +765,55 @@
             document.getElementById('cartTotal').innerText=formatPrice(total_gold, total_silver, total_copper);
             localStorage.setItem('dnd_cart', JSON.stringify(cart));
             localStorage.setItem('dnd_reserved', JSON.stringify(reserved));
+            // сохранить на сервер, если есть персонаж
+            if (currentCharacter && localStorage.getItem('token')) {
+                const token = localStorage.getItem('token');
+                updateCharacter(currentCharacter.id, token, { cart, reserved, gold: playerGold, inventory });
+            }
         }
-        function savePlayerGold(v) { let nv=Number(v); if(isNaN(nv)||nv<0) nv=0; localStorage.setItem('playerGold', nv); playerGold=nv; document.getElementById('playerGoldInput').value=playerGold; }
+        function savePlayerGold(v) { let nv=Number(v); if(isNaN(nv)||nv<0) nv=0; localStorage.setItem('playerGold', nv); playerGold=nv; document.getElementById('playerGoldInput').value=playerGold; if (currentCharacter && localStorage.getItem('token')) { const token = localStorage.getItem('token'); updateCharacter(currentCharacter.id, token, { gold: playerGold }); } }
+        function saveInventory() { localStorage.setItem('dnd_inventory', JSON.stringify(inventory)); updateInventoryWidget(); if (currentCharacter && localStorage.getItem('token')) { const token = localStorage.getItem('token'); updateCharacter(currentCharacter.id, token, { inventory }); } }
+        function updateInventoryWidget() { document.getElementById('inventoryCount').innerText = inventory.reduce((s,i)=>s+i.quantity,0); }
+        function addToInventory(id, name, qty=1, custom=null) {
+            let item = custom;
+            if(!item) for(let t of allTraders) { let f = t.items.find(i=>i.id===id); if(f){ item=f; break; } }
+            if(!item) return;
+            let ex = inventory.find(i=>i.itemId===id);
+            if(ex) ex.quantity += qty;
+            else inventory.push({ 
+                itemId:id, name, quantity:qty, 
+                price_gold:Number(item.price_gold)||0, 
+                price_silver:Number(item.price_silver)||0, 
+                price_copper:Number(item.price_copper)||0,
+                base_price_gold:Number(item.price_gold_orig)||Number(item.price_gold)||0,
+                base_price_silver:Number(item.price_silver_orig)||Number(item.price_silver)||0,
+                base_price_copper:Number(item.price_copper_orig)||Number(item.price_copper)||0,
+                weight:item.weight||0, rarity:item.rarity||'common', is_magical:item.is_magical||false, 
+                quality:item.quality||'стандартное', description:item.description||'', category:item.category||'', 
+                properties:item.properties, requirements:item.requirements, attunement:item.attunement||false 
+            });
+            saveInventory();
+        }
+        function removeFromInventory(id, q=1) { let idx = inventory.findIndex(i=>i.itemId===id); if(idx!==-1){ inventory[idx].quantity-=q; if(inventory[idx].quantity<=0) inventory.splice(idx,1); saveInventory(); } }
+        function getInventoryQuantity(id) { let i = inventory.find(i=>i.itemId===id); return i ? i.quantity : 0; }
         function getReputationStars(r) { let s=Math.max(0,Math.min(5,r)); return '★'.repeat(s)+'☆'.repeat(5-s); }
         function getTraderQuality(r) { if(r<=1) return 'Новичок'; if(r<=3) return 'Опытный'; return 'Мастер'; }
         async function updateItemStock(id, s) { try { await fetch(`/items/${id}/stock?stock=${s}`,{method:'PATCH'}); } catch(e) { showToast('Ошибка обновления запаса'); } }
         async function updateTraderGold(id, g) { try { await fetch(`/traders/${id}/gold?gold=${g}`,{method:'PATCH'}); } catch(e) { showToast('Ошибка обновления золота'); } }
         async function updateTraderReputation(id, d) { try { return await (await fetch(`/traders/${id}/reputation?delta=${d}`,{method:'PATCH'})).json(); } catch(e) { console.warn(e); } }
 
-        fetch('/traders').then(r=>r.json()).then(data=>{ allTraders=data; populateFilters(); let sc=localStorage.getItem('dnd_cart'); if(sc) try{ cart=JSON.parse(sc); }catch(e){} let sr=localStorage.getItem('dnd_reserved'); if(sr) try{ reserved=JSON.parse(sr); }catch(e){} updateCartWidget(); let sg=localStorage.getItem('playerGold'); if(sg!==null){ playerGold=parseInt(sg); document.getElementById('playerGoldInput').value=playerGold; } let si=localStorage.getItem('dnd_inventory'); if(si) try{ inventory=JSON.parse(si); updateInventoryWidget(); }catch(e){} let scab=localStorage.getItem('dnd_cabinet'); if(scab) try{ cabinetData=JSON.parse(scab); }catch(e){} renderTraders(); let sm=localStorage.getItem('userMode'); if(sm==='gm') userMode='gm'; document.getElementById('modeSwitch').innerText=userMode==='player'?'👤 Игрок':'🎭 ГМ'; }).catch(e=>console.error(e));
+        // ==================== ЗАГРУЗКА ДАННЫХ И ФИЛЬТРАЦИЯ ТОРГОВЦЕВ ====================
+        fetch('/traders').then(r=>r.json()).then(data=>{ allTraders=data; populateFilters(); let sc=localStorage.getItem('dnd_cart'); if(sc) try{ cart=JSON.parse(sc); }catch(e){} let sr=localStorage.getItem('dnd_reserved'); if(sr) try{ reserved=JSON.parse(sr); }catch(e){} updateCartWidget(); let sg=localStorage.getItem('playerGold'); if(sg!==null){ playerGold=parseInt(sg); document.getElementById('playerGoldInput').value=playerGold; } let si=localStorage.getItem('dnd_inventory'); if(si) try{ inventory=JSON.parse(si); updateInventoryWidget(); }catch(e){} let scab=localStorage.getItem('dnd_cabinet'); if(scab) try{ cabinetData=JSON.parse(scab); }catch(e){} renderTraders(); let sm=localStorage.getItem('userMode'); if(sm==='gm') userMode='gm'; document.getElementById('modeSwitch').innerText=userMode==='player'?'👤 Игрок':'🎭 ГМ'; checkAuth(); }).catch(e=>console.error(e));
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                afterLogin();
+            } else {
+                document.getElementById('guestWarning').style.display = 'flex';
+                document.getElementById('authContainer').style.display = 'none';
+            }
+        }
 
         function populateFilters() {
             let types=new Set(), regions=new Set(), cats=new Set();
@@ -757,6 +854,7 @@
             document.querySelectorAll('.trader-card').forEach(c=>c.addEventListener('click',()=>{ let tr=allTraders.find(t=>t.id==c.dataset.traderId); if(tr){ playSound('door'); showTraderModal(tr); } }));
         }
 
+        // ==================== МОДАЛКА ТОРГОВЦА ====================
         function showTraderModal(trader) {
             let modal=document.getElementById('modalContent');
             let stats=trader.stats||{}, abilities=trader.abilities||[], possessions=trader.possessions||[], race=trader.race||'?', className=trader.class_name||'?', level=trader.trader_level||'?';
@@ -778,7 +876,7 @@
                 </div><div class="items-table-container" data-cat="${c}"></div></div>`;
             });
             let sellable=inventory.filter(inv=>trader.items.some(i=>i.id===inv.itemId));
-            let sellHtml=sellable.length?`<div id="sellSection"><h3>💰 Продажа торговцу</h3><table class="items-table"><thead><tr><th>Название</th><th>У вас</th><th>Цена за шт.</th><th>Кол-во к продаже</th><th>Действие</th></tr></thead><tbody>${sellable.map(inv=>{ let ti=trader.items.find(i=>i.id===inv.itemId); let disc=trader.reputation>0?trader.reputation/100:0; let sellPriceGold = ti.price_gold * 0.5 * (1+disc); let sellPriceSilver = (ti.price_silver||0) * 0.5 * (1+disc); let sellPriceCopper = (ti.price_copper||0) * 0.5 * (1+disc); if(sellPriceCopper >= 100){ sellPriceSilver += Math.floor(sellPriceCopper/100); sellPriceCopper %= 100; } if(sellPriceSilver >= 100){ sellPriceGold += Math.floor(sellPriceSilver/100); sellPriceSilver %= 100; } let sellPriceFmt = formatPrice(Math.floor(sellPriceGold), Math.floor(sellPriceSilver), Math.floor(sellPriceCopper)); return `<tr data-sell-item-id="${inv.itemId}" data-sell-price-gold="${sellPriceGold}" data-sell-price-silver="${sellPriceSilver}" data-sell-price-copper="${sellPriceCopper}" data-sell-name="${inv.name}" data-sell-max-qty="${inv.quantity}"><td data-label="Название">${inv.name}</td><td data-label="У вас" class="sell-inv-qty">${inv.quantity}</td><td data-label="Цена за шт.">${sellPriceFmt}</td><td data-label="Кол-во к продаже"><div class="qty-control"><button class="sell-dec">-</button><input type="number" class="sell-qty" value="1" min="1" max="${inv.quantity}" step="1"><button class="sell-inc">+</button></div></td><td data-label="Действие"><button class="sell-confirm">Продать</button></td></tr>`; }).join('')}</tbody></table></div>`:'';
+            let sellHtml=sellable.length?`<div id="sellSection"><h3>💰 Продажа торговцу</h3><table class="items-table"><thead><tr><th>Название</th><th>У вас</th><th>Цена за шт.</th><th>Кол-во к продаже</th><th>Действие</th></tr></thead><tbody>${sellable.map(inv=>{ let ti=trader.items.find(i=>i.id===inv.itemId); let disc=trader.reputation>0?trader.reputation/100:0; let sellPriceGold = (inv.base_price_gold||ti.price_gold) * 0.5 * (1+disc); let sellPriceSilver = (inv.base_price_silver||ti.price_silver||0) * 0.5 * (1+disc); let sellPriceCopper = (inv.base_price_copper||ti.price_copper||0) * 0.5 * (1+disc); if(sellPriceCopper >= 100){ sellPriceSilver += Math.floor(sellPriceCopper/100); sellPriceCopper %= 100; } if(sellPriceSilver >= 100){ sellPriceGold += Math.floor(sellPriceSilver/100); sellPriceSilver %= 100; } let sellPriceFmt = formatPrice(Math.floor(sellPriceGold), Math.floor(sellPriceSilver), Math.floor(sellPriceCopper)); return `<tr data-sell-item-id="${inv.itemId}" data-sell-price-gold="${sellPriceGold}" data-sell-price-silver="${sellPriceSilver}" data-sell-price-copper="${sellPriceCopper}" data-sell-name="${inv.name}" data-sell-max-qty="${inv.quantity}"><td data-label="Название">${inv.name}</td><td data-label="У вас" class="sell-inv-qty">${inv.quantity}</td><td data-label="Цена за шт.">${sellPriceFmt}</td><td data-label="Кол-во к продаже"><div class="qty-control"><button class="sell-dec">-</button><input type="number" class="sell-qty" value="1" min="1" max="${inv.quantity}" step="1"><button class="sell-inc">+</button></div></td><td data-label="Действие"><button class="sell-confirm">Продать</button></td></tr>`; }).join('')}</tbody></td></div>`:'';
             let infoHtml='';
             if(trader.personality||trader.possessions||trader.rumors){
                 infoHtml=`<div>${trader.personality?`<div class="trader-detail-section"><h4>🧠 Особенности</h4><p>${trader.personality}</p></div>`:''}${trader.possessions?`<div class="trader-detail-section"><h4>🎒 Личные вещи</h4><ul><li>${(Array.isArray(trader.possessions)?trader.possessions:JSON.parse(trader.possessions||'[]')).join('</li><li>')}</li></ul></div>`:''}${trader.rumors?`<div class="trader-detail-section"><h4>🔍 Слухи / Квесты</h4><p>${trader.rumors}</p></div>`:''}</div>`;
@@ -812,7 +910,7 @@
                     else if(st==='price_asc') filtered.sort((a,b)=>((a.price_gold||0)+(a.price_silver||0)/100+(a.price_copper||0)/10000)-((b.price_gold||0)+(b.price_silver||0)/100+(b.price_copper||0)/10000));
                     else if(st==='price_desc') filtered.sort((a,b)=>((b.price_gold||0)+(b.price_silver||0)/100+(b.price_copper||0)/10000)-((a.price_gold||0)+(a.price_silver||0)/100+(a.price_copper||0)/10000));
                     if(mode==='table'){
-                        let html=`<table class="items-table"><thead><tr><th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Кол-во</th><th>Действие</th></tr></thead><tbody>${filtered.map(it=>{
+                        let html=`<table class="items-table"><thead>汽<th>Название</th><th>Цена</th><th>Качество</th><th>Осталось</th><th>Характеристики</th><th>Кол-во</th><th>Действие</th> </thead><tbody>${filtered.map(it=>{
                             let quality=it.quality||'стандартное', origStock=it.stock||0, cartItem=cart.find(i=>i.traderId===trader.id&&i.itemId===it.id), cartQty=cartItem?cartItem.quantity:0, reservedItem=reserved.find(i=>i.traderId===trader.id&&i.itemId===it.id), reservedQty=reservedItem?reservedItem.quantity:0, rem=origStock-cartQty-reservedQty;
                             let stockHtml=rem>0?rem:'<span style="color:red;">нет в наличии</span>';
                             let disc=trader.reputation>0?trader.reputation/100:0;
@@ -831,7 +929,7 @@
                             let fullItem={ name:it.name, description:it.description||'', priceFormatted:priceFmt, statsHtml, is_magical:it.is_magical, quality, rarity:it.rarity, weight:it.weight, properties:it.properties, requirements:it.requirements, attunement:it.attunement, price_gold:it.price_gold, price_silver:it.price_silver, price_copper:it.price_copper };
                             let fullJson=encodeURIComponent(JSON.stringify(fullItem));
                             let rarityClass = (it.rarity||'common').replace(/\s/g,'').toLowerCase();
-                            return `<tr class="rarity-${rarityClass}" data-buy-trader-id="${trader.id}" data-buy-item-id="${it.id}" data-buy-original-stock="${origStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-price-copper="${finalCopper}" data-buy-name="${it.name}"><td data-label="Название">${it.name}${it.is_magical?' ✨':''}${it.rarity?`<span class="rarity-badge rarity-${rarityClass}">${it.rarity}</span>`:''}<td data-label="Цена">${priceFmt}<td data-label="Качество"><span class="quality-badge">${quality}</span><td data-label="Осталось" class="stock-cell">${stockHtml}<td data-label="Характеристики">${statsHtml}<td data-label="Кол-во"><input type="number" class="quantity-input" min="1" max="${rem}" value="1" ${addDisabled}><td data-label="Действие" class="add-cell"><button class="add-to-cart-btn" ${addDisabled}>В корзину</button><button class="reserve-btn" ${reserveDisabled}>📌 Зарезервировать</button><button class="details-btn" data-item='${fullJson}' style="margin-left:5px;">📄</button></tr>`;
+                            return `<tr data-buy-trader-id="${trader.id}" data-buy-item-id="${it.id}" data-buy-original-stock="${origStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-price-copper="${finalCopper}" data-buy-name="${it.name}" data-item-name="${it.name}" data-item-rarity="${it.rarity}" data-item-quality="${quality}" data-item-magical="${it.is_magical}" data-item-price="${finalGold+finalSilver/100+finalCopper/10000}"><td data-label="Название"><span class="rarity-${rarityClass}">${it.name}</span>${it.is_magical?' ✨':''}${it.rarity?`<span class="rarity-badge rarity-${rarityClass}">${it.rarity}</span>`:''}<td data-label="Цена">${priceFmt}<td data-label="Качество"><span class="quality-badge">${quality}</span><td data-label="Осталось" class="stock-cell">${stockHtml}<td data-label="Характеристики">${statsHtml}<td data-label="Кол-во"><input type="number" class="quantity-input" min="1" max="${rem}" value="1" ${addDisabled}><td data-label="Действие" class="add-cell"><button class="add-to-cart-btn" ${addDisabled}>В корзину</button><button class="reserve-btn" ${reserveDisabled}>📌 Зарезервировать</button><button class="details-btn" data-item='${fullJson}' style="margin-left:5px;">📄</button></td>`;
                         }).join('')}</tbody></table>`;
                         container.innerHTML=html;
                     } else {
@@ -852,12 +950,10 @@
                             let fullItem={ name:it.name, description:it.description||'', priceFormatted:priceFmt, statsHtml:stats.join(' | '), is_magical:it.is_magical, quality, rarity:it.rarity, weight:it.weight, properties:it.properties, requirements:it.requirements, attunement:it.attunement, price_gold:it.price_gold, price_silver:it.price_silver, price_copper:it.price_copper };
                             let fullJson=encodeURIComponent(JSON.stringify(fullItem));
                             let rarityClass = (it.rarity||'common').replace(/\s/g,'').toLowerCase();
-                            let stockClass = rem>0 ? '' : ' out-of-stock';
-                            return `<div class="item-card ${rarityClass}${stockClass}" data-buy-trader-id="${trader.id}" data-buy-item-id="${it.id}" data-buy-original-stock="${origStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-price-copper="${finalCopper}" data-buy-name="${it.name}"><div class="item-card__name"><span>${it.name}${it.is_magical?' ✨':''}</span><span class="rarity-badge rarity-${rarityClass}">${it.rarity}</span></div><div class="item-card__price">${priceFmt}</div><div class="item-card__stats">${stats.map(s=>`<span class="item-card__stat">${s}</span>`).join('')}</div><div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;"><input type="number" class="quantity-input" min="1" max="${rem}" value="1" style="width:50px;" ${rem<=0?'disabled':''}><button class="add-to-cart-btn" ${rem<=0?'disabled':''}>В корзину</button><button class="reserve-btn" ${rem<=0?'disabled':''}>📌</button><button class="details-btn" data-item='${fullJson}'>📄</button></div></div>`;
+                            return `<div class="item-card" data-buy-trader-id="${trader.id}" data-buy-item-id="${it.id}" data-buy-original-stock="${origStock}" data-buy-price-gold="${finalGold}" data-buy-price-silver="${finalSilver}" data-buy-price-copper="${finalCopper}" data-buy-name="${it.name}"><div class="item-card__name"><span class="rarity-${rarityClass}">${it.name}</span>${it.is_magical?' ✨':''}<span class="rarity-badge rarity-${rarityClass}">${it.rarity}</span></div><div class="item-card__price">${priceFmt}</div><div class="item-card__stats">${stats.map(s=>`<span class="item-card__stat">${s}</span>`).join('')}</div><div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;"><input type="number" class="quantity-input" min="1" max="${rem}" value="1" style="width:50px;" ${rem<=0?'disabled':''}><button class="add-to-cart-btn" ${rem<=0?'disabled':''}>В корзину</button><button class="reserve-btn" ${rem<=0?'disabled':''}>📌</button><button class="details-btn" data-item='${fullJson}'>📄</button></div></div>`;
                         }).join('')}</div>`;
                         container.innerHTML=html;
                     }
-                    // привязываем события после рендера
                     container.querySelectorAll('.add-to-cart-btn:not([disabled])').forEach(btn=>btn.addEventListener('click',e=>{
                         let card=btn.closest('.item-card')||btn.closest('tr');
                         let tid=parseInt(card.dataset.buyTraderId), iid=parseInt(card.dataset.buyItemId), name=card.dataset.buyName, pg=parseFloat(card.dataset.buyPriceGold), ps=parseFloat(card.dataset.buyPriceSilver), pc=parseFloat(card.dataset.buyPriceCopper)||0, origStock=parseInt(card.dataset.buyOriginalStock), qtyInp=card.querySelector('.quantity-input'), qty=parseInt(qtyInp.value); if(isNaN(qty)||qty<1) qty=1;
@@ -886,7 +982,7 @@
                 renderView();
             });
             let noteArea=document.getElementById(`gmNote-${trader.id}`);
-            if(noteArea) noteArea.addEventListener('change',()=>{ gmNotes[trader.id]=noteArea.value; saveGMNotes(); });
+            if(noteArea) noteArea.addEventListener('change',()=>{ gmNotes[trader.id]=noteArea.value; saveGMNotes(); if (currentCharacter && localStorage.getItem('token')) { const token = localStorage.getItem('token'); updateCharacter(currentCharacter.id, token, { gm_notes: gmNotes }); } });
             document.querySelectorAll('.sell-dec').forEach(btn=>btn.addEventListener('click',e=>{ let row=btn.closest('tr'), qtyInp=row.querySelector('.sell-qty'); let v=parseInt(qtyInp.value); if(v>1) qtyInp.value=v-1; }));
             document.querySelectorAll('.sell-inc').forEach(btn=>btn.addEventListener('click',e=>{ let row=btn.closest('tr'), qtyInp=row.querySelector('.sell-qty'); let v=parseInt(qtyInp.value), max=parseInt(qtyInp.max); if(v<max) qtyInp.value=v+1; }));
             document.querySelectorAll('.sell-confirm').forEach(btn=>btn.addEventListener('click',async e=>{
@@ -904,6 +1000,7 @@
                 showToast(`Продано ${qty} × "${name}" за ${formatPrice(totalGold, totalSilver, totalCopper)}`);
             }));
         }
+
         function showItemDetailModal(it){
             let c=document.getElementById('itemDetailContent');
             let stats=[];
@@ -928,6 +1025,8 @@
             document.getElementById('closeItemDetailModal').onclick=()=>document.getElementById('itemDetailModal').style.display='none';
             window.onclick=e=>{ if(e.target==document.getElementById('itemDetailModal')) document.getElementById('itemDetailModal').style.display='none'; };
         }
+
+        // ==================== КОРЗИНА ====================
         function renderCartModal(){ 
             let fc=[...cart], s=document.getElementById('cartSearch')?.value?.toLowerCase()||'', c=document.getElementById('cartCategory')?.value||'', sb=document.getElementById('cartSort')?.value||'name'; 
             if(s) fc=fc.filter(i=>i.name.toLowerCase().includes(s)); 
@@ -940,7 +1039,7 @@
             if(cart.length===0 && reserved.length===0){ mc.innerHTML='<p>Корзина и резервы пусты.</p>'; return; } 
             let cats=[...new Set(cart.map(i=>i.category).filter(c=>c))], opts=cats.map(c=>`<option value="${c}">${categoryNames[c]||c}</option>`).join('');
             let html=`<div class="tab-bar"><button class="tab-btn active" data-cart-tab="cart">Корзина (${cart.length})</button><button class="tab-btn" data-cart-tab="reserved">Зарезервировано (${reserved.length})</button></div>
-                <div id="cart-tab-cart" class="cart-tab-content active"><div style="margin-bottom:16px; display:flex; gap:12px; flex-wrap:wrap;"><div class="filter-group" style="flex:1;"><label>🔍 Поиск</label><input type="text" id="cartSearch" placeholder="Название предмета" style="width:100%;"></div><div class="filter-group" style="flex:1;"><label>📦 Категория</label><select id="cartCategory"><option value="">Любая</option>${opts}</select></div><div class="filter-group" style="flex:1;"><label>📊 Сортировка</label><select id="cartSort"><option value="name">По названию</option><option value="price">По цене (дешёвые → дорогие)</option><option value="weight">По весу (лёгкие → тяжёлые)</option><option value="rarity">По редкости</option></select></div></div><table class="items-table"><thead>Товары<th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Кол-во</th><th>Действия</th> </thead><tbody>${fc.map((i,idx)=>{ 
+                <div id="cart-tab-cart" class="cart-tab-content active"><div style="margin-bottom:16px; display:flex; gap:12px; flex-wrap:wrap;"><div class="filter-group" style="flex:1;"><label>🔍 Поиск</label><input type="text" id="cartSearch" placeholder="Название предмета" style="width:100%;"></div><div class="filter-group" style="flex:1;"><label>📦 Категория</label><select id="cartCategory"><option value="">Любая</option>${opts}</select></div><div class="filter-group" style="flex:1;"><label>📊 Сортировка</label><select id="cartSort"><option value="name">По названию</option><option value="price">По цене (дешёвые → дорогие)</option><option value="weight">По весу (лёгкие → тяжёлые)</option><option value="rarity">По редкости</option></select></div></div><table class="items-table"><thead>汽<th>Название</th><th>Цена</th><th>Качество</th><th>Характеристики</th><th>Кол-во</th><th>Действия</th> </thead><tbody>${fc.map((i,idx)=>{ 
                 let totalGold = (i.price_gold||0) * i.quantity, totalSilver = (i.price_silver||0) * i.quantity, totalCopper = (i.price_copper||0) * i.quantity;
                 totalSilver += Math.floor(totalCopper/100); totalCopper %= 100;
                 totalGold += Math.floor(totalSilver/100); totalSilver %= 100;
@@ -954,7 +1053,7 @@
                 let fullItem = { name:i.name, description:i.description||'', priceFormatted:pf, statsHtml:sh, is_magical:i.is_magical, quality:q, rarity:i.rarity, weight:i.weight, properties:i.properties, requirements:i.requirements, attunement:i.attunement, price_gold:i.price_gold, price_silver:i.price_silver, price_copper:i.price_copper };
                 let fullJson=encodeURIComponent(JSON.stringify(fullItem));
                 let rarityClass = (i.rarity||'common').replace(/\s/g,'').toLowerCase();
-                return `<tr class="rarity-${rarityClass}" data-cart-index="${idx}"><td data-label="Название">${i.name}${i.is_magical?' ✨':''}<td data-label="Цена">${pf}<td data-label="Качество"><span class="quality-badge">${q}</span><td data-label="Характеристики">${sh}<td data-label="Кол-во"><div class="qty-control"><button class="cart-decr" data-index="${idx}">-</button><input type="number" class="cart-qty" data-index="${idx}" value="${i.quantity}" min="1" style="width:60px;"><button class="cart-incr" data-index="${idx}">+</button></div><td data-label="Действия"><button class="remove-btn" data-index="${idx}">Удалить</button><button class="details-btn-cart" data-item='${fullJson}' style="margin-left:5px;">📄</button></td>`; }).join('')}</tbody></td><p><strong>Итого:</strong> ${document.getElementById('cartTotal').innerText}</p><button id="checkoutBtn" class="primary">Оформить заказ</button></div>
+                return `<tr class="rarity-${rarityClass}" data-cart-index="${idx}"><td data-label="Название"><span class="rarity-${rarityClass}">${i.name}</span>${i.is_magical?' ✨':''}<td data-label="Цена">${pf}<td data-label="Качество"><span class="quality-badge">${q}</span><td data-label="Характеристики">${sh}<td data-label="Кол-во"><div class="qty-control"><button class="cart-decr" data-index="${idx}">-</button><input type="number" class="cart-qty" data-index="${idx}" value="${i.quantity}" min="1" style="width:60px;"><button class="cart-incr" data-index="${idx}">+</button></div><td data-label="Действия"><button class="remove-btn" data-index="${idx}">Удалить</button><button class="details-btn-cart" data-item='${fullJson}' style="margin-left:5px;">📄</button></td>`; }).join('')}</tbody></td><p><strong>Итого:</strong> ${document.getElementById('cartTotal').innerText}</p><button id="checkoutBtn" class="primary">Оформить заказ</button></div>
                 <div id="cart-tab-reserved" class="cart-tab-content">${reserved.length?`<div><h3>Зарезервированные предметы</h3>${reserved.map((r,idx)=>`<div class="reserved-item" data-reserved-index="${idx}"><div class="reserved-item-info"><strong>${r.name}</strong> x ${r.quantity}<div>💰 ${formatPrice(r.price_gold||0, r.price_silver||0, r.price_copper||0)}</div></div><div class="reserved-item-controls"><button class="reserved-to-cart" data-idx="${idx}">➡️ В корзину</button><button class="reserved-clear" data-idx="${idx}">🗑️ Освободить</button></div></div>`).join('')}</div>`:'<p>Нет зарезервированных предметов.</p>'}</div>`;
             mc.innerHTML=html;
             document.querySelectorAll('[data-cart-tab]').forEach(btn=>btn.addEventListener('click',()=>{ let tab=btn.dataset.cartTab; document.querySelectorAll('[data-cart-tab]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.cart-tab-content').forEach(c=>c.classList.remove('active')); document.getElementById(`cart-tab-${tab}`).classList.add('active'); }));
@@ -968,6 +1067,8 @@
             document.querySelectorAll('.reserved-to-cart').forEach(btn=>btn.addEventListener('click',e=>{ let idx=parseInt(btn.dataset.idx), r=reserved[idx]; if(!r) return; let cartItem=cart.find(i=>i.traderId===r.traderId&&i.itemId===r.itemId); if(cartItem) cartItem.quantity+=r.quantity; else cart.push({...r}); reserved.splice(idx,1); updateCartWidget(); renderCartModal(); showToast(`"${r.name}" перенесён в корзину`); }));
             document.querySelectorAll('.reserved-clear').forEach(btn=>btn.addEventListener('click',e=>{ let idx=parseInt(btn.dataset.idx), r=reserved[idx]; if(confirm(`Освободить резерв на "${r.name}"?`)){ reserved.splice(idx,1); updateCartWidget(); renderCartModal(); showToast(`Резерв снят`); } }));
         }
+
+        // ==================== ИНВЕНТАРЬ ====================
         function renderInventoryModal(){ 
             let fi=[...inventory], s=document.getElementById('invSearch')?.value?.toLowerCase()||'', c=document.getElementById('invCategory')?.value||'', sb=document.getElementById('invSort')?.value||'name'; 
             if(s) fi=fi.filter(i=>i.name.toLowerCase().includes(s)); 
@@ -993,7 +1094,7 @@
                 let fullItem = { name:it.name, description:it.description||'', priceFormatted:pf, statsHtml:dh, is_magical:it.is_magical, quality:it.quality, rarity:it.rarity, weight:it.weight, properties:it.properties, requirements:it.requirements, attunement:it.attunement, price_gold:it.price_gold, price_silver:it.price_silver, price_copper:it.price_copper };
                 let fullJson=encodeURIComponent(JSON.stringify(fullItem));
                 let rarityClass = (it.rarity||'common').replace(/\s/g,'').toLowerCase();
-                return `<div class="inventory-item ${rarityClass}" data-inv-index="${idx}"><div class="inventory-item-info"><strong>${it.name}</strong> x ${it.quantity}<div>💰 ${pf}</div>${dh}${it.description?`<div class="inv-item-desc" style="font-size:0.75rem; color:#6c757d; margin-top:4px;">${it.description}</div>`:''}</div><div class="inventory-item-controls"><button class="inv-decr" data-id="${it.itemId}">-</button><input type="number" class="inv-qty" data-id="${it.itemId}" value="${it.quantity}" min="1"><button class="inv-incr" data-id="${it.itemId}">+</button><button class="inv-sell" data-id="${it.itemId}" data-price-gold="${it.price_gold}" data-price-silver="${it.price_silver}" data-price-copper="${it.price_copper}" data-name="${it.name}" data-qty="${it.quantity}">Продать</button><button class="inv-remove" data-id="${it.itemId}">Удалить всё</button><button class="details-btn-inv" data-item='${fullJson}'>📄</button></div></div>`; }).join('')}</div>`;
+                return `<div class="inventory-item" data-inv-index="${idx}"><div class="inventory-item-info"><strong><span class="rarity-${rarityClass}">${it.name}</span></strong> x ${it.quantity}<div>💰 ${pf}</div>${dh}${it.description?`<div class="inv-item-desc" style="font-size:0.75rem; color:#6c757d; margin-top:4px;">${it.description}</div>`:''}</div><div class="inventory-item-controls"><button class="inv-decr" data-id="${it.itemId}">-</button><input type="number" class="inv-qty" data-id="${it.itemId}" value="${it.quantity}" min="1"><button class="inv-incr" data-id="${it.itemId}">+</button><button class="inv-sell" data-id="${it.itemId}" data-price-gold="${it.price_gold}" data-price-silver="${it.price_silver}" data-price-copper="${it.price_copper}" data-name="${it.name}" data-qty="${it.quantity}">Продать</button><button class="inv-remove" data-id="${it.itemId}">Удалить всё</button><button class="details-btn-inv" data-item='${fullJson}'>📄</button></div></div>`; }).join('')}</div>`;
             mc.innerHTML=`<h3>Ваш инвентарь</h3>${html}<p><em>Продать можно в модалке торговца, если он покупает этот предмет, или нажав "Продать" (полная стоимость).</em></p>`;
             let is=document.getElementById('invSearch'), ic=document.getElementById('invCategory'), isort=document.getElementById('invSort');
             if(is) is.addEventListener('input',renderInventoryModal); if(ic) ic.addEventListener('change',renderInventoryModal); if(isort) isort.addEventListener('change',renderInventoryModal);
@@ -1005,8 +1106,10 @@
             document.querySelectorAll('.details-btn-inv').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); let data=JSON.parse(decodeURIComponent(btn.dataset.item)); showItemDetailModal(data); playSound('door'); }));
             document.getElementById('addCustomItemBtn')?.addEventListener('click',()=>showAddItemModal());
         }
+
         function showAddItemModal(){ let f=document.getElementById('addItemForm'); f.innerHTML=`<h3>➕ Добавить предмет в инвентарь</h3><div class="filter-group"><label>Название</label><input type="text" id="customName" placeholder="Название предмета"></div><div class="filter-group"><label>Цена (золотые)</label><input type="number" id="customPrice" step="0.01" value="0"></div><div class="filter-group"><label>Вес (фунтов)</label><input type="number" id="customWeight" step="0.1" value="0"></div><div class="filter-group"><label>Редкость</label><select id="customRarity"><option value="common">Обычный</option><option value="uncommon">Необычный</option><option value="rare">Редкий</option><option value="very rare">Очень редкий</option><option value="legendary">Легендарный</option><option value="artifact">Артефакт</option></select></div><div class="filter-group"><label><input type="checkbox" id="customMagic"> Магический</label></div><div class="filter-group"><label>Качество</label><select id="customQuality"><option value="стандартное">Стандартное</option><option value="хорошее">Хорошее</option><option value="отличное">Отличное</option></select></div><div class="filter-group"><label>Описание</label><textarea id="customDesc" rows="2" placeholder="Описание предмета"></textarea></div><div style="margin-top:15px; display:flex; gap:10px;"><button id="submitCustomItem" class="success">Добавить</button><button id="cancelCustomItem" class="danger">Отмена</button></div>`; document.getElementById('addItemModal').style.display='block'; document.getElementById('submitCustomItem').onclick=()=>{ let name=document.getElementById('customName').value.trim(); if(!name){ showToast('Введите название предмета'); return; } let price=parseFloat(document.getElementById('customPrice').value), weight=parseFloat(document.getElementById('customWeight').value)||0, rarity=document.getElementById('customRarity').value, isMag=document.getElementById('customMagic').checked, qual=document.getElementById('customQuality').value, desc=document.getElementById('customDesc').value.trim(), gp=Math.floor(price), sp=Math.round((price-gp)*100), cp=0; let cust={ name, price_gold:gp, price_silver:sp, price_copper:cp, weight, rarity, is_magical:isMag, quality:qual, description:desc||'', category:'custom', properties:null, requirements:null, attunement:false }; addToInventory(-Date.now(),name,1,cust); document.getElementById('addItemModal').style.display='none'; renderInventoryModal(); showToast(`Предмет "${name}" добавлен в инвентарь`); }; document.getElementById('cancelCustomItem').onclick=()=>document.getElementById('addItemModal').style.display='none'; }
-        function saveCabinetData(){ localStorage.setItem('dnd_cabinet',JSON.stringify(cabinetData)); }
+
+        function saveCabinetData(){ localStorage.setItem('dnd_cabinet',JSON.stringify(cabinetData)); if (currentCharacter && localStorage.getItem('token')) { const token = localStorage.getItem('token'); updateCharacter(currentCharacter.id, token, { cabinet_data: cabinetData }); } }
         function renderCabinetModal(){
             let mc=document.getElementById('cabinetModalContent');
             mc.innerHTML=`<h2>📖 Личный кабинет</h2><div class="tab-bar"><button class="tab-btn active" data-cab-tab="history">История</button><button class="tab-btn" data-cab-tab="quests">Задания</button><button class="tab-btn" data-cab-tab="map">Карта</button><button class="tab-btn" data-cab-tab="inventory">Инвентарь</button><button class="tab-btn" data-cab-tab="files">Файлы</button>${userMode==='gm'?'<button class="tab-btn" data-cab-tab="playernotes">Заметки ГМ для игроков</button>':''}</div>
@@ -1048,9 +1151,11 @@
             renderFileList();
             refreshCabinetInventory();
         }
-        function refreshCabinetInventory(){ let c=document.getElementById('cabinetInventoryContainer'); if(!c) return; if(inventory.length===0){ c.innerHTML='<p>Инвентарь пуст</p>'; return; } c.innerHTML=`<div class="items-table-container"><table class="items-table"><thead><tr><th>Название</th><th>Цена</th><th>Кол-во</th><th>Действия</th></tr></thead><tbody>${inventory.map(it=>{ let pf=formatPrice(it.price_gold||0, it.price_silver||0, it.price_copper||0); let fullItem = { name:it.name, description:it.description||'', priceFormatted:pf, statsHtml:'', is_magical:it.is_magical, quality:it.quality, rarity:it.rarity, weight:it.weight, properties:it.properties, requirements:it.requirements, attunement:it.attunement, price_gold:it.price_gold, price_silver:it.price_silver, price_copper:it.price_copper }; let fullJson=encodeURIComponent(JSON.stringify(fullItem)); let rarityClass = (it.rarity||'common').replace(/\s/g,'').toLowerCase(); return `<tr class="rarity-${rarityClass}"><td>${it.name} ${it.is_magical?'✨':''}</td><td>${pf}</td><td>${it.quantity}</td><td><button class="cabinet-inv-details" data-item='${fullJson}'>📄</button></td></tr>`; }).join('')}</tbody></table></div>`;
+        function refreshCabinetInventory(){ let c=document.getElementById('cabinetInventoryContainer'); if(!c) return; if(inventory.length===0){ c.innerHTML='<p>Инвентарь пуст</p>'; return; } c.innerHTML=`<div class="items-table-container"><table class="items-table"><thead><tr><th>Название</th><th>Цена</th><th>Кол-во</th><th>Действия</th></tr></thead><tbody>${inventory.map(it=>{ let pf=formatPrice(it.price_gold||0, it.price_silver||0, it.price_copper||0); let fullItem = { name:it.name, description:it.description||'', priceFormatted:pf, statsHtml:'', is_magical:it.is_magical, quality:it.quality, rarity:it.rarity, weight:it.weight, properties:it.properties, requirements:it.requirements, attunement:it.attunement, price_gold:it.price_gold, price_silver:it.price_silver, price_copper:it.price_copper }; let fullJson=encodeURIComponent(JSON.stringify(fullItem)); let rarityClass = (it.rarity||'common').replace(/\s/g,'').toLowerCase(); return `<tr class="rarity-${rarityClass}"><td><span class="rarity-${rarityClass}">${it.name}</span> ${it.is_magical?'✨':''}</td><td>${pf}</td><td>${it.quantity}</td><td><button class="cabinet-inv-details" data-item='${fullJson}'>📄</button></td></tr>`; }).join('')}</tbody></table></div>`;
             document.querySelectorAll('.cabinet-inv-details').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); let data=JSON.parse(decodeURIComponent(btn.dataset.item)); showItemDetailModal(data); playSound('door'); }));
         }
+
+        // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
         document.getElementById('viewCartBtn').addEventListener('click',()=>{ renderCartModal(); document.getElementById('cartModal').style.display='block'; });
         document.getElementById('clearCartBtn').addEventListener('click',()=>{ if(cart.length>0 && confirm('Очистить всю корзину?')){ cart=[]; updateCartWidget(); showToast('Корзина очищена'); if(document.getElementById('cartModal').style.display==='block') renderCartModal(); } });
         document.getElementById('updateGoldBtn').addEventListener('click',()=>{ let v=parseInt(document.getElementById('playerGoldInput').value); if(!isNaN(v)) savePlayerGold(v); });
@@ -1061,6 +1166,25 @@
         window.addEventListener('click',e=>{ ['traderModal','cartModal','inventoryModal','addItemModal','itemDetailModal','cabinetModal'].forEach(id=>{ let m=document.getElementById(id); if(e.target==m) m.style.display='none'; }); });
         let fids=['searchTrader','filterType','filterRegion','filterLevel','reputationFilter','searchItem','priceMin','priceMax','rarityFilter','categoryFilter','magicOnly','sortBy'];
         fids.forEach(id=>{ let el=document.getElementById(id); if(el){ if(el.type==='checkbox'||el.type==='number'||id==='searchTrader'||id==='searchItem') el.addEventListener('input',renderTraders); else el.addEventListener('change',renderTraders); } });
+        document.getElementById('showAuthBtn')?.addEventListener('click', showAuthForm);
+        document.getElementById('doLogin')?.addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                await login(email, password);
+                await afterLogin();
+            } catch(e) { showToast('Ошибка входа: ' + e.message); }
+        });
+        document.getElementById('doRegister')?.addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                await register(email, password);
+                showToast('Регистрация успешна, теперь войдите');
+            } catch(e) { showToast('Ошибка регистрации: ' + e.message); }
+        });
+        document.getElementById('logoutBtn')?.addEventListener('click', logout);
+        function loadGMNotes() { const s = localStorage.getItem('dnd_gm_notes'); if(s) try{ gmNotes=JSON.parse(s); }catch(e){} }
         loadGMNotes();
     </script>
 </body>
