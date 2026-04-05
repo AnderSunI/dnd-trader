@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # main.py (дополненный)
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -143,3 +144,68 @@ def run_seed():
 
 # Монтируем фронтенд
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+=======
+# app/main.py
+from __future__ import annotations
+
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+from .config import APP_TITLE, CLEANED_ITEMS_PATH, FRONTEND_DIR, FRONTEND_IMAGES_DIR
+from .database import engine, get_db
+from .models import Base
+from .routers.admin import create_admin_router
+from .routers.auth import create_auth_router
+from .routers.inventory import create_inventory_router
+from .routers.traders import create_traders_router
+from .services.money import format_split_price
+from .services.pricing import (
+    build_price_debug,
+    calculate_buy_price_split,
+    calculate_sell_price_split,
+)
+
+# ============================================================
+# 🔧 СОЗДАНИЕ ТАБЛИЦ
+# ============================================================
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title=APP_TITLE)
+
+# ============================================================
+# 🔌 ПОДКЛЮЧЕНИЕ РОУТЕРОВ
+# ============================================================
+
+traders_router = create_traders_router(
+    get_db=get_db,
+    calculate_buy_price_split=calculate_buy_price_split,
+    calculate_sell_price_split=calculate_sell_price_split,
+    format_split_price=format_split_price,
+    build_price_debug=build_price_debug,
+)
+app.include_router(traders_router)
+
+admin_router = create_admin_router(
+    get_db=get_db,
+    cleaned_items_path=CLEANED_ITEMS_PATH,
+)
+app.include_router(admin_router)
+
+inventory_router = create_inventory_router(
+    get_db=get_db,
+)
+app.include_router(inventory_router)
+
+auth_router = create_auth_router()
+app.include_router(auth_router)
+
+# ============================================================
+# 🖼 СТАТИКА
+# ============================================================
+
+if FRONTEND_IMAGES_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_IMAGES_DIR)), name="static")
+
+app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+>>>>>>> Stashed changes

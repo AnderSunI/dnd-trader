@@ -1,0 +1,109 @@
+/* Тема "Пергамент и чернила" — винтажный, светлый */
+* {
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: #faf0cf url('https://www.transparenttextures.com/patterns/parchment.png');
+    background-size: auto;
+    color: #3b2a1f;
+    margin: 0 auto;
+    padding: 20px;
+}
+h1 {
+    font-family: 'Cinzel', 'Georgia', serif;
+    color: #5c3a1e;
+    text-shadow: 2px 2px 0 #e9d4a3;
+    font-size: 2rem;
+}
+.mode-switch {
+    background: #e8d8b0;
+    color: #5c3a1e;
+    border: 1px solid #b08a5c;
+}
+.cart-widget, .filters-panel {
+    background: #fffef7dd;
+    backdrop-filter: none;
+    border: 1px solid #d4b48c;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.trader-card {
+    background: #fff9ed;
+    border: 1px solid #cfb27c;
+    border-radius: 12px;
+    box-shadow: 6px 6px 12px rgba(0,0,0,0.1);
+}
+.trader-name {
+    font-family: 'Cinzel', serif;
+    color: #6b3a1a;
+}
+.trader-type {
+    color: #7a5a3a;
+    font-style: italic;
+}
+.trader-meta .meta-item {
+    background: #e8d8b0;
+    color: #5c3a1e;
+}
+.items li {
+    background: #e8d8b0;
+    color: #3b2a1f;
+}
+button {
+    background: #d4b48c;
+    color: #2c1a0a;
+    border: 1px solid #b08a5c;
+    border-radius: 30px;
+    padding: 6px 16px;
+    font-family: inherit;
+}
+button.primary {
+    background: #8b5a2b;
+    color: #ffefcf;
+    border: none;
+}
+button.primary:hover {
+    background: #a0703a;
+}
+button.danger {
+    background: #b05a3a;
+    color: white;
+}
+.modal-content {
+    background: #fffef7;
+    border: 1px solid #d4b48c;
+    color: #3b2a1f;
+}
+.items-table th {
+    background: #e8d8b0;
+    color: #3b2a1f;
+    font-weight: bold;
+}
+.items-table td {
+    border-color: #e0cfb0;
+}
+.rarity-badge {
+    background: #d4b48c;
+    color: #3b2a1f;
+}
+.rarity-common { background: #c0c0c0; color: #222; }
+.rarity-uncommon { background: #5bc0de; color: #111; }
+.rarity-rare { background: #9b59b6; color: #fff; }
+.rarity-veryrare { background: #f1c40f; color: #222; }
+.rarity-legendary { background: #e67e22; color: #fff; }
+.rarity-artifact { background: #e74c3c; color: #fff; }
+.gm-notes {
+    background: #fef7e0;
+    border-color: #d4b48c;
+}
+.gm-notes textarea {
+    background: #fffef7;
+    border-color: #d4b48c;
+}
+footer {
+    color: #7a5a3a;
+}
+footer a {
+    color: #8b5a2b;
+}

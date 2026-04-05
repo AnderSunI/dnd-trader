@@ -1,0 +1,77 @@
+* { box-sizing: border-box; }
+body {
+    font-family: 'Courier New', 'Segoe UI', monospace;
+    background: #4a3b2c;
+    background-image: repeating-linear-gradient(45deg, #3e3024 0px, #3e3024 2px, #5a4a38 2px, #5a4a38 8px);
+    margin: 0 auto;
+    padding: 20px;
+    color: #e0d5c0;
+}
+h1 {
+    font-family: 'Impact', 'Courier New', monospace;
+    letter-spacing: 4px;
+    color: #cdb38c;
+    text-shadow: 3px 3px 0 #2a2418;
+    border-bottom: 3px solid #8b7355;
+    display: inline-block;
+    padding-bottom: 6px;
+}
+.trader-card {
+    background: #2e2a24;
+    border: 2px solid #6b5a48;
+    border-radius: 4px;
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
+    transition: 0.1s linear;
+}
+.trader-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 12px 12px 0 rgba(0,0,0,0.4);
+    border-color: #b89a6a;
+}
+.trader-name {
+    font-family: monospace;
+    font-weight: bold;
+    color: #e5c8a3;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.cart-widget, .filters-panel, .modal-content {
+    background: #2a241edd;
+    border: 2px solid #7a664c;
+    border-radius: 0;
+    box-shadow: 5px 5px 0 #1e1912;
+}
+button {
+    background: #5e4b34;
+    border: none;
+    border-radius: 0;
+    font-family: monospace;
+    font-weight: bold;
+    color: #f2e0b0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 16px;
+    transition: 0.05s linear;
+}
+button.primary { background: #7a5a3a; }
+button.primary:hover { background: #9c764c; transform: scale(0.98); }
+button.danger { background: #6e2e2a; }
+.items-table th {
+    background: #3e3528;
+    color: #e5c8a3;
+    font-family: monospace;
+    text-transform: uppercase;
+}
+.items-table td {
+    border-color: #6b5a48;
+}
+.rarity-badge {
+    background: #5e4b34;
+    font-family: monospace;
+}
+.rarity-common { background: #6e6a60; }
+.rarity-uncommon { background: #2c6e6e; }
+.rarity-rare { background: #7a4c8c; }
+.rarity-veryrare { background: #c9a03d; color: #1e1a14; }
+.rarity-legendary { background: #b85c1a; }
+footer { color: #b8a07c; }

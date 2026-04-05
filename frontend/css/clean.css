@@ -1,0 +1,114 @@
+/* Тема "Чистый минимализм" — современный, без лишнего */
+* {
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #f5f7fa;
+    color: #1e2a3e;
+    margin: 0 auto;
+    padding: 20px;
+}
+h1 {
+    font-weight: 600;
+    color: #0b3b5f;
+    letter-spacing: -0.5px;
+    font-size: 1.8rem;
+}
+.mode-switch {
+    background: white;
+    color: #1e2a3e;
+    border: 1px solid #d0d7de;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.cart-widget, .filters-panel {
+    background: white;
+    border-radius: 24px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    padding: 16px;
+}
+.trader-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    border: none;
+}
+.trader-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+}
+.trader-name {
+    font-weight: 700;
+    color: #0b3b5f;
+}
+.trader-type {
+    color: #4a627a;
+}
+.trader-meta .meta-item {
+    background: #eef2f5;
+    color: #1e2a3e;
+}
+.items li {
+    background: #eef2f5;
+    color: #1e2a3e;
+}
+button {
+    background: #eef2f5;
+    color: #1e2a3e;
+    border: none;
+    border-radius: 40px;
+    padding: 8px 20px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+button.primary {
+    background: #2c6e9e;
+    color: white;
+}
+button.primary:hover {
+    background: #1e527a;
+}
+button.danger {
+    background: #e74c3c;
+    color: white;
+}
+.modal-content {
+    background: white;
+    border-radius: 32px;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+.items-table th {
+    background: #eef2f5;
+    font-weight: 600;
+    color: #1e2a3e;
+}
+.items-table td {
+    border-color: #e2e8f0;
+}
+.rarity-badge {
+    background: #eef2f5;
+    color: #1e2a3e;
+}
+.rarity-common { background: #e2e8f0; color: #1e2a3e; }
+.rarity-uncommon { background: #5bc0de; color: #fff; }
+.rarity-rare { background: #9b59b6; color: #fff; }
+.rarity-veryrare { background: #f1c40f; color: #1e2a3e; }
+.rarity-legendary { background: #e67e22; color: #fff; }
+.rarity-artifact { background: #e74c3c; color: #fff; }
+.gm-notes {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+.gm-notes textarea {
+    background: white;
+    border: 1px solid #cbd5e1;
+}
+footer {
+    color: #6c7a8e;
+}
+footer a {
+    color: #2c6e9e;
+}

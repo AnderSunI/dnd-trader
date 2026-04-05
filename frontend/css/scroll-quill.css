@@ -1,0 +1,64 @@
+* { box-sizing: border-box; }
+body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: #f5e6c8 url('https://www.transparenttextures.com/patterns/old-paper.png');
+    background-size: auto;
+    color: #3a2a1a;
+    padding: 20px;
+}
+h1 {
+    font-family: 'Cinzel', 'Georgia', serif;
+    color: #8b5a2b;
+    border-bottom: 2px solid #c8a87a;
+    display: inline-block;
+    font-size: 2rem;
+}
+.trader-card {
+    background: #fffef0;
+    border: 1px solid #dcc48e;
+    border-radius: 12px;
+    box-shadow: 8px 8px 16px rgba(0,0,0,0.05);
+    transition: 0.2s;
+}
+.trader-card:hover {
+    box-shadow: 12px 12px 24px rgba(0,0,0,0.1);
+    background: #fffff4;
+}
+.trader-name {
+    font-family: 'Cinzel', serif;
+    color: #7a4a1e;
+}
+.cart-widget, .filters-panel, .modal-content {
+    background: #fffcf0dd;
+    backdrop-filter: blur(2px);
+    border: 1px solid #e0c89a;
+    border-radius: 24px;
+}
+button {
+    background: #e8d8b8;
+    border: 1px solid #b08a5a;
+    border-radius: 40px;
+    color: #4a2e1a;
+    font-family: serif;
+    font-weight: bold;
+}
+button.primary { background: #c8a87a; color: #2a1a0a; }
+button.primary:hover { background: #dbb88c; }
+.items-table th {
+    background: #eadcb8;
+    color: #5a3a1a;
+    font-family: serif;
+}
+.items-table td {
+    border-color: #dcc48e;
+}
+.rarity-badge {
+    background: #dcc48e;
+    border-radius: 20px;
+}
+.rarity-common { background: #c0b08a; }
+.rarity-uncommon { background: #8a9a6a; }
+.rarity-rare { background: #aa8a6a; }
+.rarity-veryrare { background: #d9a03a; color: #2a1a0a; }
+.rarity-legendary { background: #b86a2a; color: #fff0d0; }
+footer { color: #9a7a5a; }
