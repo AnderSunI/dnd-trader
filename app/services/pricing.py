@@ -1,105 +1,371 @@
+# ============================================================
+# app/services/pricing.py
+# Ценообразование:
+# - базовая цена предмета
+# - цена покупки игроком у торговца
+# - цена продажи игроком торговцу
+# - debug payload для фронта / отладки
+#
+# ВАЖНО:
+# Сейчас делаем логику прозрачной и рабочей.
+# Позже сюда легко докручиваются:
+# - trader skill
+# - trader class
+# - scarcity
+# - regional modifier
+# - quest / faction bonus
+# ============================================================
+
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
 
-from .money import split_to_copper, copper_to_split
+from .money import (
+    copper_to_split,
+    format_split_price,
+    split_to_copper,
+)
 
-TRADER_CATEGORY_BONUSES: dict[str, dict[str, float]] = {
-    "кузнец": {"weapon": 1.10, "armor": 1.10, "tools": 1.05},
-    "оружейник": {"weapon": 1.15, "armor": 1.05},
-    "портной": {"accessory": 1.10, "armor": 1.00},
-    "трактирщик": {"food_drink": 1.15, "consumables": 1.05, "potions_elixirs": 1.00},
-    "торговец": {"misc": 1.05, "accessory": 1.05, "scrolls_books": 1.05},
-}
+# ============================================================
+# ⚙️ БАЗОВЫЕ НАСТРОЙКИ ЭКОНОМИКИ
+# ============================================================
 
-RARITY_BUY_MOD = {0: 1.00, 1: 1.10, 2: 1.20, 3: 1.35, 4: 1.55, 5: 1.80}
-RARITY_SELL_MOD = {0: 1.00, 1: 1.03, 2: 1.06, 3: 1.10, 4: 1.15, 5: 1.20}
+# Базовая наценка на покупку у торговца:
+# игрок платит дороже базовой цены
+BASE_BUY_MARKUP = 1.20
 
-QUALITY_BUY_MOD = {"стандартное": 1.00, "хорошее": 1.10, "отличное": 1.20}
-QUALITY_SELL_MOD = {"стандартное": 1.00, "хорошее": 1.05, "отличное": 1.10}
+# Базовая цена выкупа у игрока:
+# торговец покупает дешевле базовой цены
+BASE_SELL_RATIO = 0.45
 
-def normalize_reputation(rep: Any) -> int:
+# Влияние репутации на цену покупки:
+# каждая единица reputation немного снижает цену покупки
+BUY_REPUTATION_STEP = 0.02
+
+# Влияние репутации на цену продажи:
+# каждая единица reputation немного повышает цену выкупа
+SELL_REPUTATION_STEP = 0.015
+
+# Ограничители, чтобы экономика не ломалась
+MIN_BUY_MULTIPLIER = 0.75
+MAX_BUY_MULTIPLIER = 1.60
+
+MIN_SELL_MULTIPLIER = 0.10
+MAX_SELL_MULTIPLIER = 0.80
+
+# ============================================================
+# 🧾 СЛУЖЕБНАЯ СТРУКТУРА
+# ============================================================
+
+
+@dataclass
+class PriceComputation:
+    """
+    Внутреннее представление вычисленной цены.
+    """
+    base_cp: int
+    multiplier: float
+    final_cp: int
+
+
+# ============================================================
+# 🧰 HELPERS
+# ============================================================
+
+def clamp(value: float, min_value: float, max_value: float) -> float:
+    """
+    Ограничить число диапазоном.
+    """
+    return max(min_value, min(max_value, value))
+
+
+def normalize_reputation(reputation: int | None) -> int:
+    """
+    Нормализуем reputation.
+    """
     try:
-        return max(0, min(100, int(rep or 0)))
-    except:
+        return int(reputation or 0)
+    except (TypeError, ValueError):
         return 0
 
-def get_buy_reputation_modifier(reputation: int) -> float:
-    rep = normalize_reputation(reputation)
-    return 1.0 - (rep * 0.002)  # 0% скидка при 0, 20% при 100
 
-def get_sell_reputation_modifier(reputation: int) -> float:
-    rep = normalize_reputation(reputation)
-    return 1.0 + (rep * 0.003)  # 0% бонус при 0, 30% при 100
+def split_price_to_cp(
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+) -> int:
+    """
+    Базовая цена в total copper.
+    """
+    return split_to_copper(
+        gold=int(base_gold or 0),
+        silver=int(base_silver or 0),
+        copper=int(base_copper or 0),
+    )
 
-def get_rarity_buy_modifier(item: Any) -> float:
-    return RARITY_BUY_MOD.get(getattr(item, "rarity_tier", 0), 1.00)
 
-def get_rarity_sell_modifier(item: Any) -> float:
-    return RARITY_SELL_MOD.get(getattr(item, "rarity_tier", 0), 1.00)
+def cp_to_split_payload(total_cp: int) -> dict:
+    """
+    Преобразовать copper в payload.
+    """
+    gold, silver, copper = copper_to_split(total_cp)
 
-def get_quality_buy_modifier(item: Any) -> float:
-    q = getattr(item, "quality", "стандартное") or "стандартное"
-    return QUALITY_BUY_MOD.get(q, 1.00)
-
-def get_quality_sell_modifier(item: Any) -> float:
-    q = getattr(item, "quality", "стандартное") or "стандартное"
-    return QUALITY_SELL_MOD.get(q, 1.00)
-
-def get_item_base_price_cp(item: Any) -> int:
-    g = getattr(item, "price_gold", 0) or 0
-    s = getattr(item, "price_silver", 0) or 0
-    c = getattr(item, "price_copper", 0) or 0
-    return split_to_copper(g, s, c)
-
-def get_trader_markup_modifier(trader: Any) -> float:
-    ttype = (getattr(trader, "type", "") or "").strip().lower()
-    markups = {"кузнец": 1.20, "оружейник": 1.25, "портной": 1.15, "трактирщик": 1.15, "торговец": 1.22}
-    return markups.get(ttype, 1.20)
-
-def get_trader_buyback_modifier(trader: Any) -> float:
-    ttype = (getattr(trader, "type", "") or "").strip().lower()
-    buybacks = {"кузнец": 0.42, "оружейник": 0.45, "портной": 0.40, "трактирщик": 0.30, "торговец": 0.37}
-    return buybacks.get(ttype, 0.35)
-
-def get_category_affinity_modifier(trader: Any, item: Any) -> float:
-    ttype = (getattr(trader, "type", "") or "").strip().lower()
-    category = getattr(item, "category", "misc") or "misc"
-    bonuses = TRADER_CATEGORY_BONUSES.get(ttype, {})
-    return bonuses.get(category, 1.00)
-
-def calculate_buy_price_cp(item: Any, trader: Any, reputation: int | None = None) -> int:
-    rep = normalize_reputation(reputation if reputation is not None else getattr(trader, "reputation", 0))
-    base = get_item_base_price_cp(item)
-    markup = get_trader_markup_modifier(trader)
-    rarity_mod = get_rarity_buy_modifier(item)
-    quality_mod = get_quality_buy_modifier(item)
-    rep_mod = get_buy_reputation_modifier(rep)
-    result = base * markup * rarity_mod * quality_mod * rep_mod
-    return max(1, int(round(result)))
-
-def calculate_sell_price_cp(item: Any, trader: Any, reputation: int | None = None) -> int:
-    rep = normalize_reputation(reputation if reputation is not None else getattr(trader, "reputation", 0))
-    base = get_item_base_price_cp(item)
-    buyback = get_trader_buyback_modifier(trader)
-    affinity = get_category_affinity_modifier(trader, item)
-    rarity_mod = get_rarity_sell_modifier(item)
-    quality_mod = get_quality_sell_modifier(item)
-    rep_mod = get_sell_reputation_modifier(rep)
-    result = base * buyback * affinity * rarity_mod * quality_mod * rep_mod
-    return max(1, int(round(result)))
-
-def build_price_debug(item: Any, trader: Any, reputation: int | None = None) -> dict[str, Any]:
-    rep = normalize_reputation(reputation if reputation is not None else getattr(trader, "reputation", 0))
     return {
-        "base_price_cp": get_item_base_price_cp(item),
-        "buy_markup_modifier": get_trader_markup_modifier(trader),
-        "buy_reputation_modifier": get_buy_reputation_modifier(rep),
-        "buy_rarity_modifier": get_rarity_buy_modifier(item),
-        "buy_quality_modifier": get_quality_buy_modifier(item),
-        "sell_buyback_modifier": get_trader_buyback_modifier(trader),
-        "sell_affinity_modifier": get_category_affinity_modifier(trader, item),
-        "sell_reputation_modifier": get_sell_reputation_modifier(rep),
-        "sell_rarity_modifier": get_rarity_sell_modifier(item),
-        "sell_quality_modifier": get_quality_sell_modifier(item),
+        "cp_total": int(total_cp or 0),
+        "gold": gold,
+        "silver": silver,
+        "copper": copper,
+        "label": format_split_price(gold, silver, copper),
     }
+
+
+# ============================================================
+# 💰 MULTIPLIERS
+# ============================================================
+
+def get_buy_multiplier(trader_reputation: int = 0) -> float:
+    """
+    Множитель покупки:
+    чем выше reputation, тем дешевле игрок покупает.
+    """
+    rep = normalize_reputation(trader_reputation)
+
+    multiplier = BASE_BUY_MARKUP - (rep * BUY_REPUTATION_STEP)
+    multiplier = clamp(
+        multiplier,
+        MIN_BUY_MULTIPLIER,
+        MAX_BUY_MULTIPLIER,
+    )
+
+    return round(multiplier, 4)
+
+
+def get_sell_multiplier(trader_reputation: int = 0) -> float:
+    """
+    Множитель выкупа:
+    чем выше reputation, тем выгоднее игрок продаёт.
+    """
+    rep = normalize_reputation(trader_reputation)
+
+    multiplier = BASE_SELL_RATIO + (rep * SELL_REPUTATION_STEP)
+    multiplier = clamp(
+        multiplier,
+        MIN_SELL_MULTIPLIER,
+        MAX_SELL_MULTIPLIER,
+    )
+
+    return round(multiplier, 4)
+
+
+# ============================================================
+# 🛒 BUY PRICE
+# ============================================================
+
+def calculate_buy_price_cp(
+    *,
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+    trader_reputation: int = 0,
+) -> int:
+    """
+    Считает цену покупки в copper.
+    """
+    base_cp = split_price_to_cp(
+        base_gold=base_gold,
+        base_silver=base_silver,
+        base_copper=base_copper,
+    )
+
+    multiplier = get_buy_multiplier(trader_reputation)
+    final_cp = int(round(base_cp * multiplier))
+
+    return max(0, final_cp)
+
+
+def calculate_buy_price_split(
+    *,
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+    trader_reputation: int = 0,
+) -> dict:
+    """
+    Считает цену покупки в split-виде.
+    """
+    total_cp = calculate_buy_price_cp(
+        base_gold=base_gold,
+        base_silver=base_silver,
+        base_copper=base_copper,
+        trader_reputation=trader_reputation,
+    )
+
+    gold, silver, copper = copper_to_split(total_cp)
+
+    return {
+        "cp_total": total_cp,
+        "gold": gold,
+        "silver": silver,
+        "copper": copper,
+        "label": format_split_price(gold, silver, copper),
+        "multiplier": get_buy_multiplier(trader_reputation),
+    }
+
+
+# ============================================================
+# 💸 SELL PRICE
+# ============================================================
+
+def calculate_sell_price_cp(
+    *,
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+    trader_reputation: int = 0,
+) -> int:
+    """
+    Считает цену продажи в copper.
+    """
+    base_cp = split_price_to_cp(
+        base_gold=base_gold,
+        base_silver=base_silver,
+        base_copper=base_copper,
+    )
+
+    multiplier = get_sell_multiplier(trader_reputation)
+    final_cp = int(round(base_cp * multiplier))
+
+    return max(0, final_cp)
+
+
+def calculate_sell_price_split(
+    *,
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+    trader_reputation: int = 0,
+) -> dict:
+    """
+    Считает цену продажи в split-виде.
+    """
+    total_cp = calculate_sell_price_cp(
+        base_gold=base_gold,
+        base_silver=base_silver,
+        base_copper=base_copper,
+        trader_reputation=trader_reputation,
+    )
+
+    gold, silver, copper = copper_to_split(total_cp)
+
+    return {
+        "cp_total": total_cp,
+        "gold": gold,
+        "silver": silver,
+        "copper": copper,
+        "label": format_split_price(gold, silver, copper),
+        "multiplier": get_sell_multiplier(trader_reputation),
+    }
+
+
+# ============================================================
+# 🔍 DEBUG / ОБЪЯСНЕНИЕ ЦЕНЫ
+# ============================================================
+
+def build_price_debug(
+    *,
+    buy_price: dict,
+    sell_price: dict,
+) -> dict:
+    """
+    Готовый debug payload для фронта.
+    """
+    return {
+        "buy": {
+            "cp_total": buy_price.get("cp_total", 0),
+            "gold": buy_price.get("gold", 0),
+            "silver": buy_price.get("silver", 0),
+            "copper": buy_price.get("copper", 0),
+            "label": buy_price.get("label", "0м"),
+            "multiplier": buy_price.get("multiplier", 1.0),
+        },
+        "sell": {
+            "cp_total": sell_price.get("cp_total", 0),
+            "gold": sell_price.get("gold", 0),
+            "silver": sell_price.get("silver", 0),
+            "copper": sell_price.get("copper", 0),
+            "label": sell_price.get("label", "0м"),
+            "multiplier": sell_price.get("multiplier", 1.0),
+        },
+        "summary": {
+            "spread_cp": int(buy_price.get("cp_total", 0)) - int(sell_price.get("cp_total", 0)),
+            "spread_label": format_cp_or_zero(
+                int(buy_price.get("cp_total", 0)) - int(sell_price.get("cp_total", 0))
+            ),
+        },
+    }
+
+
+def format_cp_or_zero(total_cp: int) -> str:
+    """
+    Форматирование arbitrary cp.
+    """
+    if total_cp <= 0:
+        return "0м"
+
+    gold, silver, copper = copper_to_split(total_cp)
+    return format_split_price(gold, silver, copper)
+
+
+# ============================================================
+# 📦 OPTIONAL ADVANCED API
+# На будущее: удобно для расширения, но уже рабочее сейчас.
+# ============================================================
+
+def compute_buy_price(
+    *,
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+    trader_reputation: int = 0,
+) -> PriceComputation:
+    """
+    Возвращает полное вычисление buy price.
+    """
+    base_cp = split_price_to_cp(
+        base_gold=base_gold,
+        base_silver=base_silver,
+        base_copper=base_copper,
+    )
+    multiplier = get_buy_multiplier(trader_reputation)
+    final_cp = int(round(base_cp * multiplier))
+
+    return PriceComputation(
+        base_cp=base_cp,
+        multiplier=multiplier,
+        final_cp=max(0, final_cp),
+    )
+
+
+def compute_sell_price(
+    *,
+    base_gold: int = 0,
+    base_silver: int = 0,
+    base_copper: int = 0,
+    trader_reputation: int = 0,
+) -> PriceComputation:
+    """
+    Возвращает полное вычисление sell price.
+    """
+    base_cp = split_price_to_cp(
+        base_gold=base_gold,
+        base_silver=base_silver,
+        base_copper=base_copper,
+    )
+    multiplier = get_sell_multiplier(trader_reputation)
+    final_cp = int(round(base_cp * multiplier))
+
+    return PriceComputation(
+        base_cp=base_cp,
+        multiplier=multiplier,
+        final_cp=max(0, final_cp),
+    )
