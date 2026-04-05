@@ -1,195 +1,53 @@
-// frontend/js/api.js
+const API_BASE = '';
 
-const API_BASE = "";
-
-// ============================================================
-// 🔐 TOKEN STORAGE
-// ============================================================
-
-const TOKEN_KEY = "dnd_trader_token";
-
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+async function request(url, options = {}) {
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(API_BASE + url, { ...options, headers });
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+    }
+    return response.json();
 }
 
-export function setToken(token) {
-  if (!token) return;
-  localStorage.setItem(TOKEN_KEY, token);
+// Auth
+export async function login(email, password) {
+    return request(`/auth/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, { method: 'POST' });
 }
-
-export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+export async function register(email, password) {
+    return request(`/auth/register?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, { method: 'POST' });
 }
-
-export function isAuthenticated() {
-  return Boolean(getToken());
-}
-
-// ============================================================
-// 🧰 BASE REQUEST
-// ============================================================
-
-async function request(path, options = {}) {
-  const token = getToken();
-
-  const headers = {
-    ...(options.headers || {}),
-  };
-
-  // Если body не FormData — ставим JSON
-  if (options.body && !(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
-
-  let data = null;
-
-  try {
-    data = await response.json();
-  } catch (e) {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      data?.detail ||
-      data?.message ||
-      `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-
-  return data;
-}
-
-// ============================================================
-// 🔐 AUTH
-// ============================================================
-
-export async function registerUser(email, password) {
-  const data = await request("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({
-      email,
-      password,
-    }),
-  });
-
-  if (data?.access_token) {
-    setToken(data.access_token);
-  }
-
-  return data;
-}
-
-export async function loginUser(email, password) {
-  const formData = new URLSearchParams();
-  formData.append("username", email);
-  formData.append("password", password);
-
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData.toString(),
-  });
-
-  let data = null;
-
-  try {
-    data = await response.json();
-  } catch (e) {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      data?.detail ||
-      data?.message ||
-      `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-
-  if (data?.access_token) {
-    setToken(data.access_token);
-  }
-
-  return data;
-}
-
 export async function fetchMe() {
-  return request("/auth/me");
+    return request('/auth/me');
+}
+export function logout() {
+    localStorage.removeItem('token');
+    window.location.reload();
 }
 
-export function logoutUser() {
-  clearToken();
-}
-
-// ============================================================
-// 🧑‍💼 TRADERS
-// ============================================================
-
+// Traders
 export async function fetchTraders() {
-  return request("/traders");
+    return request('/traders');
+}
+export async function updateTraderGold(traderId, gold) {
+    return request(`/traders/${traderId}/gold?gold=${gold}`, { method: 'PATCH' });
+}
+export async function restockTrader(traderId) {
+    return request(`/traders/${traderId}/restock`, { method: 'POST' });
 }
 
-// ============================================================
-// 🎒 INVENTORY
-// ============================================================
-
-export async function fetchPlayerInventory(traderId = null) {
-  const query = traderId ? `?trader_id=${encodeURIComponent(traderId)}` : "";
-  return request(`/inventory/player${query}`);
+// Characters
+export async function fetchCharacters() {
+    return request('/characters');
 }
-
-export async function buyItem(itemId, traderId, quantity = 1) {
-  const query = new URLSearchParams({
-    item_id: String(itemId),
-    trader_id: String(traderId),
-    quantity: String(quantity),
-  });
-
-  return request(`/inventory/buy?${query.toString()}`, {
-    method: "POST",
-  });
+export async function fetchCharacter(charId) {
+    return request(`/characters/${charId}`);
 }
-
-export async function sellItem(itemId, traderId, quantity = 1) {
-  const query = new URLSearchParams({
-    item_id: String(itemId),
-    trader_id: String(traderId),
-    quantity: String(quantity),
-  });
-
-  return request(`/inventory/sell?${query.toString()}`, {
-    method: "POST",
-  });
+export async function updateCharacter(charId, payload) {
+    return request(`/characters/${charId}`, { method: 'PUT', body: JSON.stringify(payload) });
 }
-
-// ============================================================
-// 🔧 ADMIN
-// ============================================================
-
-export async function adminReset() {
-  return request("/admin/reset", {
-    method: "POST",
-  });
-}
-
-export async function adminRelinkItems() {
-  return request("/admin/relink-items", {
-    method: "POST",
-  });
-}
-
-export async function fetchSeedPreview() {
-  return request("/admin/seed-preview");
+export async function createCharacter(name) {
+    return request(`/characters?name=${encodeURIComponent(name)}`, { method: 'POST' });
 }
