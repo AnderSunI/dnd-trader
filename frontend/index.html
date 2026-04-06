@@ -3,186 +3,344 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&D Trader — Помощник ГМ</title>
 
-  <title>D&D Trader</title>
-
-  <!-- Оставляем main-style CSS -->
+  <!--
+    Если в проекте уже есть основной styles.css из main — он должен подцепиться.
+    Если у тебя стили лежат в /frontend/css/styles.css, backend тоже должен отдавать /styles.css.
+  -->
   <link rel="stylesheet" href="/styles.css" />
 
   <style>
-    /* Fallback если styles.css временно не подцепился */
-    .hidden { display: none; }
+    /* Минимальный fallback, чтобы без CSS не было совсем ада */
+    .hidden { display: none !important; }
     .modal { display: none; }
-    .active { font-weight: bold; }
+    .tab-hidden { display: none !important; }
+    .active { font-weight: 700; }
+    .cabinet-tab.active,
+    .trader-tab-btn.active {
+      font-weight: 700;
+      outline: 2px solid rgba(255,255,255,0.2);
+    }
   </style>
 </head>
 <body>
+  <!-- ===================================================== -->
+  <!-- 🌄 ФОН / ОБЁРТКА -->
+  <!-- ===================================================== -->
+  <div class="page-shell">
+    <!-- =================================================== -->
+    <!-- 🏷️ HEADER -->
+    <!-- =================================================== -->
+    <header class="top-header">
+      <div class="top-header-title">
+        🧙 D&D Trader — Помощник ГМ
+      </div>
 
-  <!-- ====================================================== -->
-  <!-- 🧭 HEADER -->
-  <!-- ====================================================== -->
-  <header class="top-bar">
-    <div class="logo">🧙 D&D Trader</div>
+      <div class="top-header-right">
+        <span id="gmBadge" class="gm-badge hidden">🛡️ ГМ</span>
+      </div>
+    </header>
 
-    <div class="top-actions">
-      <button id="showAuthBtn">Вход</button>
-      <button id="logoutBtn" style="display:none;">Выход</button>
-      <button id="cabinetBtn">Личный кабинет</button>
-      <button id="viewInventoryBtn">Инвентарь</button>
-    </div>
-  </header>
+    <!-- =================================================== -->
+    <!-- 🔐 AUTH BAR -->
+    <!-- =================================================== -->
+    <section class="auth-panel">
+      <div id="authContainer" class="auth-form-row">
+        <input id="loginEmail" type="email" placeholder="Email" />
+        <input id="loginPassword" type="password" placeholder="Пароль" />
+        <button id="doLogin" class="btn btn-primary">Войти</button>
+        <button id="doRegister" class="btn btn-success">Регистрация</button>
+      </div>
 
-  <!-- ====================================================== -->
-  <!-- 🔐 AUTH -->
-  <!-- ====================================================== -->
-  <section id="authContainer" class="auth-container" style="display:none;">
-    <input id="loginEmail" type="email" placeholder="Email" />
-    <input id="loginPassword" type="password" placeholder="Пароль" />
+      <div id="authActions" class="auth-actions-row">
+        <button id="showAuthBtn" class="btn btn-primary hidden">Войти</button>
+        <button id="logoutBtn" class="btn btn-danger hidden">Выйти</button>
+      </div>
+    </section>
 
-    <div class="auth-actions">
-      <button id="doLogin">Войти</button>
-      <button id="doRegister">Регистрация</button>
-    </div>
-  </section>
+    <!-- =================================================== -->
+    <!-- ⚠️ ГОСТЕВОЕ ПРЕДУПРЕЖДЕНИЕ -->
+    <!-- =================================================== -->
+    <section id="guestWarning" class="guest-warning hidden">
+      Вы не авторизованы. Можно смотреть торговцев, но покупки, инвентарь и прогресс персонажа требуют входа.
+    </section>
 
-  <!-- ====================================================== -->
-  <!-- 👤 USER INFO -->
-  <!-- ====================================================== -->
-  <section id="userInfo" class="user-info">
-    <div>Email: <span id="userEmail"></span></div>
-    <div>💰 <span id="goldDisplay">0з</span></div>
-    <div>🛒 <span id="cartCount">0</span></div>
-  </section>
+    <!-- =================================================== -->
+    <!-- 💰 ЗОЛОТО / КОРЗИНА / КНОПКИ -->
+    <!-- =================================================== -->
+    <section id="user-info" class="top-stats-panel">
+      <div class="stats-box gold-box">
+        <span class="stats-label">🪙 Ваше золото:</span>
+        <span id="user-money" class="stats-value">0з</span>
+      </div>
 
-  <!-- ====================================================== -->
-  <!-- ⚠️ GUEST WARNING -->
-  <!-- ====================================================== -->
-  <section id="guestWarning" style="display:none;">
-    Вы играете как гость. Авторизуйтесь для покупок и сохранения прогресса.
-  </section>
+      <div class="stats-box cart-box">
+        <span class="stats-label">🛒 Корзина:</span>
+        <span id="cartCount" class="stats-value">0</span>
+        <span class="stats-subvalue">товаров</span>,
+        <span id="cart-total" class="stats-value">0з</span>
+      </div>
 
-  <!-- ====================================================== -->
-  <!-- 🔎 FILTERS -->
-  <!-- ====================================================== -->
-  <section class="filters">
-    <input id="searchInput" type="text" placeholder="Поиск торговцев и товаров..." />
+      <div class="top-actions-group">
+        <button id="viewCartBtn" class="btn btn-primary">Просмотр корзины</button>
+        <button id="clearCartBtn" class="btn btn-danger">Очистить корзину</button>
+        <button id="refreshDataBtn" class="btn btn-primary">Обновить</button>
+        <button id="cabinetBtn" class="btn btn-primary">👤 Личный кабинет</button>
+      </div>
+    </section>
 
-    <select id="categoryFilter">
-      <option value="all">Все категории</option>
-      <option value="weapon">Оружие</option>
-      <option value="armor">Броня</option>
-      <option value="potion">Зелья</option>
-      <option value="service">Услуги</option>
-    </select>
+    <!-- =================================================== -->
+    <!-- 🎒 ИНВЕНТАРЬ BAR -->
+    <!-- =================================================== -->
+    <section class="inventory-stats-panel">
+      <div class="stats-box inventory-box">
+        <span class="stats-label">🎒 Инвентарь:</span>
+        <span id="inventoryCount" class="stats-value">0</span>
+        <span class="stats-subvalue">предметов</span>
+      </div>
 
-    <select id="regionFilter">
-      <option value="all">Все регионы</option>
-    </select>
+      <div class="inventory-actions-group">
+        <button id="viewInventoryBtn" class="btn btn-primary">Просмотр инвентаря</button>
+      </div>
+    </section>
 
-    <select id="typeFilter">
-      <option value="all">Все торговцы</option>
-    </select>
+    <!-- =================================================== -->
+    <!-- 🔎 ФИЛЬТРЫ MAIN-ВЕТКИ -->
+    <!-- =================================================== -->
+    <section class="filters-panel">
+      <div class="filters-grid">
+        <!-- Ряд 1 -->
+        <div class="filter-item">
+          <label for="searchTrader">🔎 Поиск торговца</label>
+          <input id="searchTrader" type="text" placeholder="Имя торговца" />
+        </div>
 
-    <select id="rarityFilter">
-      <option value="all">Любая редкость</option>
-      <option value="common">Common</option>
-      <option value="uncommon">Uncommon</option>
-      <option value="rare">Rare</option>
-      <option value="legendary">Legendary</option>
-    </select>
+        <div class="filter-item">
+          <label for="typeFilter">🪶 Тип торговца</label>
+          <select id="typeFilter">
+            <option value="all">Все типы</option>
+          </select>
+        </div>
 
-    <input id="minPrice" type="number" placeholder="Цена от" />
-    <input id="maxPrice" type="number" placeholder="Цена до" />
+        <div class="filter-item">
+          <label for="regionFilter">🌍 Регион</label>
+          <select id="regionFilter">
+            <option value="all">Все регионы</option>
+          </select>
+        </div>
 
-    <button id="resetFiltersBtn">Сброс</button>
-  </section>
+        <div class="filter-item">
+          <label for="playerLevelFilter">🎚️ Уровень игрока (0 - все)</label>
+          <input id="playerLevelFilter" type="number" min="0" value="0" />
+        </div>
 
-  <!-- ====================================================== -->
-  <!-- 🧙 TRADERS -->
-  <!-- ====================================================== -->
-  <main>
-    <section id="traders-container" class="traders-grid"></section>
-  </main>
+        <div class="filter-item">
+          <label for="minReputationFilter">⭐ Репутация (мин.)</label>
+          <select id="minReputationFilter">
+            <option value="all">Любая</option>
+            <option value="0">0</option>
+            <option value="1">1+</option>
+            <option value="2">2+</option>
+            <option value="3">3+</option>
+            <option value="4">4+</option>
+            <option value="5">5+</option>
+          </select>
+        </div>
 
-  <!-- ====================================================== -->
-  <!-- 🛒 CART -->
-  <!-- ====================================================== -->
-  <section class="cart-panel">
-    <h3>Корзина</h3>
-    <div id="cart-container"></div>
-    <div id="cart-total">Итого: 0з</div>
+        <!-- Ряд 2 -->
+        <div class="filter-item">
+          <label for="searchInput">🔎 Поиск предмета</label>
+          <input id="searchInput" type="text" placeholder="Название предмета" />
+        </div>
 
-    <div class="cart-actions">
-      <button id="clearCartBtn">Очистить</button>
-    </div>
-  </section>
+        <div class="filter-item price-range">
+          <label>💰 Цена (золотые)</label>
+          <div class="price-range-inputs">
+            <input id="minPrice" type="number" min="0" placeholder="от" />
+            <input id="maxPrice" type="number" min="0" placeholder="до" />
+          </div>
+        </div>
 
-  <!-- ====================================================== -->
-  <!-- 🏪 TRADER MODAL -->
-  <!-- ====================================================== -->
+        <div class="filter-item">
+          <label for="rarityFilter">⭐ Редкость</label>
+          <select id="rarityFilter">
+            <option value="all">Любая</option>
+            <option value="common">common</option>
+            <option value="uncommon">uncommon</option>
+            <option value="rare">rare</option>
+            <option value="very rare">very rare</option>
+            <option value="legendary">legendary</option>
+            <option value="artifact">artifact</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label for="categoryFilter">📦 Категория</label>
+          <select id="categoryFilter">
+            <option value="all">Любая</option>
+          </select>
+        </div>
+
+        <div class="filter-item filter-checkbox">
+          <label for="magicFilter">✨ Магия</label>
+          <input id="magicFilter" type="checkbox" />
+        </div>
+
+        <div class="filter-item">
+          <label for="sortFilter">📊 Сортировка</label>
+          <select id="sortFilter">
+            <option value="name_asc">Названию (А→Я)</option>
+            <option value="name_desc">Названию (Я→А)</option>
+            <option value="price_asc">Цене (по возрастанию)</option>
+            <option value="price_desc">Цене (по убыванию)</option>
+            <option value="rarity_asc">Редкости</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <button id="resetFiltersBtn" class="btn btn-secondary">Сбросить фильтры</button>
+      </div>
+    </section>
+
+    <!-- =================================================== -->
+    <!-- 🧙 КАРТОЧКИ ТОРГОВЦЕВ -->
+    <!-- =================================================== -->
+    <main class="main-content">
+      <section id="traders-container" class="traders-grid">
+        <!-- render.js -->
+      </section>
+    </main>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- 🏪 МОДАЛКА ТОРГОВЦА -->
+  <!-- ===================================================== -->
   <div id="traderModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
       <span class="close">&times;</span>
       <div id="modalContent"></div>
     </div>
   </div>
 
-  <!-- ====================================================== -->
-  <!-- 🎒 INVENTORY MODAL -->
-  <!-- ====================================================== -->
-  <div id="inventoryModal" class="modal">
-    <div class="modal-content">
+  <!-- ===================================================== -->
+  <!-- 🛒 МОДАЛКА КОРЗИНЫ -->
+  <!-- ===================================================== -->
+  <div id="cartModal" class="modal">
+    <div class="modal-content modal-large">
       <span class="close">&times;</span>
-      <h2>Инвентарь</h2>
-      <div id="inventory-container"></div>
+
+      <h2>Корзина</h2>
+
+      <div class="cart-modal-header">
+        <div class="cart-modal-stats">
+          <strong>Товаров:</strong> <span id="cartCountModal">0</span>
+          &nbsp; | &nbsp;
+          <strong>Итого:</strong> <span id="cartTotalModal">0з</span>
+        </div>
+
+        <div class="cart-modal-actions">
+          <button id="checkoutCartBtn" class="btn btn-success">Оформить заказ</button>
+          <button id="clearCartBtnModal" class="btn btn-danger">Очистить корзину</button>
+        </div>
+      </div>
+
+      <div id="cart-container" class="cart-items-container">
+        <!-- render.js -->
+      </div>
     </div>
   </div>
 
-  <!-- ====================================================== -->
-  <!-- 👤 CABINET MODAL -->
-  <!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- 🎒 МОДАЛКА ИНВЕНТАРЯ -->
+  <!-- ===================================================== -->
+  <div id="inventoryModal" class="modal">
+    <div class="modal-content modal-large">
+      <span class="close">&times;</span>
+
+      <h2>Инвентарь</h2>
+
+      <div class="inventory-modal-header">
+        <div>
+          <strong>Предметов:</strong> <span id="inventoryCountModal">0</span>
+        </div>
+      </div>
+
+      <div id="inventory-container" class="inventory-items-container">
+        <!-- render.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- 👤 ЛИЧНЫЙ КАБИНЕТ -->
+  <!-- ===================================================== -->
   <div id="cabinetModal" class="modal">
-    <div class="modal-content large">
+    <div class="modal-content modal-xl">
       <span class="close">&times;</span>
 
       <h2>Личный кабинет</h2>
 
-      <!-- Вкладки как в main UX -->
+      <!-- Вкладки как в main-концепте -->
       <div class="cabinet-tabs">
-        <button data-cabinet-tab="inventory">Инвентарь</button>
-        <button data-cabinet-tab="lss">LSS</button>
-        <button data-cabinet-tab="history">История</button>
-        <button data-cabinet-tab="quests">Квесты</button>
-        <button data-cabinet-tab="map">Карта</button>
-        <button data-cabinet-tab="files">Файлы</button>
-        <button data-cabinet-tab="playernotes">Заметки</button>
-        <button data-cabinet-tab="gmnotes">GM</button>
+        <button class="cabinet-tab active" data-cabinet-tab="inventory">Инвентарь</button>
+        <button class="cabinet-tab" data-cabinet-tab="lss">История / LSS</button>
+        <button class="cabinet-tab" data-cabinet-tab="quests">Задания</button>
+        <button class="cabinet-tab" data-cabinet-tab="map">Карта</button>
+        <button class="cabinet-tab" data-cabinet-tab="files">Файлы</button>
+        <button class="cabinet-tab" data-cabinet-tab="playernotes">Заметки игрока</button>
+        <button class="cabinet-tab" data-cabinet-tab="gmnotes">Заметки ГМ</button>
       </div>
 
-      <!-- Секции строго по main UX -->
-      <section id="cabinet-inventory"></section>
-      <section id="cabinet-lss" style="display:none;"></section>
-      <section id="cabinet-history" style="display:none;"></section>
-      <section id="cabinet-quests" style="display:none;"></section>
-      <section id="cabinet-map" style="display:none;"></section>
-      <section id="cabinet-files" style="display:none;"></section>
-      <section id="cabinet-playernotes" style="display:none;"></section>
-      <section id="cabinet-gmnotes" style="display:none;"></section>
+      <div class="cabinet-content">
+        <section id="cabinet-inventory" class="cabinet-section">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-lss" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-history" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-quests" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-map" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-files" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-playernotes" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+
+        <section id="cabinet-gmnotes" class="cabinet-section tab-hidden">
+          <!-- render.js -->
+        </section>
+      </div>
 
       <div class="cabinet-actions">
-        <button id="savePlayerNotesBtn">Сохранить заметки</button>
+        <button id="savePlayerNotesBtn" class="btn btn-success">Сохранить заметки</button>
       </div>
     </div>
   </div>
 
-  <!-- ====================================================== -->
+  <!-- ===================================================== -->
   <!-- 🔔 TOAST -->
-  <!-- ====================================================== -->
-  <div id="toast" class="toast" style="display:none;"></div>
+  <!-- ===================================================== -->
+  <div id="toast" class="toast hidden"></div>
 
-  <!-- ====================================================== -->
-  <!-- 🚀 MODULE ENTRY -->
-  <!-- ====================================================== -->
+  <!-- ===================================================== -->
+  <!-- 🚀 СКРИПТЫ -->
+  <!-- ===================================================== -->
   <script type="module" src="/js/app.js"></script>
 </body>
 </html>

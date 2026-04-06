@@ -1,257 +1,328 @@
 // ============================================================
-// frontend/js/filters.js
-// Вся логика фильтрации и поиска.
-// Ничего не запрашивает с сервера — только работает с state.
+// filters.js
+// Фильтрация и сортировка торговцев/товаров
+// Под current index.html
 // ============================================================
 
-import {
-  state,
-  setFilters,
-  resetFilters,
-} from "./state.js";
-
-// ============================================================
-// 🧰 ВСПОМОГАТЕЛЬНОЕ
-// ============================================================
-
-// Нормализация строки для поиска
-function normalizeString(value) {
+// ------------------------------------------------------------
+// 🧰 HELPERS
+// ------------------------------------------------------------
+function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-// Безопасное число
 function toNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
 
-// Получить "золотую" цену предмета для фильтрации
-function getItemGoldValue(item) {
-  return toNumber(item.buy_price_gold ?? item.price_gold ?? 0, 0);
+function getItemPriceGold(item) {
+  if (item.buy_price_gold != null) return toNumber(item.buy_price_gold, 0);
+  if (item.price_gold != null) return toNumber(item.price_gold, 0);
+  return 0;
 }
 
-// Есть ли совпадение по тексту
-function traderMatchesSearch(trader, search) {
-  if (!search) return true;
+function getItems(trader) {
+  return Array.isArray(trader?.items) ? trader.items : [];
+}
 
-  const traderName = normalizeString(trader.name);
-  const traderDesc = normalizeString(trader.description);
-  const traderType = normalizeString(trader.type);
-  const traderRegion = normalizeString(trader.region);
+// ------------------------------------------------------------
+// 📥 READ FILTERS FROM DOM
+// ------------------------------------------------------------
+export function readFiltersFromDom() {
+  return {
+    traderSearch: document.getElementById("searchTrader")?.value?.trim() || "",
+    traderType: document.getElementById("typeFilter")?.value || "all",
+    region: document.getElementById("regionFilter")?.value || "all",
+    playerLevel: toNumber(document.getElementById("playerLevelFilter")?.value, 0),
+    minReputation: document.getElementById("minReputationFilter")?.value || "all",
 
-  const directMatch =
-    traderName.includes(search) ||
-    traderDesc.includes(search) ||
-    traderType.includes(search) ||
-    traderRegion.includes(search);
+    itemSearch: document.getElementById("searchInput")?.value?.trim() || "",
+    minPrice: document.getElementById("minPrice")?.value || "",
+    maxPrice: document.getElementById("maxPrice")?.value || "",
+    rarity: document.getElementById("rarityFilter")?.value || "all",
+    category: document.getElementById("categoryFilter")?.value || "all",
+    magicOnly: !!document.getElementById("magicFilter")?.checked,
+    sort: document.getElementById("sortFilter")?.value || "name_asc",
+  };
+}
 
-  if (directMatch) return true;
+// ------------------------------------------------------------
+// 🔎 FILTER LOGIC
+// ------------------------------------------------------------
+function matchesTraderSearch(trader, traderSearch) {
+  if (!traderSearch) return true;
 
-  const items = Array.isArray(trader.items) ? trader.items : [];
+  const needle = normalize(traderSearch);
+
+  return (
+    normalize(trader.name).includes(needle) ||
+    normalize(trader.description).includes(needle) ||
+    normalize(trader.type).includes(needle) ||
+    normalize(trader.region).includes(needle) ||
+    normalize(trader.settlement).includes(needle)
+  );
+}
+
+function matchesTraderType(trader, traderType) {
+  if (!traderType || traderType === "all") return true;
+  return normalize(trader.type) === normalize(traderType);
+}
+
+function matchesRegion(trader, region) {
+  if (!region || region === "all") return true;
+  return normalize(trader.region) === normalize(region);
+}
+
+function matchesPlayerLevel(trader, playerLevel) {
+  if (!playerLevel || playerLevel <= 0) return true;
+
+  const min = toNumber(trader.level_min, 1);
+  const max = toNumber(trader.level_max, 999);
+
+  return playerLevel >= min && playerLevel <= max;
+}
+
+function matchesMinReputation(trader, minReputation) {
+  if (!minReputation || minReputation === "all") return true;
+  return toNumber(trader.reputation, 0) >= toNumber(minReputation, 0);
+}
+
+function matchesItemSearch(items, itemSearch) {
+  if (!itemSearch) return true;
+
+  const needle = normalize(itemSearch);
 
   return items.some((item) => {
-    const itemName = normalizeString(item.name);
-    const itemDesc = normalizeString(item.description);
-    const itemCategory = normalizeString(item.category);
     return (
-      itemName.includes(search) ||
-      itemDesc.includes(search) ||
-      itemCategory.includes(search)
+      normalize(item.name).includes(needle) ||
+      normalize(item.description).includes(needle) ||
+      normalize(item.category).includes(needle) ||
+      normalize(item.subcategory).includes(needle)
     );
   });
 }
 
-// Есть ли у торговца предметы нужной категории
-function traderMatchesCategory(trader, category) {
-  if (!category || category === "all") return true;
+function matchesPrice(items, minPrice, maxPrice) {
+  const hasMin = minPrice !== "" && minPrice != null;
+  const hasMax = maxPrice !== "" && maxPrice != null;
 
-  const items = Array.isArray(trader.items) ? trader.items : [];
-  return items.some((item) => String(item.category || "") === String(category));
-}
+  if (!hasMin && !hasMax) return true;
 
-// Есть ли у торговца предметы нужной редкости
-function traderMatchesRarity(trader, rarity) {
-  if (!rarity || rarity === "all") return true;
-
-  const items = Array.isArray(trader.items) ? trader.items : [];
-  return items.some((item) => String(item.rarity || "") === String(rarity));
-}
-
-// Совпадает ли регион
-function traderMatchesRegion(trader, region) {
-  if (!region || region === "all") return true;
-  return String(trader.region || "") === String(region);
-}
-
-// Совпадает ли тип торговца
-function traderMatchesType(trader, traderType) {
-  if (!traderType || traderType === "all") return true;
-  return String(trader.type || "") === String(traderType);
-}
-
-// Подходит ли по диапазону цен
-function traderMatchesPriceRange(trader, minPrice, maxPrice) {
-  if (minPrice == null && maxPrice == null) return true;
-
-  const items = Array.isArray(trader.items) ? trader.items : [];
-  if (!items.length) return false;
+  const min = hasMin ? toNumber(minPrice, 0) : null;
+  const max = hasMax ? toNumber(maxPrice, 999999999) : null;
 
   return items.some((item) => {
-    const value = getItemGoldValue(item);
+    const price = getItemPriceGold(item);
 
-    if (minPrice != null && value < minPrice) return false;
-    if (maxPrice != null && value > maxPrice) return false;
+    if (min != null && price < min) return false;
+    if (max != null && price > max) return false;
 
     return true;
   });
 }
 
-// ============================================================
-// 📥 ЧТЕНИЕ ФИЛЬТРОВ ИЗ DOM
-// ============================================================
+function matchesRarity(items, rarity) {
+  if (!rarity || rarity === "all") return true;
+  return items.some((item) => normalize(item.rarity) === normalize(rarity));
+}
 
-// Считать текущие фильтры из HTML
-export function readFiltersFromDom() {
-  const nextFilters = {
-    search:
-      document.getElementById("searchInput")?.value?.trim() ||
-      document.getElementById("searchTrader")?.value?.trim() ||
-      "",
-    category:
-      document.getElementById("categoryFilter")?.value ||
-      "all",
-    region:
-      document.getElementById("regionFilter")?.value ||
-      document.getElementById("filterRegion")?.value ||
-      "all",
-    traderType:
-      document.getElementById("typeFilter")?.value ||
-      document.getElementById("filterType")?.value ||
-      "all",
-    rarity:
-      document.getElementById("rarityFilter")?.value ||
-      "all",
-    minPrice: document.getElementById("minPrice")?.value || null,
-    maxPrice: document.getElementById("maxPrice")?.value || null,
+function matchesCategory(items, category) {
+  if (!category || category === "all") return true;
+  return items.some((item) => normalize(item.category) === normalize(category));
+}
+
+function matchesMagic(items, magicOnly) {
+  if (!magicOnly) return true;
+  return items.some((item) => !!item.is_magical);
+}
+
+// ------------------------------------------------------------
+// ✂️ FILTER TRADERS
+// ------------------------------------------------------------
+export function filterTraders(traders, filters) {
+  return (Array.isArray(traders) ? traders : []).filter((trader) => {
+    const items = getItems(trader);
+
+    if (!matchesTraderSearch(trader, filters.traderSearch)) return false;
+    if (!matchesTraderType(trader, filters.traderType)) return false;
+    if (!matchesRegion(trader, filters.region)) return false;
+    if (!matchesPlayerLevel(trader, filters.playerLevel)) return false;
+    if (!matchesMinReputation(trader, filters.minReputation)) return false;
+
+    if (!matchesItemSearch(items, filters.itemSearch)) return false;
+    if (!matchesPrice(items, filters.minPrice, filters.maxPrice)) return false;
+    if (!matchesRarity(items, filters.rarity)) return false;
+    if (!matchesCategory(items, filters.category)) return false;
+    if (!matchesMagic(items, filters.magicOnly)) return false;
+
+    return true;
+  });
+}
+
+// ------------------------------------------------------------
+// 📊 SORT
+// ------------------------------------------------------------
+function getTraderMinPrice(trader) {
+  const items = getItems(trader);
+  if (!items.length) return 0;
+  return Math.min(...items.map(getItemPriceGold));
+}
+
+function getTraderBestRarityTier(trader) {
+  const items = getItems(trader);
+  if (!items.length) return 0;
+  return Math.max(...items.map((item) => toNumber(item.rarity_tier, 0)));
+}
+
+export function sortTraders(traders, sortKey) {
+  const list = [...(Array.isArray(traders) ? traders : [])];
+
+  list.sort((a, b) => {
+    if (sortKey === "name_desc") {
+      return normalize(b.name).localeCompare(normalize(a.name), "ru");
+    }
+
+    if (sortKey === "price_asc") {
+      return getTraderMinPrice(a) - getTraderMinPrice(b);
+    }
+
+    if (sortKey === "price_desc") {
+      return getTraderMinPrice(b) - getTraderMinPrice(a);
+    }
+
+    if (sortKey === "rarity_asc") {
+      return getTraderBestRarityTier(a) - getTraderBestRarityTier(b);
+    }
+
+    return normalize(a.name).localeCompare(normalize(b.name), "ru");
+  });
+
+  return list;
+}
+
+// ------------------------------------------------------------
+// 🧾 OPTIONS BUILDERS
+// ------------------------------------------------------------
+export function populateFilterOptions(traders) {
+  const traderList = Array.isArray(traders) ? traders : [];
+
+  const typeSelect = document.getElementById("typeFilter");
+  const regionSelect = document.getElementById("regionFilter");
+  const categorySelect = document.getElementById("categoryFilter");
+
+  const types = [...new Set(traderList.map((t) => t.type).filter(Boolean))].sort();
+  const regions = [...new Set(traderList.map((t) => t.region).filter(Boolean))].sort();
+
+  const categories = [
+    ...new Set(
+      traderList.flatMap((t) => getItems(t).map((i) => i.category).filter(Boolean))
+    ),
+  ].sort();
+
+  if (typeSelect) {
+    const current = typeSelect.value || "all";
+    typeSelect.innerHTML = `<option value="all">Все типы</option>` +
+      types.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("");
+    typeSelect.value = types.includes(current) ? current : "all";
+  }
+
+  if (regionSelect) {
+    const current = regionSelect.value || "all";
+    regionSelect.innerHTML = `<option value="all">Все регионы</option>` +
+      regions.map((region) => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`).join("");
+    regionSelect.value = regions.includes(current) ? current : "all";
+  }
+
+  if (categorySelect) {
+    const current = categorySelect.value || "all";
+    categorySelect.innerHTML = `<option value="all">Любая</option>` +
+      categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+    categorySelect.value = categories.includes(current) ? current : "all";
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// ------------------------------------------------------------
+// 🧹 RESET
+// ------------------------------------------------------------
+export function resetFiltersDom() {
+  const setValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
   };
 
-  setFilters(nextFilters);
-  return state.filters;
+  setValue("searchTrader", "");
+  setValue("typeFilter", "all");
+  setValue("regionFilter", "all");
+  setValue("playerLevelFilter", 0);
+  setValue("minReputationFilter", "all");
+
+  setValue("searchInput", "");
+  setValue("minPrice", "");
+  setValue("maxPrice", "");
+  setValue("rarityFilter", "all");
+  setValue("categoryFilter", "all");
+  setValue("sortFilter", "name_asc");
+
+  const magic = document.getElementById("magicFilter");
+  if (magic) magic.checked = false;
 }
 
-// ============================================================
-// 🔎 ПРИМЕНЕНИЕ ФИЛЬТРОВ
-// ============================================================
-
-// Получить отфильтрованный список торговцев
-export function getFilteredTraders(traders = state.traders) {
-  const filters = state.filters || {};
-
-  const search = normalizeString(filters.search);
-  const category = filters.category;
-  const region = filters.region;
-  const traderType = filters.traderType;
-  const rarity = filters.rarity;
-
-  const minPrice =
-    filters.minPrice !== null &&
-    filters.minPrice !== undefined &&
-    filters.minPrice !== ""
-      ? Number(filters.minPrice)
-      : null;
-
-  const maxPrice =
-    filters.maxPrice !== null &&
-    filters.maxPrice !== undefined &&
-    filters.maxPrice !== ""
-      ? Number(filters.maxPrice)
-      : null;
-
-  return (Array.isArray(traders) ? traders : []).filter((trader) => {
-    if (!traderMatchesSearch(trader, search)) return false;
-    if (!traderMatchesCategory(trader, category)) return false;
-    if (!traderMatchesRegion(trader, region)) return false;
-    if (!traderMatchesType(trader, traderType)) return false;
-    if (!traderMatchesRarity(trader, rarity)) return false;
-    if (!traderMatchesPriceRange(trader, minPrice, maxPrice)) return false;
-
-    return true;
-  });
+// ------------------------------------------------------------
+// 🔗 MAIN APPLY
+// ------------------------------------------------------------
+export function applyFilters(traders) {
+  const filters = readFiltersFromDom();
+  const filtered = filterTraders(traders, filters);
+  const sorted = sortTraders(filtered, filters.sort);
+  return sorted;
 }
 
-// ============================================================
-// 🧹 СБРОС ФИЛЬТРОВ В DOM
-// ============================================================
-
-// Очистить поля фильтров в HTML
-export function resetFiltersInDom() {
-  const ids = [
-    "searchInput",
-    "searchTrader",
-    "categoryFilter",
-    "regionFilter",
-    "filterRegion",
-    "typeFilter",
-    "filterType",
-    "rarityFilter",
-    "minPrice",
-    "maxPrice",
-  ];
-
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    if (el.tagName === "SELECT") {
-      el.value = "all";
-    } else {
-      el.value = "";
-    }
-  });
-
-  resetFilters();
-}
-
-// ============================================================
-// 🎛 ПРИВЯЗКА СОБЫТИЙ
-// ============================================================
-
-// Навесить обработчики на фильтры
+// ------------------------------------------------------------
+// 🎛 BIND EVENTS
+// ------------------------------------------------------------
 export function bindFilterEvents(onChange) {
   const ids = [
-    "searchInput",
     "searchTrader",
-    "categoryFilter",
-    "regionFilter",
-    "filterRegion",
     "typeFilter",
-    "filterType",
-    "rarityFilter",
+    "regionFilter",
+    "playerLevelFilter",
+    "minReputationFilter",
+    "searchInput",
     "minPrice",
     "maxPrice",
+    "rarityFilter",
+    "categoryFilter",
+    "magicFilter",
+    "sortFilter",
   ];
 
   ids.forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
 
-    const eventName = el.tagName === "SELECT" ? "change" : "input";
+    const eventName =
+      el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input";
 
     el.addEventListener(eventName, () => {
-      readFiltersFromDom();
-      if (typeof onChange === "function") {
-        onChange();
-      }
+      if (typeof onChange === "function") onChange();
     });
   });
 
   const resetBtn = document.getElementById("resetFiltersBtn");
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
-      resetFiltersInDom();
-      if (typeof onChange === "function") {
-        onChange();
-      }
+      resetFiltersDom();
+      if (typeof onChange === "function") onChange();
     });
   }
 }

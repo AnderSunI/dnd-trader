@@ -1,513 +1,650 @@
 // ============================================================
-// frontend/js/app.js
-// Главный файл фронтенда.
-// Связывает API + state + render + filters.
+// app.js
+// Главная логика приложения
+// Связка:
+// - render.js
+// - filters.js
+// - cabinet.js
+// - backend API
 // ============================================================
 
 import {
-  loginUser,
-  registerUser,
-  fetchMe,
-  fetchTraders,
-  fetchPlayerInventory,
-  buyItem,
-  sellItem,
-  logoutUser,
-  isAuthenticated,
-  fetchPlayerProfile,
-  fetchPlayerQuests,
-  fetchPlayerNotes,
-  savePlayerNotes,
-  fetchWorldMap,
-} from "./api.js";
-
-import {
-  state,
-  setUser,
-  clearUser,
-  setTraders,
-  setInventory,
-  addToCart,
-  removeFromCart,
-  updateCartQuantity,
-  clearCart,
-  setLssData,
-  setMapData,
-  setGmMode,
-} from "./state.js";
-
-import {
-  renderGuestState,
-  renderAuthenticatedState,
   renderTraders,
-  renderInventory,
   renderCart,
-  renderCabinetContent,
-  bindRenderUiEvents,
-  openTrader,
+  renderInventory,
+  openTraderModal,
 } from "./render.js";
 
 import {
-  readFiltersFromDom,
-  getFilteredTraders,
-  resetFiltersInDom,
+  populateFilterOptions,
+  applyFilters,
   bindFilterEvents,
 } from "./filters.js";
 
-// ============================================================
-// 🧰 ВСПОМОГАТЕЛЬНОЕ
-// ============================================================
+import {
+  initCabinet,
+  loadCabinetAll,
+  switchCabinetTab,
+} from "./cabinet.js";
 
-// Показать уведомление
+// ------------------------------------------------------------
+// 🌐 GLOBAL STATE
+// ------------------------------------------------------------
+const STATE = {
+  user: null,
+  token: null,
+  traders: [],
+  cart: [],
+  inventory: [],
+};
+
+// ------------------------------------------------------------
+// 🧰 HELPERS
+// ------------------------------------------------------------
+function getAuthHeaders(withJson = false) {
+  const headers = {};
+
+  if (withJson) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (STATE.token) {
+    headers.Authorization = `Bearer ${STATE.token}`;
+  }
+
+  return headers;
+}
+
 function showToast(message) {
-  const toast =
-    document.getElementById("toast") ||
-    document.getElementById("appToast");
-
+  const toast = document.getElementById("toast");
   if (!toast) {
     console.log(message);
     return;
   }
 
   toast.textContent = message;
-  toast.style.display = "block";
-  toast.style.opacity = "1";
+  toast.classList.remove("hidden");
 
   setTimeout(() => {
-    toast.style.opacity = "0";
+    toast.classList.add("hidden");
   }, 2200);
-
-  setTimeout(() => {
-    toast.style.display = "none";
-  }, 2600);
 }
 
-// Найти товар у торговца
-function findTraderItem(traderId, itemId) {
-  const trader = state.traders.find((t) => t.id === traderId);
-  if (!trader || !Array.isArray(trader.items)) return null;
-  return trader.items.find((item) => item.id === itemId) || null;
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-// Перерисовать торговцев с учётом текущих фильтров
+function updateUserUI() {
+  const guestWarning = document.getElementById("guestWarning");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const showAuthBtn = document.getElementById("showAuthBtn");
+  const authContainer = document.getElementById("authContainer");
+  const userMoney = document.getElementById("user-money");
+  const gmBadge = document.getElementById("gmBadge");
+
+  if (STATE.user) {
+    guestWarning?.classList.add("hidden");
+    logoutBtn?.classList.remove("hidden");
+    showAuthBtn?.classList.add("hidden");
+    authContainer?.classList.add("hidden");
+
+    if (userMoney) {
+      userMoney.innerText = STATE.user.money_label || "0з";
+    }
+
+    const role = String(STATE.user.role || "").toLowerCase();
+    if (gmBadge) {
+      if (role === "gm" || role === "admin") {
+        gmBadge.classList.remove("hidden");
+      } else {
+        gmBadge.classList.add("hidden");
+      }
+    }
+  } else {
+    guestWarning?.classList.remove("hidden");
+    logoutBtn?.classList.add("hidden");
+    showAuthBtn?.classList.remove("hidden");
+
+    if (userMoney) {
+      userMoney.innerText = "0з";
+    }
+
+    gmBadge?.classList.add("hidden");
+  }
+}
+
+function updateInventoryCounter() {
+  const count = Array.isArray(STATE.inventory)
+    ? STATE.inventory.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+    : 0;
+
+  const inventoryCount = document.getElementById("inventoryCount");
+  const inventoryCountModal = document.getElementById("inventoryCountModal");
+
+  if (inventoryCount) inventoryCount.innerText = String(count);
+  if (inventoryCountModal) inventoryCountModal.innerText = String(count);
+}
+
+function updateCartCounter() {
+  const count = Array.isArray(STATE.cart) ? STATE.cart.length : 0;
+
+  const cartCount = document.getElementById("cartCount");
+  const cartCountModal = document.getElementById("cartCountModal");
+
+  if (cartCount) cartCount.innerText = String(count);
+  if (cartCountModal) cartCountModal.innerText = String(count);
+}
+
+function updateCartTotalLabels() {
+  const totalGold = STATE.cart.reduce((sum, item) => {
+    if (item.buy_price_gold != null) return sum + toNumber(item.buy_price_gold, 0);
+    if (item.price_gold != null) return sum + toNumber(item.price_gold, 0);
+    return sum;
+  }, 0);
+
+  const totalSilver = STATE.cart.reduce((sum, item) => {
+    if (item.buy_price_silver != null) return sum + toNumber(item.buy_price_silver, 0);
+    if (item.price_silver != null) return sum + toNumber(item.price_silver, 0);
+    return sum;
+  }, 0);
+
+  const totalCopper = STATE.cart.reduce((sum, item) => {
+    if (item.buy_price_copper != null) return sum + toNumber(item.buy_price_copper, 0);
+    if (item.price_copper != null) return sum + toNumber(item.price_copper, 0);
+    return sum;
+  }, 0);
+
+  const parts = [];
+  if (totalGold) parts.push(`${totalGold}з`);
+  if (totalSilver) parts.push(`${totalSilver}с`);
+  if (totalCopper) parts.push(`${totalCopper}м`);
+  if (!parts.length) parts.push("0з");
+
+  const label = parts.join(" ");
+
+  const cartTotal = document.getElementById("cart-total");
+  const cartTotalModal = document.getElementById("cartTotalModal");
+
+  if (cartTotal) cartTotal.innerText = label;
+  if (cartTotalModal) cartTotalModal.innerText = label;
+}
+
+function renderAllLocalState() {
+  renderCart(STATE.cart);
+  renderInventory(STATE.inventory);
+  updateCartCounter();
+  updateCartTotalLabels();
+  updateInventoryCounter();
+}
+
 function rerenderTraders() {
-  const filtered = getFilteredTraders(state.traders);
+  const filtered = applyFilters(STATE.traders);
   renderTraders(filtered);
 }
 
-// ============================================================
-// 🔐 AUTH
-// ============================================================
+function findTraderById(traderId) {
+  return STATE.traders.find((t) => Number(t.id) === Number(traderId)) || null;
+}
 
-// Инициализация авторизации
-async function initAuth() {
-  if (!isAuthenticated()) {
-    renderGuestState();
+function findTraderItem(traderId, itemId) {
+  const trader = findTraderById(traderId);
+  if (!trader || !Array.isArray(trader.items)) return null;
+  return trader.items.find((item) => Number(item.id) === Number(itemId)) || null;
+}
+
+function getCartPayloadItem(traderId, itemId) {
+  const item = findTraderItem(traderId, itemId);
+  if (!item) return null;
+
+  return {
+    ...item,
+    trader_id: traderId,
+    item_id: itemId,
+    price_label:
+      item.buy_price_label ||
+      item.price_label ||
+      `${item.price_gold || 0}з`,
+  };
+}
+
+// ------------------------------------------------------------
+// 🔐 AUTH
+// ------------------------------------------------------------
+async function login(email, password) {
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Ошибка входа");
+  }
+
+  const data = await res.json();
+
+  STATE.token = data.access_token;
+  STATE.user = data.user || null;
+
+  localStorage.setItem("token", STATE.token);
+
+  updateUserUI();
+  showToast("Вход выполнен");
+}
+
+async function register(email, password) {
+  const res = await fetch("/register", {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Ошибка регистрации");
+  }
+
+  const data = await res.json();
+
+  STATE.token = data.access_token;
+  STATE.user = data.user || null;
+
+  localStorage.setItem("token", STATE.token);
+
+  updateUserUI();
+  showToast("Регистрация успешна");
+}
+
+async function loadMe() {
+  if (!STATE.token) return;
+
+  const res = await fetch("/me", {
+    headers: getAuthHeaders(false),
+  });
+
+  if (!res.ok) {
+    STATE.token = null;
+    STATE.user = null;
+    localStorage.removeItem("token");
+    updateUserUI();
     return;
   }
 
-  try {
-    const data = await fetchMe();
-    const user = data?.user || data || null;
-
-    setUser(user);
-    renderAuthenticatedState(state.user);
-
-    const role = String(state.user?.role || "").toLowerCase();
-    const isGm = role === "gm" || role === "admin";
-    setGmMode(isGm);
-  } catch (error) {
-    console.error("Ошибка initAuth:", error);
-    logoutUser();
-    clearUser();
-    renderGuestState();
-  }
+  const data = await res.json();
+  STATE.user = data.user || null;
+  updateUserUI();
 }
 
-// Логин
-async function handleLogin(email, password) {
-  try {
-    const data = await loginUser(email, password);
+function logout() {
+  STATE.token = null;
+  STATE.user = null;
+  STATE.inventory = [];
+  STATE.cart = [];
 
-    if (data?.user) {
-      setUser(data.user);
-    }
+  localStorage.removeItem("token");
 
-    renderAuthenticatedState(state.user);
-    await loadInitialData();
-    showToast("Вход выполнен");
-  } catch (error) {
-    console.error(error);
-    showToast(`Ошибка входа: ${error.message}`);
-  }
+  updateUserUI();
+  renderAllLocalState();
+  showToast("Вы вышли из аккаунта");
 }
 
-// Регистрация
-async function handleRegister(email, password) {
-  try {
-    const data = await registerUser(email, password);
-
-    if (data?.user) {
-      setUser(data.user);
-    }
-
-    renderAuthenticatedState(state.user);
-    await loadInitialData();
-    showToast("Регистрация успешна");
-  } catch (error) {
-    console.error(error);
-    showToast(`Ошибка регистрации: ${error.message}`);
-  }
-}
-
-// Выход
-function handleLogout() {
-  logoutUser();
-  clearUser();
-  clearCart();
-
-  renderGuestState();
-  renderInventory([]);
-  renderCart([]);
-  location.reload();
-}
-
-// ============================================================
-// 📦 ЗАГРУЗКА ДАННЫХ
-// ============================================================
-
-// Загрузка торговцев
+// ------------------------------------------------------------
+// 🧙 LOAD TRADERS
+// ------------------------------------------------------------
 async function loadTraders() {
   try {
-    const data = await fetchTraders();
-    const traders = Array.isArray(data?.traders)
-      ? data.traders
-      : Array.isArray(data)
-        ? data
-        : [];
+    const res = await fetch("/traders");
+    if (!res.ok) throw new Error("Не удалось загрузить торговцев");
 
-    setTraders(traders);
+    const data = await res.json();
+    STATE.traders = data.traders || [];
 
-    // После загрузки сразу применяем фильтры из DOM
-    readFiltersFromDom();
+    populateFilterOptions(STATE.traders);
     rerenderTraders();
-  } catch (error) {
-    console.error("Ошибка загрузки торговцев:", error);
-    showToast("Не удалось загрузить торговцев");
+  } catch (e) {
+    console.error("Ошибка загрузки торговцев", e);
+    showToast("Ошибка загрузки торговцев");
   }
 }
 
-// Загрузка инвентаря
+// ------------------------------------------------------------
+// 🎒 LOAD INVENTORY
+// ------------------------------------------------------------
 async function loadInventory() {
-  if (!isAuthenticated()) {
-    setInventory([]);
+  if (!STATE.token) {
+    STATE.inventory = [];
     renderInventory([]);
+    updateInventoryCounter();
     return;
   }
 
   try {
-    const data = await fetchPlayerInventory();
-    const items = Array.isArray(data?.items) ? data.items : [];
+    const res = await fetch("/player/inventory", {
+      headers: getAuthHeaders(false),
+    });
 
-    setInventory(items);
-    renderInventory(state.inventory);
-
-    if (state.user) {
-      const updatedUser = {
-        ...state.user,
-        money_gold: data?.money_gold ?? state.user.money_gold ?? 0,
-        money_silver: data?.money_silver ?? state.user.money_silver ?? 0,
-        money_copper: data?.money_copper ?? state.user.money_copper ?? 0,
-        money_label: data?.money_label ?? state.user.money_label,
-      };
-
-      setUser(updatedUser);
-      renderAuthenticatedState(state.user);
+    if (!res.ok) {
+      throw new Error("Не удалось загрузить инвентарь");
     }
-  } catch (error) {
-    console.error("Ошибка загрузки инвентаря:", error);
-    showToast("Не удалось загрузить инвентарь");
+
+    const data = await res.json();
+    STATE.inventory = data.items || [];
+
+    renderInventory(STATE.inventory);
+    updateInventoryCounter();
+  } catch (e) {
+    console.error("Ошибка загрузки инвентаря", e);
   }
 }
 
-// Загрузка LSS / профиля
-async function loadPlayerProfileData() {
-  if (!isAuthenticated()) return;
+// ------------------------------------------------------------
+// 🛒 CART
+// ------------------------------------------------------------
+window.addToCart = function (traderId, itemId) {
+  const cartItem = getCartPayloadItem(traderId, itemId);
 
-  try {
-    const profile = await fetchPlayerProfile();
-    setLssData(profile || {});
-  } catch (error) {
-    console.error("Ошибка загрузки профиля:", error);
-  }
-}
-
-// Загрузка квестов
-async function loadQuestsData() {
-  if (!isAuthenticated()) return;
-
-  try {
-    const quests = await fetchPlayerQuests();
-    setLssData({
-      quests: Array.isArray(quests?.quests)
-        ? quests.quests
-        : Array.isArray(quests)
-          ? quests
-          : [],
-    });
-  } catch (error) {
-    console.error("Ошибка загрузки квестов:", error);
-  }
-}
-
-// Загрузка заметок
-async function loadNotesData() {
-  if (!isAuthenticated()) return;
-
-  try {
-    const notes = await fetchPlayerNotes();
-    setLssData({
-      notes: notes?.notes || "",
-      history: Array.isArray(notes?.history) ? notes.history : [],
-    });
-  } catch (error) {
-    console.error("Ошибка загрузки заметок:", error);
-  }
-}
-
-// Загрузка карты
-async function loadMapData() {
-  try {
-    const map = await fetchWorldMap();
-    setMapData(map || {});
-  } catch (error) {
-    console.error("Ошибка загрузки карты:", error);
-  }
-}
-
-// Полная загрузка данных
-async function loadInitialData() {
-  await loadTraders();
-  await loadInventory();
-  await loadPlayerProfileData();
-  await loadQuestsData();
-  await loadNotesData();
-  await loadMapData();
-
-  renderCart(state.cart);
-  renderCabinetContent();
-}
-
-// ============================================================
-// 🛒 КОРЗИНА
-// ============================================================
-
-// Добавить товар торговца в корзину
-window.addTraderItemToCartAction = function (itemId, traderId) {
-  const item = findTraderItem(traderId, itemId);
-
-  if (!item) {
-    showToast("Товар не найден");
+  if (!cartItem) {
+    showToast("Не удалось добавить товар");
     return;
   }
 
-  addToCart(item, 1);
-  renderCart(state.cart);
-  showToast(`Добавлено в корзину: ${item.name}`);
-};
+  const alreadyExists = STATE.cart.some(
+    (item) =>
+      Number(item.item_id || item.id) === Number(itemId) &&
+      Number(item.trader_id) === Number(traderId)
+  );
 
-// Изменить количество товара в корзине
-window.updateCartQuantityAction = function (itemId, delta) {
-  updateCartQuantity(itemId, delta);
-  renderCart(state.cart);
-};
-
-// Удалить товар из корзины
-window.removeCartItemAction = function (itemId) {
-  removeFromCart(itemId);
-  renderCart(state.cart);
-};
-
-// Очистить корзину
-window.clearCartAction = function () {
-  clearCart();
-  renderCart(state.cart);
-};
-
-// ============================================================
-// 💸 ПОКУПКА / ПРОДАЖА
-// ============================================================
-
-// Купить предмет
-window.buyItemAction = async function (itemId, traderId, quantity = 1) {
-  try {
-    await buyItem(itemId, traderId, quantity);
-    await loadInventory();
-    await loadTraders();
-    showToast("Покупка выполнена");
-  } catch (error) {
-    console.error(error);
-    showToast(`Ошибка покупки: ${error.message}`);
+  if (alreadyExists) {
+    showToast("Товар уже в корзине");
+    return;
   }
+
+  STATE.cart.push(cartItem);
+  renderCart(STATE.cart);
+  updateCartCounter();
+  updateCartTotalLabels();
+  showToast("Товар добавлен в корзину");
 };
 
-// Продать предмет
-window.sellItemAction = async function (itemId, traderId, quantity = 1) {
-  try {
-    await sellItem(itemId, traderId, quantity);
-    await loadInventory();
-    await loadTraders();
-    showToast("Продажа выполнена");
-  } catch (error) {
-    console.error(error);
-    showToast(`Ошибка продажи: ${error.message}`);
-  }
+window.removeFromCart = function (itemId) {
+  STATE.cart = STATE.cart.filter(
+    (item) => Number(item.item_id || item.id) !== Number(itemId)
+  );
+
+  renderCart(STATE.cart);
+  updateCartCounter();
+  updateCartTotalLabels();
 };
 
-// ============================================================
-// 📝 ЗАМЕТКИ
-// ============================================================
-
-// Сохранить заметки игрока
-async function handleSavePlayerNotes() {
-  const textarea = document.getElementById("playerNotesTextarea");
-  if (!textarea) return;
-
-  try {
-    await savePlayerNotes(textarea.value);
-    setLssData({ notes: textarea.value });
-    renderCabinetContent();
-    showToast("Заметки сохранены");
-  } catch (error) {
-    console.error(error);
-    showToast(`Ошибка сохранения заметок: ${error.message}`);
+async function checkoutCart() {
+  if (!STATE.token) {
+    showToast("Нужно войти");
+    return;
   }
+
+  if (!STATE.cart.length) {
+    showToast("Корзина пуста");
+    return;
+  }
+
+  for (const item of STATE.cart) {
+    const traderId = item.trader_id;
+    const itemId = item.item_id || item.id;
+
+    const res = await fetch("/buy", {
+      method: "POST",
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({
+        trader_id: traderId,
+        item_id: itemId,
+        quantity: 1,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Ошибка покупки товара:", item.name);
+    }
+  }
+
+  STATE.cart = [];
+  renderCart(STATE.cart);
+  updateCartCounter();
+  updateCartTotalLabels();
+
+  await loadInventory();
+  await loadTraders();
+  await loadMe();
+
+  showToast("Покупка завершена");
 }
 
-// ============================================================
-// 🔘 UI EVENTS
-// ============================================================
-
-// Форма авторизации
-function bindAuthUi() {
-  const showAuthBtn = document.getElementById("showAuthBtn");
-  const doLoginBtn = document.getElementById("doLogin");
-  const doRegisterBtn = document.getElementById("doRegister");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  const loginEmail = document.getElementById("loginEmail");
-  const loginPassword = document.getElementById("loginPassword");
-
-  if (showAuthBtn) {
-    showAuthBtn.addEventListener("click", () => {
-      const authContainer = document.getElementById("authContainer");
-      if (!authContainer) return;
-
-      authContainer.style.display =
-        authContainer.style.display === "block" ? "none" : "block";
-    });
+// ------------------------------------------------------------
+// 💰 BUY / SELL
+// ------------------------------------------------------------
+window.buyItem = async function (traderId, itemId) {
+  if (!STATE.token) {
+    alert("Нужно войти");
+    return;
   }
 
-  if (doLoginBtn) {
-    doLoginBtn.addEventListener("click", async () => {
-      const email = loginEmail?.value?.trim() || "";
-      const password = loginPassword?.value || "";
+  const res = await fetch("/buy", {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({
+      trader_id: traderId,
+      item_id: itemId,
+      quantity: 1,
+    }),
+  });
 
-      if (!email || !password) {
-        showToast("Введите email и пароль");
-        return;
+  if (!res.ok) {
+    showToast("Ошибка покупки");
+    return;
+  }
+
+  await loadInventory();
+  await loadTraders();
+  await loadMe();
+
+  showToast("Предмет куплен");
+};
+
+window.sellItem = async function (itemId) {
+  if (!STATE.token) {
+    alert("Нужно войти");
+    return;
+  }
+
+  const activeTraderId =
+    window.__lastOpenedTraderId ||
+    (STATE.traders.length ? STATE.traders[0].id : null);
+
+  if (!activeTraderId) {
+    showToast("Нет торговца для продажи");
+    return;
+  }
+
+  const res = await fetch("/sell", {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({
+      trader_id: activeTraderId,
+      item_id: itemId,
+      quantity: 1,
+    }),
+  });
+
+  if (!res.ok) {
+    showToast("Ошибка продажи");
+    return;
+  }
+
+  await loadInventory();
+  await loadTraders();
+  await loadMe();
+
+  showToast("Предмет продан");
+};
+
+// ------------------------------------------------------------
+// 🖼 MODALS
+// ------------------------------------------------------------
+function bindModalButtons() {
+  document.getElementById("viewInventoryBtn")?.addEventListener("click", () => {
+    document.getElementById("inventoryModal").style.display = "block";
+  });
+
+  document.getElementById("viewCartBtn")?.addEventListener("click", () => {
+    document.getElementById("cartModal").style.display = "block";
+    renderCart(STATE.cart);
+    updateCartCounter();
+    updateCartTotalLabels();
+  });
+
+  document.getElementById("cabinetBtn")?.addEventListener("click", async () => {
+    if (!STATE.token) {
+      showToast("Нужно войти");
+      return;
+    }
+
+    document.getElementById("cabinetModal").style.display = "block";
+    switchCabinetTab("inventory");
+    await loadCabinetAll();
+  });
+
+  document.getElementById("checkoutCartBtn")?.addEventListener("click", async () => {
+    await checkoutCart();
+  });
+
+  document.getElementById("clearCartBtn")?.addEventListener("click", () => {
+    STATE.cart = [];
+    renderCart(STATE.cart);
+    updateCartCounter();
+    updateCartTotalLabels();
+  });
+
+  document.getElementById("clearCartBtnModal")?.addEventListener("click", () => {
+    STATE.cart = [];
+    renderCart(STATE.cart);
+    updateCartCounter();
+    updateCartTotalLabels();
+  });
+
+  document.getElementById("refreshDataBtn")?.addEventListener("click", async () => {
+    await loadTraders();
+    await loadInventory();
+    await loadMe();
+    showToast("Данные обновлены");
+  });
+
+  document.querySelectorAll(".close").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const modal = btn.closest(".modal");
+      if (modal) modal.style.display = "none";
+    });
+  });
+
+  window.addEventListener("click", (e) => {
+    document.querySelectorAll(".modal").forEach((modal) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
       }
-
-      await handleLogin(email, password);
     });
-  }
-
-  if (doRegisterBtn) {
-    doRegisterBtn.addEventListener("click", async () => {
-      const email = loginEmail?.value?.trim() || "";
-      const password = loginPassword?.value || "";
-
-      if (!email || !password) {
-        showToast("Введите email и пароль");
-        return;
-      }
-
-      await handleRegister(email, password);
-    });
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", handleLogout);
-  }
+  });
 }
 
-// Фильтры
-function bindFiltersUi() {
+// ------------------------------------------------------------
+// 🔐 AUTH BUTTONS
+// ------------------------------------------------------------
+function bindAuthButtons() {
+  document.getElementById("showAuthBtn")?.addEventListener("click", () => {
+    const authContainer = document.getElementById("authContainer");
+    if (!authContainer) return;
+    authContainer.classList.toggle("hidden");
+  });
+
+  document.getElementById("doLogin")?.addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail")?.value?.trim();
+    const password = document.getElementById("loginPassword")?.value;
+
+    if (!email || !password) {
+      showToast("Введите email и пароль");
+      return;
+    }
+
+    try {
+      await login(email, password);
+      await loadMe();
+      await loadInventory();
+    } catch (e) {
+      console.error(e);
+      showToast("Ошибка входа");
+    }
+  });
+
+  document.getElementById("doRegister")?.addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail")?.value?.trim();
+    const password = document.getElementById("loginPassword")?.value;
+
+    if (!email || !password) {
+      showToast("Введите email и пароль");
+      return;
+    }
+
+    try {
+      await register(email, password);
+      await loadMe();
+      await loadInventory();
+    } catch (e) {
+      console.error(e);
+      showToast("Ошибка регистрации");
+    }
+  });
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+    logout();
+  });
+}
+
+// ------------------------------------------------------------
+// 🔗 FILTERS
+// ------------------------------------------------------------
+function bindFilters() {
   bindFilterEvents(() => {
     rerenderTraders();
   });
-
-  const resetBtn = document.getElementById("resetFiltersBtn");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      resetFiltersInDom();
-      rerenderTraders();
-      showToast("Фильтры сброшены");
-    });
-  }
 }
 
-// Кабинет
-function bindCabinetUi() {
-  document.querySelectorAll("[data-cabinet-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      renderCabinetContent();
-    });
-  });
+// ------------------------------------------------------------
+// 🌍 GLOBAL BRIDGES
+// ------------------------------------------------------------
+window.openTraderModal = async function (traderId) {
+  window.__lastOpenedTraderId = traderId;
+  await openTraderModal(traderId);
+};
 
-  const saveNotesBtn = document.getElementById("savePlayerNotesBtn");
-  if (saveNotesBtn) {
-    saveNotesBtn.addEventListener("click", handleSavePlayerNotes);
-  }
-}
+window.showToast = showToast;
 
-// Инвентарь / корзина
-function bindInventoryCartUi() {
-  const viewInventoryBtn = document.getElementById("viewInventoryBtn");
-  if (viewInventoryBtn) {
-    viewInventoryBtn.addEventListener("click", () => {
-      const inventoryModal = document.getElementById("inventoryModal");
-      if (inventoryModal) {
-        inventoryModal.style.display = "block";
-      }
-    });
-  }
-
-  const clearCartBtn = document.getElementById("clearCartBtn");
-  if (clearCartBtn) {
-    clearCartBtn.addEventListener("click", () => {
-      window.clearCartAction();
-    });
-  }
-}
-
-// Глобальный openTrader
-window.openTrader = openTrader;
-
-// ============================================================
+// ------------------------------------------------------------
 // 🚀 INIT
-// ============================================================
+// ------------------------------------------------------------
+async function init() {
+  STATE.token = localStorage.getItem("token");
 
-// Запуск приложения
-async function initApp() {
-  bindRenderUiEvents();
-  bindAuthUi();
-  bindFiltersUi();
-  bindCabinetUi();
-  bindInventoryCartUi();
+  bindAuthButtons();
+  bindModalButtons();
+  bindFilters();
+  initCabinet();
 
-  await initAuth();
-  await loadInitialData();
+  updateUserUI();
+  renderAllLocalState();
+
+  if (STATE.token) {
+    await loadMe();
+    await loadInventory();
+  }
+
+  await loadTraders();
 }
 
-initApp();
+init();

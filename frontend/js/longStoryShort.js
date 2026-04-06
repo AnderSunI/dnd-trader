@@ -1,62 +1,141 @@
-// frontend/js/longStoryShort.js
+// ============================================================
+// longstoryshort.js
+// LSS (лист персонажа + история)
+// Работает внутри cabinetModal → вкладка
+// ============================================================
 
-import { state } from "./state.js";
+// ------------------------------------------------------------
+// 🌐 STATE
+// ------------------------------------------------------------
+let LSS_STATE = {
+  profile: null,
+};
 
-// Данные истории
-export function loadStory() {
-  const story = [
-    {
-      id: 1,
-      title: "Встреча с торговцем",
-      description: "Вы встретили торговца, который рассказал вам о скрытом лесу...",
-      reward: "100 золота",
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Задание: Убийство дракона",
-      description: "Дракон, угрожающий деревне, был побежден вами...",
-      reward: "1000 золота, новое оружие",
-      completed: false,
-    },
-  ];
-
-  state.story = story;
-  renderStory(story);
+// ------------------------------------------------------------
+// 🧰 HELPERS
+// ------------------------------------------------------------
+function getToken() {
+  return localStorage.getItem("token") || "";
 }
 
-// Рендеринг истории
-function renderStory(story) {
-  const container = document.getElementById("story-container");
+function getHeaders() {
+  const token = getToken();
+  const headers = {};
 
-  if (!container) return;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
-  if (story.length === 0) {
-    container.innerHTML = "<p>Нет доступных историй.</p>";
+  return headers;
+}
+
+function safe(value, fallback = "—") {
+  if (value === null || value === undefined || value === "") return fallback;
+  return value;
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+// ------------------------------------------------------------
+// 📡 LOAD PROFILE
+// ------------------------------------------------------------
+export async function loadLSS() {
+  const token = getToken();
+  if (!token) return;
+
+  const res = await fetch("/player/profile", {
+    headers: getHeaders(),
+  });
+
+  if (!res.ok) {
+    console.error("Ошибка загрузки LSS");
     return;
   }
 
-  container.innerHTML = story
-    .map((event) => {
-      const status = event.completed ? "Выполнен" : "Не выполнен";
-      return `
-        <div class="story-item" data-story-id="${event.id}">
-          <h3>${event.title}</h3>
-          <p>${event.description}</p>
-          <p>Награда: ${event.reward}</p>
-          <p>Статус: ${status}</p>
-          <button onclick="markStoryAsCompleted(${event.id})">Завершить событие</button>
-        </div>
-      `;
-    })
-    .join("");
+  const data = await res.json();
+  LSS_STATE.profile = data.profile || data;
+
+  renderLSS();
+  renderHistory();
 }
 
-// Обновление статуса истории
-export function markStoryAsCompleted(storyId) {
-  const event = state.story.find((e) => e.id === storyId);
-  if (event) {
-    event.completed = true;
-    renderStory(state.story);
+// ------------------------------------------------------------
+// 🧙 РЕНДЕР ПЕРСОНАЖА (LSS)
+// ------------------------------------------------------------
+export function renderLSS() {
+  const container = document.getElementById("cabinet-lss");
+  if (!container) return;
+
+  const p = LSS_STATE.profile || {};
+  const stats = p.stats || {};
+
+  container.innerHTML = `
+    <div class="cabinet-block">
+      <h3>📖 Персонаж (LSS)</h3>
+
+      <div class="profile-grid">
+        <div><b>Имя:</b> ${escapeHtml(safe(p.name))}</div>
+        <div><b>Класс:</b> ${escapeHtml(safe(p.class_name))}</div>
+        <div><b>Уровень:</b> ${safe(p.level)}</div>
+        <div><b>Раса:</b> ${escapeHtml(safe(p.race))}</div>
+        <div><b>Мировоззрение:</b> ${escapeHtml(safe(p.alignment))}</div>
+        <div><b>Опыт:</b> ${safe(p.experience)}</div>
+      </div>
+
+      <h4>⚔️ Характеристики</h4>
+      <div class="stats-grid">
+        <div>STR: ${safe(stats.str)}</div>
+        <div>DEX: ${safe(stats.dex)}</div>
+        <div>CON: ${safe(stats.con)}</div>
+        <div>INT: ${safe(stats.int)}</div>
+        <div>WIS: ${safe(stats.wis)}</div>
+        <div>CHA: ${safe(stats.cha)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ------------------------------------------------------------
+// 📜 ИСТОРИЯ
+// ------------------------------------------------------------
+export function renderHistory() {
+  const container = document.getElementById("cabinet-history");
+  if (!container) return;
+
+  const history = LSS_STATE.profile?.history || [];
+
+  if (!history.length) {
+    container.innerHTML = `
+      <div class="cabinet-block">
+        <h3>📜 История</h3>
+        <p>История пуста</p>
+      </div>
+    `;
+    return;
   }
+
+  container.innerHTML = `
+    <div class="cabinet-block">
+      <h3>📜 История</h3>
+
+      <div class="history-list">
+        ${history
+          .map(
+            (entry, i) => `
+          <div class="history-entry">
+            <b>${i + 1}.</b> ${escapeHtml(
+              typeof entry === "string" ? entry : entry.text || entry.title
+            )}
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
 }
