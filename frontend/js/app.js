@@ -1,13 +1,3 @@
-// ============================================================
-// app.js
-// Главная логика приложения
-// Связка:
-// - render.js
-// - filters.js
-// - cabinet.js
-// - backend API
-// ============================================================
-
 import {
   renderTraders,
   renderCart,
@@ -15,64 +5,66 @@ import {
   openTraderModal,
 } from "./render.js";
 
-import {
-  populateFilterOptions,
-  applyFilters,
-  bindFilterEvents,
-} from "./filters.js";
-
-import {
-  initCabinet,
-  loadCabinetAll,
-  switchCabinetTab,
-} from "./cabinet.js";
-
-// ------------------------------------------------------------
-// 🌐 GLOBAL STATE
-// ------------------------------------------------------------
 const STATE = {
+  token: localStorage.getItem("token") || "",
   user: null,
-  token: null,
   traders: [],
   cart: [],
   inventory: [],
 };
 
-// ------------------------------------------------------------
-// 🧰 HELPERS
-// ------------------------------------------------------------
-function getAuthHeaders(withJson = false) {
-  const headers = {};
-
-  if (withJson) {
-    headers["Content-Type"] = "application/json";
+function debug(msg) {
+  let box = document.getElementById("debugBox");
+  if (!box) {
+    box = document.createElement("pre");
+    box.id = "debugBox";
+    box.style.cssText =
+      "position:fixed;left:10px;bottom:10px;z-index:99999;max-width:70vw;max-height:40vh;overflow:auto;background:#111;color:#0f0;padding:10px;border:2px solid #0f0;border-radius:8px;font:12px monospace;white-space:pre-wrap;";
+    document.body.appendChild(box);
   }
-
-  if (STATE.token) {
-    headers.Authorization = `Bearer ${STATE.token}`;
-  }
-
-  return headers;
+  box.textContent += `${msg}\n`;
 }
 
 function showToast(message) {
   const toast = document.getElementById("toast");
   if (!toast) {
-    console.log(message);
+    debug(`toast: ${message}`);
     return;
   }
 
   toast.textContent = message;
   toast.classList.remove("hidden");
+  toast.style.opacity = "1";
 
   setTimeout(() => {
-    toast.classList.add("hidden");
-  }, 2200);
+    toast.style.opacity = "0";
+    setTimeout(() => toast.classList.add("hidden"), 300);
+  }, 1800);
 }
 
-function toNumber(value, fallback = 0) {
+function safeNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) {
+    debug(`modal not found: ${modalId}`);
+    return;
+  }
+  modal.style.display = "block";
+  debug(`opened modal: ${modalId}`);
+}
+
+function closeModal(modal) {
+  if (modal) modal.style.display = "none";
+}
+
+function normalizeApiList(payload, key) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.[key])) return payload[key];
+  return [];
 }
 
 function updateUserUI() {
@@ -89,71 +81,54 @@ function updateUserUI() {
     showAuthBtn?.classList.add("hidden");
     authContainer?.classList.add("hidden");
 
-    if (userMoney) {
-      userMoney.innerText = STATE.user.money_label || "0з";
-    }
+    if (userMoney) userMoney.innerText = STATE.user.money_label || "0з";
 
     const role = String(STATE.user.role || "").toLowerCase();
     if (gmBadge) {
-      if (role === "gm" || role === "admin") {
-        gmBadge.classList.remove("hidden");
-      } else {
-        gmBadge.classList.add("hidden");
-      }
+      if (role === "gm" || role === "admin") gmBadge.classList.remove("hidden");
+      else gmBadge.classList.add("hidden");
     }
   } else {
     guestWarning?.classList.remove("hidden");
     logoutBtn?.classList.add("hidden");
     showAuthBtn?.classList.remove("hidden");
-
-    if (userMoney) {
-      userMoney.innerText = "0з";
-    }
-
+    authContainer?.classList.add("hidden");
     gmBadge?.classList.add("hidden");
+    if (userMoney) userMoney.innerText = "0з";
   }
+}
+
+function updateCartCounter() {
+  const count = Array.isArray(STATE.cart)
+    ? STATE.cart.reduce((sum, item) => sum + safeNumber(item.quantity, 1), 0)
+    : 0;
+
+  document.getElementById("cartCount")?.replaceChildren(document.createTextNode(String(count)));
+  document.getElementById("cartCountModal")?.replaceChildren(document.createTextNode(String(count)));
 }
 
 function updateInventoryCounter() {
   const count = Array.isArray(STATE.inventory)
-    ? STATE.inventory.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+    ? STATE.inventory.reduce((sum, item) => sum + safeNumber(item.quantity, 0), 0)
     : 0;
 
-  const inventoryCount = document.getElementById("inventoryCount");
-  const inventoryCountModal = document.getElementById("inventoryCountModal");
-
-  if (inventoryCount) inventoryCount.innerText = String(count);
-  if (inventoryCountModal) inventoryCountModal.innerText = String(count);
-}
-
-function updateCartCounter() {
-  const count = Array.isArray(STATE.cart) ? STATE.cart.length : 0;
-
-  const cartCount = document.getElementById("cartCount");
-  const cartCountModal = document.getElementById("cartCountModal");
-
-  if (cartCount) cartCount.innerText = String(count);
-  if (cartCountModal) cartCountModal.innerText = String(count);
+  document.getElementById("inventoryCount")?.replaceChildren(document.createTextNode(String(count)));
+  document.getElementById("inventoryCountModal")?.replaceChildren(document.createTextNode(String(count)));
 }
 
 function updateCartTotalLabels() {
-  const totalGold = STATE.cart.reduce((sum, item) => {
-    if (item.buy_price_gold != null) return sum + toNumber(item.buy_price_gold, 0);
-    if (item.price_gold != null) return sum + toNumber(item.price_gold, 0);
-    return sum;
-  }, 0);
-
-  const totalSilver = STATE.cart.reduce((sum, item) => {
-    if (item.buy_price_silver != null) return sum + toNumber(item.buy_price_silver, 0);
-    if (item.price_silver != null) return sum + toNumber(item.price_silver, 0);
-    return sum;
-  }, 0);
-
-  const totalCopper = STATE.cart.reduce((sum, item) => {
-    if (item.buy_price_copper != null) return sum + toNumber(item.buy_price_copper, 0);
-    if (item.price_copper != null) return sum + toNumber(item.price_copper, 0);
-    return sum;
-  }, 0);
+  const totalGold = STATE.cart.reduce(
+    (sum, item) => sum + safeNumber(item.price_gold ?? item.buy_price_gold, 0) * safeNumber(item.quantity, 1),
+    0
+  );
+  const totalSilver = STATE.cart.reduce(
+    (sum, item) => sum + safeNumber(item.price_silver ?? item.buy_price_silver, 0) * safeNumber(item.quantity, 1),
+    0
+  );
+  const totalCopper = STATE.cart.reduce(
+    (sum, item) => sum + safeNumber(item.price_copper ?? item.buy_price_copper, 0) * safeNumber(item.quantity, 1),
+    0
+  );
 
   const parts = [];
   if (totalGold) parts.push(`${totalGold}з`);
@@ -178,473 +153,184 @@ function renderAllLocalState() {
   updateInventoryCounter();
 }
 
-function rerenderTraders() {
-  const filtered = applyFilters(STATE.traders);
-  renderTraders(filtered);
-}
-
-function findTraderById(traderId) {
-  return STATE.traders.find((t) => Number(t.id) === Number(traderId)) || null;
-}
-
-function findTraderItem(traderId, itemId) {
-  const trader = findTraderById(traderId);
-  if (!trader || !Array.isArray(trader.items)) return null;
-  return trader.items.find((item) => Number(item.id) === Number(itemId)) || null;
-}
-
-function getCartPayloadItem(traderId, itemId) {
-  const item = findTraderItem(traderId, itemId);
-  if (!item) return null;
-
-  return {
-    ...item,
-    trader_id: traderId,
-    item_id: itemId,
-    price_label:
-      item.buy_price_label ||
-      item.price_label ||
-      `${item.price_gold || 0}з`,
-  };
-}
-
-// ------------------------------------------------------------
-// 🔐 AUTH
-// ------------------------------------------------------------
-async function login(email, password) {
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: getAuthHeaders(true),
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Ошибка входа");
-  }
-
-  const data = await res.json();
-
-  STATE.token = data.access_token;
-  STATE.user = data.user || null;
-
-  localStorage.setItem("token", STATE.token);
-
-  updateUserUI();
-  showToast("Вход выполнен");
-}
-
-async function register(email, password) {
-  const res = await fetch("/register", {
-    method: "POST",
-    headers: getAuthHeaders(true),
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Ошибка регистрации");
-  }
-
-  const data = await res.json();
-
-  STATE.token = data.access_token;
-  STATE.user = data.user || null;
-
-  localStorage.setItem("token", STATE.token);
-
-  updateUserUI();
-  showToast("Регистрация успешна");
-}
-
-async function loadMe() {
-  if (!STATE.token) return;
-
-  const res = await fetch("/me", {
-    headers: getAuthHeaders(false),
-  });
-
-  if (!res.ok) {
-    STATE.token = null;
-    STATE.user = null;
-    localStorage.removeItem("token");
-    updateUserUI();
-    return;
-  }
-
-  const data = await res.json();
-  STATE.user = data.user || null;
-  updateUserUI();
-}
-
-function logout() {
-  STATE.token = null;
-  STATE.user = null;
-  STATE.inventory = [];
-  STATE.cart = [];
-
-  localStorage.removeItem("token");
-
-  updateUserUI();
-  renderAllLocalState();
-  showToast("Вы вышли из аккаунта");
-}
-
-// ------------------------------------------------------------
-// 🧙 LOAD TRADERS
-// ------------------------------------------------------------
 async function loadTraders() {
-  try {
-    const res = await fetch("/traders");
-    if (!res.ok) throw new Error("Не удалось загрузить торговцев");
+  debug("loadTraders:start");
+  const res = await fetch("/traders");
+  debug(`loadTraders:status ${res.status}`);
+  if (!res.ok) throw new Error(`Ошибка загрузки торговцев: ${res.status}`);
 
-    const data = await res.json();
-    STATE.traders = data.traders || [];
-
-    populateFilterOptions(STATE.traders);
-    rerenderTraders();
-  } catch (e) {
-    console.error("Ошибка загрузки торговцев", e);
-    showToast("Ошибка загрузки торговцев");
-  }
+  const data = await res.json();
+  STATE.traders = normalizeApiList(data, "traders");
+  debug(`loadTraders:count ${STATE.traders.length}`);
+  renderTraders(STATE.traders);
 }
 
-// ------------------------------------------------------------
-// 🎒 LOAD INVENTORY
-// ------------------------------------------------------------
-async function loadInventory() {
-  if (!STATE.token) {
-    STATE.inventory = [];
-    renderInventory([]);
-    updateInventoryCounter();
-    return;
-  }
-
-  try {
-    const res = await fetch("/player/inventory", {
-      headers: getAuthHeaders(false),
-    });
-
-    if (!res.ok) {
-      throw new Error("Не удалось загрузить инвентарь");
-    }
-
-    const data = await res.json();
-    STATE.inventory = data.items || [];
-
-    renderInventory(STATE.inventory);
-    updateInventoryCounter();
-  } catch (e) {
-    console.error("Ошибка загрузки инвентаря", e);
-  }
-}
-
-// ------------------------------------------------------------
-// 🛒 CART
-// ------------------------------------------------------------
-window.addToCart = function (traderId, itemId) {
-  const cartItem = getCartPayloadItem(traderId, itemId);
-
-  if (!cartItem) {
-    showToast("Не удалось добавить товар");
-    return;
-  }
-
-  const alreadyExists = STATE.cart.some(
-    (item) =>
-      Number(item.item_id || item.id) === Number(itemId) &&
-      Number(item.trader_id) === Number(traderId)
-  );
-
-  if (alreadyExists) {
-    showToast("Товар уже в корзине");
-    return;
-  }
-
-  STATE.cart.push(cartItem);
-  renderCart(STATE.cart);
-  updateCartCounter();
-  updateCartTotalLabels();
-  showToast("Товар добавлен в корзину");
-};
-
-window.removeFromCart = function (itemId) {
-  STATE.cart = STATE.cart.filter(
-    (item) => Number(item.item_id || item.id) !== Number(itemId)
-  );
-
-  renderCart(STATE.cart);
-  updateCartCounter();
-  updateCartTotalLabels();
-};
-
-async function checkoutCart() {
-  if (!STATE.token) {
-    showToast("Нужно войти");
-    return;
-  }
-
-  if (!STATE.cart.length) {
-    showToast("Корзина пуста");
-    return;
-  }
-
-  for (const item of STATE.cart) {
-    const traderId = item.trader_id;
-    const itemId = item.item_id || item.id;
-
-    const res = await fetch("/buy", {
-      method: "POST",
-      headers: getAuthHeaders(true),
-      body: JSON.stringify({
-        trader_id: traderId,
-        item_id: itemId,
-        quantity: 1,
-      }),
-    });
-
-    if (!res.ok) {
-      console.error("Ошибка покупки товара:", item.name);
-    }
-  }
-
-  STATE.cart = [];
-  renderCart(STATE.cart);
-  updateCartCounter();
-  updateCartTotalLabels();
-
-  await loadInventory();
-  await loadTraders();
-  await loadMe();
-
-  showToast("Покупка завершена");
-}
-
-// ------------------------------------------------------------
-// 💰 BUY / SELL
-// ------------------------------------------------------------
-window.buyItem = async function (traderId, itemId) {
-  if (!STATE.token) {
-    alert("Нужно войти");
-    return;
-  }
-
-  const res = await fetch("/buy", {
-    method: "POST",
-    headers: getAuthHeaders(true),
-    body: JSON.stringify({
-      trader_id: traderId,
-      item_id: itemId,
-      quantity: 1,
-    }),
-  });
-
-  if (!res.ok) {
-    showToast("Ошибка покупки");
-    return;
-  }
-
-  await loadInventory();
-  await loadTraders();
-  await loadMe();
-
-  showToast("Предмет куплен");
-};
-
-window.sellItem = async function (itemId) {
-  if (!STATE.token) {
-    alert("Нужно войти");
-    return;
-  }
-
-  const activeTraderId =
-    window.__lastOpenedTraderId ||
-    (STATE.traders.length ? STATE.traders[0].id : null);
-
-  if (!activeTraderId) {
-    showToast("Нет торговца для продажи");
-    return;
-  }
-
-  const res = await fetch("/sell", {
-    method: "POST",
-    headers: getAuthHeaders(true),
-    body: JSON.stringify({
-      trader_id: activeTraderId,
-      item_id: itemId,
-      quantity: 1,
-    }),
-  });
-
-  if (!res.ok) {
-    showToast("Ошибка продажи");
-    return;
-  }
-
-  await loadInventory();
-  await loadTraders();
-  await loadMe();
-
-  showToast("Предмет продан");
-};
-
-// ------------------------------------------------------------
-// 🖼 MODALS
-// ------------------------------------------------------------
-function bindModalButtons() {
-  document.getElementById("viewInventoryBtn")?.addEventListener("click", () => {
-    document.getElementById("inventoryModal").style.display = "block";
-  });
+function bindToolbarButtons() {
+  debug("bindToolbarButtons:start");
 
   document.getElementById("viewCartBtn")?.addEventListener("click", () => {
-    document.getElementById("cartModal").style.display = "block";
+    debug("click:viewCartBtn");
     renderCart(STATE.cart);
     updateCartCounter();
     updateCartTotalLabels();
-  });
-
-  document.getElementById("cabinetBtn")?.addEventListener("click", async () => {
-    if (!STATE.token) {
-      showToast("Нужно войти");
-      return;
-    }
-
-    document.getElementById("cabinetModal").style.display = "block";
-    switchCabinetTab("inventory");
-    await loadCabinetAll();
-  });
-
-  document.getElementById("checkoutCartBtn")?.addEventListener("click", async () => {
-    await checkoutCart();
+    openModal("cartModal");
   });
 
   document.getElementById("clearCartBtn")?.addEventListener("click", () => {
+    debug("click:clearCartBtn");
     STATE.cart = [];
-    renderCart(STATE.cart);
-    updateCartCounter();
-    updateCartTotalLabels();
+    renderAllLocalState();
+    showToast("Корзина очищена");
   });
 
   document.getElementById("clearCartBtnModal")?.addEventListener("click", () => {
+    debug("click:clearCartBtnModal");
     STATE.cart = [];
-    renderCart(STATE.cart);
-    updateCartCounter();
-    updateCartTotalLabels();
+    renderAllLocalState();
+    showToast("Корзина очищена");
+  });
+
+  document.getElementById("viewInventoryBtn")?.addEventListener("click", () => {
+    debug("click:viewInventoryBtn");
+    renderInventory(STATE.inventory);
+    updateInventoryCounter();
+    openModal("inventoryModal");
+  });
+
+  document.getElementById("cabinetBtn")?.addEventListener("click", () => {
+    debug("click:cabinetBtn");
+    openModal("cabinetModal");
   });
 
   document.getElementById("refreshDataBtn")?.addEventListener("click", async () => {
+    debug("click:refreshDataBtn");
     await loadTraders();
-    await loadInventory();
-    await loadMe();
     showToast("Данные обновлены");
   });
+
+  debug("bindToolbarButtons:done");
+}
+
+function bindAuthButtons() {
+  debug("bindAuthButtons:start");
+
+  document.getElementById("showAuthBtn")?.addEventListener("click", () => {
+    debug("click:showAuthBtn");
+    document.getElementById("authContainer")?.classList.toggle("hidden");
+  });
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+    debug("click:logoutBtn");
+    STATE.token = "";
+    STATE.user = null;
+    localStorage.removeItem("token");
+    updateUserUI();
+    showToast("Вы вышли");
+  });
+
+  debug("bindAuthButtons:done");
+}
+
+function bindFilters() {
+  debug("bindFilters:start");
+
+  [
+    "searchInput",
+    "typeFilter",
+    "regionFilter",
+    "playerLevelFilter",
+    "reputationFilter",
+    "itemSearchInput",
+    "priceFilter",
+    "rarityFilter",
+    "categoryFilter",
+    "magicFilter",
+    "sortFilter",
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const rerender = () => {
+      debug(`filter:${id}`);
+      renderTraders(STATE.traders);
+    };
+
+    el.addEventListener("input", rerender);
+    el.addEventListener("change", rerender);
+  });
+
+  debug("bindFilters:done");
+}
+
+function bindModalButtons() {
+  debug("bindModalButtons:start");
 
   document.querySelectorAll(".close").forEach((btn) => {
     btn.addEventListener("click", () => {
       const modal = btn.closest(".modal");
-      if (modal) modal.style.display = "none";
+      debug(`click:close ${modal?.id || "unknown"}`);
+      closeModal(modal);
     });
   });
 
-  window.addEventListener("click", (e) => {
+  window.addEventListener("click", (event) => {
     document.querySelectorAll(".modal").forEach((modal) => {
-      if (e.target === modal) {
-        modal.style.display = "none";
+      if (event.target === modal) {
+        debug(`overlayClose:${modal.id}`);
+        closeModal(modal);
       }
     });
   });
+
+  debug("bindModalButtons:done");
 }
 
-// ------------------------------------------------------------
-// 🔐 AUTH BUTTONS
-// ------------------------------------------------------------
-function bindAuthButtons() {
-  document.getElementById("showAuthBtn")?.addEventListener("click", () => {
-    const authContainer = document.getElementById("authContainer");
-    if (!authContainer) return;
-    authContainer.classList.toggle("hidden");
-  });
-
-  document.getElementById("doLogin")?.addEventListener("click", async () => {
-    const email = document.getElementById("loginEmail")?.value?.trim();
-    const password = document.getElementById("loginPassword")?.value;
-
-    if (!email || !password) {
-      showToast("Введите email и пароль");
-      return;
-    }
-
-    try {
-      await login(email, password);
-      await loadMe();
-      await loadInventory();
-    } catch (e) {
-      console.error(e);
-      showToast("Ошибка входа");
-    }
-  });
-
-  document.getElementById("doRegister")?.addEventListener("click", async () => {
-    const email = document.getElementById("loginEmail")?.value?.trim();
-    const password = document.getElementById("loginPassword")?.value;
-
-    if (!email || !password) {
-      showToast("Введите email и пароль");
-      return;
-    }
-
-    try {
-      await register(email, password);
-      await loadMe();
-      await loadInventory();
-    } catch (e) {
-      console.error(e);
-      showToast("Ошибка регистрации");
-    }
-  });
-
-  document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    logout();
-  });
-}
-
-// ------------------------------------------------------------
-// 🔗 FILTERS
-// ------------------------------------------------------------
-function bindFilters() {
-  bindFilterEvents(() => {
-    rerenderTraders();
-  });
-}
-
-// ------------------------------------------------------------
-// 🌍 GLOBAL BRIDGES
-// ------------------------------------------------------------
 window.openTraderModal = async function (traderId) {
-  window.__lastOpenedTraderId = traderId;
+  debug(`window.openTraderModal:${traderId}`);
   await openTraderModal(traderId);
 };
 
-window.showToast = showToast;
+window.addToCart = function (traderId, itemId) {
+  debug(`window.addToCart:${traderId}:${itemId}`);
+  showToast(`В корзину: trader=${traderId}, item=${itemId}`);
+};
 
-// ------------------------------------------------------------
-// 🚀 INIT
-// ------------------------------------------------------------
+window.buyItem = async function (traderId, itemId) {
+  debug(`window.buyItem:${traderId}:${itemId}`);
+  showToast(`Купить: trader=${traderId}, item=${itemId}`);
+};
+
+window.sellItem = async function (itemId) {
+  debug(`window.sellItem:${itemId}`);
+  showToast(`Продать: item=${itemId}`);
+};
+
+window.removeFromCart = function (itemId) {
+  debug(`window.removeFromCart:${itemId}`);
+  STATE.cart = STATE.cart.filter((item) => Number(item.item_id || item.id) !== Number(itemId));
+  renderAllLocalState();
+};
+
+window.addEventListener("error", (e) => {
+  debug(`JS ERROR: ${e.message} @ ${e.filename}:${e.lineno}`);
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  debug(`PROMISE ERROR: ${e.reason}`);
+});
+
 async function init() {
-  STATE.token = localStorage.getItem("token");
-
+  debug("init:start");
   bindAuthButtons();
+  bindToolbarButtons();
   bindModalButtons();
   bindFilters();
-  initCabinet();
-
   updateUserUI();
   renderAllLocalState();
-
-  if (STATE.token) {
-    await loadMe();
-    await loadInventory();
-  }
-
   await loadTraders();
+  debug("init:done");
 }
 
-init();
+init().catch((err) => {
+  debug(`INIT CRASH: ${err?.stack || err}`);
+});

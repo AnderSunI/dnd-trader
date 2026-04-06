@@ -1,6 +1,9 @@
-from __future__ import annotations  # Эта строка должна быть первой
+from __future__ import annotations
 
-from fastapi import FastAPI, Depends
+from pathlib import Path
+from typing import Any
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,15 +31,7 @@ from .services.pricing import (
     calculate_sell_price_split,
 )
 
-# ============================================================
-# 🧱 INIT DB
-# ============================================================
-
 Base.metadata.create_all(bind=engine)
-
-# ============================================================
-# 🚀 APP
-# ============================================================
 
 app = FastAPI(title=APP_TITLE)
 
@@ -48,10 +43,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============================================================
-# 📁 STATIC / FRONTEND
-# ============================================================
-
 FRONTEND_IMAGES_DIR = FRONTEND_DIR / "images"
 FRONTEND_SOUNDS_DIR = FRONTEND_DIR / "sounds"
 FRONTEND_STATIC_DIR = FRONTEND_DIR / "static"
@@ -62,19 +53,18 @@ INDEX_HTML_PATH = FRONTEND_DIR / "index.html"
 ROOT_STYLES_PATH = FRONTEND_DIR / "styles.css"
 CSS_STYLES_PATH = FRONTEND_CSS_DIR / "styles.css"
 
+
 def mount_static_if_exists(url: str, path: Path, name: str) -> None:
     if path.exists() and path.is_dir():
         app.mount(url, StaticFiles(directory=str(path)), name=name)
 
+
 mount_static_if_exists("/images", FRONTEND_IMAGES_DIR, "images")
 mount_static_if_exists("/sounds", FRONTEND_SOUNDS_DIR, "sounds")
-mount_static_if_exists("/static", FRONTEND_STATIC_DIR, "static")
 mount_static_if_exists("/js", FRONTEND_JS_DIR, "js")
 mount_static_if_exists("/css", FRONTEND_CSS_DIR, "css")
+mount_static_if_exists("/static", FRONTEND_STATIC_DIR, "static")
 
-# ============================================================
-# 🧾 MODELS
-# ============================================================
 
 class JsonAuthRequest(BaseModel):
     email: EmailStr
@@ -84,9 +74,6 @@ class JsonAuthRequest(BaseModel):
 class PlayerNotesRequest(BaseModel):
     notes: str
 
-# ============================================================
-# 🧰 HELPERS
-# ============================================================
 
 def ensure_default_character(db: Session, user: User) -> Character:
     character = (
@@ -167,9 +154,6 @@ def get_character_data_block(character: Character) -> dict[str, Any]:
 def set_character_data_block(character: Character, data: dict[str, Any]) -> None:
     character.data = data
 
-# ============================================================
-# 🧩 ROUTERS
-# ============================================================
 
 app.include_router(create_auth_router())
 app.include_router(create_inventory_router(get_db))
@@ -191,9 +175,6 @@ app.include_router(
     )
 )
 
-# ============================================================
-# 🔁 LEGACY AUTH
-# ============================================================
 
 @app.post("/register")
 def register_legacy(
@@ -252,9 +233,6 @@ def me_legacy(
         "user": serialize_user(current_user),
     }
 
-# ============================================================
-# 🔁 LEGACY INVENTORY
-# ============================================================
 
 @app.post("/buy")
 def buy_legacy(
@@ -307,9 +285,6 @@ def player_inventory_legacy(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-# ============================================================
-# 👤 CABINET / LSS / NOTES / MAP
-# ============================================================
 
 @app.get("/player/profile")
 def player_profile(
@@ -422,9 +397,6 @@ def world_map(
         "markers": map_data.get("markers", []),
     }
 
-# ============================================================
-# 🌐 FRONTEND
-# ============================================================
 
 @app.get("/styles.css")
 def styles_css():
