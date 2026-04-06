@@ -1,8 +1,6 @@
-# app/routers/admin.py
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,280 +9,151 @@ from sqlalchemy.orm import Session
 from ..models import Item, Trader, TraderItem
 from ..seed_db import traders_data
 
+# ============================================================
+# 🧰 HELPERS
+# ============================================================
 
-def create_admin_router(get_db, cleaned_items_path: Path):
-    """
-    Фабрика admin-роутера.
-    """
+def import_items_from_json(db: Session, path: Path) -> int:
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="cleaned_items.json не найден")
 
-    admin_router = APIRouter(prefix="/admin", tags=["admin"])
+    with path.open("r", encoding="utf-8") as f:
+        items_data = json.load(f)
 
-    # ============================================================
-    # 📥 ИМПОРТ ПРЕДМЕТОВ
-    # ============================================================
+    imported_count = 0
 
-    def import_items_from_json(db: Session, path: Path) -> int:
-        """
-        Импортирует предметы из cleaned_items.json
-        под текущую модель Item.
-        """
-        if not path.exists():
-            raise HTTPException(status_code=404, detail="cleaned_items.json не найден")
+    for raw in items_data:
+        name = raw.get("name")
+        if not name:
+            continue
 
-        with path.open("r", encoding="utf-8") as f:
-            items_data = json.load(f)
+        item = Item(
+            name=name,
+            category=raw.get("category_clean", "misc"),
+            subcategory=raw.get("subcategory", "") or "",
+            rarity=raw.get("rarity", "common"),
+            rarity_tier=int(raw.get("rarity_tier", 0) or 0),
+            quality=raw.get("quality", "стандартное") or "стандартное",
+            price_gold=int(raw.get("price_gold", 0) or 0),
+            price_silver=int(raw.get("price_silver", 0) or 0),
+            price_copper=int(raw.get("price_copper", 0) or 0),
+            weight=float(raw.get("weight", 0.0) or 0.0),
+            description=raw.get("description", "") or "",
+            properties=raw.get("properties", {}) or {},
+            requirements=raw.get("requirements", {}) or {},
+            source=raw.get("source", "merged") or "merged",
+            is_magical=bool(raw.get("is_magical", False)),
+            attunement=bool(raw.get("attunement", False)),
+            stock=5,
+        )
+        db.add(item)
+        imported_count += 1
 
-        imported_count = 0
+    db.commit()
+    return imported_count
 
-        for data in items_data:
-            name = data.get("name")
-            if not name:
-                continue
 
-            item = Item(
-                name=name,
-                category=data.get("category_clean", "misc"),
-                rarity=data.get("rarity", "common"),
-                rarity_tier=int(data.get("rarity_tier", 0) or 0),
-                price_gold=int(data.get("price_gold", 0) or 0),
-                price_silver=int(data.get("price_silver", 0) or 0),
-                price_copper=int(data.get("price_copper", 0) or 0),
-                weight=float(data.get("weight", 0.0) or 0.0),
-                description=data.get("description", "") or "",
-                properties=data.get("properties", {}) or {},
-                requirements=data.get("requirements", {}) or {},
-                is_magical=bool(data.get("is_magical", False)),
-                attunement=bool(data.get("attunement", False)),
-                stock=5,
-                quality=data.get("quality", "стандартное") or "стандартное",
-                source=data.get("source", "merged") or "merged",
-                subcategory=data.get("subcategory", "") or "",
+def import_traders_from_seed(db: Session) -> int:
+    imported_count = 0
+
+    for raw in traders_data:
+        trader = Trader(
+            name=raw["name"],
+            type=raw["type"],
+            specialization=raw.get("specialization", []) or [],
+            reputation=int(raw.get("reputation", 0) or 0),
+            region=raw.get("region", "") or "",
+            settlement=raw.get("settlement", "") or "",
+            level_min=int(raw.get("level_min", 1) or 1),
+            level_max=int(raw.get("level_max", 10) or 10),
+            restock_days=int(raw.get("restock_days", 4) or 4),
+            last_restock=raw.get("last_restock", "") or "",
+            currency=raw.get("currency", "gold") or "gold",
+            description=raw.get("description", "") or "",
+            image_url=raw.get("image_url", "") or "",
+            personality=raw.get("personality", "") or "",
+            possessions=raw.get("possessions", []) or [],
+            rumors=raw.get("rumors", "") or "",
+            gold=int(raw.get("gold", 0) or 0),
+            race=raw.get("race", "") or "",
+            class_name=raw.get("class_name", "") or "",
+            trader_level=int(raw.get("trader_level", 1) or 1),
+            stats=raw.get("stats", {}) or {},
+            abilities=raw.get("abilities", []) or [],
+        )
+        db.add(trader)
+        imported_count += 1
+
+    db.commit()
+    return imported_count
+
+
+def relink_all_items(db: Session) -> int:
+    import random
+
+    db.query(TraderItem).delete()
+    db.commit()
+
+    traders = db.query(Trader).all()
+    items = db.query(Item).all()
+
+    if not traders or not items:
+        return 0
+
+    total_linked = 0
+
+    for trader in traders:
+        categories = []
+
+        trader_type = str(trader.type or "").strip().lower()
+
+        if trader_type in {"кузнец", "оружейник", "оружейный мастер"}:
+            categories = ["weapon", "armor", "tools"]
+        elif trader_type in {"кожевник", "портной", "портниха", "дубильщик"}:
+            categories = ["armor", "accessory", "misc"]
+        elif trader_type in {"трактирщик", "пекарь", "мясник", "пансион", "банщица"}:
+            categories = ["food_drink", "consumables", "misc"]
+        elif trader_type in {"друид-травница", "алхимик"}:
+            categories = ["alchemy", "potions_elixirs", "consumables"]
+        elif trader_type in {"книготорговец", "старьёвщик", "художник"}:
+            categories = ["scrolls_books", "misc", "accessory"]
+        else:
+            categories = ["misc", "tools", "accessory"]
+
+        pool = [item for item in items if item.category in categories]
+        if not pool:
+            pool = items[:]
+
+        random.shuffle(pool)
+        chosen = pool[: min(len(pool), 12)]
+
+        for item in chosen:
+            slot = TraderItem(
+                trader_id=trader.id,
+                item_id=item.id,
+                price_gold=int(item.price_gold or 0),
+                price_silver=int(item.price_silver or 0),
+                price_copper=int(item.price_copper or 0),
+                quantity=random.randint(1, 6),
+                discount=0,
+                is_limited=False,
+                restock_locked=False,
             )
+            db.add(slot)
+            total_linked += 1
 
-            db.add(item)
-            imported_count += 1
+    db.commit()
+    return total_linked
 
-        db.commit()
-        return imported_count
+# ============================================================
+# 🧩 ROUTER FACTORY
+# ============================================================
 
-    # ============================================================
-    # 🧑‍💼 ИМПОРТ ТОРГОВЦЕВ
-    # ============================================================
+def create_admin_router(*, get_db, cleaned_items_path) -> APIRouter:
+    router = APIRouter(prefix="/admin", tags=["admin"])
 
-    def import_traders_from_seed(db: Session) -> int:
-        """
-        Импортирует торговцев из app/seed_db.py
-        """
-        imported_count = 0
-
-        for trader_data in traders_data:
-            trader = Trader(
-                name=trader_data["name"],
-                type=trader_data["type"],
-                specialization=trader_data.get("specialization", {}) or {},
-                gold=int(trader_data.get("gold", 0) or 0),
-                reputation=int(trader_data.get("reputation", 0) or 0),
-                region=trader_data.get("region", "") or "",
-                settlement=trader_data.get("settlement", "") or "",
-                level_min=int(trader_data.get("level_min", 1) or 1),
-                level_max=int(trader_data.get("level_max", 10) or 10),
-                restock_days=int(trader_data.get("restock_days", 4) or 4),
-                currency=trader_data.get("currency", "золотые") or "золотые",
-                description=trader_data.get("description", "") or "",
-                image_url=trader_data.get("image_url", "") or "",
-                personality=trader_data.get("personality", "") or "",
-                possessions=trader_data.get("possessions", []) or [],
-                rumors=trader_data.get("rumors", "") or "",
-                race=trader_data.get("race", "") or "",
-                class_name=trader_data.get("class_name", "") or "",
-                trader_level=int(trader_data.get("trader_level", 1) or 1),
-                stats=trader_data.get("stats", {}) or {},
-                abilities=trader_data.get("abilities", []) or [],
-            )
-            db.add(trader)
-            imported_count += 1
-
-        db.commit()
-        return imported_count
-
-    # ============================================================
-    # 🗂 КАТЕГОРИИ ТОРГОВЦЕВ
-    # ============================================================
-
-    def get_trader_categories(trader: Trader) -> list[str]:
-        """
-        Определяет, какие категории предметов подходят торговцу.
-        """
-        trader_type = (trader.type or "").strip().lower()
-
-        type_map = {
-            "кузнец": ["weapon", "armor", "tools"],
-            "оружейник": ["weapon", "armor"],
-            "оружейный мастер": ["weapon", "armor", "tools"],
-            "кожевник": ["armor", "accessory", "tools"],
-            "портной": ["accessory", "misc"],
-            "трактирщик": ["food_drink", "consumables", "misc"],
-            "пекарь": ["food_drink", "consumables"],
-            "мясник": ["food_drink", "consumables"],
-            "торговец": ["misc", "accessory", "tools", "consumables"],
-            "старьёвщик": ["misc", "scrolls_books", "tools", "accessory"],
-            "цирюльник": ["misc", "accessory", "tools"],
-            "банщица": ["misc", "accessory", "alchemy"],
-            "пансион": ["food_drink", "misc", "accessory"],
-            "складской владелец": ["tools", "misc", "consumables"],
-            "контрабандист": ["misc", "scrolls_books", "alchemy", "accessory"],
-            "друид-травница": ["alchemy", "potions_elixirs", "consumables", "scrolls_books"],
-        }
-
-        return type_map.get(trader_type, ["misc", "accessory"])
-
-    # ============================================================
-    # 📊 КВОТЫ ПО РЕДКОСТИ
-    # ============================================================
-
-    def get_rarity_quotas_for_trader(trader: Trader) -> dict[int, tuple[int, int]]:
-        """
-        Определяет, сколько предметов какой редкости выдавать торговцу.
-        """
-        level_max = int(trader.level_max or 1)
-
-        if level_max <= 2:
-            return {
-                0: (8, 14),
-                1: (1, 3),
-            }
-
-        if level_max <= 4:
-            return {
-                0: (8, 12),
-                1: (2, 4),
-                2: (0, 1),
-            }
-
-        if level_max <= 7:
-            return {
-                0: (6, 10),
-                1: (3, 5),
-                2: (1, 2),
-                3: (0, 1),
-            }
-
-        return {
-            0: (5, 8),
-            1: (3, 5),
-            2: (2, 3),
-            3: (1, 2),
-            4: (0, 1),
-        }
-
-    def get_quantity_by_rarity_tier(rarity_tier: int) -> int:
-        """
-        Чем предмет реже, тем меньше его количество.
-        """
-        quantity_map = {
-            0: (3, 8),
-            1: (2, 5),
-            2: (1, 3),
-            3: (1, 2),
-            4: (1, 1),
-            5: (1, 1),
-        }
-
-        low, high = quantity_map.get(int(rarity_tier or 0), (1, 2))
-        return random.randint(low, high)
-
-    # ============================================================
-    # 🔁 RELINK АССОРТИМЕНТА
-    # ============================================================
-
-    def relink_all_items(db: Session) -> int:
-        """
-        Полностью пересобирает ассортимент торговцев
-        через TraderItem.
-        """
-        db.query(TraderItem).delete()
-        db.commit()
-
-        traders = db.query(Trader).all()
-        if not traders:
-            return 0
-
-        total_linked = 0
-        globally_reserved_rare_ids: set[int] = set()
-
-        for trader in traders:
-            categories = get_trader_categories(trader)
-            quotas = get_rarity_quotas_for_trader(trader)
-
-            items = db.query(Item).filter(Item.category.in_(categories)).all()
-            if not items:
-                continue
-
-            items_by_tier: dict[int, list[Item]] = {}
-
-            for item in items:
-                tier = int(item.rarity_tier or 0)
-
-                if tier >= 3 and item.id in globally_reserved_rare_ids:
-                    continue
-
-                items_by_tier.setdefault(tier, []).append(item)
-
-            selected_items: list[Item] = []
-
-            for tier, (min_count, max_count) in quotas.items():
-                pool = items_by_tier.get(tier, [])
-                if not pool:
-                    continue
-
-                max_available = min(max_count, len(pool))
-                if max_available <= 0:
-                    continue
-
-                count = random.randint(min_count, max_available) if max_available >= min_count else max_available
-                if count <= 0:
-                    continue
-
-                chosen = random.sample(pool, count)
-                selected_items.extend(chosen)
-
-                if tier >= 3:
-                    for item in chosen:
-                        globally_reserved_rare_ids.add(item.id)
-
-            for item in selected_items:
-                slot = TraderItem(
-                    trader_id=trader.id,
-                    item_id=item.id,
-                    quantity=get_quantity_by_rarity_tier(int(item.rarity_tier or 0)),
-                    price_gold=int(item.price_gold or 0),
-                    price_silver=int(item.price_silver or 0),
-                    price_copper=int(item.price_copper or 0),
-                    discount=0,
-                    is_limited=bool(int(item.rarity_tier or 0) >= 3),
-                )
-                db.add(slot)
-
-            total_linked += len(selected_items)
-
-        db.commit()
-        return total_linked
-
-    # ============================================================
-    # 🔐 ENDPOINTS
-    # ============================================================
-
-    @admin_router.post("/reset")
-    def reset(db: Session = Depends(get_db)):
-        """
-        Полный сброс:
-        - очищаем торговые слоты
-        - очищаем торговцев
-        - очищаем предметы
-        - заново импортируем торговцев
-        - заново импортируем предметы
-        - заново собираем ассортимент
-        """
+    @router.post("/reset")
+    def reset_db(db: Session = Depends(get_db)):
         try:
             db.query(TraderItem).delete()
             db.query(Trader).delete()
@@ -301,34 +170,32 @@ def create_admin_router(get_db, cleaned_items_path: Path):
                 "items_imported": items_imported,
                 "linked": linked,
             }
-        except Exception as e:
+        except Exception as exc:
             db.rollback()
-            raise HTTPException(status_code=500, detail=f"Ошибка reset: {e}")
+            raise HTTPException(status_code=500, detail=f"Ошибка reset: {exc}") from exc
 
-    @admin_router.post("/relink-items")
+    @router.post("/full-reset")
+    def full_reset(db: Session = Depends(get_db)):
+        return reset_db(db)
+
+    @router.post("/relink-items")
     def relink_items(db: Session = Depends(get_db)):
-        """
-        Пересобирает ассортимент без удаления торговцев и предметов.
-        """
         try:
             linked = relink_all_items(db)
             return {
                 "status": "ok",
                 "linked": linked,
             }
-        except Exception as e:
+        except Exception as exc:
             db.rollback()
-            raise HTTPException(status_code=500, detail=f"Ошибка relink-items: {e}")
+            raise HTTPException(status_code=500, detail=f"Ошибка relink-items: {exc}") from exc
 
-    @admin_router.get("/seed-preview")
+    @router.get("/seed-preview")
     def seed_preview():
-        """
-        Быстрый предпросмотр текущего seed без записи в БД.
-        """
         return {
             "status": "ok",
             "count": len(traders_data),
-            "traders": traders_data,
+            "traders": [t["name"] for t in traders_data[:20]],
         }
 
-    return admin_router
+    return router

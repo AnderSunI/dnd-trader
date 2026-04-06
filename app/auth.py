@@ -1,12 +1,3 @@
-# ============================================================
-# app/auth.py
-# Аутентификация и авторизация:
-# - создание пользователя
-# - проверка пароля
-# - JWT токен
-# - dependency current_user
-# ============================================================
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

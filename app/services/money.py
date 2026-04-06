@@ -1,11 +1,3 @@
-# ============================================================
-# app/services/money.py
-# Работа с валютой:
-# - copper ↔ split
-# - форматирование
-# - safe arithmetic
-# ============================================================
-
 from __future__ import annotations
 
 from typing import Dict

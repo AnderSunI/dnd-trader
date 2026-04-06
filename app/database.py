@@ -1,12 +1,4 @@
-# ============================================================
-# app/database.py
-# Централизованная работа с SQLAlchemy:
-# - engine
-# - SessionLocal
-# - dependency get_db
-# ============================================================
-
-from __future__ import annotations
+from __future__ import annotations  # Эта строка должна быть первой
 
 import os
 
@@ -62,4 +54,4 @@ def get_db():
     try:
         yield db
     finally:
-        db.close()
+        db.close

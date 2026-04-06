@@ -1,8 +1,3 @@
-# ============================================================
-# app/routers/traders.py
-# Роутер торговцев и их ассортимента.
-# ============================================================
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query

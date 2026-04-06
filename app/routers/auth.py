@@ -1,13 +1,3 @@
-# ============================================================
-# app/routers/auth.py
-# Роутер аутентификации.
-#
-# Задача:
-# - совместимость со Swagger OAuth2
-# - совместимость с фронтом
-# - не ломать legacy /login /register из main.py
-# ============================================================
-
 from __future__ import annotations
 
 from datetime import timedelta

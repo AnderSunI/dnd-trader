@@ -1,9 +1,4 @@
-# ============================================================
-# app/config.py
-# Централизованные настройки проекта.
-# ============================================================
-
-from __future__ import annotations
+from __future__ import annotations  # Эта строка должна быть первой
 
 import os
 from pathlib import Path

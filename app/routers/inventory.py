@@ -1,12 +1,3 @@
-# ============================================================
-# app/routers/inventory.py
-# Роутер inventory:
-# - buy
-# - sell
-# - my inventory
-# - legacy aliases
-# ============================================================
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

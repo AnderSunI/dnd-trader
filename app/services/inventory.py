@@ -1,12 +1,3 @@
-# ============================================================
-# app/services/inventory.py
-# Главная логика торговли:
-# - buy item
-# - sell item
-# - inventory read
-# - sync legacy Character JSON
-# ============================================================
-
 from __future__ import annotations
 
 from sqlalchemy.orm import Session, joinedload
