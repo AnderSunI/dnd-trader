@@ -5,7 +5,7 @@ import {
   openTraderModal,
 } from "./render.js";
 
-const GUEST_START_GOLD = "1000з";
+const GUEST_START_GOLD_CP = 100000;
 
 const STATE = {
   token: localStorage.getItem("token") || "",
@@ -14,6 +14,9 @@ const STATE = {
   cart: [],
   reserved: [],
   inventory: [],
+  activeTraderId: null,
+  isBusy: false,
+  guestMoneyCp: Number(localStorage.getItem("guestMoneyCp") || GUEST_START_GOLD_CP),
 };
 
 function safeNumber(value, fallback = 0) {
@@ -56,12 +59,137 @@ function closeModal(modal) {
   if (modal) modal.style.display = "none";
 }
 
+function cpToMoneyParts(cp = 0) {
+  const total = Math.max(0, safeNumber(cp, 0));
+  const gold = Math.floor(total / 100);
+  const silver = Math.floor((total % 100) / 10);
+  const copper = total % 10;
+  return { gold, silver, copper };
+}
+
+function moneyPartsToCp(gold = 0, silver = 0, copper = 0) {
+  return Math.max(0, safeNumber(gold, 0) * 100 + safeNumber(silver, 0) * 10 + safeNumber(copper, 0));
+}
+
 function formatMoneyParts(gold = 0, silver = 0, copper = 0) {
   const parts = [];
   if (gold) parts.push(`${gold}з`);
   if (silver) parts.push(`${silver}с`);
   if (copper) parts.push(`${copper}м`);
   return parts.length ? parts.join(" ") : "0з";
+}
+
+function formatMoneyCp(cp = 0) {
+  const { gold, silver, copper } = cpToMoneyParts(cp);
+  return formatMoneyParts(gold, silver, copper);
+}
+
+function persistGuestMoney() {
+  localStorage.setItem("guestMoneyCp", String(Math.max(0, safeNumber(STATE.guestMoneyCp, GUEST_START_GOLD_CP))));
+}
+
+function normalizeMoneyFromPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+
+  if (payload.money_cp_total !== undefined) {
+    const cp = Math.max(0, safeNumber(payload.money_cp_total, 0));
+    return {
+      cp,
+      label: payload.money_label || formatMoneyCp(cp),
+    };
+  }
+
+  if (
+    payload.money_gold !== undefined ||
+    payload.money_silver !== undefined ||
+    payload.money_copper !== undefined
+  ) {
+    const cp = moneyPartsToCp(payload.money_gold, payload.money_silver, payload.money_copper);
+    return {
+      cp,
+      label: payload.money_label || formatMoneyCp(cp),
+    };
+  }
+
+  if (payload.gold !== undefined || payload.silver !== undefined || payload.copper !== undefined) {
+    const cp = moneyPartsToCp(payload.gold, payload.silver, payload.copper);
+    return {
+      cp,
+      label: payload.money_label || formatMoneyCp(cp),
+    };
+  }
+
+  return null;
+}
+
+function updateUserMoneyFromPayload(payload) {
+  const money = normalizeMoneyFromPayload(payload);
+  if (!money) return;
+
+  if (STATE.user) {
+    STATE.user.money_cp_total = money.cp;
+    STATE.user.money_label = money.label;
+  } else {
+    STATE.guestMoneyCp = money.cp;
+    persistGuestMoney();
+  }
+}
+
+function getCurrentMoneyLabel() {
+  if (STATE.user?.money_label) return STATE.user.money_label;
+  if (STATE.user?.money_cp_total !== undefined) return formatMoneyCp(STATE.user.money_cp_total);
+  return formatMoneyCp(STATE.guestMoneyCp);
+}
+
+function getCurrentMoneyCp() {
+  if (STATE.user?.money_cp_total !== undefined) return Math.max(0, safeNumber(STATE.user.money_cp_total, 0));
+  return Math.max(0, safeNumber(STATE.guestMoneyCp, GUEST_START_GOLD_CP));
+}
+
+function setBusy(flag) {
+  STATE.isBusy = Boolean(flag);
+
+  [
+    "checkoutCartBtn",
+    "clearCartBtn",
+    "clearCartBtnModal",
+    "refreshDataBtn",
+  ].forEach((id) => {
+    const el = getEl(id);
+    if (el) el.disabled = STATE.isBusy;
+  });
+}
+
+async function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("Content-Type") && options.body) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (STATE.token) {
+    headers.set("Authorization", `Bearer ${STATE.token}`);
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  let payload = null;
+  const text = await response.text();
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = { detail: text };
+    }
+  }
+
+  if (!response.ok) {
+    const detail = payload?.detail || payload?.message || `Ошибка запроса: ${response.status}`;
+    throw new Error(detail);
+  }
+
+  return payload;
 }
 
 function getTraderById(traderId) {
@@ -101,6 +229,22 @@ function normalizeCollectionItem(traderId, item, quantity = 1) {
   };
 }
 
+function normalizeInventoryItem(item) {
+  return {
+    ...item,
+    id: Number(item.id || item.item_id),
+    item_id: Number(item.item_id || item.id),
+    trader_id: item.trader_id != null ? Number(item.trader_id) : null,
+    quantity: Math.max(1, safeNumber(item.quantity, 1)),
+    price_gold: safeNumber(item.price_gold, 0),
+    price_silver: safeNumber(item.price_silver, 0),
+    price_copper: safeNumber(item.price_copper, 0),
+    sell_price_gold: safeNumber(item.sell_price_gold, 0),
+    sell_price_silver: safeNumber(item.sell_price_silver, 0),
+    sell_price_copper: safeNumber(item.sell_price_copper, 0),
+  };
+}
+
 function getCollectionKey(traderId, itemId) {
   return `${traderId ?? "none"}:${Number(itemId)}`;
 }
@@ -110,6 +254,42 @@ function findCollectionItemIndex(collection, traderId, itemId) {
   return collection.findIndex(
     (entry) => getCollectionKey(entry.trader_id, entry.item_id || entry.id) === key
   );
+}
+
+function getCartEntryTotalCp(item) {
+  return moneyPartsToCp(item.price_gold, item.price_silver, item.price_copper) * Math.max(1, safeNumber(item.quantity, 1));
+}
+
+function getCartTotalCp() {
+  return STATE.cart.reduce((sum, item) => sum + getCartEntryTotalCp(item), 0);
+}
+
+function getSellTotalCp(item, quantity = 1) {
+  const priceCp = moneyPartsToCp(
+    item.sell_price_gold ?? 0,
+    item.sell_price_silver ?? 0,
+    item.sell_price_copper ?? 0
+  );
+  return priceCp * Math.max(1, safeNumber(quantity, 1));
+}
+
+function ensureGuestSellPrices(item, traderId = null) {
+  if (safeNumber(item.sell_price_gold, 0) || safeNumber(item.sell_price_silver, 0) || safeNumber(item.sell_price_copper, 0)) {
+    return item;
+  }
+
+  const trader = traderId != null ? getTraderById(traderId) : null;
+  const reputation = safeNumber(trader?.reputation, 0);
+  const baseCp = moneyPartsToCp(item.price_gold, item.price_silver, item.price_copper);
+  const multiplier = Math.max(0.25, 0.5 - reputation * 0.01);
+  const sellCp = Math.max(1, Math.floor(baseCp * multiplier));
+  const parts = cpToMoneyParts(sellCp);
+
+  item.sell_price_gold = parts.gold;
+  item.sell_price_silver = parts.silver;
+  item.sell_price_copper = parts.copper;
+  item.sell_price_label = formatMoneyParts(parts.gold, parts.silver, parts.copper);
+  return item;
 }
 
 function updateUserUI() {
@@ -127,7 +307,7 @@ function updateUserUI() {
     authContainer?.classList.add("hidden");
 
     if (userMoney) {
-      userMoney.innerText = STATE.user.money_label || GUEST_START_GOLD;
+      userMoney.innerText = getCurrentMoneyLabel();
     }
 
     const role = String(STATE.user.role || "").toLowerCase();
@@ -139,7 +319,7 @@ function updateUserUI() {
     authContainer?.classList.add("hidden");
 
     if (gmBadge) gmBadge.textContent = "Игрок";
-    if (userMoney) userMoney.innerText = GUEST_START_GOLD;
+    if (userMoney) userMoney.innerText = getCurrentMoneyLabel();
   }
 }
 
@@ -162,20 +342,7 @@ function updateInventoryCounter() {
 }
 
 function updateCartTotalLabels() {
-  const totalGold = STATE.cart.reduce(
-    (sum, item) => sum + safeNumber(item.price_gold, 0) * safeNumber(item.quantity, 1),
-    0
-  );
-  const totalSilver = STATE.cart.reduce(
-    (sum, item) => sum + safeNumber(item.price_silver, 0) * safeNumber(item.quantity, 1),
-    0
-  );
-  const totalCopper = STATE.cart.reduce(
-    (sum, item) => sum + safeNumber(item.price_copper, 0) * safeNumber(item.quantity, 1),
-    0
-  );
-
-  const label = formatMoneyParts(totalGold, totalSilver, totalCopper);
+  const label = formatMoneyCp(getCartTotalCp());
 
   if (getEl("cart-total")) getEl("cart-total").innerText = label;
   if (getEl("cartTotalModal")) getEl("cartTotalModal").innerText = label;
@@ -187,6 +354,7 @@ function renderAllLocalState() {
   updateCartCounter();
   updateCartTotalLabels();
   updateInventoryCounter();
+  updateUserUI();
 }
 
 function populateFilterOptions(traders) {
@@ -352,6 +520,17 @@ async function loadTraders() {
   rerenderTraders();
 }
 
+async function loadInventoryFromServer() {
+  if (!STATE.token) return;
+
+  try {
+    const data = await apiFetch("/inventory/me");
+    STATE.inventory = normalizeApiList(data, "items").map((item) => normalizeInventoryItem(item));
+  } catch (error) {
+    console.warn("Не удалось загрузить inventory из API:", error);
+  }
+}
+
 function bindToolbarButtons() {
   getEl("viewCartBtn")?.addEventListener("click", () => {
     renderCart(STATE.cart);
@@ -374,6 +553,10 @@ function bindToolbarButtons() {
     showToast("Корзина очищена");
   });
 
+  getEl("checkoutCartBtn")?.addEventListener("click", async () => {
+    await window.checkoutCart();
+  });
+
   getEl("viewInventoryBtn")?.addEventListener("click", () => {
     renderInventory(STATE.inventory);
     updateInventoryCounter();
@@ -386,6 +569,8 @@ function bindToolbarButtons() {
 
   getEl("refreshDataBtn")?.addEventListener("click", async () => {
     await loadTraders();
+    if (STATE.token) await loadInventoryFromServer();
+    renderAllLocalState();
     showToast("Данные обновлены");
   });
 }
@@ -488,6 +673,7 @@ function bindTraderDelegation() {
 }
 
 window.openTraderModal = async function (traderId) {
+  STATE.activeTraderId = Number(traderId);
   await openTraderModal(traderId);
 };
 
@@ -499,10 +685,18 @@ window.addToCart = function (traderId, itemId, quantity = 1) {
   }
 
   const qty = Math.max(1, safeNumber(quantity, 1));
+  const available = Math.max(0, safeNumber(item.stock ?? item.quantity, 0));
   const index = findCollectionItemIndex(STATE.cart, traderId, itemId);
+  const existingQty = index >= 0 ? Math.max(1, safeNumber(STATE.cart[index].quantity, 1)) : 0;
+  const nextQty = existingQty + qty;
+
+  if (available > 0 && nextQty > available) {
+    showToast(`У торговца только ${available} шт.`);
+    return;
+  }
 
   if (index >= 0) {
-    STATE.cart[index].quantity = Math.max(1, safeNumber(STATE.cart[index].quantity, 1) + qty);
+    STATE.cart[index].quantity = nextQty;
   } else {
     STATE.cart.push(normalizeCollectionItem(traderId, item, qty));
   }
@@ -607,18 +801,235 @@ window.showItemDescription = function (itemId, mode = "", traderId = null) {
   alert(lines.join("\n"));
 };
 
+function applyLocalBuy(traderId, itemId, quantity = 1) {
+  const trader = getTraderById(traderId);
+  const traderItem = getTraderItem(traderId, itemId);
+
+  if (!trader || !traderItem) {
+    throw new Error("Товар не найден у торговца");
+  }
+
+  const qty = Math.max(1, safeNumber(quantity, 1));
+  const available = Math.max(0, safeNumber(traderItem.stock ?? traderItem.quantity, 0));
+  if (available < qty) {
+    throw new Error("Недостаточно товара у торговца");
+  }
+
+  const totalCp = moneyPartsToCp(
+    traderItem.price_gold ?? traderItem.buy_price_gold,
+    traderItem.price_silver ?? traderItem.buy_price_silver,
+    traderItem.price_copper ?? traderItem.buy_price_copper
+  ) * qty;
+
+  if (getCurrentMoneyCp() < totalCp) {
+    throw new Error("Недостаточно средств");
+  }
+
+  STATE.guestMoneyCp = Math.max(0, getCurrentMoneyCp() - totalCp);
+  persistGuestMoney();
+
+  const invIndex = STATE.inventory.findIndex((entry) => Number(entry.id || entry.item_id) === Number(itemId));
+  if (invIndex >= 0) {
+    STATE.inventory[invIndex].quantity = Math.max(1, safeNumber(STATE.inventory[invIndex].quantity, 1) + qty);
+    ensureGuestSellPrices(STATE.inventory[invIndex], traderId);
+  } else {
+    const newItem = normalizeInventoryItem({
+      ...traderItem,
+      quantity: qty,
+      trader_id: traderId,
+    });
+    ensureGuestSellPrices(newItem, traderId);
+    STATE.inventory.push(newItem);
+  }
+
+  traderItem.stock = available - qty;
+  traderItem.quantity = available - qty;
+  return { totalCp, itemName: traderItem.name };
+}
+
+async function applyServerBuy(traderId, itemId, quantity = 1) {
+  const payload = await apiFetch("/inventory/buy", {
+    method: "POST",
+    body: JSON.stringify({
+      trader_id: Number(traderId),
+      item_id: Number(itemId),
+      quantity: Math.max(1, safeNumber(quantity, 1)),
+    }),
+  });
+
+  updateUserMoneyFromPayload(payload);
+  await loadInventoryFromServer();
+
+  const traderItem = getTraderItem(traderId, itemId);
+  if (traderItem) {
+    const currentStock = Math.max(0, safeNumber(traderItem.stock ?? traderItem.quantity, 0));
+    traderItem.stock = Math.max(0, currentStock - Math.max(1, safeNumber(quantity, 1)));
+    traderItem.quantity = traderItem.stock;
+  }
+
+  return payload;
+}
+
 window.buyItem = async function (traderId, itemId, quantity = 1) {
   const item = getTraderItem(traderId, itemId);
   const qty = Math.max(1, safeNumber(quantity, 1));
-  showToast(item ? `Покупка позже: ${item.name} × ${qty}` : `Купить: trader ${traderId}, item ${itemId}`);
+
+  try {
+    setBusy(true);
+    if (STATE.token) {
+      await applyServerBuy(traderId, itemId, qty);
+    } else {
+      applyLocalBuy(traderId, itemId, qty);
+    }
+
+    renderAllLocalState();
+    rerenderTraders();
+    if (STATE.activeTraderId != null) {
+      await window.openTraderModal(STATE.activeTraderId);
+    }
+    showToast(`Куплено: ${item?.name || "предмет"} × ${qty}`);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Не удалось купить предмет");
+  } finally {
+    setBusy(false);
+  }
 };
+
+window.checkoutCart = async function () {
+  if (!Array.isArray(STATE.cart) || STATE.cart.length === 0) {
+    showToast("Корзина пуста");
+    return;
+  }
+
+  try {
+    setBusy(true);
+
+    const cartSnapshot = [...STATE.cart];
+    for (const entry of cartSnapshot) {
+      const traderId = Number(entry.trader_id);
+      const itemId = Number(entry.item_id || entry.id);
+      const quantity = Math.max(1, safeNumber(entry.quantity, 1));
+
+      if (STATE.token) {
+        await applyServerBuy(traderId, itemId, quantity);
+      } else {
+        applyLocalBuy(traderId, itemId, quantity);
+      }
+    }
+
+    STATE.cart = [];
+    renderAllLocalState();
+    rerenderTraders();
+    if (STATE.activeTraderId != null) {
+      await window.openTraderModal(STATE.activeTraderId);
+    }
+    showToast("Заказ успешно оформлен");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Не удалось оформить заказ");
+  } finally {
+    setBusy(false);
+  }
+};
+
+function applyLocalSell(itemId, traderId, quantity = 1) {
+  const qty = Math.max(1, safeNumber(quantity, 1));
+  const invIndex = STATE.inventory.findIndex((entry) => Number(entry.id || entry.item_id) === Number(itemId));
+  if (invIndex < 0) {
+    throw new Error("Предмет отсутствует в инвентаре");
+  }
+
+  const item = STATE.inventory[invIndex];
+  if (safeNumber(item.quantity, 0) < qty) {
+    throw new Error("Недостаточное количество предметов");
+  }
+
+  ensureGuestSellPrices(item, traderId);
+  const rewardCp = getSellTotalCp(item, qty);
+  STATE.guestMoneyCp = getCurrentMoneyCp() + rewardCp;
+  persistGuestMoney();
+
+  item.quantity -= qty;
+  if (item.quantity <= 0) {
+    STATE.inventory.splice(invIndex, 1);
+  }
+
+  const trader = getTraderById(traderId);
+  if (trader) {
+    const slot = getTraderItem(traderId, itemId);
+    if (slot) {
+      const nextQty = Math.max(0, safeNumber(slot.stock ?? slot.quantity, 0)) + qty;
+      slot.stock = nextQty;
+      slot.quantity = nextQty;
+    } else {
+      trader.items = Array.isArray(trader.items) ? trader.items : [];
+      trader.items.push(normalizeCollectionItem(traderId, {
+        ...item,
+        stock: qty,
+        quantity: qty,
+      }, qty));
+    }
+  }
+
+  return { rewardCp, itemName: item.name };
+}
+
+async function applyServerSell(itemId, traderId, quantity = 1) {
+  const payload = await apiFetch("/inventory/sell", {
+    method: "POST",
+    body: JSON.stringify({
+      trader_id: Number(traderId),
+      item_id: Number(itemId),
+      quantity: Math.max(1, safeNumber(quantity, 1)),
+    }),
+  });
+
+  updateUserMoneyFromPayload(payload);
+  await loadInventoryFromServer();
+
+  const slot = getTraderItem(traderId, itemId);
+  if (slot) {
+    const nextQty = Math.max(0, safeNumber(slot.stock ?? slot.quantity, 0)) + Math.max(1, safeNumber(quantity, 1));
+    slot.stock = nextQty;
+    slot.quantity = nextQty;
+  }
+
+  return payload;
+}
 
 window.sellItem = async function (itemId) {
   const item = STATE.inventory.find((entry) => Number(entry.id || entry.item_id) === Number(itemId));
-  if (item) {
-    showToast(`Продажа позже: ${item.name}`);
-  } else {
-    showToast(`Продажа позже: item ${itemId}`);
+  if (!item) {
+    showToast("Предмет не найден в инвентаре");
+    return;
+  }
+
+  const traderId = item.trader_id ?? STATE.activeTraderId;
+  if (!Number.isFinite(Number(traderId))) {
+    showToast("Открой торговца, чтобы продать предмет");
+    return;
+  }
+
+  try {
+    setBusy(true);
+    if (STATE.token) {
+      await applyServerSell(itemId, traderId, 1);
+    } else {
+      applyLocalSell(itemId, traderId, 1);
+    }
+
+    renderAllLocalState();
+    rerenderTraders();
+    if (STATE.activeTraderId != null) {
+      await window.openTraderModal(STATE.activeTraderId);
+    }
+    showToast(`Продано: ${item.name}`);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Не удалось продать предмет");
+  } finally {
+    setBusy(false);
   }
 };
 
@@ -657,6 +1068,8 @@ async function init() {
   updateUserUI();
   renderAllLocalState();
   await loadTraders();
+  await loadInventoryFromServer();
+  renderAllLocalState();
 }
 
 init().catch((err) => {
