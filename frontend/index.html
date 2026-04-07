@@ -8,129 +8,148 @@
 </head>
 <body>
   <div class="page-shell">
-    <header class="topbar">
-      <div class="topbar-left">
-        <span id="gmBadge" class="gm-badge hidden">ГМ</span>
-      </div>
+    <div class="mode-switch" id="gmBadge">👤 Игрок</div>
 
-      <div class="topbar-right auth-buttons">
-        <button id="showAuthBtn" class="btn btn-secondary">Войти / Регистрация</button>
+    <h1>🏪 D&D Trader — Помощник ГМ</h1>
+
+    <section id="authContainer" class="auth-container hidden">
+      <div class="auth-form">
+        <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
+        <input id="loginPassword" type="password" placeholder="Пароль" autocomplete="current-password" />
+        <button id="doLogin" class="btn btn-primary">Войти</button>
+        <button id="doRegister" class="btn btn-success">Регистрация</button>
         <button id="logoutBtn" class="btn btn-danger hidden">Выйти</button>
-      </div>
-    </header>
-
-    <section id="authContainer" class="auth-panel hidden">
-      <div class="auth-card">
-        <h3>Авторизация</h3>
-        <input id="loginEmail" type="email" placeholder="Email" />
-        <input id="loginPassword" type="password" placeholder="Пароль" />
-        <div class="auth-actions">
-          <button id="doLogin" class="btn btn-primary">Войти</button>
-          <button id="doRegister" class="btn btn-secondary">Регистрация</button>
-        </div>
       </div>
     </section>
 
     <section id="guestWarning" class="guest-warning">
-      ⚠️ Вы не авторизованы. Ваши данные могут быть потеряны. Войдите / зарегистрируйтесь.
+      <span>⚠️ Вы не авторизованы. Ваши данные могут быть потеряны.</span>
+      <button id="showAuthBtn" class="btn btn-primary">Войти / Зарегистрироваться</button>
     </section>
 
     <main class="main-container">
-      <section class="hero-stats">
-        <div class="stat-card">
-          <span class="stats-label">Ваше золото:</span>
-          <span id="user-money" class="stats-value">0з</span>
-        </div>
+      <section class="cart-widget" id="cartWidget">
+        <div class="cart-info">
+          <span class="stats-label">🪙 Ваше золото:</span>
+          <span id="user-money" class="stats-value">1000з</span>
 
-        <div class="stat-card">
-          <span class="stats-label">Корзина:</span>
+          <span class="stats-label">🛒 Корзина:</span>
           <span id="cartCount" class="stats-value">0</span>
           <span class="stats-label">товаров,</span>
           <span id="cart-total" class="stats-value">0з</span>
         </div>
+
+        <div class="cart-buttons">
+          <button id="viewCartBtn" class="btn btn-primary">Просмотр корзины</button>
+          <button id="clearCartBtn" class="btn btn-danger">Очистить корзину</button>
+          <button id="refreshDataBtn" class="btn btn-primary">Обновить</button>
+          <button id="cabinetBtn" class="btn btn-primary">👤 Личный кабинет</button>
+        </div>
       </section>
 
-      <section class="toolbar">
-        <button id="viewCartBtn" class="btn btn-primary">Просмотр корзины</button>
-        <button id="clearCartBtn" class="btn btn-danger">Очистить корзину</button>
-        <button id="refreshDataBtn" class="btn btn-secondary">Обновить</button>
-        <button id="cabinetBtn" class="btn btn-secondary">Личный кабинет</button>
-      </section>
-
-      <section class="inventory-summary">
-        <div class="stat-card">
-          <span class="stats-label">Инвентарь:</span>
+      <section class="cart-widget inventory-widget">
+        <div class="cart-info">
+          <span class="stats-label">🎒 Инвентарь:</span>
           <span id="inventoryCount" class="stats-value">0</span>
           <span class="stats-label">предметов</span>
         </div>
-        <button id="viewInventoryBtn" class="btn btn-secondary">Просмотр инвентаря</button>
+
+        <div class="cart-buttons">
+          <button id="viewInventoryBtn" class="btn btn-primary">Просмотр инвентаря</button>
+        </div>
       </section>
 
       <section class="filters-panel">
-        <div class="filters-grid">
-          <input id="searchInput" type="text" placeholder="Поиск торговца" />
+        <div class="filters-left">
+          <div class="filter-group">
+            <label for="searchInput">🔍 Поиск торговца</label>
+            <input id="searchInput" type="text" placeholder="Имя торговца" />
+          </div>
 
-          <select id="typeFilter">
-            <option value="">Все типы</option>
-          </select>
+          <div class="filter-group">
+            <label for="typeFilter">🏷️ Тип торговца</label>
+            <select id="typeFilter">
+              <option value="">Все типы</option>
+            </select>
+          </div>
 
-          <select id="regionFilter">
-            <option value="">Все регионы</option>
-          </select>
+          <div class="filter-group">
+            <label for="regionFilter">🌍 Регион</label>
+            <select id="regionFilter">
+              <option value="">Все регионы</option>
+            </select>
+          </div>
 
-          <select id="playerLevelFilter">
-            <option value="0">Уровень игрока (0 – все)</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-            <option value="5">5+</option>
-            <option value="6">6+</option>
-            <option value="7">7+</option>
-            <option value="8">8+</option>
-            <option value="9">9+</option>
-            <option value="10">10+</option>
-          </select>
+          <div class="filter-group">
+            <label for="playerLevelFilter">🎚️ Уровень игрока</label>
+            <input id="playerLevelFilter" type="number" min="0" step="1" value="0" placeholder="0" />
+          </div>
 
-          <select id="reputationFilter">
-            <option value="">⭐ Репутация (мин.) — Любая</option>
-            <option value="1">1 ★ и выше</option>
-            <option value="2">2 ★ и выше</option>
-            <option value="3">3 ★ и выше</option>
-            <option value="4">4 ★ и выше</option>
-            <option value="5">5 ★</option>
-          </select>
+          <div class="filter-group">
+            <label for="reputationFilter">⭐ Репутация</label>
+            <select id="reputationFilter">
+              <option value="">Любая</option>
+              <option value="1">1 ★ и выше</option>
+              <option value="2">2 ★ и выше</option>
+              <option value="3">3 ★ и выше</option>
+              <option value="4">4 ★ и выше</option>
+              <option value="5">5 ★</option>
+            </select>
+          </div>
+        </div>
 
-          <input id="itemSearchInput" type="text" placeholder="Поиск предмета" />
+        <div class="filters-right">
+          <div class="filter-group">
+            <label for="itemSearchInput">🔍 Поиск предмета</label>
+            <input id="itemSearchInput" type="text" placeholder="Название предмета" />
+          </div>
 
-          <input id="priceFilter" type="number" min="0" step="1" placeholder="Цена (золотые)" />
+          <div class="filter-group">
+            <label>💰 Цена</label>
+            <div class="price-range">
+              <input id="priceMin" type="number" min="0" step="1" placeholder="от" />
+              <input id="priceMax" type="number" min="0" step="1" placeholder="до" />
+            </div>
+          </div>
 
-          <select id="rarityFilter">
-            <option value="">⭐ Редкость — Любая</option>
-            <option value="common">Обычный</option>
-            <option value="uncommon">Необычный</option>
-            <option value="rare">Редкий</option>
-            <option value="very rare">Очень редкий</option>
-            <option value="legendary">Легендарный</option>
-            <option value="artifact">Артефакт</option>
-          </select>
+          <div class="filter-group">
+            <label for="rarityFilter">⭐ Редкость</label>
+            <select id="rarityFilter">
+              <option value="">Любая</option>
+              <option value="common">Обычный</option>
+              <option value="uncommon">Необычный</option>
+              <option value="rare">Редкий</option>
+              <option value="very rare">Очень редкий</option>
+              <option value="legendary">Легендарный</option>
+              <option value="artifact">Артефакт</option>
+            </select>
+          </div>
 
-          <select id="categoryFilter">
-            <option value="">Категория — Любая</option>
-          </select>
+          <div class="filter-group">
+            <label for="categoryFilter">📦 Категория</label>
+            <select id="categoryFilter">
+              <option value="">Любая</option>
+            </select>
+          </div>
 
-          <select id="magicFilter">
-            <option value="">✨ Магия — Любая</option>
-            <option value="magic">Только магические</option>
-            <option value="mundane">Только обычные</option>
-          </select>
+          <div class="filter-group">
+            <label for="magicFilter">✨ Магия</label>
+            <select id="magicFilter">
+              <option value="">Любая</option>
+              <option value="magic">Только магические</option>
+              <option value="mundane">Только обычные</option>
+            </select>
+          </div>
 
-          <select id="sortFilter">
-            <option value="name_asc">Сортировка — Названию (А→Я)</option>
-            <option value="price_asc">Цене (сначала дешёвые)</option>
-            <option value="price_desc">Цене (сначала дорогие)</option>
-            <option value="reputation_desc">Репутации торговца</option>
-          </select>
+          <div class="filter-group">
+            <label for="sortFilter">📊 Сортировка</label>
+            <select id="sortFilter">
+              <option value="name_asc">Названию (А→Я)</option>
+              <option value="price_asc">Цене (сначала дешёвые)</option>
+              <option value="price_desc">Цене (сначала дорогие)</option>
+              <option value="reputation_desc">Репутации торговца</option>
+            </select>
+          </div>
         </div>
       </section>
 
