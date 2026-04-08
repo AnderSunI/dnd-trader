@@ -6,6 +6,8 @@ from ..models import Character, Item, Trader, TraderItem, User, UserItem
 from .money import (
     add_cp,
     cp_payload,
+    copper_to_split,
+    format_split_price,
     has_enough_money,
     subtract_cp,
 )
@@ -13,10 +15,6 @@ from .pricing import (
     calculate_buy_price_cp,
     calculate_sell_price_cp,
 )
-
-# ============================================================
-# HELPERS
-# ============================================================
 
 
 def get_user(db: Session, user_id: int) -> User:
@@ -136,19 +134,30 @@ def get_primary_character(
     )
 
 
-# ============================================================
-# LEGACY SYNC
-# ============================================================
+def cp_to_trader_gold_units(total_cp: int) -> int:
+    """
+    Trader.gold хранится как целое число gold, а не total copper.
+    Поэтому cp -> только gold units.
+    """
+    gold, _, _ = copper_to_split(int(total_cp or 0))
+    return int(gold or 0)
+
+
+def split_price_payload(prefix: str, total_cp: int) -> dict:
+    gold, silver, copper = copper_to_split(int(total_cp or 0))
+    return {
+        f"{prefix}_cp": int(total_cp or 0),
+        f"{prefix}_gold": int(gold or 0),
+        f"{prefix}_silver": int(silver or 0),
+        f"{prefix}_copper": int(copper or 0),
+        f"{prefix}_label": format_split_price(gold, silver, copper),
+    }
 
 
 def sync_character_inventory(
     db: Session,
     user_id: int,
 ) -> None:
-    """
-    Синхронизирует UserItem -> Character.inventory
-    для полной совместимости со старым frontend.
-    """
     character = get_primary_character(db, user_id)
     if not character:
         return
@@ -182,11 +191,6 @@ def sync_character_inventory(
     db.add(character)
 
 
-# ============================================================
-# BUY
-# ============================================================
-
-
 def buy_item(
     *,
     db: Session,
@@ -195,9 +199,6 @@ def buy_item(
     item_id: int,
     quantity: int = 1,
 ) -> dict:
-    """
-    Купить предмет у торговца.
-    """
     quantity = max(1, int(quantity or 1))
 
     user = get_user(db, user_id)
@@ -218,23 +219,19 @@ def buy_item(
     if not has_enough_money(user.money_cp_total, total_price_cp):
         raise ValueError("Недостаточно средств")
 
-    # игрок платит
     user.money_cp_total = subtract_cp(
         user.money_cp_total,
         total_price_cp,
     )
 
-    # торговец получает
-    trader.gold = int(trader.gold or 0) + total_price_cp
+    trader.gold = int(trader.gold or 0) + cp_to_trader_gold_units(total_price_cp)
 
-    # товар у торговца уменьшается
     slot.quantity = int(slot.quantity or 0) - quantity
 
-    # товар игроку
     user_item = get_or_create_user_item(
-        db,
-        user_id,
-        item_id,
+        db=db,
+        user_id=user_id,
+        item_id=item_id,
     )
     user_item.quantity = int(user_item.quantity or 0) + quantity
 
@@ -255,18 +252,13 @@ def buy_item(
         "action": "buy",
         "item_id": item_id,
         "quantity": quantity,
-        "unit_buy_price_cp": unit_buy_price_cp,
-        "total_paid_cp": total_price_cp,
+        **split_price_payload("unit_buy_price", unit_buy_price_cp),
+        **split_price_payload("total_paid", total_price_cp),
         "trader_id": trader_id,
         "trader_gold": int(trader.gold or 0),
         "trader_stock": int(slot.quantity or 0),
         **cp_payload(user.money_cp_total),
     }
-
-
-# ============================================================
-# SELL
-# ============================================================
 
 
 def sell_item(
@@ -277,9 +269,6 @@ def sell_item(
     item_id: int,
     quantity: int = 1,
 ) -> dict:
-    """
-    Продать предмет торговцу.
-    """
     quantity = max(1, int(quantity or 1))
 
     user = get_user(db, user_id)
@@ -313,31 +302,27 @@ def sell_item(
     )
     total_reward_cp = unit_sell_price_cp * quantity
 
-    # проверка, хватает ли торговцу денег
-    if int(trader.gold or 0) < total_reward_cp:
+    trader_gold_cost = cp_to_trader_gold_units(total_reward_cp)
+    if int(trader.gold or 0) < trader_gold_cost:
         raise ValueError("У торговца недостаточно золота")
 
-    # игрок получает деньги
     user.money_cp_total = add_cp(
         user.money_cp_total,
         total_reward_cp,
     )
 
-    # торговец платит
-    trader.gold = int(trader.gold or 0) - total_reward_cp
+    trader.gold = int(trader.gold or 0) - trader_gold_cost
 
-    # снимаем у игрока
     user_item.quantity = int(user_item.quantity or 0) - quantity
     if user_item.quantity <= 0:
         db.delete(user_item)
     else:
         db.add(user_item)
 
-    # возвращаем/добавляем торговцу слот
     slot = get_or_create_trader_slot(
-        db,
-        trader_id,
-        item_id,
+        db=db,
+        trader_id=trader_id,
+        item_id=item_id,
         base_gold=int(item.price_gold or 0),
         base_silver=int(item.price_silver or 0),
         base_copper=int(item.price_copper or 0),
@@ -360,18 +345,13 @@ def sell_item(
         "action": "sell",
         "item_id": item_id,
         "quantity": quantity,
-        "unit_sell_price_cp": unit_sell_price_cp,
-        "total_received_cp": total_reward_cp,
+        **split_price_payload("unit_sell_price", unit_sell_price_cp),
+        **split_price_payload("total_received", total_reward_cp),
         "trader_id": trader_id,
         "trader_gold": int(trader.gold or 0),
         "trader_stock": int(slot.quantity or 0),
         **cp_payload(user.money_cp_total),
     }
-
-
-# ============================================================
-# READ INVENTORY
-# ============================================================
 
 
 def get_player_inventory(
@@ -380,10 +360,6 @@ def get_player_inventory(
     user_id: int,
     trader_id: int | None = None,
 ) -> dict:
-    """
-    Получить inventory игрока.
-    trader_id optional для sell-preview на фронте.
-    """
     rows = (
         db.query(UserItem)
         .options(joinedload(UserItem.item))
@@ -408,8 +384,6 @@ def get_player_inventory(
             trader_reputation=int(trader.reputation or 0) if trader else 0,
         )
 
-        from ..services.money import copper_to_split, format_split_price
-
         sell_gold, sell_silver, sell_copper = copper_to_split(sell_price_cp)
 
         items.append(
@@ -417,12 +391,22 @@ def get_player_inventory(
                 "id": item.id,
                 "name": item.name,
                 "category": item.category,
+                "subcategory": item.subcategory,
                 "rarity": item.rarity,
+                "rarity_tier": int(item.rarity_tier or 0),
+                "quality": item.quality,
+                "description": item.description,
+                "weight": float(item.weight or 0),
+                "properties": item.properties or {},
+                "requirements": item.requirements or {},
+                "source": item.source,
+                "is_magical": bool(item.is_magical),
+                "attunement": bool(item.attunement),
                 "quantity": int(row.quantity or 0),
                 "price_gold": int(item.price_gold or 0),
                 "price_silver": int(item.price_silver or 0),
                 "price_copper": int(item.price_copper or 0),
-                "sell_price_cp": sell_price_cp,
+                "sell_price_cp": int(sell_price_cp or 0),
                 "sell_price_gold": int(sell_gold or 0),
                 "sell_price_silver": int(sell_silver or 0),
                 "sell_price_copper": int(sell_copper or 0),
