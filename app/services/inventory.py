@@ -17,6 +17,21 @@ from .pricing import (
 )
 
 
+def normalize_quantity(value: int | None) -> int:
+    """
+    Нормализуем количество для сделки.
+    """
+    try:
+        quantity = int(value or 0)
+    except (TypeError, ValueError):
+        quantity = 0
+
+    if quantity <= 0:
+        raise ValueError("Количество должно быть больше нуля")
+
+    return quantity
+
+
 def get_user(db: Session, user_id: int) -> User:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -136,8 +151,8 @@ def get_primary_character(
 
 def cp_to_trader_gold_units(total_cp: int) -> int:
     """
-    Trader.gold хранится как целое число gold, а не total copper.
-    Поэтому cp -> только gold units.
+    Legacy helper оставлен для совместимости / возможного старого кода.
+    После исправления models.py сделки работают через trader.money_cp_total.
     """
     gold, _, _ = copper_to_split(int(total_cp or 0))
     return int(gold or 0)
@@ -154,10 +169,60 @@ def split_price_payload(prefix: str, total_cp: int) -> dict:
     }
 
 
+def build_inventory_item_payload(
+    *,
+    item: Item,
+    quantity: int,
+    trader: Trader | None = None,
+) -> dict:
+    sell_price_cp = calculate_sell_price_cp(
+        base_gold=int(item.price_gold or 0),
+        base_silver=int(item.price_silver or 0),
+        base_copper=int(item.price_copper or 0),
+        trader_reputation=int(trader.reputation or 0) if trader else 0,
+    )
+
+    sell_gold, sell_silver, sell_copper = copper_to_split(sell_price_cp)
+
+    return {
+        "id": item.id,
+        "name": item.name,
+        "category": item.category,
+        "subcategory": item.subcategory,
+        "rarity": item.rarity,
+        "rarity_tier": int(item.rarity_tier or 0),
+        "quality": item.quality,
+        "description": item.description,
+        "weight": float(item.weight or 0),
+        "properties": item.properties or {},
+        "requirements": item.requirements or {},
+        "source": item.source,
+        "is_magical": bool(item.is_magical),
+        "attunement": bool(item.attunement),
+        "quantity": int(quantity or 0),
+        "price_gold": int(item.price_gold or 0),
+        "price_silver": int(item.price_silver or 0),
+        "price_copper": int(item.price_copper or 0),
+        "sell_price_cp": int(sell_price_cp or 0),
+        "sell_price_gold": int(sell_gold or 0),
+        "sell_price_silver": int(sell_silver or 0),
+        "sell_price_copper": int(sell_copper or 0),
+        "sell_price_label": format_split_price(
+            sell_gold,
+            sell_silver,
+            sell_copper,
+        ),
+    }
+
+
 def sync_character_inventory(
     db: Session,
     user_id: int,
 ) -> None:
+    """
+    Синхронизация со старым форматом inventory у Character,
+    чтобы поведение оставалось совместимым с legacy main.
+    """
     character = get_primary_character(db, user_id)
     if not character:
         return
@@ -169,9 +234,14 @@ def sync_character_inventory(
         .all()
     )
 
-    legacy_inventory = []
+    legacy_inventory: list[dict] = []
+
     for row in rows:
         if not row.item:
+            continue
+
+        row_quantity = int(row.quantity or 0)
+        if row_quantity <= 0:
             continue
 
         legacy_inventory.append(
@@ -179,16 +249,24 @@ def sync_character_inventory(
                 "id": row.item.id,
                 "name": row.item.name,
                 "category": row.item.category,
+                "subcategory": row.item.subcategory,
                 "rarity": row.item.rarity,
-                "quantity": int(row.quantity or 0),
+                "rarity_tier": int(row.item.rarity_tier or 0),
+                "quality": row.item.quality,
+                "quantity": row_quantity,
                 "price_gold": int(row.item.price_gold or 0),
                 "price_silver": int(row.item.price_silver or 0),
                 "price_copper": int(row.item.price_copper or 0),
+                "description": row.item.description,
+                "weight": float(row.item.weight or 0),
+                "is_magical": bool(row.item.is_magical),
+                "attunement": bool(row.item.attunement),
             }
         )
 
     character.inventory = legacy_inventory
     db.add(character)
+    db.flush()
 
 
 def buy_item(
@@ -199,66 +277,85 @@ def buy_item(
     item_id: int,
     quantity: int = 1,
 ) -> dict:
-    quantity = max(1, int(quantity or 1))
+    quantity = normalize_quantity(quantity)
 
-    user = get_user(db, user_id)
-    trader = get_trader(db, trader_id)
-    slot = get_trader_slot(db, trader_id, item_id)
+    try:
+        user = get_user(db, user_id)
+        trader = get_trader(db, trader_id)
+        slot = get_trader_slot(db, trader_id, item_id)
 
-    if int(slot.quantity or 0) < quantity:
-        raise ValueError("Недостаточно товара у торговца")
+        if not slot.item:
+            raise ValueError("Предмет не найден у торговца")
 
-    unit_buy_price_cp = calculate_buy_price_cp(
-        base_gold=int(slot.price_gold or 0),
-        base_silver=int(slot.price_silver or 0),
-        base_copper=int(slot.price_copper or 0),
-        trader_reputation=int(trader.reputation or 0),
-    )
-    total_price_cp = unit_buy_price_cp * quantity
+        current_stock = int(slot.quantity or 0)
+        if current_stock < quantity:
+            raise ValueError("Недостаточно товара у торговца")
 
-    if not has_enough_money(user.money_cp_total, total_price_cp):
-        raise ValueError("Недостаточно средств")
+        unit_buy_price_cp = calculate_buy_price_cp(
+            base_gold=int(slot.price_gold or 0),
+            base_silver=int(slot.price_silver or 0),
+            base_copper=int(slot.price_copper or 0),
+            trader_reputation=int(trader.reputation or 0),
+        )
+        total_price_cp = unit_buy_price_cp * quantity
 
-    user.money_cp_total = subtract_cp(
-        user.money_cp_total,
-        total_price_cp,
-    )
+        if not has_enough_money(user.money_cp_total, total_price_cp):
+            raise ValueError("Недостаточно средств")
 
-    trader.gold = int(trader.gold or 0) + cp_to_trader_gold_units(total_price_cp)
+        if user.money_cp_total < total_price_cp:
+            raise ValueError("Недостаточно средств")
 
-    slot.quantity = int(slot.quantity or 0) - quantity
+        user.money_cp_total = subtract_cp(
+            user.money_cp_total,
+            total_price_cp,
+        )
 
-    user_item = get_or_create_user_item(
-        db=db,
-        user_id=user_id,
-        item_id=item_id,
-    )
-    user_item.quantity = int(user_item.quantity or 0) + quantity
+        trader.money_cp_total = add_cp(
+            trader.money_cp_total,
+            total_price_cp,
+        )
 
-    db.add(user)
-    db.add(trader)
-    db.add(slot)
-    db.add(user_item)
+        slot.quantity = current_stock - quantity
 
-    sync_character_inventory(db, user_id)
+        user_item = get_or_create_user_item(
+            db=db,
+            user_id=user_id,
+            item_id=item_id,
+        )
+        user_item.quantity = int(user_item.quantity or 0) + quantity
 
-    db.commit()
-    db.refresh(user)
-    db.refresh(trader)
-    db.refresh(slot)
+        db.add(user)
+        db.add(trader)
+        db.add(slot)
+        db.add(user_item)
+        db.flush()
 
-    return {
-        "status": "ok",
-        "action": "buy",
-        "item_id": item_id,
-        "quantity": quantity,
-        **split_price_payload("unit_buy_price", unit_buy_price_cp),
-        **split_price_payload("total_paid", total_price_cp),
-        "trader_id": trader_id,
-        "trader_gold": int(trader.gold or 0),
-        "trader_stock": int(slot.quantity or 0),
-        **cp_payload(user.money_cp_total),
-    }
+        sync_character_inventory(db, user_id)
+
+        db.commit()
+        db.refresh(user)
+        db.refresh(trader)
+        db.refresh(slot)
+        db.refresh(user_item)
+
+        return {
+            "status": "ok",
+            "action": "buy",
+            "item_id": item_id,
+            "quantity": quantity,
+            **split_price_payload("unit_buy_price", unit_buy_price_cp),
+            **split_price_payload("total_paid", total_price_cp),
+            "trader_id": trader_id,
+            "trader_gold": int(trader.gold or 0),
+            "trader_stock": int(slot.quantity or 0),
+            "player_item_quantity": int(user_item.quantity or 0),
+            **split_price_payload("trader_money", trader.money_cp_total),
+            **cp_payload(user.money_cp_total),
+        }
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 def sell_item(
@@ -269,89 +366,103 @@ def sell_item(
     item_id: int,
     quantity: int = 1,
 ) -> dict:
-    quantity = max(1, int(quantity or 1))
+    quantity = normalize_quantity(quantity)
 
-    user = get_user(db, user_id)
-    trader = get_trader(db, trader_id)
+    try:
+        user = get_user(db, user_id)
+        trader = get_trader(db, trader_id)
 
-    user_item = (
-        db.query(UserItem)
-        .options(joinedload(UserItem.item))
-        .filter(
-            UserItem.user_id == user_id,
-            UserItem.item_id == item_id,
+        user_item = (
+            db.query(UserItem)
+            .options(joinedload(UserItem.item))
+            .filter(
+                UserItem.user_id == user_id,
+                UserItem.item_id == item_id,
+            )
+            .first()
         )
-        .first()
-    )
 
-    if not user_item:
-        raise ValueError("Предмет отсутствует у игрока")
+        if not user_item:
+            raise ValueError("Предмет отсутствует у игрока")
 
-    if int(user_item.quantity or 0) < quantity:
-        raise ValueError("Недостаточное количество предметов")
+        current_user_quantity = int(user_item.quantity or 0)
+        if current_user_quantity < quantity:
+            raise ValueError("Недостаточное количество предметов")
 
-    item = user_item.item
-    if not item:
-        raise ValueError("Предмет не найден")
+        item = user_item.item
+        if not item:
+            raise ValueError("Предмет не найден")
 
-    unit_sell_price_cp = calculate_sell_price_cp(
-        base_gold=int(item.price_gold or 0),
-        base_silver=int(item.price_silver or 0),
-        base_copper=int(item.price_copper or 0),
-        trader_reputation=int(trader.reputation or 0),
-    )
-    total_reward_cp = unit_sell_price_cp * quantity
+        unit_sell_price_cp = calculate_sell_price_cp(
+            base_gold=int(item.price_gold or 0),
+            base_silver=int(item.price_silver or 0),
+            base_copper=int(item.price_copper or 0),
+            trader_reputation=int(trader.reputation or 0),
+        )
+        total_reward_cp = unit_sell_price_cp * quantity
 
-    trader_gold_cost = cp_to_trader_gold_units(total_reward_cp)
-    if int(trader.gold or 0) < trader_gold_cost:
-        raise ValueError("У торговца недостаточно золота")
+        if not has_enough_money(trader.money_cp_total, total_reward_cp):
+            raise ValueError("У торговца недостаточно золота")
 
-    user.money_cp_total = add_cp(
-        user.money_cp_total,
-        total_reward_cp,
-    )
+        user.money_cp_total = add_cp(
+            user.money_cp_total,
+            total_reward_cp,
+        )
 
-    trader.gold = int(trader.gold or 0) - trader_gold_cost
+        trader.money_cp_total = subtract_cp(
+            trader.money_cp_total,
+            total_reward_cp,
+        )
 
-    user_item.quantity = int(user_item.quantity or 0) - quantity
-    if user_item.quantity <= 0:
-        db.delete(user_item)
-    else:
-        db.add(user_item)
+        new_user_quantity = current_user_quantity - quantity
+        if new_user_quantity <= 0:
+            db.delete(user_item)
+            player_item_quantity = 0
+        else:
+            user_item.quantity = new_user_quantity
+            db.add(user_item)
+            player_item_quantity = int(user_item.quantity or 0)
 
-    slot = get_or_create_trader_slot(
-        db=db,
-        trader_id=trader_id,
-        item_id=item_id,
-        base_gold=int(item.price_gold or 0),
-        base_silver=int(item.price_silver or 0),
-        base_copper=int(item.price_copper or 0),
-    )
-    slot.quantity = int(slot.quantity or 0) + quantity
+        slot = get_or_create_trader_slot(
+            db=db,
+            trader_id=trader_id,
+            item_id=item_id,
+            base_gold=int(item.price_gold or 0),
+            base_silver=int(item.price_silver or 0),
+            base_copper=int(item.price_copper or 0),
+        )
+        slot.quantity = int(slot.quantity or 0) + quantity
 
-    db.add(slot)
-    db.add(user)
-    db.add(trader)
+        db.add(slot)
+        db.add(user)
+        db.add(trader)
+        db.flush()
 
-    sync_character_inventory(db, user_id)
+        sync_character_inventory(db, user_id)
 
-    db.commit()
-    db.refresh(user)
-    db.refresh(trader)
-    db.refresh(slot)
+        db.commit()
+        db.refresh(user)
+        db.refresh(trader)
+        db.refresh(slot)
 
-    return {
-        "status": "ok",
-        "action": "sell",
-        "item_id": item_id,
-        "quantity": quantity,
-        **split_price_payload("unit_sell_price", unit_sell_price_cp),
-        **split_price_payload("total_received", total_reward_cp),
-        "trader_id": trader_id,
-        "trader_gold": int(trader.gold or 0),
-        "trader_stock": int(slot.quantity or 0),
-        **cp_payload(user.money_cp_total),
-    }
+        return {
+            "status": "ok",
+            "action": "sell",
+            "item_id": item_id,
+            "quantity": quantity,
+            **split_price_payload("unit_sell_price", unit_sell_price_cp),
+            **split_price_payload("total_received", total_reward_cp),
+            "trader_id": trader_id,
+            "trader_gold": int(trader.gold or 0),
+            "trader_stock": int(slot.quantity or 0),
+            "player_item_quantity": int(player_item_quantity or 0),
+            **split_price_payload("trader_money", trader.money_cp_total),
+            **cp_payload(user.money_cp_total),
+        }
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_player_inventory(
@@ -360,6 +471,8 @@ def get_player_inventory(
     user_id: int,
     trader_id: int | None = None,
 ) -> dict:
+    user = get_user(db, user_id)
+
     rows = (
         db.query(UserItem)
         .options(joinedload(UserItem.item))
@@ -377,45 +490,21 @@ def get_player_inventory(
         if not item:
             continue
 
-        sell_price_cp = calculate_sell_price_cp(
-            base_gold=int(item.price_gold or 0),
-            base_silver=int(item.price_silver or 0),
-            base_copper=int(item.price_copper or 0),
-            trader_reputation=int(trader.reputation or 0) if trader else 0,
-        )
-
-        sell_gold, sell_silver, sell_copper = copper_to_split(sell_price_cp)
+        row_quantity = int(row.quantity or 0)
+        if row_quantity <= 0:
+            continue
 
         items.append(
-            {
-                "id": item.id,
-                "name": item.name,
-                "category": item.category,
-                "subcategory": item.subcategory,
-                "rarity": item.rarity,
-                "rarity_tier": int(item.rarity_tier or 0),
-                "quality": item.quality,
-                "description": item.description,
-                "weight": float(item.weight or 0),
-                "properties": item.properties or {},
-                "requirements": item.requirements or {},
-                "source": item.source,
-                "is_magical": bool(item.is_magical),
-                "attunement": bool(item.attunement),
-                "quantity": int(row.quantity or 0),
-                "price_gold": int(item.price_gold or 0),
-                "price_silver": int(item.price_silver or 0),
-                "price_copper": int(item.price_copper or 0),
-                "sell_price_cp": int(sell_price_cp or 0),
-                "sell_price_gold": int(sell_gold or 0),
-                "sell_price_silver": int(sell_silver or 0),
-                "sell_price_copper": int(sell_copper or 0),
-                "sell_price_label": format_split_price(sell_gold, sell_silver, sell_copper),
-            }
+            build_inventory_item_payload(
+                item=item,
+                quantity=row_quantity,
+                trader=trader,
+            )
         )
 
     return {
         "status": "ok",
         "count": len(items),
         "items": items,
+        **cp_payload(user.money_cp_total),
     }

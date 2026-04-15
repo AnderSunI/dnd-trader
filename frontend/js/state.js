@@ -1,41 +1,45 @@
 // ============================================================
 // frontend/js/state.js
-// Центральное состояние фронтенда.
-// Ничего не рендерит — только хранит данные.
+// Shared state / bridge store
+// - совместим со старой и новой модульной схемой
+// - сам ничего не рендерит
+// - не спорит с app.js, а даёт общий объект для модулей
 // ============================================================
 
-// Глобальное состояние приложения
+// ------------------------------------------------------------
+// 🌐 ROOT STATE
+// ------------------------------------------------------------
 export const state = {
-  // Пользователь
+  // Пользователь / роль
   user: null,
+  role: "player",
 
-  // Список всех торговцев
+  // Торговцы / выбор торговца
   traders: [],
-
-  // Текущий выбранный торговец
   selectedTraderId: null,
 
-  // Инвентарь игрока
+  // Игрок
   inventory: [],
-
-  // Корзина
   cart: [],
-
-  // Резерв товаров
   reserved: [],
 
   // Фильтры
   filters: {
     search: "",
-    category: "all",
-    region: "all",
-    traderType: "all",
-    rarity: "all",
+    itemSearch: "",
+    category: "",
+    region: "",
+    traderType: "",
+    rarity: "",
+    magicFilter: "",
     minPrice: null,
     maxPrice: null,
+    playerLevel: 0,
+    reputation: 0,
+    sort: "name_asc",
   },
 
-  // Состояние интерфейса
+  // UI
   ui: {
     cabinetOpen: false,
     activeCabinetTab: "inventory",
@@ -43,8 +47,11 @@ export const state = {
     gmMode: false,
   },
 
-  // Long Story Short / персонаж
+  // Long Story Short
   lss: {
+    raw: null,
+    profile: null,
+    source: "empty",
     stats: {},
     abilities: [],
     quests: [],
@@ -54,242 +61,493 @@ export const state = {
 
   // Карта
   map: {
+    maps: [],
+    activeMapId: null,
     markers: [],
     zoom: 1,
+    rotation: 0,
     activeLayer: "world",
   },
 };
 
-// ============================================================
-// 👤 USER
-// ============================================================
-
-// Установить пользователя
-export function setUser(user) {
-  state.user = user;
+// ------------------------------------------------------------
+// 🧰 HELPERS
+// ------------------------------------------------------------
+function clone(value) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
 }
 
-// Сбросить пользователя
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function safeObject(value, fallback = {}) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : fallback;
+}
+
+function safeNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeRole(role) {
+  const raw = String(role || "").trim().toLowerCase();
+  if (raw === "gm" || raw === "admin") return "gm";
+  return "player";
+}
+
+function getItemId(item) {
+  return Number(item?.item_id ?? item?.id ?? 0);
+}
+
+function getTraderId(item) {
+  if (item?.trader_id === null || item?.trader_id === undefined) return null;
+  const n = Number(item.trader_id);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getCollectionKey(itemOrTraderId, maybeItemId = null) {
+  if (typeof itemOrTraderId === "object" && itemOrTraderId !== null) {
+    return `${getTraderId(itemOrTraderId) ?? "none"}:${getItemId(itemOrTraderId)}`;
+  }
+  return `${itemOrTraderId ?? "none"}:${Number(maybeItemId ?? 0)}`;
+}
+
+function normalizeItem(item, quantityFallback = 1) {
+  const normalized = {
+    ...safeObject(item, {}),
+    id: getItemId(item),
+    item_id: getItemId(item),
+    trader_id: getTraderId(item),
+    quantity: Math.max(1, safeNumber(item?.quantity, quantityFallback)),
+  };
+
+  return normalized;
+}
+
+function syncWindowBridge() {
+  window.__sharedState = state;
+  window.__state = state;
+}
+
+// ------------------------------------------------------------
+// 👤 USER / ROLE
+// ------------------------------------------------------------
+export function setUser(user) {
+  state.user = user && typeof user === "object" ? clone(user) : null;
+
+  const inferredRole =
+    state.user?.role ??
+    window.__appUserRole ??
+    document.body?.dataset?.role ??
+    state.role;
+
+  state.role = normalizeRole(inferredRole);
+  state.ui.gmMode = state.role === "gm";
+  syncWindowBridge();
+}
+
 export function clearUser() {
   state.user = null;
+  state.role = normalizeRole(window.__appUserRole || "player");
+  state.ui.gmMode = state.role === "gm";
+  syncWindowBridge();
 }
 
-// ============================================================
+export function setRole(role) {
+  state.role = normalizeRole(role);
+  state.ui.gmMode = state.role === "gm";
+  syncWindowBridge();
+}
+
+export function setGmMode(enabled) {
+  state.ui.gmMode = Boolean(enabled);
+  state.role = enabled ? "gm" : "player";
+  syncWindowBridge();
+}
+
+export function getRole() {
+  return normalizeRole(state.role);
+}
+
+// ------------------------------------------------------------
 // 🧙 TRADERS
-// ============================================================
-
-// Установить список торговцев
+// ------------------------------------------------------------
 export function setTraders(traders) {
-  state.traders = Array.isArray(traders) ? traders : [];
+  state.traders = safeArray(traders).map((trader) => ({
+    ...safeObject(trader, {}),
+    id: Number(trader?.id ?? 0),
+    items: safeArray(trader?.items).map((item) => normalizeItem(item)),
+  }));
+  syncWindowBridge();
 }
 
-// Выбрать торговца
+export function getTraders() {
+  return state.traders;
+}
+
 export function setSelectedTrader(traderId) {
-  state.selectedTraderId = traderId;
+  state.selectedTraderId = traderId === null || traderId === undefined
+    ? null
+    : Number(traderId);
+  syncWindowBridge();
 }
 
-// Сбросить выбранного торговца
 export function clearSelectedTrader() {
   state.selectedTraderId = null;
+  syncWindowBridge();
 }
 
-// Получить текущего торговца
 export function getSelectedTrader() {
   return (
-    state.traders.find((trader) => trader.id === state.selectedTraderId) || null
+    state.traders.find((trader) => Number(trader.id) === Number(state.selectedTraderId)) ||
+    null
   );
 }
 
-// ============================================================
-// 🎒 INVENTORY
-// ============================================================
+export function upsertTrader(trader) {
+  const normalized = {
+    ...safeObject(trader, {}),
+    id: Number(trader?.id ?? 0),
+    items: safeArray(trader?.items).map((item) => normalizeItem(item)),
+  };
 
-// Установить инвентарь игрока
-export function setInventory(items) {
-  state.inventory = Array.isArray(items) ? items : [];
+  const index = state.traders.findIndex((entry) => Number(entry.id) === Number(normalized.id));
+
+  if (index >= 0) {
+    state.traders[index] = normalized;
+  } else {
+    state.traders.push(normalized);
+  }
+
+  syncWindowBridge();
+  return normalized;
 }
 
-// Очистить инвентарь
+// ------------------------------------------------------------
+// 🎒 INVENTORY
+// ------------------------------------------------------------
+export function setInventory(items) {
+  state.inventory = safeArray(items).map((item) => normalizeItem(item));
+  syncWindowBridge();
+}
+
+export function getInventory() {
+  return state.inventory;
+}
+
 export function clearInventory() {
   state.inventory = [];
+  syncWindowBridge();
 }
 
-// ============================================================
+export function addInventoryItem(item, quantity = 1) {
+  const normalized = normalizeItem(item, quantity);
+  const index = state.inventory.findIndex(
+    (entry) =>
+      getItemId(entry) === getItemId(normalized) &&
+      getTraderId(entry) === getTraderId(normalized)
+  );
+
+  if (index >= 0) {
+    state.inventory[index].quantity += Math.max(1, safeNumber(quantity, 1));
+  } else {
+    state.inventory.push(normalized);
+  }
+
+  syncWindowBridge();
+}
+
+export function removeInventoryItem(itemId, traderId = null) {
+  const key = getCollectionKey(traderId, itemId);
+  state.inventory = state.inventory.filter((item) => getCollectionKey(item) !== key);
+  syncWindowBridge();
+}
+
+// ------------------------------------------------------------
 // 🛒 CART
-// ============================================================
-
-// Установить корзину целиком
+// ------------------------------------------------------------
 export function setCart(items) {
-  state.cart = Array.isArray(items) ? items : [];
+  state.cart = safeArray(items).map((item) => normalizeItem(item));
+  syncWindowBridge();
 }
 
-// Добавить товар в корзину
-export function addToCart(item, quantity = 1) {
-  if (!item || !item.id) return;
-
-  const existing = state.cart.find((cartItem) => cartItem.id === item.id);
-
-  if (existing) {
-    existing.quantity += quantity;
-    return;
-  }
-
-  state.cart.push({
-    ...item,
-    quantity,
-  });
+export function getCart() {
+  return state.cart;
 }
 
-// Удалить товар из корзины
-export function removeFromCart(itemId) {
-  state.cart = state.cart.filter((item) => item.id !== itemId);
-}
-
-// Изменить количество товара
-export function updateCartQuantity(itemId, delta) {
-  const item = state.cart.find((cartItem) => cartItem.id === itemId);
-
-  if (!item) return;
-
-  item.quantity += delta;
-
-  if (item.quantity <= 0) {
-    removeFromCart(itemId);
-  }
-}
-
-// Очистить корзину
 export function clearCart() {
   state.cart = [];
+  syncWindowBridge();
 }
 
-// Получить общее количество предметов в корзине
-export function getCartCount() {
-  return state.cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+export function addToCart(item, quantity = 1) {
+  const normalized = normalizeItem(item, quantity);
+  const key = getCollectionKey(normalized);
+
+  const existing = state.cart.find((cartItem) => getCollectionKey(cartItem) === key);
+  if (existing) {
+    existing.quantity += Math.max(1, safeNumber(quantity, 1));
+  } else {
+    state.cart.push(normalized);
+  }
+
+  syncWindowBridge();
 }
 
-// ============================================================
+export function removeFromCart(itemId, traderId = null) {
+  const key = getCollectionKey(traderId, itemId);
+  state.cart = state.cart.filter((item) => getCollectionKey(item) !== key);
+  syncWindowBridge();
+}
+
+export function updateCartQuantity(itemId, quantity, traderId = null) {
+  const key = getCollectionKey(traderId, itemId);
+  const nextQty = Math.max(1, safeNumber(quantity, 1));
+
+  state.cart = state.cart.map((item) => {
+    if (getCollectionKey(item) !== key) return item;
+    return { ...item, quantity: nextQty };
+  });
+
+  syncWindowBridge();
+}
+
+// ------------------------------------------------------------
 // 📦 RESERVED
-// ============================================================
-
-// Установить резерв
+// ------------------------------------------------------------
 export function setReserved(items) {
-  state.reserved = Array.isArray(items) ? items : [];
+  state.reserved = safeArray(items).map((item) => normalizeItem(item));
+  syncWindowBridge();
 }
 
-// Очистить резерв
+export function getReserved() {
+  return state.reserved;
+}
+
 export function clearReserved() {
   state.reserved = [];
+  syncWindowBridge();
 }
 
-// ============================================================
-// 🗂️ FILTERS
-// ============================================================
+export function addReservedItem(item, quantity = 1) {
+  const normalized = normalizeItem(item, quantity);
+  const key = getCollectionKey(normalized);
 
-// Обновить один фильтр
+  const existing = state.reserved.find((reservedItem) => getCollectionKey(reservedItem) === key);
+  if (existing) {
+    existing.quantity += Math.max(1, safeNumber(quantity, 1));
+  } else {
+    state.reserved.push(normalized);
+  }
+
+  syncWindowBridge();
+}
+
+export function removeReservedItem(itemId, traderId = null) {
+  const key = getCollectionKey(traderId, itemId);
+  state.reserved = state.reserved.filter((item) => getCollectionKey(item) !== key);
+  syncWindowBridge();
+}
+
+// ------------------------------------------------------------
+// 🔎 FILTERS
+// ------------------------------------------------------------
+const DEFAULT_FILTERS = {
+  search: "",
+  itemSearch: "",
+  category: "",
+  region: "",
+  traderType: "",
+  rarity: "",
+  magicFilter: "",
+  minPrice: null,
+  maxPrice: null,
+  playerLevel: 0,
+  reputation: 0,
+  sort: "name_asc",
+};
+
+export function setFilters(filters) {
+  state.filters = {
+    ...DEFAULT_FILTERS,
+    ...safeObject(filters, {}),
+  };
+  syncWindowBridge();
+}
+
 export function updateFilter(key, value) {
-  if (!(key in state.filters)) return;
   state.filters[key] = value;
+  syncWindowBridge();
 }
 
-// Установить сразу несколько фильтров
-export function setFilters(nextFilters) {
-  state.filters = {
-    ...state.filters,
-    ...(nextFilters || {}),
-  };
-}
-
-// Сброс фильтров
 export function resetFilters() {
-  state.filters = {
-    search: "",
-    category: "all",
-    region: "all",
-    traderType: "all",
-    rarity: "all",
-    minPrice: null,
-    maxPrice: null,
-  };
+  state.filters = { ...DEFAULT_FILTERS };
+  syncWindowBridge();
 }
 
-// ============================================================
-// 👤 CABINET
-// ============================================================
-
-// Открыть личный кабинет
-export function openCabinet() {
-  state.ui.cabinetOpen = true;
+export function getFilters() {
+  return state.filters;
 }
 
-// Закрыть личный кабинет
-export function closeCabinet() {
-  state.ui.cabinetOpen = false;
+// ------------------------------------------------------------
+// 🖥 UI
+// ------------------------------------------------------------
+export function setCabinetOpen(isOpen) {
+  state.ui.cabinetOpen = Boolean(isOpen);
+  syncWindowBridge();
 }
 
-// Переключить состояние кабинета
-export function toggleCabinet() {
-  state.ui.cabinetOpen = !state.ui.cabinetOpen;
+export function setActiveCabinetTab(tabName) {
+  state.ui.activeCabinetTab = String(tabName || "inventory");
+  syncWindowBridge();
 }
 
-// Сменить вкладку кабинета
-export function setCabinetTab(tabName) {
-  state.ui.activeCabinetTab = tabName;
+export function setActiveTraderTab(tabName) {
+  state.ui.activeTraderTab = String(tabName || "inventory");
+  syncWindowBridge();
 }
 
-// ============================================================
-// 🏪 TRADER TABS
-// ============================================================
-
-// Сменить вкладку торговца
-export function setTraderTab(tabName) {
-  state.ui.activeTraderTab = tabName;
+export function getUiState() {
+  return state.ui;
 }
 
-// ============================================================
+// ------------------------------------------------------------
 // 📖 LSS
-// ============================================================
+// ------------------------------------------------------------
+export function setLssData(payload) {
+  const data = safeObject(payload, null);
 
-// Установить данные персонажа
-export function setLssData(data) {
   state.lss = {
     ...state.lss,
-    ...(data || {}),
+    raw: data ? clone(data.raw ?? data) : null,
+    profile: data ? clone(data.profile ?? data) : null,
+    source: safeText(data?.source, data ? "manual" : "empty"),
+    stats: safeObject(data?.stats, safeObject(data?.profile?.stats, {})),
+    abilities: safeArray(data?.abilities),
+    quests: safeArray(data?.quests),
+    history: safeArray(data?.history),
+    notes: safeText(data?.notes, ""),
   };
+
+  syncWindowBridge();
 }
 
-// Частично обновить заметки LSS
-export function setLssNotes(notes) {
-  state.lss.notes = notes || "";
+export function clearLssData() {
+  state.lss = {
+    raw: null,
+    profile: null,
+    source: "empty",
+    stats: {},
+    abilities: [],
+    quests: [],
+    history: [],
+    notes: "",
+  };
+  syncWindowBridge();
 }
 
-// ============================================================
-// 🗺️ MAP
-// ============================================================
+export function getLssData() {
+  return state.lss;
+}
 
-// Установить данные карты
-export function setMapData(data) {
+// ------------------------------------------------------------
+// 🗺 MAP
+// ------------------------------------------------------------
+export function setMapData(payload) {
+  const data = safeObject(payload, {});
+
   state.map = {
     ...state.map,
-    ...(data || {}),
+    ...clone(data),
+    maps: safeArray(data.maps ?? state.map.maps),
+    markers: safeArray(data.markers ?? state.map.markers),
+    zoom: safeNumber(data.zoom ?? state.map.zoom, 1),
+    rotation: safeNumber(data.rotation ?? state.map.rotation, 0),
+    activeLayer: safeText(data.activeLayer ?? state.map.activeLayer, "world"),
   };
+
+  syncWindowBridge();
 }
 
-// Установить zoom карты
-export function setMapZoom(zoom) {
-  state.map.zoom = zoom;
+export function clearMapData() {
+  state.map = {
+    maps: [],
+    activeMapId: null,
+    markers: [],
+    zoom: 1,
+    rotation: 0,
+    activeLayer: "world",
+  };
+  syncWindowBridge();
 }
 
-// Установить активный слой карты
-export function setMapLayer(layerName) {
-  state.map.activeLayer = layerName;
+export function getMapData() {
+  return state.map;
 }
 
-// ============================================================
-// 🛡️ GM MODE
-// ============================================================
+// ------------------------------------------------------------
+// 🔄 GLOBAL SYNC
+// ------------------------------------------------------------
+export function syncStateFromGlobals() {
+  if (window.__appUser !== undefined) {
+    state.user = window.__appUser;
+  }
 
-// Переключение режима ГМа
-export function setGmMode(enabled) {
-  state.ui.gmMode = !!enabled;
+  if (Array.isArray(window.__appStateTraders)) {
+    state.traders = window.__appStateTraders;
+  }
+
+  if (Array.isArray(window.__appStateInventory)) {
+    state.inventory = window.__appStateInventory;
+  }
+
+  if (Array.isArray(window.__appCartState)) {
+    state.cart = window.__appCartState;
+  }
+
+  if (Array.isArray(window.__appStateReserved)) {
+    state.reserved = window.__appStateReserved;
+  }
+
+  state.role = normalizeRole(
+    window.__appUserRole ||
+    window.__userRole ||
+    document.body?.dataset?.role ||
+    state.role
+  );
+  state.ui.gmMode = state.role === "gm";
+
+  syncWindowBridge();
 }
+
+export function resetState() {
+  state.user = null;
+  state.role = "player";
+  state.traders = [];
+  state.selectedTraderId = null;
+  state.inventory = [];
+  state.cart = [];
+  state.reserved = [];
+  state.filters = { ...DEFAULT_FILTERS };
+  state.ui = {
+    cabinetOpen: false,
+    activeCabinetTab: "inventory",
+    activeTraderTab: "inventory",
+    gmMode: false,
+  };
+  clearLssData();
+  clearMapData();
+  syncWindowBridge();
+}
+
+// ------------------------------------------------------------
+// 🌉 INIT BRIDGE
+// ------------------------------------------------------------
+syncWindowBridge();

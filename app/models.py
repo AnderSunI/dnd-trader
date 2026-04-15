@@ -25,6 +25,72 @@ from .database import SessionLocal, engine
 Base = declarative_base()
 
 # ============================================================
+# 💰 ДЕНЕЖНЫЕ КОНСТАНТЫ
+# ============================================================
+
+COPPER_IN_SILVER = 100
+SILVER_IN_GOLD = 100
+COPPER_IN_GOLD = COPPER_IN_SILVER * SILVER_IN_GOLD
+
+# Скрытый буфер остатка денег торговца (silver/copper),
+# чтобы не менять схему БД и не терять точность.
+TRADER_CP_BUFFER_KEY = "__money_cp_buffer"
+
+
+def _default_stats() -> dict:
+    return {
+        "str": 10,
+        "dex": 10,
+        "con": 10,
+        "int": 10,
+        "wis": 10,
+        "cha": 10,
+    }
+
+
+def _default_dict() -> dict:
+    return {}
+
+
+def _default_list() -> list:
+    return []
+
+
+def _split_to_copper(
+    gold: int = 0,
+    silver: int = 0,
+    copper: int = 0,
+) -> int:
+    gold = int(gold or 0)
+    silver = int(silver or 0)
+    copper = int(copper or 0)
+
+    return (
+        gold * COPPER_IN_GOLD
+        + silver * COPPER_IN_SILVER
+        + copper
+    )
+
+
+def _copper_to_split(total_copper: int) -> tuple[int, int, int]:
+    total = max(0, int(total_copper or 0))
+
+    gold = total // COPPER_IN_GOLD
+    total %= COPPER_IN_GOLD
+
+    silver = total // COPPER_IN_SILVER
+    copper = total % COPPER_IN_SILVER
+
+    return gold, silver, copper
+
+
+def _safe_dict(value) -> dict:
+    if isinstance(value, dict):
+        return dict(value)
+    return {}
+
+
+# ============================================================
 # 🧩 СВЯЗУЮЩАЯ МОДЕЛЬ: ПРЕДМЕТ У ТОРГОВЦА
 # ============================================================
 
@@ -52,6 +118,14 @@ class TraderItem(Base):
 
     trader = relationship("Trader", back_populates="trader_items")
     item = relationship("Item", back_populates="trader_items")
+
+    @property
+    def price_cp_total(self) -> int:
+        return _split_to_copper(
+            gold=int(self.price_gold or 0),
+            silver=int(self.price_silver or 0),
+            copper=int(self.price_copper or 0),
+        )
 
 
 # ============================================================
@@ -95,7 +169,7 @@ class Trader(Base):
     name = Column(String, nullable=False)
     type = Column(String, nullable=False)
 
-    specialization = Column(JSON, default={})
+    specialization = Column(JSON, default=_default_dict)
     reputation = Column(Integer, default=0)
 
     region = Column(String, default="")
@@ -111,17 +185,19 @@ class Trader(Base):
     description = Column(String, default="")
     image_url = Column(String, default="")
     personality = Column(String, default="")
-    possessions = Column(JSON, default=[])
+    possessions = Column(JSON, default=_default_list)
     rumors = Column(String, default="")
 
+    # Legacy-совместимость:
+    # в старом main и в текущей схеме Trader хранит деньги как целое число gold.
     gold = Column(Integer, default=0)
 
     race = Column(String, default="")
     class_name = Column(String, default="")
     trader_level = Column(Integer, default=1)
 
-    stats = Column(JSON, default={})
-    abilities = Column(JSON, default=[])
+    stats = Column(JSON, default=_default_dict)
+    abilities = Column(JSON, default=_default_list)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -138,6 +214,74 @@ class Trader(Base):
         viewonly=True,
         back_populates="traders",
     )
+
+    @property
+    def money_cp_total(self) -> int:
+        """
+        Совместимый денежный слой для сервисов.
+
+        Схему БД не меняем:
+        - целые gold лежат в trader.gold
+        - остаток silver/copper лежит в скрытом буфере stats[TRADER_CP_BUFFER_KEY]
+        """
+        stats = _safe_dict(self.stats)
+
+        try:
+            buffer_cp = int(stats.get(TRADER_CP_BUFFER_KEY, 0) or 0)
+        except (TypeError, ValueError):
+            buffer_cp = 0
+
+        if buffer_cp < 0:
+            buffer_cp = 0
+
+        if buffer_cp >= COPPER_IN_GOLD:
+            buffer_cp = buffer_cp % COPPER_IN_GOLD
+
+        return _split_to_copper(
+            gold=int(self.gold or 0),
+            silver=0,
+            copper=buffer_cp,
+        )
+
+    @money_cp_total.setter
+    def money_cp_total(self, value: int) -> None:
+        """
+        Обратная запись без потери silver/copper.
+
+        В gold пишем только целую золотую часть,
+        остаток сохраняем в скрытый буфер внутри stats.
+        """
+        try:
+            cp_total = int(value or 0)
+        except (TypeError, ValueError):
+            cp_total = 0
+
+        if cp_total < 0:
+            cp_total = 0
+
+        gold, silver, copper = _copper_to_split(cp_total)
+        remainder_cp = _split_to_copper(
+            gold=0,
+            silver=silver,
+            copper=copper,
+        )
+
+        self.gold = int(gold or 0)
+
+        stats = _safe_dict(self.stats)
+        if remainder_cp > 0:
+            stats[TRADER_CP_BUFFER_KEY] = remainder_cp
+        else:
+            stats.pop(TRADER_CP_BUFFER_KEY, None)
+
+        self.stats = stats
+
+    @property
+    def gold_cp_total(self) -> int:
+        """
+        Явный алиас для читаемости.
+        """
+        return self.money_cp_total
 
 
 # ============================================================
@@ -163,8 +307,8 @@ class Item(Base):
 
     weight = Column(Float, default=0.0)
     description = Column(String, default="")
-    properties = Column(JSON, default={})
-    requirements = Column(JSON, default={})
+    properties = Column(JSON, default=_default_dict)
+    requirements = Column(JSON, default=_default_dict)
     source = Column(String, default="merged")
 
     is_magical = Column(Boolean, default=False)
@@ -194,6 +338,14 @@ class Item(Base):
         cascade="all, delete-orphan",
     )
 
+    @property
+    def price_cp_total(self) -> int:
+        return _split_to_copper(
+            gold=int(self.price_gold or 0),
+            silver=int(self.price_silver or 0),
+            copper=int(self.price_copper or 0),
+        )
+
 
 # ============================================================
 # 👤 ПОЛЬЗОВАТЕЛЬ
@@ -210,6 +362,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     role = Column(String, default="player")
 
+    # Основная денежная модель в develop
     money_cp_total = Column(Integer, default=1000000)
 
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -260,26 +413,33 @@ class Character(Base):
 
     stats = Column(
         JSON,
-        default={
-            "str": 10,
-            "dex": 10,
-            "con": 10,
-            "int": 10,
-            "wis": 10,
-            "cha": 10,
-        },
+        default=_default_stats,
     )
 
-    data = Column(JSON, default={})
+    data = Column(JSON, default=_default_dict)
 
+    # Legacy-поля old main, сохраняем
     gold = Column(Integer, default=1000)
-    inventory = Column(JSON, default=[])
-    cart = Column(JSON, default=[])
-    reserved = Column(JSON, default=[])
-    gm_notes = Column(JSON, default={})
-    cabinet_data = Column(JSON, default={})
+    inventory = Column(JSON, default=_default_list)
+    cart = Column(JSON, default=_default_list)
+    reserved = Column(JSON, default=_default_list)
+    gm_notes = Column(JSON, default=_default_dict)
+    cabinet_data = Column(JSON, default=_default_dict)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="characters")
+
+
+__all__ = [
+    "Base",
+    "SessionLocal",
+    "engine",
+    "TraderItem",
+    "UserItem",
+    "Trader",
+    "Item",
+    "User",
+    "Character",
+]

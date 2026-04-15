@@ -9,41 +9,56 @@ from .money import (
 )
 
 # ============================================================
-# ⚙️ БАЗОВЫЕ НАСТРОЙКИ ЭКОНОМИКИ
+# ⚙️ ЭКОНОМИКА
 # ============================================================
+#
+# Опора на две вещи:
+# 1) old main:
+#    price = base * (1 - reputation / 100)
+#    то есть репутация просто снижала цену покупки у торговца.
+#
+# 2) текущая целевая логика пользователя:
+#    - базовая цена предмета, например 150
+#    - игрок покупает у торговца дешевле при хорошей репутации:
+#      примерно до 100 за предмет ценой 150
+#    - игрок продаёт торговцу по базе 50%
+#      и до ~80 при хорошей репутации
+#
+# Поэтому вводим одну понятную модель:
+# - reputation нормализуется в диапазон 0..100
+# - buy multiplier:
+#     от 1.00 (без репутации)
+#     до 0.6667 (очень хорошая репутация)
+# - sell multiplier:
+#     от 0.50 (база)
+#     до 0.80 (очень хорошая репутация)
+#
+# Это ближе к main, но уже соответствует новой задумке.
 
-# Базовая наценка на покупку у торговца:
-# игрок платит дороже базовой цены
-BASE_BUY_MARKUP = 1.20
+REPUTATION_MIN = 0
+REPUTATION_MAX = 100
 
-# Базовая цена выкупа у игрока:
-# торговец покупает дешевле базовой цены
-BASE_SELL_RATIO = 0.45
+# Игрок покупает у торговца:
+# 0 репутации  -> 100% базовой цены
+# 100 репутации -> 66.67% базовой цены
+BASE_BUY_MULTIPLIER = 1.00
+BEST_BUY_MULTIPLIER = 2.0 / 3.0  # ~0.6667
 
-# Влияние репутации на цену покупки:
-# каждая единица reputation немного снижает цену покупки
-BUY_REPUTATION_STEP = 0.02
+# Игрок продаёт торговцу:
+# 0 репутации  -> 50% базовой цены
+# 100 репутации -> 80% базовой цены
+BASE_SELL_MULTIPLIER = 0.50
+BEST_SELL_MULTIPLIER = 0.80
 
-# Влияние репутации на цену продажи:
-# каждая единица reputation немного повышает цену выкупа
-SELL_REPUTATION_STEP = 0.015
-
-# Ограничители, чтобы экономика не ломалась
-MIN_BUY_MULTIPLIER = 0.75
-MAX_BUY_MULTIPLIER = 1.60
-
-MIN_SELL_MULTIPLIER = 0.10
-MAX_SELL_MULTIPLIER = 0.80
 
 # ============================================================
 # 🧾 СЛУЖЕБНАЯ СТРУКТУРА
 # ============================================================
 
-
 @dataclass
 class PriceComputation:
     """
-    Внутреннее представление вычисленной цены.
+    Полное вычисление цены.
     """
     base_cp: int
     multiplier: float
@@ -63,12 +78,24 @@ def clamp(value: float, min_value: float, max_value: float) -> float:
 
 def normalize_reputation(reputation: int | None) -> int:
     """
-    Нормализуем reputation.
+    Нормализуем reputation к диапазону 0..100.
+
+    В old main репутация использовалась как процент.
     """
     try:
-        return int(reputation or 0)
+        rep = int(reputation or 0)
     except (TypeError, ValueError):
-        return 0
+        rep = 0
+
+    return int(clamp(rep, REPUTATION_MIN, REPUTATION_MAX))
+
+
+def reputation_ratio(reputation: int | None) -> float:
+    """
+    Репутация как доля от 0 до 1.
+    """
+    rep = normalize_reputation(reputation)
+    return rep / 100.0
 
 
 def split_price_to_cp(
@@ -77,7 +104,7 @@ def split_price_to_cp(
     base_copper: int = 0,
 ) -> int:
     """
-    Базовая цена в total copper.
+    Перевести split-цену в total copper.
     """
     return split_to_copper(
         gold=int(base_gold or 0),
@@ -88,17 +115,30 @@ def split_price_to_cp(
 
 def cp_to_split_payload(total_cp: int) -> dict:
     """
-    Преобразовать copper в payload.
+    Преобразовать total copper в split payload.
     """
+    total_cp = max(0, int(total_cp or 0))
     gold, silver, copper = copper_to_split(total_cp)
 
     return {
-        "cp_total": int(total_cp or 0),
-        "gold": gold,
-        "silver": silver,
-        "copper": copper,
+        "cp_total": total_cp,
+        "gold": int(gold or 0),
+        "silver": int(silver or 0),
+        "copper": int(copper or 0),
         "label": format_split_price(gold, silver, copper),
     }
+
+
+def format_cp_or_zero(total_cp: int) -> str:
+    """
+    Форматирование arbitrary cp.
+    """
+    total_cp = int(total_cp or 0)
+    if total_cp <= 0:
+        return "0м"
+
+    gold, silver, copper = copper_to_split(total_cp)
+    return format_split_price(gold, silver, copper)
 
 
 # ============================================================
@@ -107,36 +147,49 @@ def cp_to_split_payload(total_cp: int) -> dict:
 
 def get_buy_multiplier(trader_reputation: int = 0) -> float:
     """
-    Множитель покупки:
-    чем выше reputation, тем дешевле игрок покупает.
-    """
-    rep = normalize_reputation(trader_reputation)
+    Множитель покупки игроком у торговца.
 
-    multiplier = BASE_BUY_MARKUP - (rep * BUY_REPUTATION_STEP)
-    multiplier = clamp(
-        multiplier,
-        MIN_BUY_MULTIPLIER,
-        MAX_BUY_MULTIPLIER,
+    Логика:
+    - при 0 репутации игрок платит базовую цену
+    - при 100 репутации игрок платит ~66.67% базовой цены
+
+    Пример:
+    база 150 -> при хорошей репутации ~100
+    """
+    ratio = reputation_ratio(trader_reputation)
+
+    multiplier = BASE_BUY_MULTIPLIER - (
+        (BASE_BUY_MULTIPLIER - BEST_BUY_MULTIPLIER) * ratio
     )
 
-    return round(multiplier, 4)
+    return round(
+        clamp(multiplier, BEST_BUY_MULTIPLIER, BASE_BUY_MULTIPLIER),
+        4,
+    )
 
 
 def get_sell_multiplier(trader_reputation: int = 0) -> float:
     """
-    Множитель выкупа:
-    чем выше reputation, тем выгоднее игрок продаёт.
-    """
-    rep = normalize_reputation(trader_reputation)
+    Множитель выкупа предмета у игрока.
 
-    multiplier = BASE_SELL_RATIO + (rep * SELL_REPUTATION_STEP)
-    multiplier = clamp(
-        multiplier,
-        MIN_SELL_MULTIPLIER,
-        MAX_SELL_MULTIPLIER,
+    Логика:
+    - при 0 репутации игрок продаёт по 50% базы
+    - при 100 репутации игрок продаёт по 80% базы
+
+    Пример:
+    база 150 -> 75 без репутации, до 120 при очень хорошей
+    база 100 -> 50 без репутации, до 80 при очень хорошей
+    """
+    ratio = reputation_ratio(trader_reputation)
+
+    multiplier = BASE_SELL_MULTIPLIER + (
+        (BEST_SELL_MULTIPLIER - BASE_SELL_MULTIPLIER) * ratio
     )
 
-    return round(multiplier, 4)
+    return round(
+        clamp(multiplier, BASE_SELL_MULTIPLIER, BEST_SELL_MULTIPLIER),
+        4,
+    )
 
 
 # ============================================================
@@ -151,7 +204,7 @@ def calculate_buy_price_cp(
     trader_reputation: int = 0,
 ) -> int:
     """
-    Считает цену покупки в copper.
+    Считает цену покупки игроком у торговца в copper.
     """
     base_cp = split_price_to_cp(
         base_gold=base_gold,
@@ -182,16 +235,10 @@ def calculate_buy_price_split(
         trader_reputation=trader_reputation,
     )
 
-    gold, silver, copper = copper_to_split(total_cp)
-
-    return {
-        "cp_total": total_cp,
-        "gold": gold,
-        "silver": silver,
-        "copper": copper,
-        "label": format_split_price(gold, silver, copper),
-        "multiplier": get_buy_multiplier(trader_reputation),
-    }
+    payload = cp_to_split_payload(total_cp)
+    payload["multiplier"] = get_buy_multiplier(trader_reputation)
+    payload["reputation"] = normalize_reputation(trader_reputation)
+    return payload
 
 
 # ============================================================
@@ -206,7 +253,7 @@ def calculate_sell_price_cp(
     trader_reputation: int = 0,
 ) -> int:
     """
-    Считает цену продажи в copper.
+    Считает цену продажи игроком торговцу в copper.
     """
     base_cp = split_price_to_cp(
         base_gold=base_gold,
@@ -237,16 +284,10 @@ def calculate_sell_price_split(
         trader_reputation=trader_reputation,
     )
 
-    gold, silver, copper = copper_to_split(total_cp)
-
-    return {
-        "cp_total": total_cp,
-        "gold": gold,
-        "silver": silver,
-        "copper": copper,
-        "label": format_split_price(gold, silver, copper),
-        "multiplier": get_sell_multiplier(trader_reputation),
-    }
+    payload = cp_to_split_payload(total_cp)
+    payload["multiplier"] = get_sell_multiplier(trader_reputation)
+    payload["reputation"] = normalize_reputation(trader_reputation)
+    return payload
 
 
 # ============================================================
@@ -261,46 +302,38 @@ def build_price_debug(
     """
     Готовый debug payload для фронта.
     """
+    buy_cp = int(buy_price.get("cp_total", 0) or 0)
+    sell_cp = int(sell_price.get("cp_total", 0) or 0)
+    spread_cp = max(0, buy_cp - sell_cp)
+
     return {
         "buy": {
-            "cp_total": buy_price.get("cp_total", 0),
-            "gold": buy_price.get("gold", 0),
-            "silver": buy_price.get("silver", 0),
-            "copper": buy_price.get("copper", 0),
+            "cp_total": buy_cp,
+            "gold": int(buy_price.get("gold", 0) or 0),
+            "silver": int(buy_price.get("silver", 0) or 0),
+            "copper": int(buy_price.get("copper", 0) or 0),
             "label": buy_price.get("label", "0м"),
-            "multiplier": buy_price.get("multiplier", 1.0),
+            "multiplier": float(buy_price.get("multiplier", 1.0) or 1.0),
+            "reputation": int(buy_price.get("reputation", 0) or 0),
         },
         "sell": {
-            "cp_total": sell_price.get("cp_total", 0),
-            "gold": sell_price.get("gold", 0),
-            "silver": sell_price.get("silver", 0),
-            "copper": sell_price.get("copper", 0),
+            "cp_total": sell_cp,
+            "gold": int(sell_price.get("gold", 0) or 0),
+            "silver": int(sell_price.get("silver", 0) or 0),
+            "copper": int(sell_price.get("copper", 0) or 0),
             "label": sell_price.get("label", "0м"),
-            "multiplier": sell_price.get("multiplier", 1.0),
+            "multiplier": float(sell_price.get("multiplier", 1.0) or 1.0),
+            "reputation": int(sell_price.get("reputation", 0) or 0),
         },
         "summary": {
-            "spread_cp": int(buy_price.get("cp_total", 0)) - int(sell_price.get("cp_total", 0)),
-            "spread_label": format_cp_or_zero(
-                int(buy_price.get("cp_total", 0)) - int(sell_price.get("cp_total", 0))
-            ),
+            "spread_cp": spread_cp,
+            "spread_label": format_cp_or_zero(spread_cp),
         },
     }
 
 
-def format_cp_or_zero(total_cp: int) -> str:
-    """
-    Форматирование arbitrary cp.
-    """
-    if total_cp <= 0:
-        return "0м"
-
-    gold, silver, copper = copper_to_split(total_cp)
-    return format_split_price(gold, silver, copper)
-
-
 # ============================================================
-# 📦 OPTIONAL ADVANCED API
-# На будущее: удобно для расширения, но уже рабочее сейчас.
+# 📦 ADVANCED API
 # ============================================================
 
 def compute_buy_price(
@@ -311,7 +344,7 @@ def compute_buy_price(
     trader_reputation: int = 0,
 ) -> PriceComputation:
     """
-    Возвращает полное вычисление buy price.
+    Полное вычисление цены покупки.
     """
     base_cp = split_price_to_cp(
         base_gold=base_gold,
@@ -336,7 +369,7 @@ def compute_sell_price(
     trader_reputation: int = 0,
 ) -> PriceComputation:
     """
-    Возвращает полное вычисление sell price.
+    Полное вычисление цены продажи.
     """
     base_cp = split_price_to_cp(
         base_gold=base_gold,

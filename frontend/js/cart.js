@@ -1,182 +1,266 @@
 // ============================================================
 // frontend/js/cart.js
-// Вся логика корзины.
-// Здесь:
-// - добавление
-// - удаление
-// - checkout
-// - batch purchase
-// - totals
+// Корзина под текущую модульную схему.
+// Не тащит отдельный state.js, а работает через глобальные
+// window-экшены, которые поднимает app.js.
 // ============================================================
 
-import {
-  state,
-  addToCart,
-  removeFromCart,
-  updateCartQuantity,
-  clearCart,
-} from "./state.js";
-
-import {
-  buyItem,
-} from "./api.js";
-
-import {
-  renderCart,
-} from "./render.js";
-
-// ============================================================
-// 🧰 ВСПОМОГАТЕЛЬНОЕ
-// ============================================================
-
-// Безопасное число
+// ------------------------------------------------------------
+// 🧰 HELPERS
+// ------------------------------------------------------------
 function toNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
 
-// Найти товар в корзине
-export function findCartItem(itemId) {
-  return state.cart.find((item) => item.id === itemId) || null;
+function getReservedItemsSafe() {
+  if (typeof window.getReservedItems === "function") {
+    const items = window.getReservedItems();
+    return Array.isArray(items) ? items : [];
+  }
+  return [];
 }
 
-// Есть ли товар в корзине
-export function hasCartItem(itemId) {
-  return !!findCartItem(itemId);
+function getItemId(item) {
+  return Number(item?.item_id ?? item?.id ?? 0);
 }
 
-// ============================================================
+function getTraderId(item) {
+  return Number(item?.trader_id ?? item?.owner_trader_id ?? item?.traderId ?? 0);
+}
+
+function formatMoneyParts(gold = 0, silver = 0, copper = 0) {
+  const parts = [];
+  if (Number(gold || 0)) parts.push(`${Number(gold)}з`);
+  if (Number(silver || 0)) parts.push(`${Number(silver)}с`);
+  if (Number(copper || 0)) parts.push(`${Number(copper)}м`);
+  return parts.length ? parts.join(" ") : "0з";
+}
+
+function normalizeMoney(gold = 0, silver = 0, copper = 0) {
+  let g = toNumber(gold, 0);
+  let s = toNumber(silver, 0);
+  let c = toNumber(copper, 0);
+
+  s += Math.floor(c / 100);
+  c %= 100;
+
+  g += Math.floor(s / 100);
+  s %= 100;
+
+  return { gold: g, silver: s, copper: c };
+}
+
+function getBuyPriceParts(item) {
+  return normalizeMoney(
+    item?.buy_price_gold ?? item?.price_gold ?? 0,
+    item?.buy_price_silver ?? item?.price_silver ?? 0,
+    item?.buy_price_copper ?? item?.price_copper ?? 0
+  );
+}
+
+function formatItemPrice(item) {
+  const { gold, silver, copper } = getBuyPriceParts(item);
+  return formatMoneyParts(gold, silver, copper);
+}
+
+function showToast(message) {
+  if (typeof window.showToast === "function") {
+    window.showToast(message);
+    return;
+  }
+  console.log(message);
+}
+
+// ------------------------------------------------------------
+// 🔎 ACCESSORS
+// ------------------------------------------------------------
+export function getCartItems() {
+  if (Array.isArray(window.__appCartState)) {
+    return window.__appCartState;
+  }
+  return [];
+}
+
+export function setCartItemsReference(items) {
+  window.__appCartState = Array.isArray(items) ? items : [];
+}
+
+export function findCartItem(itemId, traderId = null) {
+  const targetItemId = Number(itemId);
+  const targetTraderId =
+    traderId !== null && traderId !== undefined ? Number(traderId) : null;
+
+  return (
+    getCartItems().find((item) => {
+      const sameItem = getItemId(item) === targetItemId;
+      if (!sameItem) return false;
+      if (targetTraderId === null) return true;
+      return getTraderId(item) === targetTraderId;
+    }) || null
+  );
+}
+
+export function hasCartItem(itemId, traderId = null) {
+  return !!findCartItem(itemId, traderId);
+}
+
+// ------------------------------------------------------------
 // ➕ ДОБАВЛЕНИЕ
-// ============================================================
-
-// Добавить предмет в корзину
+// ------------------------------------------------------------
 export function addItemToCart(item, quantity = 1) {
-  if (!item || !item.id) return false;
+  const itemId = getItemId(item);
+  const traderId = getTraderId(item);
 
-  addToCart(item, quantity);
-  renderCart(state.cart);
+  if (!itemId || !traderId) return false;
+  if (typeof window.addToCart !== "function") return false;
+
+  window.addToCart(traderId, itemId, Math.max(1, toNumber(quantity, 1)));
   return true;
 }
 
-// Добавить товар торговца в корзину
-export function addTraderItemToCart(traderId, itemId) {
-  const trader = state.traders.find((t) => t.id === traderId);
-  if (!trader || !Array.isArray(trader.items)) return false;
+export function addTraderItemToCart(traderId, itemId, quantity = 1) {
+  if (typeof window.addToCart !== "function") return false;
+  window.addToCart(
+    Number(traderId),
+    Number(itemId),
+    Math.max(1, toNumber(quantity, 1))
+  );
+  return true;
+}
 
-  const item = trader.items.find((i) => i.id === itemId);
+// ------------------------------------------------------------
+// ➖ УДАЛЕНИЕ
+// ------------------------------------------------------------
+export function removeItemFromCart(itemId, traderId = null) {
+  if (typeof window.removeFromCart !== "function") return false;
+  window.removeFromCart(Number(itemId), traderId != null ? Number(traderId) : null);
+  return true;
+}
+
+export function clearEntireCart() {
+  const items = [...getCartItems()];
+  if (!items.length) return true;
+
+  if (typeof window.removeFromCart !== "function") return false;
+
+  for (const item of items) {
+    window.removeFromCart(getItemId(item), getTraderId(item));
+  }
+
+  return true;
+}
+
+// ------------------------------------------------------------
+// 🔢 QUANTITY
+// ------------------------------------------------------------
+export function increaseCartQuantity(itemId, traderId = null, amount = 1) {
+  const item = findCartItem(itemId, traderId);
   if (!item) return false;
 
-  return addItemToCart(item, 1);
+  const qty = toNumber(item.quantity, 1) + Math.abs(toNumber(amount, 1));
+
+  if (typeof window.addToCart === "function") {
+    const delta = qty - toNumber(item.quantity, 1);
+    if (delta > 0) {
+      window.addToCart(getTraderId(item), getItemId(item), delta);
+      return true;
+    }
+  }
+
+  return false;
 }
 
-// ============================================================
-// ➖ УДАЛЕНИЕ
-// ============================================================
+export function decreaseCartQuantity(itemId, traderId = null, amount = 1) {
+  const item = findCartItem(itemId, traderId);
+  if (!item) return false;
 
-// Удалить один товар
-export function removeItemFromCart(itemId) {
-  removeFromCart(itemId);
-  renderCart(state.cart);
+  const current = toNumber(item.quantity, 1);
+  const target = current - Math.abs(toNumber(amount, 1));
+
+  if (target <= 0) {
+    return removeItemFromCart(getItemId(item), getTraderId(item));
+  }
+
+  // У app.js нет отдельного set/update quantity, поэтому пересобираем позицию:
+  removeItemFromCart(getItemId(item), getTraderId(item));
+  addTraderItemToCart(getTraderId(item), getItemId(item), target);
+
+  return true;
 }
 
-// Удалить всё
-export function clearEntireCart() {
-  clearCart();
-  renderCart(state.cart);
-}
-
-// ============================================================
-// 🔢 QUANTITY
-// ============================================================
-
-// Увеличить количество
-export function increaseCartQuantity(itemId, amount = 1) {
-  updateCartQuantity(itemId, Math.abs(amount));
-  renderCart(state.cart);
-}
-
-// Уменьшить количество
-export function decreaseCartQuantity(itemId, amount = 1) {
-  updateCartQuantity(itemId, -Math.abs(amount));
-  renderCart(state.cart);
-}
-
-// Установить точное количество
-export function setCartItemQuantity(itemId, quantity) {
-  const item = findCartItem(itemId);
-  if (!item) return;
+export function setCartItemQuantity(itemId, traderId = null, quantity = 1) {
+  const item = findCartItem(itemId, traderId);
+  if (!item) return false;
 
   const target = Math.max(0, toNumber(quantity, 1));
-  const delta = target - toNumber(item.quantity, 1);
 
-  updateCartQuantity(itemId, delta);
-  renderCart(state.cart);
+  removeItemFromCart(getItemId(item), getTraderId(item));
+
+  if (target > 0) {
+    addTraderItemToCart(getTraderId(item), getItemId(item), target);
+  }
+
+  return true;
 }
 
-// ============================================================
+// ------------------------------------------------------------
 // 💰 TOTALS
-// ============================================================
-
-// Подсчитать общую сумму корзины
+// ------------------------------------------------------------
 export function calculateCartTotals() {
   let gold = 0;
   let silver = 0;
   let copper = 0;
 
-  state.cart.forEach((item) => {
-    const qty = toNumber(item.quantity, 1);
+  getCartItems().forEach((item) => {
+    const qty = Math.max(1, toNumber(item.quantity, 1));
+    const price = getBuyPriceParts(item);
 
-    gold += toNumber(item.buy_price_gold ?? item.price_gold ?? 0) * qty;
-    silver += toNumber(item.buy_price_silver ?? item.price_silver ?? 0) * qty;
-    copper += toNumber(item.buy_price_copper ?? item.price_copper ?? 0) * qty;
+    gold += price.gold * qty;
+    silver += price.silver * qty;
+    copper += price.copper * qty;
   });
 
-  // Нормализация меди/серебра
-  silver += Math.floor(copper / 100);
-  copper = copper % 100;
-
-  gold += Math.floor(silver / 100);
-  silver = silver % 100;
+  const normalized = normalizeMoney(gold, silver, copper);
 
   return {
-    gold,
-    silver,
-    copper,
-    label: `${gold}з ${silver}с ${copper}м`,
+    gold: normalized.gold,
+    silver: normalized.silver,
+    copper: normalized.copper,
+    label: formatMoneyParts(normalized.gold, normalized.silver, normalized.copper),
   };
 }
 
-// Получить количество позиций
 export function getCartItemsCount() {
-  return state.cart.reduce(
-    (sum, item) => sum + toNumber(item.quantity, 1),
+  return getCartItems().reduce(
+    (sum, item) => sum + Math.max(1, toNumber(item.quantity, 1)),
     0
   );
 }
 
-// ============================================================
+// ------------------------------------------------------------
 // 🛒 CHECKOUT
-// ============================================================
-
-// Купить один cart item
+// ------------------------------------------------------------
 async function checkoutSingleCartItem(item) {
-  const traderId =
-    item.trader_id ||
-    item.owner_trader_id ||
-    state.selectedTraderId;
+  const traderId = getTraderId(item);
+  const itemId = getItemId(item);
+  const quantity = Math.max(1, toNumber(item.quantity, 1));
 
   if (!traderId) {
-    throw new Error(`Не найден trader_id для ${item.name}`);
+    throw new Error(`Не найден trader_id для ${item?.name || "предмета"}`);
   }
 
-  const quantity = toNumber(item.quantity, 1);
+  if (typeof window.buyItem !== "function") {
+    throw new Error("Функция покупки не подключена");
+  }
 
-  await buyItem(item.id, traderId, quantity);
+  await window.buyItem(traderId, itemId, quantity);
 }
 
-// Купить всю корзину
 export async function checkoutCart() {
-  if (!state.cart.length) {
+  const cartItems = [...getCartItems()];
+
+  if (!cartItems.length) {
     return {
       success: false,
       purchased: 0,
@@ -189,26 +273,15 @@ export async function checkoutCart() {
   let purchased = 0;
   let failed = 0;
 
-  // Важно: делаем копию массива,
-  // чтобы можно было безопасно очищать
-  const itemsToBuy = [...state.cart];
-
-  for (const item of itemsToBuy) {
+  for (const item of cartItems) {
     try {
       await checkoutSingleCartItem(item);
       purchased += 1;
     } catch (error) {
       failed += 1;
-      errors.push(`${item.name}: ${error.message}`);
+      errors.push(`${item?.name || "Предмет"}: ${error.message}`);
       console.error("Ошибка checkout:", error);
     }
-  }
-
-  // Если всё успешно — чистим корзину
-  if (failed === 0) {
-    clearEntireCart();
-  } else {
-    renderCart(state.cart);
   }
 
   return {
@@ -219,32 +292,109 @@ export async function checkoutCart() {
   };
 }
 
-// ============================================================
+// ------------------------------------------------------------
 // 💸 QUICK BUY
-// ============================================================
-
-// Быстрая покупка без открытия карточки
+// ------------------------------------------------------------
 export async function quickBuy(traderId, itemId, quantity = 1) {
-  const trader = state.traders.find((t) => t.id === traderId);
-  if (!trader) {
-    throw new Error("Торговец не найден");
+  if (typeof window.buyItem !== "function") {
+    throw new Error("Функция покупки не подключена");
   }
 
-  const item = trader.items?.find((i) => i.id === itemId);
-  if (!item) {
-    throw new Error("Товар не найден");
-  }
-
-  await buyItem(itemId, traderId, quantity);
+  await window.buyItem(
+    Number(traderId),
+    Number(itemId),
+    Math.max(1, toNumber(quantity, 1))
+  );
   return true;
 }
 
-// ============================================================
-// 🌐 GLOBAL ACTIONS
-// ============================================================
+// ------------------------------------------------------------
+// 📌 RESERVE
+// ------------------------------------------------------------
+export function reserveCartItem(itemId, traderId = null, quantity = 1) {
+  const item = findCartItem(itemId, traderId);
+  if (!item) return false;
 
-// Чтобы старый main UX не ломался
+  if (typeof window.reserveItem !== "function") return false;
+
+  window.reserveItem(
+    getItemId(item),
+    getTraderId(item),
+    Math.max(1, toNumber(quantity, 1))
+  );
+
+  return true;
+}
+
+export function unreserveCartItem(itemId, traderId = null) {
+  if (typeof window.unreserveItem !== "function") return false;
+  window.unreserveItem(
+    Number(itemId),
+    traderId != null ? Number(traderId) : null
+  );
+  return true;
+}
+
+export function getReservedCount() {
+  return getReservedItemsSafe().reduce(
+    (sum, item) => sum + Math.max(1, toNumber(item.quantity, 1)),
+    0
+  );
+}
+
+// ------------------------------------------------------------
+// 🧾 SUMMARY
+// ------------------------------------------------------------
+export function getCartSummary() {
+  const totals = calculateCartTotals();
+
+  return {
+    count: getCartItemsCount(),
+    reservedCount: getReservedCount(),
+    totals,
+    items: getCartItems(),
+    reserved: getReservedItemsSafe(),
+  };
+}
+
+// ------------------------------------------------------------
+// 🔘 UI HELPERS
+// ------------------------------------------------------------
+export function syncCartUiCounters() {
+  const summary = getCartSummary();
+
+  const cartCount = document.getElementById("cartCount");
+  const cartCountModal = document.getElementById("cartCountModal");
+  const cartTotal = document.getElementById("cart-total");
+  const cartTotalModal = document.getElementById("cartTotalModal");
+
+  if (cartCount) cartCount.textContent = String(summary.count);
+  if (cartCountModal) cartCountModal.textContent = String(summary.count);
+  if (cartTotal) cartTotal.textContent = summary.totals.label;
+  if (cartTotalModal) cartTotalModal.textContent = summary.totals.label;
+}
+
+export function notifyCheckoutResult(result) {
+  if (!result?.success) {
+    if (Array.isArray(result?.errors) && result.errors.length) {
+      showToast(result.errors[0]);
+    } else {
+      showToast("Не удалось оформить заказ");
+    }
+    return;
+  }
+
+  showToast(`Оформлено позиций: ${result.purchased}`);
+}
+
+// ------------------------------------------------------------
+// 🌐 GLOBAL ACTIONS
+// ------------------------------------------------------------
 window.cartModule = {
+  getCartItems,
+  setCartItemsReference,
+  findCartItem,
+  hasCartItem,
   addItemToCart,
   addTraderItemToCart,
   removeItemFromCart,
@@ -256,4 +406,10 @@ window.cartModule = {
   getCartItemsCount,
   checkoutCart,
   quickBuy,
+  reserveCartItem,
+  unreserveCartItem,
+  getReservedCount,
+  getCartSummary,
+  syncCartUiCounters,
+  notifyCheckoutResult,
 };
