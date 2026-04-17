@@ -37,6 +37,11 @@ import {
   renderNotes,
 } from "./playerNotes.js";
 
+import {
+  loadCodex as loadBestiari,
+  renderCodex as renderBestiari,
+} from "./bestiari.js";
+
 // ------------------------------------------------------------
 // 🌐 STATE
 // ------------------------------------------------------------
@@ -66,6 +71,17 @@ const FILES_STATE = {
   draggedIndex: null,
   isSaving: false,
   lastSavedAt: null,
+};
+
+const CODEX_STATE = {
+  query: "",
+  category: "all",
+  selectedId: "",
+};
+
+const CABINET_RUNTIME = {
+  refreshing: false,
+  pendingRefresh: false,
 };
 
 // ------------------------------------------------------------
@@ -399,6 +415,7 @@ function getVisibleTabsByRole(role) {
     { key: "history", label: "📜 История" },
     { key: "quests", label: "🧭 Задания" },
     { key: "map", label: "🗺️ Карта" },
+    { key: "bestiari", label: "📚 Энциклопедия" },
     { key: "files", label: "📁 Файлы" },
     { key: "playernotes", label: "📝 Заметки" },
   ];
@@ -417,6 +434,7 @@ function getSectionIdForTab(tabName) {
     history: "cabinet-history",
     quests: "cabinet-quests",
     map: "cabinet-map",
+    bestiari: "cabinet-bestiari",
     files: "cabinet-files",
     playernotes: "cabinet-playernotes",
     gmnotes: "cabinet-gmnotes",
@@ -432,6 +450,7 @@ function hideAllCabinetSections() {
     "cabinet-history",
     "cabinet-quests",
     "cabinet-map",
+    "cabinet-bestiari",
     "cabinet-files",
     "cabinet-playernotes",
     "cabinet-gmnotes",
@@ -456,9 +475,17 @@ function ensureCabinetStructure() {
 
   const tabButtons = getEl("cabinetTabButtons");
   const header = getEl("cabinetHeader");
+  const main = modal.querySelector(".cabinet-main");
 
-  if (!tabButtons || !header) {
+  if (!tabButtons || !header || !main) {
     console.warn("Cabinet DOM structure incomplete");
+  }
+
+  if (main && !getEl("cabinet-bestiari")) {
+    const section = document.createElement("div");
+    section.id = "cabinet-bestiari";
+    section.className = "cabinet-section tab-hidden";
+    main.appendChild(section);
   }
 
   return modal;
@@ -505,62 +532,750 @@ function renderCabinetTabs() {
 }
 
 // ------------------------------------------------------------
+// 📚 CODEX / ENCYCLOPEDIA
+// ------------------------------------------------------------
+const CODEX_CATEGORY_LABELS = {
+  all: "Всё",
+  monsters: "Монстры",
+  gods: "Боги",
+  lore: "Лор",
+  spells: "Заклинания",
+  items: "Предметы",
+  classes: "Классы",
+  factions: "Фракции",
+};
+
+const CODEX_ENTRIES = [
+  {
+    id: "monster-goblin",
+    category: "monsters",
+    title: "Гоблин",
+    subtitle: "Мелкий рейдер и разведчик",
+    tags: ["монстр", "гуманоид", "низкий CR"],
+    summary: "Хитрый слабый противник, опасен числом, засадами и мобильностью.",
+    body: [
+      "Гоблины хороши как ранние противники и как живая часть мира: разведчики, мародёры, слуги сильных вождей.",
+      "Для игрока это удобный пример существа, о котором полезно помнить: быстрый, трусливый, но неприятный при численном преимуществе.",
+    ],
+    hooks: ["Тактика: засады и отход", "Связь: банды, лагеря, пещеры"],
+  },
+  {
+    id: "god-mystra",
+    category: "gods",
+    title: "Мистра",
+    subtitle: "Богиня магии",
+    tags: ["бог", "магия", "Забытые Королевства"],
+    summary: "Одна из ключевых фигур мира, если кампания касается волшебства, арканума и магических катастроф.",
+    body: [
+      "Полезна как лорная точка входа в темы арканной магии, плетения и отношения мира к колдунам и волшебникам.",
+      "Даже если потом база будет тянуться с бэка, модуль уже должен уметь хранить краткое описание, развёрнутый текст и связанные сущности.",
+    ],
+    hooks: ["Связанные темы: плетение", "Полезно для магов и сюжетов о магии"],
+  },
+  {
+    id: "lore-spellplague",
+    category: "lore",
+    title: "Магическая Чума",
+    subtitle: "Крупное катастрофическое событие мира",
+    tags: ["событие", "катастрофа", "история мира"],
+    summary: "Пример лорной записи о важном событии с влиянием на магию, историю и географию.",
+    body: [
+      "Такие статьи нужны не только ради текста, но и чтобы игрок мог быстро понять контекст мира без копания в внешних источниках.",
+      "В будущем сюда логично подтянуть связанные места, богов, заклинания и последствия для кампании.",
+    ],
+    hooks: ["Связать с богами", "Связать с магией и локациями"],
+  },
+  {
+    id: "spell-fireball",
+    category: "spells",
+    title: "Огненный шар",
+    subtitle: "Классическая арканная взрывная магия",
+    tags: ["заклинание", "3 круг", "урон огнём"],
+    summary: "Образец карточки заклинания для будущей связки LSS, предметов и энциклопедии.",
+    body: [
+      "Пока это справочная запись, но потом такие записи можно подтягивать из БД по ID и показывать в чарнике, предметах и торговле.",
+      "Важно, чтобы модуль уже сейчас умел разделять краткое описание и полную справку.",
+    ],
+    hooks: ["Школа: воплощение", "Тип урона: огонь"],
+  },
+  {
+    id: "item-bag-of-holding",
+    category: "items",
+    title: "Сумка хранения",
+    subtitle: "Знаковый магический предмет",
+    tags: ["предмет", "утилита", "магия"],
+    summary: "Пример записи предмета для будущей общей базы знаний по шмоту и магическим вещам.",
+    body: [
+      "Такие записи потом логично связать с инвентарём, торговцами и чарником, чтобы предмет можно было открыть и как объект, и как справочную статью.",
+    ],
+    hooks: ["Связать с торговлей", "Связать с инвентарём"],
+  },
+  {
+    id: "class-wizard",
+    category: "classes",
+    title: "Волшебник",
+    subtitle: "Арканный подготовленный заклинатель",
+    tags: ["класс", "интеллект", "магия"],
+    summary: "Шаблон записи класса: краткая роль, основная характеристика и сильные стороны.",
+    body: [
+      "Нужен не только для справки, но и как основа для будущего конструктора чарника: выбор класса, архетипов и рекомендаций.",
+    ],
+    hooks: ["Осн. характеристика: интеллект", "Связать с подклассами и спеллами"],
+  },
+  {
+    id: "faction-harpers",
+    category: "factions",
+    title: "Арфисты",
+    subtitle: "Тайная сеть агентов и идеалистов",
+    tags: ["фракция", "организация", "сюжет"],
+    summary: "Пример записи фракции, чтобы модуль не ограничивался только монстрами и предметами.",
+    body: [
+      "Фракции важны для квестов, лора, контактов и политических линий кампании.",
+    ],
+    hooks: ["Связать с NPC", "Связать с событиями и городами"],
+  },
+];
+
+function ensureCodexStateDefaults() {
+  CODEX_STATE.query ??= "";
+  CODEX_STATE.category ??= "all";
+
+  if (!CODEX_STATE.selectedId || !CODEX_ENTRIES.some((entry) => entry.id === CODEX_STATE.selectedId)) {
+    CODEX_STATE.selectedId = CODEX_ENTRIES[0]?.id || "";
+  }
+}
+
+function getFilteredCodexEntries() {
+  ensureCodexStateDefaults();
+
+  const query = CODEX_STATE.query.trim().toLowerCase();
+  const category = CODEX_STATE.category;
+
+  return CODEX_ENTRIES.filter((entry) => {
+    if (category !== "all" && entry.category !== category) return false;
+    if (!query) return true;
+
+    const haystack = [
+      entry.title,
+      entry.subtitle,
+      entry.summary,
+      ...(entry.tags || []),
+      ...(entry.body || []),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(query);
+  });
+}
+
+function getSelectedCodexEntry(entries) {
+  if (!Array.isArray(entries) || !entries.length) return null;
+  return entries.find((entry) => entry.id === CODEX_STATE.selectedId) || entries[0];
+}
+
+function renderCodex() {
+  ensureCodexStateDefaults();
+
+  const container = getEl("cabinet-codex");
+  if (!container) return;
+
+  const entries = getFilteredCodexEntries();
+  const selected = getSelectedCodexEntry(entries);
+  if (selected) CODEX_STATE.selectedId = selected.id;
+
+  const categoryButtons = Object.entries(CODEX_CATEGORY_LABELS)
+    .map(([key, label]) => {
+      const active = CODEX_STATE.category === key ? "active" : "";
+      return `
+        <button
+          class="btn ${active}"
+          type="button"
+          data-codex-category="${escapeHtml(key)}"
+        >
+          ${escapeHtml(label)}
+        </button>
+      `;
+    })
+    .join("");
+
+  const listHtml = entries.length
+    ? entries
+        .map((entry) => {
+          const active = selected?.id === entry.id ? "active" : "";
+          const tagHtml = (entry.tags || [])
+            .slice(0, 3)
+            .map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`)
+            .join("");
+
+          return `
+            <button
+              type="button"
+              class="btn ${active}"
+              data-codex-entry="${escapeHtml(entry.id)}"
+              style="width:100%; justify-content:flex-start; text-align:left; padding:10px 12px; border-radius:12px;"
+            >
+              <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                <div style="font-weight:800;">${escapeHtml(entry.title)}</div>
+                <div class="muted">${escapeHtml(entry.subtitle || "")}</div>
+                <div class="trader-meta">${tagHtml}</div>
+              </div>
+            </button>
+          `;
+        })
+        .join("")
+    : `
+      <div class="cabinet-block">
+        <p>Ничего не найдено. Попробуй другой запрос или категорию.</p>
+      </div>
+    `;
+
+  const detailHtml = selected
+    ? `
+      <div class="cabinet-block">
+        <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0 0 6px 0;">${escapeHtml(selected.title)}</h3>
+            <div class="muted">${escapeHtml(selected.subtitle || "")}</div>
+          </div>
+          <div class="trader-meta">
+            <span class="meta-item">Категория: ${escapeHtml(CODEX_CATEGORY_LABELS[selected.category] || selected.category)}</span>
+          </div>
+        </div>
+
+        <div class="lss-rich-block" style="margin-top:12px;">
+          <p>${escapeHtml(selected.summary || "")}</p>
+        </div>
+
+        ${(selected.body || [])
+          .map((paragraph) => `<div class="lss-rich-block" style="margin-top:10px;"><p>${escapeHtml(paragraph)}</p></div>`)
+          .join("")}
+
+        ${(selected.hooks || []).length
+          ? `
+            <div class="cabinet-block" style="margin-top:12px;">
+              <h4 style="margin:0 0 10px 0;">Связанные направления</h4>
+              <div class="trader-meta">
+                ${selected.hooks
+                  .map((hook) => `<span class="meta-item">${escapeHtml(hook)}</span>`)
+                  .join("")}
+              </div>
+            </div>
+          `
+          : ""}
+      </div>
+    `
+    : `
+      <div class="cabinet-block">
+        <p>Выбери запись слева, чтобы открыть подробности.</p>
+      </div>
+    `;
+
+  container.innerHTML = `
+    <div class="cabinet-block" style="margin-bottom:12px;">
+      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h3 style="margin:0 0 6px 0;">📚 Энциклопедия мира</h3>
+          <div class="muted">
+            Каркас общей базы знаний по D&D: монстры, боги, события, предметы, заклинания, классы и фракции.
+          </div>
+        </div>
+        <div class="trader-meta">
+          <span class="meta-item">Записей: ${entries.length}</span>
+          <span class="meta-item">Категория: ${escapeHtml(CODEX_CATEGORY_LABELS[CODEX_STATE.category] || "Всё")}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cabinet-block" style="margin-bottom:12px;">
+      <div class="collection-toolbar compact-collection-toolbar" style="gap:10px;">
+        <div class="filter-group" style="min-width:260px; flex:1 1 260px;">
+          <label>Поиск по базе знаний</label>
+          <input id="codexSearchInput" type="text" placeholder="Монстр, бог, предмет, заклинание..." value="${escapeHtml(CODEX_STATE.query)}">
+        </div>
+        <div class="cart-buttons" style="align-items:flex-end; gap:8px; flex-wrap:wrap;">
+          ${categoryButtons}
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-grid" style="align-items:start; grid-template-columns:minmax(280px, 0.95fr) minmax(0, 1.55fr);">
+      <div class="cabinet-block" style="display:flex; flex-direction:column; gap:8px; min-height:100%;">
+        ${listHtml}
+      </div>
+      <div>${detailHtml}</div>
+    </div>
+  `;
+
+  bindCodexActions();
+}
+
+function bindCodexActions() {
+  const searchInput = getEl("codexSearchInput");
+  if (searchInput && searchInput.dataset.boundCodexSearch !== "1") {
+    searchInput.dataset.boundCodexSearch = "1";
+    searchInput.addEventListener("input", () => {
+      CODEX_STATE.query = searchInput.value || "";
+      renderCodex();
+    });
+  }
+
+  document.querySelectorAll("[data-codex-category]").forEach((btn) => {
+    if (btn.dataset.boundCodexCategory === "1") return;
+    btn.dataset.boundCodexCategory = "1";
+    btn.addEventListener("click", () => {
+      CODEX_STATE.category = btn.dataset.codexCategory || "all";
+      const entries = getFilteredCodexEntries();
+      CODEX_STATE.selectedId = entries[0]?.id || "";
+      renderCodex();
+    });
+  });
+
+  document.querySelectorAll("[data-codex-entry]").forEach((btn) => {
+    if (btn.dataset.boundCodexEntry === "1") return;
+    btn.dataset.boundCodexEntry = "1";
+    btn.addEventListener("click", () => {
+      CODEX_STATE.selectedId = btn.dataset.codexEntry || "";
+      renderCodex();
+    });
+  });
+}
+
+// ------------------------------------------------------------
 // 🎒 INVENTORY
 // ------------------------------------------------------------
-function syncInventoryToUi() {
-  const inventory = getInventoryState();
+const EQUIPMENT_SLOT_CONFIG = [
+  { key: "main_hand", label: "🗡 Основная рука", aliases: ["main_hand", "weapon", "main hand"] },
+  { key: "off_hand", label: "🛡 Вторая рука", aliases: ["off_hand", "off hand", "shield"] },
+  { key: "ranged", label: "🏹 Дальний бой", aliases: ["ranged", "bow", "crossbow"] },
+  { key: "head", label: "⛑ Голова", aliases: ["head", "helmet", "helm", "hat"] },
+  { key: "cloak", label: "🧥 Плащ", aliases: ["cloak", "cape"] },
+  { key: "chest", label: "🛡 Броня", aliases: ["chest", "armor", "body", "torso"] },
+  { key: "gloves", label: "🧤 Перчатки", aliases: ["gloves", "hands", "gauntlets"] },
+  { key: "boots", label: "🥾 Обувь", aliases: ["boots", "feet", "shoes"] },
+  { key: "amulet", label: "📿 Амулет", aliases: ["amulet", "neck"] },
+  { key: "ring_1", label: "💍 Кольцо 1", aliases: ["ring", "ring_1", "ring1"] },
+  { key: "ring_2", label: "💍 Кольцо 2", aliases: ["ring", "ring_2", "ring2"] },
+];
 
+function ensureCabinetInventoryStateDefaults() {
+  CABINET_INVENTORY_STATE.customFormOpen ??= false;
+  CABINET_INVENTORY_STATE.search ??= "";
+  CABINET_INVENTORY_STATE.rarity ??= "";
+  CABINET_INVENTORY_STATE.magic ??= "";
+  CABINET_INVENTORY_STATE.category ??= "";
+  CABINET_INVENTORY_STATE.equippedOnly ??= false;
+  CABINET_INVENTORY_STATE.sort ??= "name";
+  CABINET_INVENTORY_STATE.viewMode ??= "inventory";
+  CABINET_INVENTORY_STATE.equipmentVisible ??= true;
+  CABINET_INVENTORY_STATE.slotSelections ??= {};
+  CABINET_INVENTORY_STATE.equipment ??= loadEquipmentStateLocal();
+}
+
+function getEquipmentStorageKey() {
+  return getUserScopedKey("cabinetEquipment");
+}
+
+function loadEquipmentStateLocal() {
   try {
-    localStorage.setItem("dnd_inventory", JSON.stringify(inventory));
+    const raw = localStorage.getItem(getEquipmentStorageKey());
+    const parsed = tryParseJson(raw);
+    if (parsed && typeof parsed === "object") return parsed;
   } catch (_) {}
+  return {};
+}
 
-  window.__appStateInventory = inventory;
-
-  if (window.__appState && Array.isArray(window.__appState.inventory)) {
-    window.__appState.inventory = inventory;
-  }
-
-  if (window.__sharedState && Array.isArray(window.__sharedState.inventory)) {
-    window.__sharedState.inventory = inventory;
-  }
-
-  const inventoryCount = getEl("inventoryCount");
-  if (inventoryCount) {
-    inventoryCount.textContent = String(getInventoryCount(inventory));
-  }
-
+function saveEquipmentStateLocal() {
   try {
-    if (window.renderModule?.renderInventory) {
-      window.renderModule.renderInventory(inventory);
-    }
+    localStorage.setItem(
+      getEquipmentStorageKey(),
+      JSON.stringify(CABINET_INVENTORY_STATE.equipment || {})
+    );
   } catch (_) {}
 }
 
-async function tryPersistInventoryToServer() {
-  const token = getToken();
-  if (!token) return false;
+function getEquipmentState() {
+  ensureCabinetInventoryStateDefaults();
+  return CABINET_INVENTORY_STATE.equipment;
+}
 
-  const inventory = getInventoryState();
+function getInventoryItemId(item) {
+  return Number(item?.item_id ?? item?.id ?? 0);
+}
 
-  try {
-    await apiWrite(
-      ["/player/profile", "/profile/me", "/player/inventory", "/inventory"],
-      { inventory },
-      ["POST", "PUT", "PATCH"]
+function findInventoryItemById(itemId) {
+  return getInventoryState().find(
+    (entry) => Number(entry?.item_id ?? entry?.id) === Number(itemId)
+  ) || null;
+}
+
+function getSlotConfig(slotKey) {
+  return EQUIPMENT_SLOT_CONFIG.find((slot) => slot.key === slotKey) || null;
+}
+
+function resolveSlotLabel(slotKey) {
+  return getSlotConfig(slotKey)?.label || slotKey;
+}
+
+function getInventoryCategories(items) {
+  return [...new Set((Array.isArray(items) ? items : [])
+    .map((item) => String(item?.category || "").trim())
+    .filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
+}
+
+function inferItemSlotOptions(item) {
+  const rawSlot = String(item?.slot || item?.equip_slot || "").trim().toLowerCase();
+  if (rawSlot) {
+    const matched = EQUIPMENT_SLOT_CONFIG.filter((slot) =>
+      slot.aliases.some((alias) => alias === rawSlot)
     );
-    return true;
-  } catch (_) {
+    if (matched.length) return matched.map((slot) => slot.key);
+  }
+
+  const blob = [
+    item?.name,
+    item?.category,
+    item?.type,
+    item?.tags,
+    item?.properties,
+    item?.requirements,
+  ]
+    .flat()
+    .join(" ")
+    .toLowerCase();
+
+  if (!blob) return ["main_hand"];
+
+  if (/ring|кольц/.test(blob)) return ["ring_1", "ring_2"];
+  if (/amulet|neck|ожерел|амулет|кулон/.test(blob)) return ["amulet"];
+  if (/cloak|cape|плащ/.test(blob)) return ["cloak"];
+  if (/boot|shoe|feet|сапог|ботин|обув/.test(blob)) return ["boots"];
+  if (/glove|gauntlet|перчат|наруч/.test(blob)) return ["gloves"];
+  if (/helmet|helm|head|hood|шлем|капюш|маск/.test(blob)) return ["head"];
+  if (/armor|chest|robe|body|брон|доспех|кирас|одежд|мант/.test(blob)) return ["chest"];
+  if (/shield|щит/.test(blob)) return ["off_hand"];
+  if (/bow|crossbow|longbow|shortbow|арбалет|лук/.test(blob)) return ["ranged"];
+  if (/staff|wand|dagger|sword|axe|mace|spear|hammer|weapon|посох|кинжал|меч|топор|булав|копь|молот/.test(blob)) {
+    return ["main_hand", "off_hand"];
+  }
+
+  if (/accessory|jewel|jewelry|аксессуар|украш/.test(blob)) return ["amulet", "ring_1", "ring_2"];
+
+  return ["main_hand"];
+}
+
+function getEquippedSlotForItem(itemId) {
+  const equipment = getEquipmentState();
+  return Object.entries(equipment).find(([, value]) => Number(value?.itemId) === Number(itemId))?.[0] || null;
+}
+
+function cleanupEquipmentState() {
+  const equipment = getEquipmentState();
+  let mutated = false;
+
+  Object.keys(equipment).forEach((slotKey) => {
+    const itemId = Number(equipment?.[slotKey]?.itemId);
+    const item = findInventoryItemById(itemId);
+    if (!item) {
+      delete equipment[slotKey];
+      mutated = true;
+    }
+  });
+
+  if (mutated) saveEquipmentStateLocal();
+}
+
+function unequipItemFromAllSlots(itemId) {
+  const equipment = getEquipmentState();
+  let changed = false;
+
+  Object.keys(equipment).forEach((slotKey) => {
+    if (Number(equipment?.[slotKey]?.itemId) === Number(itemId)) {
+      delete equipment[slotKey];
+      changed = true;
+    }
+  });
+
+  if (changed) saveEquipmentStateLocal();
+  return changed;
+}
+
+function equipInventoryItem(itemId, slotKey) {
+  const item = findInventoryItemById(itemId);
+  if (!item) {
+    showToast("Предмет не найден для экипировки");
     return false;
   }
+
+  const allowed = inferItemSlotOptions(item);
+  if (!allowed.includes(slotKey)) {
+    showToast("Этот предмет нельзя надеть в выбранный слот");
+    return false;
+  }
+
+  const equipment = getEquipmentState();
+  unequipItemFromAllSlots(itemId);
+
+  equipment[slotKey] = {
+    itemId: Number(itemId),
+    equippedAt: new Date().toISOString(),
+  };
+
+  saveEquipmentStateLocal();
+  emitCabinetHistory({
+    scope: "inventory",
+    type: "equip_item",
+    action: "equip_item",
+    title: `Экипирован предмет: ${item?.name || "предмет"}`,
+    message: `${item?.name || "Предмет"} надет в слот ${resolveSlotLabel(slotKey)}`,
+    item_name: item?.name,
+    slot: slotKey,
+  });
+  showToast(`Надето: ${item?.name || "предмет"} • ${resolveSlotLabel(slotKey)}`);
+  return true;
+}
+
+function unequipSlot(slotKey) {
+  const equipment = getEquipmentState();
+  const itemId = Number(equipment?.[slotKey]?.itemId);
+  const item = findInventoryItemById(itemId);
+  if (!equipment?.[slotKey]) return false;
+
+  delete equipment[slotKey];
+  saveEquipmentStateLocal();
+  emitCabinetHistory({
+    scope: "inventory",
+    type: "unequip_item",
+    action: "unequip_item",
+    title: `Снят предмет: ${item?.name || "предмет"}`,
+    message: `${item?.name || "Предмет"} снят из слота ${resolveSlotLabel(slotKey)}`,
+    item_name: item?.name,
+    slot: slotKey,
+  });
+  showToast(`Снято: ${item?.name || "предмет"}`);
+  return true;
+}
+
+function collectItemPassiveTexts(item) {
+  const pieces = [];
+  const pushValue = (value, label = "") => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach((part) => pushValue(part, label));
+      return;
+    }
+    if (typeof value === "object") {
+      Object.values(value).forEach((part) => pushValue(part, label));
+      return;
+    }
+    const text = String(value).trim();
+    if (!text) return;
+    pieces.push(label ? `${label}: ${text}` : text);
+  };
+
+  pushValue(item?.effect, "Эффект");
+  pushValue(item?.abilities, "Способности");
+  pushValue(item?.context_effects, "Контекст");
+  pushValue(item?.condition_effects, "Условия");
+  pushValue(item?.passive_effects, "Пассивно");
+  pushValue(item?.properties, "Свойства");
+  pushValue(item?.description, "Описание");
+
+  return [...new Set(pieces)].filter(Boolean).slice(0, 4);
+}
+
+function renderEquipmentPanel(items) {
+  ensureCabinetInventoryStateDefaults();
+  cleanupEquipmentState();
+
+  const equipment = getEquipmentState();
+  const effects = [];
+
+  const slotsMarkup = EQUIPMENT_SLOT_CONFIG.map((slot) => {
+    const equipped = equipment?.[slot.key];
+    const item = equipped ? findInventoryItemById(equipped.itemId) : null;
+    const itemId = getInventoryItemId(item);
+    const rareClass = item ? rarityClass(item?.rarity) : "";
+    const passiveLines = item ? collectItemPassiveTexts(item) : [];
+
+    if (item) {
+      effects.push({
+        slot: slot.label,
+        itemName: item?.name || "Предмет",
+        lines: passiveLines,
+        attunement: Boolean(item?.attunement),
+      });
+    }
+
+    return `
+      <div class="cabinet-block" style="padding:12px; min-height:148px; display:flex; flex-direction:column; gap:8px;">
+        <div class="flex-between" style="align-items:flex-start; gap:8px;">
+          <strong>${escapeHtml(slot.label)}</strong>
+          ${item ? `<span class="meta-item ${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.rarity, "common"))}</span>` : `<span class="meta-item">пусто</span>`}
+        </div>
+
+        ${item ? `
+          <div>
+            <div class="${escapeHtml(rareClass)}" style="font-weight:800; line-height:1.25;">${escapeHtml(item?.name || "Предмет")}</div>
+            <div class="inv-item-details" style="margin-top:6px;">
+              <span>Цена: ${escapeHtml(formatPriceLabel(item))}</span>
+              <span>Категория: ${escapeHtml(safeText(item?.category, "—"))}</span>
+            </div>
+          </div>
+
+          ${passiveLines.length ? `
+            <div class="muted" style="font-size:0.82rem; line-height:1.35;">${escapeHtml(passiveLines.join(" • "))}</div>
+          ` : `<div class="muted" style="font-size:0.82rem;">Эффекты не заданы.</div>`}
+
+          <div class="cart-buttons" style="margin-top:auto;">
+            <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">📖 Описание</button>
+            <button class="btn btn-danger" type="button" data-cabinet-unequip-slot="${escapeHtml(slot.key)}">Снять</button>
+          </div>
+        ` : `
+          <div class="muted" style="margin-top:10px;">Ничего не надето.</div>
+          <div class="muted" style="font-size:0.82rem; margin-top:auto;">Совместимые предметы из инвентаря можно надеть прямо из списка ниже.</div>
+        `}
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <div class="cabinet-block" style="margin-bottom:12px;">
+      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h3 style="margin:0 0 4px 0;">🧷 Экипировка</h3>
+          <div class="muted">BG3-подобные слоты поверх обычного инвентаря. Пока local-first, но уже готово под дальнейший бэк.</div>
+        </div>
+
+        <div class="cart-buttons">
+          <button class="btn" type="button" id="cabinetToggleEquipmentBtn">${CABINET_INVENTORY_STATE.equipmentVisible ? "Скрыть слоты" : "Показать слоты"}</button>
+        </div>
+      </div>
+    </div>
+
+    ${CABINET_INVENTORY_STATE.equipmentVisible ? `
+      <div class="profile-grid" style="margin-bottom:12px; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr); align-items:start; gap:12px;">
+        <div>
+          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+            ${slotsMarkup}
+          </div>
+        </div>
+
+        <div class="cabinet-block" style="padding:12px;">
+          <h3 style="margin:0 0 10px 0;">✨ Что даёт надетое</h3>
+
+          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-bottom:10px;">
+            <div class="stat-box" style="min-height:auto; padding:10px;">
+              <div class="muted">Надето</div>
+              <div style="font-size:18px; font-weight:800;">${effects.length}</div>
+            </div>
+            <div class="stat-box" style="min-height:auto; padding:10px;">
+              <div class="muted">С настройкой</div>
+              <div style="font-size:18px; font-weight:800;">${effects.filter((entry) => entry?.attunement).length}</div>
+            </div>
+            <div class="stat-box" style="min-height:auto; padding:10px;">
+              <div class="muted">Эффектов</div>
+              <div style="font-size:18px; font-weight:800;">${effects.reduce((sum, entry) => sum + safeNumber(entry?.lines?.length, 0), 0)}</div>
+            </div>
+          </div>
+
+          ${effects.length ? effects.map((entry) => `
+            <div class="lss-rich-block" style="margin-bottom:10px;">
+              <h4 style="margin-bottom:6px;">${escapeHtml(entry.slot)} • ${escapeHtml(entry.itemName)}</h4>
+              <div class="muted" style="line-height:1.4;">${escapeHtml((entry.lines || []).join(" • ") || "Эффекты не заданы")}</div>
+            </div>
+          `).join("") : `<div class="muted">Слоты пока пусты. Надень предметы из инвентаря, чтобы увидеть эффекты и пассивки.</div>`}
+        </div>
+      </div>
+    ` : ""}
+  `;
+}
+
+function getCabinetFilteredInventory(items) {
+  ensureCabinetInventoryStateDefaults();
+
+  const search = String(CABINET_INVENTORY_STATE.search || "").trim().toLowerCase();
+  const rarity = String(CABINET_INVENTORY_STATE.rarity || "").trim().toLowerCase();
+  const magic = String(CABINET_INVENTORY_STATE.magic || "").trim().toLowerCase();
+  const category = String(CABINET_INVENTORY_STATE.category || "").trim().toLowerCase();
+  const equippedOnly = Boolean(CABINET_INVENTORY_STATE.equippedOnly);
+  const sort = String(CABINET_INVENTORY_STATE.sort || "name");
+
+  let result = Array.isArray(items) ? [...items] : [];
+
+  if (search) {
+    result = result.filter((item) => {
+      const haystack = [
+        item?.name,
+        item?.category,
+        item?.rarity,
+        item?.description,
+        item?.properties,
+        item?.requirements,
+      ].join(" ").toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+
+  if (rarity) {
+    result = result.filter((item) => normalizeRarityValue(item?.rarity) === rarity);
+  }
+
+  if (magic === "magic") {
+    result = result.filter((item) => Boolean(item?.is_magical));
+  }
+  if (magic === "mundane") {
+    result = result.filter((item) => !item?.is_magical);
+  }
+
+  if (category) {
+    result = result.filter((item) => String(item?.category || "").trim().toLowerCase() === category);
+  }
+
+  if (equippedOnly) {
+    result = result.filter((item) => Boolean(getEquippedSlotForItem(getInventoryItemId(item))));
+  }
+
+  if (sort === "price_asc") {
+    result.sort((a, b) => moneyPartsToCp(a?.price_gold, a?.price_silver, a?.price_copper) - moneyPartsToCp(b?.price_gold, b?.price_silver, b?.price_copper));
+  } else if (sort === "price_desc") {
+    result.sort((a, b) => moneyPartsToCp(b?.price_gold, b?.price_silver, b?.price_copper) - moneyPartsToCp(a?.price_gold, a?.price_silver, a?.price_copper));
+  } else if (sort === "rarity") {
+    const order = { common: 1, uncommon: 2, rare: 3, 'very rare': 4, legendary: 5, artifact: 6 };
+    result.sort((a, b) => (order[normalizeRarityValue(a?.rarity)] || 0) - (order[normalizeRarityValue(b?.rarity)] || 0));
+  } else {
+    result.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "ru"));
+  }
+
+  return result;
+}
+
+function renderInventorySummary(items) {
+  const equippedCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(getEquippedSlotForItem(getInventoryItemId(item)))).length;
+  const magicalCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(item?.is_magical)).length;
+  const customCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(item?.is_custom)).length;
+
+  return `
+    <div class="cabinet-block" style="margin-bottom:12px;">
+      <div class="trader-meta">
+        <span class="meta-item">🎒 Предметов: ${getInventoryCount(items)}</span>
+        <span class="meta-item">🧷 Надето: ${equippedCount}</span>
+        <span class="meta-item">✨ Магических: ${magicalCount}</span>
+        <span class="meta-item">🛠 Custom: ${customCount}</span>
+      </div>
+    </div>
+  `;
 }
 
 function renderInventoryToolbar() {
+  ensureCabinetInventoryStateDefaults();
+
   return `
     <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:center; gap:12px; flex-wrap:wrap;">
+      <div class="flex-between" style="align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
         <div>
           <h3 style="margin:0 0 4px 0;">Инвентарь игрока</h3>
-          <div class="muted">Дублирует текущий игровой инвентарь внутри кабинета.</div>
+          <div class="muted">Теперь это не заглушка: те же действия, что и в основном модуле, плюс кастомные предметы и экипировка по слотам.</div>
         </div>
 
         <div class="cart-buttons">
@@ -568,6 +1283,67 @@ function renderInventoryToolbar() {
           <button class="btn btn-primary" type="button" id="cabinetAddCustomItemBtn">
             ${CABINET_INVENTORY_STATE.customFormOpen ? "Скрыть форму" : "＋ Кастомный предмет"}
           </button>
+        </div>
+      </div>
+
+      <div class="collection-toolbar compact-collection-toolbar">
+        <div class="filter-group">
+          <label>🔍 Поиск</label>
+          <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, свойства, описание" />
+        </div>
+
+        <div class="filter-group">
+          <label>🎖 Редкость</label>
+          <select id="cabinetInventoryRarity">
+            <option value="">Любая</option>
+            <option value="common" ${CABINET_INVENTORY_STATE.rarity === "common" ? "selected" : ""}>common</option>
+            <option value="uncommon" ${CABINET_INVENTORY_STATE.rarity === "uncommon" ? "selected" : ""}>uncommon</option>
+            <option value="rare" ${CABINET_INVENTORY_STATE.rarity === "rare" ? "selected" : ""}>rare</option>
+            <option value="very rare" ${CABINET_INVENTORY_STATE.rarity === "very rare" ? "selected" : ""}>very rare</option>
+            <option value="legendary" ${CABINET_INVENTORY_STATE.rarity === "legendary" ? "selected" : ""}>legendary</option>
+            <option value="artifact" ${CABINET_INVENTORY_STATE.rarity === "artifact" ? "selected" : ""}>artifact</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>✨ Магия</label>
+          <select id="cabinetInventoryMagic">
+            <option value="" ${CABINET_INVENTORY_STATE.magic === "" ? "selected" : ""}>Любая</option>
+            <option value="magic" ${CABINET_INVENTORY_STATE.magic === "magic" ? "selected" : ""}>Только магические</option>
+            <option value="mundane" ${CABINET_INVENTORY_STATE.magic === "mundane" ? "selected" : ""}>Только обычные</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>📦 Категория</label>
+          <select id="cabinetInventoryCategory">
+            <option value="">Любая</option>
+            ${getInventoryCategories(getInventoryState()).map((category) => `<option value="${escapeHtml(category)}" ${String(CABINET_INVENTORY_STATE.category || "") === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}
+          </select>
+        </div>
+
+        <label class="inline-checkbox compact-inline-checkbox" style="margin-top:20px;">
+          <input id="cabinetInventoryEquippedOnly" type="checkbox" ${CABINET_INVENTORY_STATE.equippedOnly ? "checked" : ""} />
+          Только надетое
+        </label>
+
+        <div class="filter-group">
+          <label>↕ Сортировка</label>
+          <select id="cabinetInventorySort">
+            <option value="name" ${CABINET_INVENTORY_STATE.sort === "name" ? "selected" : ""}>Название</option>
+            <option value="price_asc" ${CABINET_INVENTORY_STATE.sort === "price_asc" ? "selected" : ""}>Дешёвые</option>
+            <option value="price_desc" ${CABINET_INVENTORY_STATE.sort === "price_desc" ? "selected" : ""}>Дорогие</option>
+            <option value="rarity" ${CABINET_INVENTORY_STATE.sort === "rarity" ? "selected" : ""}>Редкость</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>🧩 Вид</label>
+          <select id="cabinetInventoryViewMode">
+            <option value="inventory" ${CABINET_INVENTORY_STATE.viewMode === "inventory" ? "selected" : ""}>Список</option>
+            <option value="table" ${CABINET_INVENTORY_STATE.viewMode === "table" ? "selected" : ""}>Таблица</option>
+            <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
+          </select>
         </div>
       </div>
     </div>
@@ -619,8 +1395,11 @@ function renderCustomItemForm() {
         </div>
 
         <div class="filter-group">
-          <label>Вес</label>
-          <input id="customItemWeight" type="number" min="0" step="0.1" value="0" />
+          <label>Слот</label>
+          <select id="customItemEquipSlot">
+            <option value="">Без слота</option>
+            ${EQUIPMENT_SLOT_CONFIG.map((slot) => `<option value="${escapeHtml(slot.key)}">${escapeHtml(slot.label)}</option>`).join("")}
+          </select>
         </div>
       </div>
 
@@ -640,6 +1419,11 @@ function renderCustomItemForm() {
           <input id="customItemPriceCopper" type="number" min="0" step="1" value="0" />
         </div>
 
+        <div class="filter-group">
+          <label>Вес</label>
+          <input id="customItemWeight" type="number" min="0" step="0.1" value="0" />
+        </div>
+
         <label class="inline-checkbox" style="margin-top:20px;">
           <input id="customItemMagical" type="checkbox" />
           <span>Магический</span>
@@ -657,13 +1441,13 @@ function renderCustomItemForm() {
       </div>
 
       <div class="filter-group" style="margin-top:12px;">
-        <label>Свойства / свойства механики</label>
-        <textarea id="customItemProperties" rows="3" placeholder="Например: одноразовый, кровь, некротика, алхимия"></textarea>
+        <label>Свойства / пассивки / механика</label>
+        <textarea id="customItemProperties" rows="3" placeholder="Например: +1 к инициативе • иммунитет к яду • бонус к скрытности"></textarea>
       </div>
 
       <div class="filter-group" style="margin-top:12px;">
         <label>Требования</label>
-        <textarea id="customItemRequirements" rows="2" placeholder="Например: только волшебник, только ГМ, уровень 5+"></textarea>
+        <textarea id="customItemRequirements" rows="2" placeholder="Например: только волшебник, уровень 5+"></textarea>
       </div>
 
       <div class="modal-actions" style="margin-top:12px; gap:8px; flex-wrap:wrap;">
@@ -672,7 +1456,7 @@ function renderCustomItemForm() {
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Часть параметров выставляется автоматически: local/custom ID, цены продажи, source и дефолтные поля для совместимости.
+        Кастомные предметы сразу совместимы с инвентарём, описанием, продажей и новой системой экипировки.
       </div>
     </div>
   `;
@@ -688,6 +1472,7 @@ function buildCustomItemFromForm() {
   const rarity = normalizeRarityValue(getEl("customItemRarity")?.value || "common");
   const quality = normalizeQuality(getEl("customItemQuality")?.value || "стандартное");
   const weight = Math.max(0, safeNumber(getEl("customItemWeight")?.value, 0));
+  const slot = safeText(getEl("customItemEquipSlot")?.value, "").trim();
 
   const priceGold = Math.max(0, safeNumber(getEl("customItemPriceGold")?.value, 0));
   const priceSilver = Math.max(0, safeNumber(getEl("customItemPriceSilver")?.value, 0));
@@ -700,9 +1485,7 @@ function buildCustomItemFromForm() {
   const isMagical = Boolean(getEl("customItemMagical")?.checked);
   const attunement = Boolean(getEl("customItemAttunement")?.checked);
 
-  if (!name) {
-    throw new Error("Укажи название кастомного предмета");
-  }
+  if (!name) throw new Error("Укажи название кастомного предмета");
 
   const baseCp = moneyPartsToCp(priceGold, priceSilver, priceCopper);
   const sellCp = baseCp > 0 ? Math.max(1, Math.floor(baseCp * 0.5)) : 0;
@@ -715,33 +1498,27 @@ function buildCustomItemFromForm() {
     local_id: `custom_${nextId}`,
     source: "cabinet_custom",
     is_custom: true,
-
     name,
     quantity,
-
     category,
     rarity,
     quality,
     weight,
-
+    slot: slot || undefined,
     is_magical: isMagical,
     attunement,
-
     description,
     properties,
     requirements,
-
     price_gold: priceGold,
     price_silver: priceSilver,
     price_copper: priceCopper,
     base_price_gold: priceGold,
     base_price_silver: priceSilver,
     base_price_copper: priceCopper,
-
     sell_price_gold: sellParts.gold,
     sell_price_silver: sellParts.silver,
     sell_price_copper: sellParts.copper,
-
     stock: quantity,
   };
 }
@@ -760,6 +1537,7 @@ function resetCustomItemFormValues() {
     customItemDescription: "",
     customItemProperties: "",
     customItemRequirements: "",
+    customItemEquipSlot: "",
   };
 
   Object.entries(defaults).forEach(([id, value]) => {
@@ -780,7 +1558,6 @@ async function addCustomInventoryItem() {
 
   const sameIndex = inventory.findIndex((entry) => {
     if (!entry?.is_custom) return false;
-
     return (
       String(entry.name || "").trim().toLowerCase() === customItem.name.toLowerCase() &&
       String(entry.category || "").trim().toLowerCase() === customItem.category.toLowerCase() &&
@@ -790,9 +1567,7 @@ async function addCustomInventoryItem() {
   });
 
   if (sameIndex >= 0) {
-    inventory[sameIndex].quantity =
-      Math.max(1, safeNumber(inventory[sameIndex].quantity, 1)) +
-      Math.max(1, safeNumber(customItem.quantity, 1));
+    inventory[sameIndex].quantity = Math.max(1, safeNumber(inventory[sameIndex].quantity, 1)) + customItem.quantity;
   } else {
     inventory.push(customItem);
   }
@@ -823,20 +1598,13 @@ async function addCustomInventoryItem() {
 
 async function changeInventoryQuantity(itemId, delta) {
   const inventory = getInventoryState();
-  const index = inventory.findIndex(
-    (entry) => Number(entry?.item_id ?? entry?.id) === Number(itemId)
-  );
-
+  const index = inventory.findIndex((entry) => Number(entry?.item_id ?? entry?.id) === Number(itemId));
   if (index < 0) {
     showToast("Предмет не найден");
     return;
   }
 
-  inventory[index].quantity = Math.max(
-    1,
-    safeNumber(inventory[index].quantity, 1) + safeNumber(delta, 0)
-  );
-
+  inventory[index].quantity = Math.max(1, safeNumber(inventory[index].quantity, 1) + safeNumber(delta, 0));
   syncInventoryToUi();
   await tryPersistInventoryToServer();
   renderCabinetInventory();
@@ -854,16 +1622,14 @@ async function changeInventoryQuantity(itemId, delta) {
 
 async function removeInventoryEntryFromCabinet(itemId) {
   const inventory = getInventoryState();
-  const index = inventory.findIndex(
-    (entry) => Number(entry?.item_id ?? entry?.id) === Number(itemId)
-  );
-
+  const index = inventory.findIndex((entry) => Number(entry?.item_id ?? entry?.id) === Number(itemId));
   if (index < 0) {
     showToast("Предмет не найден");
     return;
   }
 
   const [removed] = inventory.splice(index, 1);
+  unequipItemFromAllSlots(itemId);
 
   syncInventoryToUi();
   await tryPersistInventoryToServer();
@@ -882,63 +1648,191 @@ async function removeInventoryEntryFromCabinet(itemId) {
   showToast(`Удалено из инвентаря: ${removed?.name || "предмет"}`);
 }
 
+function openCabinetItemDescription(item) {
+  if (!item) {
+    showToast("Описание предмета не найдено");
+    return;
+  }
+
+  const modal = getEl("itemDescriptionModal");
+  const root = getEl("itemDescriptionContent");
+  if (!modal || !root) return;
+
+  const rareClass = rarityClass(item?.rarity);
+  const effects = collectItemPassiveTexts(item);
+  const slotOptions = inferItemSlotOptions(item).map(resolveSlotLabel).join(", ");
+
+  root.innerHTML = `
+    <div class="trader-detail-section">
+      <h2 class="${escapeHtml(rareClass)}" style="margin-bottom:8px;">${escapeHtml(item?.name || "Без названия")}</h2>
+
+      <div class="inv-item-details" style="margin-bottom:10px;">
+        <span class="${escapeHtml(rareClass)}">Редкость: ${escapeHtml(safeText(item?.rarity, "—"))}</span>
+        <span>Категория: ${escapeHtml(safeText(item?.category, "—"))}</span>
+        <span>Цена: ${escapeHtml(formatPriceLabel(item))}</span>
+        <span>Количество: ${escapeHtml(safeText(item?.quantity, "1"))}</span>
+        <span>Слоты: ${escapeHtml(slotOptions || "—")}</span>
+        ${item?.attunement ? `<span>🔗 Требует настройку</span>` : ""}
+        ${item?.is_magical ? `<span>✨ Магический</span>` : ""}
+        ${item?.is_custom ? `<span>custom</span>` : ""}
+      </div>
+
+      ${item?.description ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Описание</h4><p>${escapeHtml(item.description)}</p></div>` : ""}
+      ${item?.properties ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Свойства</h4><p>${escapeHtml(item.properties)}</p></div>` : ""}
+      ${item?.requirements ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Требования</h4><p>${escapeHtml(item.requirements)}</p></div>` : ""}
+      ${effects.length ? `<div class="lss-rich-block"><h4>Пассивки / эффекты</h4><p>${escapeHtml(effects.join(" • "))}</p></div>` : ""}
+    </div>
+  `;
+
+  modal.style.display = "block";
+}
+
+function renderCabinetInventoryItemActions(item) {
+  const itemId = getInventoryItemId(item);
+  const equippedSlot = getEquippedSlotForItem(itemId);
+  const allowedSlots = inferItemSlotOptions(item);
+  const selectedSlot = CABINET_INVENTORY_STATE.slotSelections[itemId] || equippedSlot || allowedSlots[0] || "main_hand";
+
+  return `
+    <div class="cart-buttons" style="margin-top:10px; flex-wrap:wrap;">
+      <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">📖 Описание</button>
+      <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">💰 Продать</button>
+      <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">🗑 Удалить</button>
+      <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
+      <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
+    </div>
+
+    <div class="collection-toolbar compact-collection-toolbar" style="margin-top:10px; padding:0; background:none; border:none;">
+      <div class="filter-group" style="min-width:220px;">
+        <label>Слот экипировки</label>
+        <select data-cabinet-slot-select="${escapeHtml(itemId)}">
+          ${allowedSlots.map((slotKey) => `<option value="${escapeHtml(slotKey)}" ${selectedSlot === slotKey ? "selected" : ""}>${escapeHtml(resolveSlotLabel(slotKey))}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="cart-buttons" style="align-self:flex-end;">
+        <button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">${equippedSlot ? "Переэкипировать" : "Надеть"}</button>
+        ${equippedSlot ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}">Снять</button>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderCabinetInventoryCard(item) {
+  const rareClass = rarityClass(item?.rarity);
+  const quantity = safeText(item?.quantity, "1");
+  const rarity = safeText(item?.rarity, "—");
+  const category = safeText(item?.category, "—");
+  const price = formatPriceLabel(item);
+  const itemId = getInventoryItemId(item);
+  const customBadge = item?.is_custom ? `<span class="meta-item">custom</span>` : "";
+  const equippedSlot = getEquippedSlotForItem(itemId);
+  const passiveShort = collectItemPassiveTexts(item).slice(0, 2).join(" • ");
+
+  return `
+    <div class="inventory-item">
+      <div class="inventory-item-info">
+        <strong class="${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.name, "Без названия"))}</strong>
+
+        <div class="inv-item-details">
+          <span>Кол-во: ${escapeHtml(quantity)}</span>
+          <span class="${escapeHtml(rareClass)}">Редкость: ${escapeHtml(rarity)}</span>
+          <span>Категория: ${escapeHtml(category)}</span>
+          <span>Цена: ${escapeHtml(price)}</span>
+          ${item?.is_magical ? `<span>✨ магический</span>` : ""}
+          ${item?.attunement ? `<span>🔗 настройка</span>` : ""}
+          ${customBadge}
+          ${equippedSlot ? `<span>🧷 ${escapeHtml(resolveSlotLabel(equippedSlot))}</span>` : ""}
+        </div>
+
+        ${item?.description ? `<div class="muted" style="margin-top:6px;">${escapeHtml(item.description)}</div>` : ""}
+        ${passiveShort ? `<div class="muted" style="margin-top:6px;">${escapeHtml(passiveShort)}</div>` : ""}
+
+        ${renderCabinetInventoryItemActions(item)}
+      </div>
+    </div>
+  `;
+}
+
+function renderCabinetInventoryGrid(items) {
+  return `
+    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px;">
+      ${items.map((item) => `<div class="cabinet-block" style="padding:12px;">${renderCabinetInventoryCard(item)}</div>`).join("")}
+    </div>
+  `;
+}
+
+function renderCabinetInventoryTable(items) {
+  return `
+    <div class="table-wrap">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Предмет</th>
+            <th>Редкость</th>
+            <th>Кол-во</th>
+            <th>Цена</th>
+            <th>Слот</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((item) => {
+            const rareClass = rarityClass(item?.rarity);
+            const itemId = getInventoryItemId(item);
+            const equippedSlot = getEquippedSlotForItem(itemId);
+            return `
+              <tr>
+                <td>
+                  <div class="item-name ${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.name, "Без названия"))}</div>
+                  ${item?.description ? `<div class="muted" style="margin-top:4px; font-size:0.8rem;">${escapeHtml(item.description)}</div>` : ""}
+                </td>
+                <td class="${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.rarity, "—"))}</td>
+                <td>${escapeHtml(safeText(item?.quantity, "1"))}</td>
+                <td>${escapeHtml(formatPriceLabel(item))}</td>
+                <td>${equippedSlot ? escapeHtml(resolveSlotLabel(equippedSlot)) : "—"}</td>
+                <td>
+                  <div class="item-actions item-actions-stack">
+                    <button class="btn js-cabinet-desc" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">📖</button>
+                    <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
+                    <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
+                    <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">💰</button>
+                    <button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">🧷</button>
+                    <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">🗑</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderInventoryList(items) {
-  if (!items.length) {
+  const filtered = getCabinetFilteredInventory(items);
+
+  if (!filtered.length) {
     return `
       <div class="cabinet-block">
-        <p>Инвентарь пока пуст.</p>
+        <p>Ничего не найдено. Попробуй изменить фильтры или добавить кастомный предмет.</p>
       </div>
     `;
+  }
+
+  if (CABINET_INVENTORY_STATE.viewMode === "table") {
+    return `<div class="cabinet-block">${renderCabinetInventoryTable(filtered)}</div>`;
+  }
+
+  if (CABINET_INVENTORY_STATE.viewMode === "grid") {
+    return `<div class="cabinet-block">${renderCabinetInventoryGrid(filtered)}</div>`;
   }
 
   return `
     <div class="cabinet-block">
       <div class="inventory-list">
-        ${items
-          .map((item) => {
-            const rareClass = rarityClass(item?.rarity);
-            const quantity = safeText(item?.quantity, "1");
-            const rarity = safeText(item?.rarity, "—");
-            const category = safeText(item?.category, "—");
-            const price = formatPriceLabel(item);
-            const itemId = Number(item?.item_id ?? item?.id);
-            const customBadge = item?.is_custom
-              ? `<span class="meta-item">custom</span>`
-              : "";
-
-            return `
-              <div class="inventory-item">
-                <div class="inventory-item-info">
-                  <strong class="${escapeHtml(rareClass)}">${escapeHtml(
-                    safeText(item?.name, "Без названия")
-                  )}</strong>
-
-                  <div class="inv-item-details">
-                    <span>Кол-во: ${escapeHtml(quantity)}</span>
-                    <span class="${escapeHtml(rareClass)}">Редкость: ${escapeHtml(rarity)}</span>
-                    <span>Категория: ${escapeHtml(category)}</span>
-                    <span>Цена: ${escapeHtml(price)}</span>
-                    ${item?.is_magical ? `<span>✨ магический</span>` : ""}
-                    ${item?.attunement ? `<span>🔗 настройка</span>` : ""}
-                    ${customBadge}
-                  </div>
-
-                  ${
-                    item?.description
-                      ? `<div class="muted" style="margin-top:6px;">${escapeHtml(item.description)}</div>`
-                      : ""
-                  }
-                </div>
-
-                <div class="cart-buttons">
-                  <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
-                  <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
-                  <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">Удалить</button>
-                </div>
-              </div>
-            `;
-          })
-          .join("")}
+        ${filtered.map((item) => renderCabinetInventoryCard(item)).join("")}
       </div>
     </div>
   `;
@@ -948,10 +1842,12 @@ function renderCabinetInventory() {
   const container = getEl("cabinet-inventory");
   if (!container) return;
 
+  ensureCabinetInventoryStateDefaults();
   const inventory = getInventoryState();
 
   container.innerHTML = `
     ${renderInventoryToolbar()}
+    ${renderEquipmentPanel(inventory)}
     ${renderCustomItemForm()}
     ${renderInventoryList(inventory)}
   `;
@@ -959,7 +1855,23 @@ function renderCabinetInventory() {
   bindInventoryActions();
 }
 
+function bindCabinetInventoryFilter(id, stateKey, normalizer = (value) => value) {
+  const el = getEl(id);
+  if (!el || el.dataset.boundCabinetInventoryFilter === "1") return;
+  el.dataset.boundCabinetInventoryFilter = "1";
+  el.addEventListener("input", () => {
+    CABINET_INVENTORY_STATE[stateKey] = normalizer(el.value);
+    renderCabinetInventory();
+  });
+  el.addEventListener("change", () => {
+    CABINET_INVENTORY_STATE[stateKey] = normalizer(el.value);
+    renderCabinetInventory();
+  });
+}
+
 function bindInventoryActions() {
+  ensureCabinetInventoryStateDefaults();
+
   const refreshBtn = getEl("cabinetRefreshInventoryBtn");
   if (refreshBtn && refreshBtn.dataset.boundRefreshInventory !== "1") {
     refreshBtn.dataset.boundRefreshInventory = "1";
@@ -975,6 +1887,31 @@ function bindInventoryActions() {
     addCustomBtn.dataset.boundAddCustom = "1";
     addCustomBtn.addEventListener("click", () => {
       CABINET_INVENTORY_STATE.customFormOpen = !CABINET_INVENTORY_STATE.customFormOpen;
+      renderCabinetInventory();
+    });
+  }
+
+  const toggleEquipmentBtn = getEl("cabinetToggleEquipmentBtn");
+  if (toggleEquipmentBtn && toggleEquipmentBtn.dataset.boundToggleEquipment !== "1") {
+    toggleEquipmentBtn.dataset.boundToggleEquipment = "1";
+    toggleEquipmentBtn.addEventListener("click", () => {
+      CABINET_INVENTORY_STATE.equipmentVisible = !CABINET_INVENTORY_STATE.equipmentVisible;
+      renderCabinetInventory();
+    });
+  }
+
+  bindCabinetInventoryFilter("cabinetInventorySearch", "search", (value) => String(value || ""));
+  bindCabinetInventoryFilter("cabinetInventoryRarity", "rarity", (value) => String(value || "").trim().toLowerCase());
+  bindCabinetInventoryFilter("cabinetInventoryMagic", "magic", (value) => String(value || "").trim().toLowerCase());
+  bindCabinetInventoryFilter("cabinetInventoryCategory", "category", (value) => String(value || "").trim().toLowerCase());
+  bindCabinetInventoryFilter("cabinetInventorySort", "sort", (value) => String(value || "name"));
+  bindCabinetInventoryFilter("cabinetInventoryViewMode", "viewMode", (value) => String(value || "inventory"));
+
+  const equippedOnly = getEl("cabinetInventoryEquippedOnly");
+  if (equippedOnly && equippedOnly.dataset.boundCabinetInventoryEquippedOnly !== "1") {
+    equippedOnly.dataset.boundCabinetInventoryEquippedOnly = "1";
+    equippedOnly.addEventListener("change", () => {
+      CABINET_INVENTORY_STATE.equippedOnly = Boolean(equippedOnly.checked);
       renderCabinetInventory();
     });
   }
@@ -1004,35 +1941,101 @@ function bindInventoryActions() {
   document.querySelectorAll("[data-cabinet-item-plus]").forEach((btn) => {
     if (btn.dataset.boundCabinetItemPlus === "1") return;
     btn.dataset.boundCabinetItemPlus = "1";
-
     btn.addEventListener("click", async () => {
-      const itemId = Number(btn.dataset.cabinetItemPlus);
-      await changeInventoryQuantity(itemId, 1);
+      await changeInventoryQuantity(Number(btn.dataset.cabinetItemPlus), 1);
     });
   });
 
   document.querySelectorAll("[data-cabinet-item-minus]").forEach((btn) => {
     if (btn.dataset.boundCabinetItemMinus === "1") return;
     btn.dataset.boundCabinetItemMinus = "1";
-
     btn.addEventListener("click", async () => {
-      const itemId = Number(btn.dataset.cabinetItemMinus);
-      await changeInventoryQuantity(itemId, -1);
+      await changeInventoryQuantity(Number(btn.dataset.cabinetItemMinus), -1);
     });
   });
 
   document.querySelectorAll("[data-cabinet-item-remove]").forEach((btn) => {
     if (btn.dataset.boundCabinetItemRemove === "1") return;
     btn.dataset.boundCabinetItemRemove = "1";
-
     btn.addEventListener("click", async () => {
       const itemId = Number(btn.dataset.cabinetItemRemove);
-      const ok = confirm("Удалить предмет из инвентаря?");
-      if (!ok) return;
+      if (!confirm("Удалить предмет из инвентаря?")) return;
       await removeInventoryEntryFromCabinet(itemId);
     });
   });
+
+  document.querySelectorAll("[data-cabinet-open-desc]").forEach((btn) => {
+    if (btn.dataset.boundCabinetOpenDesc === "1") return;
+    btn.dataset.boundCabinetOpenDesc = "1";
+    btn.addEventListener("click", () => {
+      const item = findInventoryItemById(Number(btn.dataset.cabinetOpenDesc));
+      openCabinetItemDescription(item);
+    });
+  });
+
+  document.querySelectorAll("[data-cabinet-slot-select]").forEach((select) => {
+    if (select.dataset.boundCabinetSlotSelect === "1") return;
+    select.dataset.boundCabinetSlotSelect = "1";
+    select.addEventListener("change", () => {
+      CABINET_INVENTORY_STATE.slotSelections[Number(select.dataset.cabinetSlotSelect)] = String(select.value || "main_hand");
+    });
+  });
+
+  document.querySelectorAll("[data-cabinet-equip-item]").forEach((btn) => {
+    if (btn.dataset.boundCabinetEquipItem === "1") return;
+    btn.dataset.boundCabinetEquipItem = "1";
+    btn.addEventListener("click", async () => {
+      const itemId = Number(btn.dataset.cabinetEquipItem);
+      const selectedSlot = CABINET_INVENTORY_STATE.slotSelections[itemId] || inferItemSlotOptions(findInventoryItemById(itemId))[0] || "main_hand";
+      const ok = equipInventoryItem(itemId, selectedSlot);
+      if (!ok) return;
+      await tryPersistInventoryToServer();
+      renderCabinetInventory();
+    });
+  });
+
+  document.querySelectorAll("[data-cabinet-unequip-item]").forEach((btn) => {
+    if (btn.dataset.boundCabinetUnequipItem === "1") return;
+    btn.dataset.boundCabinetUnequipItem = "1";
+    btn.addEventListener("click", async () => {
+      const itemId = Number(btn.dataset.cabinetUnequipItem);
+      const slotKey = getEquippedSlotForItem(itemId);
+      if (!slotKey) return;
+      unequipSlot(slotKey);
+      await tryPersistInventoryToServer();
+      renderCabinetInventory();
+    });
+  });
+
+  document.querySelectorAll("[data-cabinet-unequip-slot]").forEach((btn) => {
+    if (btn.dataset.boundCabinetUnequipSlot === "1") return;
+    btn.dataset.boundCabinetUnequipSlot = "1";
+    btn.addEventListener("click", async () => {
+      unequipSlot(String(btn.dataset.cabinetUnequipSlot || ""));
+      await tryPersistInventoryToServer();
+      renderCabinetInventory();
+    });
+  });
+
+  document.querySelectorAll("[data-cabinet-sell-item]").forEach((btn) => {
+    if (btn.dataset.boundCabinetSellItem === "1") return;
+    btn.dataset.boundCabinetSellItem = "1";
+    btn.addEventListener("click", async () => {
+      const itemId = Number(btn.dataset.cabinetSellItem);
+      const item = findInventoryItemById(itemId);
+      const itemQuantity = Math.max(1, safeNumber(item?.quantity, 1));
+      const ok = confirm(`Продать 1 × ${item?.name || "предмет"}?`);
+      if (!ok) return;
+      const result = await window.sellItem?.(itemId, 1, { reopenTraderModal: false });
+      if (!result?.success) return;
+      if (itemQuantity <= 1) {
+        unequipItemFromAllSlots(itemId);
+      }
+      renderCabinetInventory();
+    });
+  });
 }
+
 
 // ------------------------------------------------------------
 // 📁 FILES
@@ -1716,17 +2719,18 @@ function bindGmNotesActions() {
 // ------------------------------------------------------------
 // 🚪 OPEN / CLOSE
 // ------------------------------------------------------------
-export function openCabinet() {
+export async function openCabinet() {
   const modal = ensureCabinetStructure();
   if (!modal) return;
 
   CABINET_STATE.role = getCurrentRole();
+  normalizeActiveTabForRole();
   renderCabinetHeader();
   renderCabinetTabs();
   bindCabinetTabs();
   bindCabinetActions();
-  switchCabinetTab(CABINET_STATE.activeTab);
   openModal(modal);
+  await refreshCurrentCabinetTab();
 }
 
 export function closeCabinet() {
@@ -1777,6 +2781,12 @@ export async function switchCabinetTab(tabName) {
     return;
   }
 
+  if (tabName === "bestiari") {
+    await loadBestiari();
+    renderBestiari();
+    return;
+  }
+
   if (tabName === "files") {
     await loadFiles();
     renderFiles();
@@ -1810,15 +2820,104 @@ export function bindCabinetTabs() {
 // ------------------------------------------------------------
 // 🔘 ACTIONS
 // ------------------------------------------------------------
+function isCabinetOpen() {
+  const modal = getEl("cabinetModal");
+  if (!modal) return false;
+  return modal.style.display === "block" || !modal.classList.contains("hidden");
+}
+
+function normalizeActiveTabForRole() {
+  const visible = getVisibleTabsByRole(CABINET_STATE.role).map((tab) => tab.key);
+  if (!visible.includes(CABINET_STATE.activeTab)) {
+    CABINET_STATE.activeTab = "inventory";
+  }
+}
+
+async function refreshCurrentCabinetTab() {
+  if (CABINET_RUNTIME.refreshing) {
+    CABINET_RUNTIME.pendingRefresh = true;
+    return;
+  }
+
+  CABINET_RUNTIME.refreshing = true;
+  try {
+    await switchCabinetTab(CABINET_STATE.activeTab);
+  } finally {
+    CABINET_RUNTIME.refreshing = false;
+    if (CABINET_RUNTIME.pendingRefresh) {
+      CABINET_RUNTIME.pendingRefresh = false;
+      await refreshCurrentCabinetTab();
+    }
+  }
+}
+
+async function syncCabinetUiFromRoleChange() {
+  const nextRole = getCurrentRole();
+  const roleChanged = CABINET_STATE.role !== nextRole;
+  CABINET_STATE.role = nextRole;
+
+  normalizeActiveTabForRole();
+  renderCabinetHeader();
+  renderCabinetTabs();
+  bindCabinetTabs();
+
+  if (isCabinetOpen() || roleChanged) {
+    await refreshCurrentCabinetTab();
+  }
+}
+
 export function bindCabinetActions() {
-  const closeBtn = getEl("cabinetModal")?.querySelector(".close");
+  const modal = getEl("cabinetModal");
+  const closeBtn = modal?.querySelector(".close");
+
   if (closeBtn && closeBtn.dataset.boundCabinetClose !== "1") {
     closeBtn.dataset.boundCabinetClose = "1";
     closeBtn.addEventListener("click", () => closeCabinet());
   }
+
+  if (modal && modal.dataset.boundCabinetRoleSync !== "1") {
+    modal.dataset.boundCabinetRoleSync = "1";
+
+    window.addEventListener("dnd:role:changed", async () => {
+      await syncCabinetUiFromRoleChange();
+    });
+
+    window.addEventListener("dnd:app:state-synced", async () => {
+      if (!isCabinetOpen()) return;
+
+      if (CABINET_STATE.activeTab === "inventory") {
+        renderCabinetInventory();
+        return;
+      }
+
+      if (CABINET_STATE.activeTab === "map") {
+        await loadMapData();
+        renderMaps();
+        return;
+      }
+
+      if (CABINET_STATE.activeTab === "bestiari") {
+        await loadBestiari();
+        renderBestiari();
+        return;
+      }
+
+      if (CABINET_STATE.activeTab === "lss") {
+        await loadLSS();
+        renderLSS();
+      }
+    });
+  }
 }
 
 export async function loadCabinetAll() {
+  CABINET_STATE.role = getCurrentRole();
+  normalizeActiveTabForRole();
+
+  renderCabinetHeader();
+  renderCabinetTabs();
+  bindCabinetTabs();
+
   renderCabinetInventory();
 
   await loadLSS();
@@ -1832,6 +2931,9 @@ export async function loadCabinetAll() {
 
   await loadMapData();
   renderMaps();
+
+  await loadBestiari();
+  renderBestiari();
 
   await loadPlayerNotes();
   renderNotes();
@@ -1850,10 +2952,12 @@ export function initCabinet() {
   if (!modal) return;
 
   CABINET_STATE.role = getCurrentRole();
+  normalizeActiveTabForRole();
 
   renderCabinetHeader();
   renderCabinetTabs();
   renderCabinetInventory();
+  renderBestiari();
   renderFiles();
   renderGmNotes();
 

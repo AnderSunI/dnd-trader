@@ -132,6 +132,11 @@ function getInventoryContainer() {
   );
 }
 
+function getActiveTraderFromModal(modal) {
+  const traderId = Number(modal?.dataset?.traderId);
+  return Number.isFinite(traderId) ? getTraderById(traderId) : null;
+}
+
 // ------------------------------------------------------------
 // 💰 MONEY
 // ------------------------------------------------------------
@@ -172,28 +177,64 @@ function formatSellPrice(item) {
 function normalizeRarity(value) {
   const raw = String(value || "").trim().toLowerCase();
   if (!raw) return "Обычный";
-  if (raw === "common") return "Обычный";
-  if (raw === "uncommon") return "Необычный";
-  if (raw === "rare") return "Редкий";
-  if (raw === "very rare") return "Очень редкий";
-  if (raw === "legendary") return "Легендарный";
-  if (raw === "artifact") return "Артефакт";
-  return value || "Обычный";
+
+  const map = {
+    common: "Обычный",
+    uncommon: "Необычный",
+    rare: "Редкий",
+    "very rare": "Очень редкий",
+    very_rare: "Очень редкий",
+    veryrare: "Очень редкий",
+    epic: "Эпический",
+    legendary: "Легендарный",
+    artifact: "Артефакт",
+    trash: "Мусор",
+    junk: "Мусор",
+    мусор: "Мусор",
+    обычный: "Обычный",
+    необычный: "Необычный",
+    редкий: "Редкий",
+    "очень редкий": "Очень редкий",
+    эпический: "Эпический",
+    легендарный: "Легендарный",
+    артефакт: "Артефакт",
+  };
+
+  return map[raw] || value || "Обычный";
 }
 
 function rarityClass(value) {
   const raw = String(value || "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "");
+    .replace(/[\s_-]+/g, "");
 
-  if (raw === "common") return "rarity-common";
-  if (raw === "uncommon") return "rarity-uncommon";
-  if (raw === "rare") return "rarity-rare";
-  if (raw === "veryrare") return "rarity-veryrare";
-  if (raw === "legendary") return "rarity-legendary";
-  if (raw === "artifact") return "rarity-artifact";
+  if (raw === "trash" || raw === "junk" || raw === "мусор") return "rarity-trash";
+  if (raw === "common" || raw === "обычный") return "rarity-common";
+  if (raw === "uncommon" || raw === "необычный") return "rarity-uncommon";
+  if (raw === "rare" || raw === "редкий") return "rarity-rare";
+  if (raw === "veryrare" || raw === "оченьредкий") return "rarity-veryrare";
+  if (raw === "epic" || raw === "эпический") return "rarity-epic";
+  if (raw === "legendary" || raw === "легендарный") return "rarity-legendary";
+  if (raw === "artifact" || raw === "артефакт") return "rarity-artifact";
   return "rarity-common";
+}
+
+function rarityColor(value) {
+  const cls = rarityClass(value);
+  if (cls === "rarity-trash") return "#98a2ad";
+  if (cls === "rarity-common") return "#e6dfd0";
+  if (cls === "rarity-uncommon") return "#7fdc8a";
+  if (cls === "rarity-rare") return "#6fb4ff";
+  if (cls === "rarity-veryrare" || cls === "rarity-epic") return "#bb8cff";
+  if (cls === "rarity-legendary") return "#e0a545";
+  if (cls === "rarity-artifact") return "#ff6b6b";
+  return "#e6dfd0";
+}
+
+function rarityTextStyle(value, extra = "") {
+  const color = rarityColor(value);
+  return `style="color:${color};${extra}"`;
 }
 
 function normalizeQuality(value) {
@@ -303,6 +344,27 @@ function getSettlementEmoji() {
 
 function getItemId(item) {
   return Number(item?.item_id ?? item?.id ?? 0);
+}
+
+function getItemTraderId(item, fallback = null) {
+  if (fallback !== null && fallback !== undefined && fallback !== "") {
+    const explicit = Number(fallback);
+    if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  }
+
+  const candidates = [
+    item?.trader_id,
+    item?.owner_trader_id,
+    item?.merchant_id,
+    item?.traderId,
+  ];
+
+  for (const candidate of candidates) {
+    const id = Number(candidate);
+    if (Number.isFinite(id) && id > 0) return id;
+  }
+
+  return null;
 }
 
 function getTraderStock(item) {
@@ -443,14 +505,15 @@ function openItemDescriptionModal(item, context = "trader") {
   const priceText = context === "inventory" ? formatSellPrice(item) : formatBuyPrice(item);
   const rareClass = rarityClass(item?.rarity);
   const itemEmoji = getItemEmoji(item);
+  const titleStyle = rarityTextStyle(item?.rarity, "font-weight:800;");
 
   content.innerHTML = `
-    <h2 class="${escapeHtml(rareClass)}">${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</h2>
+    <h2 class="${escapeHtml(rareClass)}" ${titleStyle}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</h2>
     <div class="item-meta-block">
       <p><strong>💰 Цена:</strong> ${escapeHtml(priceText)}</p>
       <p><strong>🎖 Редкость:</strong> <span class="${escapeHtml(
         rareClass
-      )}">${escapeHtml(normalizeRarity(item?.rarity))}</span></p>
+      )}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(normalizeRarity(item?.rarity))}</span></p>
       <p><strong>🛠 Качество:</strong> ${escapeHtml(normalizeQuality(item?.quality))}</p>
       <p><strong>📌 Характеристики:</strong> ${escapeHtml(getItemCharacteristics(item))}</p>
     </div>
@@ -626,7 +689,7 @@ function filterCollectionItems(items, wrapper, context = "trader") {
 // ------------------------------------------------------------
 function renderItemActions(item, context, contextId) {
   const itemId = getItemId(item);
-  const traderId = contextId != null ? Number(contextId) : "";
+  const traderId = getItemTraderId(item, contextId);
   const stock = getTraderStock(item);
   const owned = getOwnedQuantity(item);
 
@@ -634,18 +697,18 @@ function renderItemActions(item, context, contextId) {
     const disabled = stock <= 0;
     return `
       <div class="item-actions item-actions-stack">
-        <button class="btn btn-success js-buy-item" data-item-id="${itemId}" data-trader-id="${traderId}" ${
+        <button class="btn btn-success js-buy-item" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" ${
           disabled ? "disabled" : ""
         }>
           🛒 ${disabled ? "Нет в наличии" : "Купить"}
         </button>
-        <button class="btn btn-primary js-add-cart" data-item-id="${itemId}" data-trader-id="${traderId}" ${
+        <button class="btn btn-primary js-add-cart" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" ${
           disabled ? "disabled" : ""
         }>🎒 В корзину</button>
-        <button class="btn btn-warning js-reserve-item" data-item-id="${itemId}" data-trader-id="${traderId}" ${
+        <button class="btn btn-warning js-reserve-item" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" ${
           disabled ? "disabled" : ""
         }>📌 Резерв</button>
-        <button class="btn js-open-desc" data-item-id="${itemId}" data-trader-id="${traderId}" data-context="trader">📖 Описание</button>
+        <button class="btn js-open-desc" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" data-context="trader">📖 Описание</button>
       </div>
     `;
   }
@@ -653,9 +716,9 @@ function renderItemActions(item, context, contextId) {
   if (context === "cart") {
     return `
       <div class="item-actions item-actions-stack">
-        <button class="btn js-open-desc" data-item-id="${itemId}" data-context="cart">📖 Описание</button>
-        <button class="btn btn-warning js-reserve-from-cart" data-item-id="${itemId}" data-trader-id="${traderId}">📌 В резерв</button>
-        <button class="btn btn-danger js-remove-cart" data-item-id="${itemId}" data-trader-id="${traderId}">🗑 Удалить</button>
+        <button class="btn js-open-desc" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" data-context="cart">📖 Описание</button>
+        <button class="btn btn-warning js-reserve-from-cart" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}">📌 В резерв</button>
+        <button class="btn btn-danger js-remove-cart" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}">🗑 Удалить</button>
       </div>
     `;
   }
@@ -663,8 +726,8 @@ function renderItemActions(item, context, contextId) {
   if (context === "reserved") {
     return `
       <div class="item-actions item-actions-stack">
-        <button class="btn js-open-desc" data-item-id="${itemId}" data-context="reserved">📖 Описание</button>
-        <button class="btn btn-danger js-unreserve" data-item-id="${itemId}" data-trader-id="${traderId}">❌ Снять резерв</button>
+        <button class="btn js-open-desc" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" data-context="reserved">📖 Описание</button>
+        <button class="btn btn-danger js-unreserve" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}">❌ Снять резерв</button>
       </div>
     `;
   }
@@ -673,16 +736,98 @@ function renderItemActions(item, context, contextId) {
     const disabled = owned <= 0;
     return `
       <div class="item-actions item-actions-stack">
-        <button class="btn js-open-desc" data-item-id="${itemId}" data-context="inventory">📖 Описание</button>
-        <button class="btn btn-success js-sell-item" data-item-id="${itemId}" ${
+        <button class="btn js-open-desc" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" data-context="inventory">📖 Описание</button>
+        <button class="btn btn-success js-sell-item" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" ${
           disabled ? "disabled" : ""
         }>💰 Продать</button>
-        <button class="btn btn-danger js-remove-inventory" data-item-id="${itemId}">🗑 Удалить</button>
+        <button class="btn btn-danger js-remove-inventory" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}">🗑 Удалить</button>
       </div>
     `;
   }
 
   return "";
+}
+
+function handleCollectionActionClick(event, traderFallback = null) {
+  const actionRoot = event.target.closest(
+    ".js-buy-item, .js-add-cart, .js-reserve-item, .js-reserve-from-cart, .js-remove-cart, .js-unreserve, .js-sell-item, .js-remove-inventory, .js-open-desc"
+  );
+
+  if (!actionRoot) return false;
+
+  const itemId = Number(actionRoot.dataset.itemId);
+  const traderId = getItemTraderId({
+    trader_id: actionRoot.dataset.traderId,
+    traderId: actionRoot.dataset.traderId,
+  }, traderFallback);
+
+  if (actionRoot.classList.contains("js-buy-item")) {
+    const qty = getQtyFromButton(actionRoot, 1);
+    window.buyItem?.(Number(traderId), itemId, qty);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-add-cart")) {
+    const qty = getQtyFromButton(actionRoot, 1);
+    window.addToCart?.(Number(traderId), itemId, qty);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-reserve-item")) {
+    const qty = getQtyFromButton(actionRoot, 1);
+    window.reserveItem?.(itemId, traderId, qty);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-reserve-from-cart")) {
+    const qty = getQtyFromButton(actionRoot, 1);
+    window.reserveItem?.(itemId, traderId, qty);
+    window.removeFromCart?.(itemId, traderId);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-remove-cart")) {
+    window.removeFromCart?.(itemId, traderId);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-unreserve")) {
+    window.unreserveItem?.(itemId, traderId);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-sell-item")) {
+    const qty = getQtyFromButton(actionRoot, 1);
+    window.sellItem?.(itemId, qty);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-remove-inventory")) {
+    window.removeInventoryItem?.(itemId);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-open-desc")) {
+    const context = String(actionRoot.dataset.context || "trader");
+    const item = window.getItemForDescription?.(itemId, context, traderId);
+    if (item) {
+      openItemDescriptionModal(item, context);
+    } else {
+      showToast("Описание предмета не найдено");
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function bindStandaloneCollectionActions(root, traderFallback = null) {
+  if (!root || root.dataset.boundCollectionActions === "1") return;
+  root.dataset.boundCollectionActions = "1";
+
+  root.addEventListener("click", (event) => {
+    handleCollectionActionClick(event, traderFallback);
+  });
 }
 
 // ------------------------------------------------------------
@@ -724,10 +869,10 @@ function renderItemsTable(items, context, contextId) {
               return `
                 <tr data-item-id-row="${itemId}" class="${escapeHtml(rareClass)}">
                   <td>
-                    <div class="item-name ${escapeHtml(rareClass)}">${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
+                    <div class="item-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:700;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
                   </td>
                   <td>${escapeHtml(priceText)}</td>
-                  <td><span class="${escapeHtml(rareClass)}">${escapeHtml(
+                  <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
                   )}</span></td>
                   <td>${escapeHtml(normalizeQuality(item?.quality))}</td>
@@ -769,10 +914,10 @@ function renderItemsGrid(items, context, contextId) {
               rareClass
             )}" data-item-id-row="${itemId}">
               <div class="trader-info">
-                <div class="trader-name ${escapeHtml(rareClass)}">${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
+                <div class="trader-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
                 <div class="trader-type">💰 ${escapeHtml(priceText)}</div>
                 <div class="trader-meta">
-                  <span class="meta-item ${escapeHtml(rareClass)}">${escapeHtml(
+                  <span class="meta-item ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
                   )}</span>
                   <span class="meta-item">🛠 ${escapeHtml(
@@ -827,12 +972,12 @@ function renderItemsInventoryList(items, context, contextId) {
           return `
             <div class="inventory-item" data-item-id-row="${itemId}">
               <div class="inventory-item-info">
-                <strong class="${escapeHtml(rareClass)}">${escapeHtml(
+                <strong class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(
                   itemEmoji
                 )} ${escapeHtml(item?.name || "Без названия")}</strong>
                 <div>💰 ${escapeHtml(priceText)}</div>
                 <div class="inv-item-details">
-                  <span class="${escapeHtml(rareClass)}">🎖 ${escapeHtml(
+                  <span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
                   )}</span>
                   <span>🛠 ${escapeHtml(normalizeQuality(item?.quality))}</span>
@@ -1142,11 +1287,12 @@ function buildTraderTabs(grouped, trader) {
 // ------------------------------------------------------------
 // 🎛 MODAL BINDING
 // ------------------------------------------------------------
-function bindTraderModal(modal, trader) {
-  if (!modal || !trader) return;
+function bindTraderModal(modal) {
+  if (!modal) return;
 
   const modalContent = getTraderModalContent();
-  if (!modalContent) return;
+  const trader = getActiveTraderFromModal(modal);
+  if (!modalContent || !trader) return;
 
   const grouped = groupItemsByCategory(trader.items || []);
   const inventoryItems = getInventoryState();
@@ -1164,133 +1310,55 @@ function bindTraderModal(modal, trader) {
     bindCollectionFilters(sellContainer.parentElement, inventoryItems, "inventory", trader.id);
   }
 
-  if (modal.dataset.boundRenderModal === "1") return;
-  modal.dataset.boundRenderModal = "1";
+  if (!modal.dataset.boundRenderModal) {
+    modal.dataset.boundRenderModal = "1";
 
-  modal.addEventListener("click", async (event) => {
-    const closeBtn = event.target.closest(".js-close-trader-modal");
-    if (closeBtn) {
-      modal.style.display = "none";
-      return;
-    }
+    modal.addEventListener("click", async (event) => {
+      const currentTrader = getActiveTraderFromModal(modal);
+      const currentTraderId = currentTrader?.id ?? null;
 
-    const tabBtn = event.target.closest(".tab-btn[data-main-tab]");
-    if (tabBtn) {
-      const tabName = tabBtn.dataset.mainTab;
+      const tabBtn = event.target.closest(".tab-btn[data-main-tab]");
+      if (tabBtn) {
+        const tabName = tabBtn.dataset.mainTab;
 
-      modal.querySelectorAll(".tab-btn[data-main-tab]").forEach((btn) => {
-        btn.classList.toggle("active", btn === tabBtn);
-      });
+        modal.querySelectorAll(".tab-btn[data-main-tab]").forEach((btn) => {
+          btn.classList.toggle("active", btn === tabBtn);
+        });
 
-      modal.querySelectorAll(".tab-content").forEach((tab) => {
-        const active = tab.id === `tab-${tabName}`;
-        tab.classList.toggle("active", active);
-        tab.style.display = active ? "block" : "none";
-      });
+        modal.querySelectorAll(".tab-content").forEach((tab) => {
+          const active = tab.id === `tab-${tabName}`;
+          tab.classList.toggle("active", active);
+          tab.style.display = active ? "block" : "none";
+        });
 
-      return;
-    }
-
-    const catBtn = event.target.closest(".category-tab[data-cat]");
-    if (catBtn) {
-      const cat = catBtn.dataset.cat;
-      const buyTab = modal.querySelector("#tab-buy");
-
-      buyTab?.querySelectorAll(".category-tab").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.cat === cat);
-      });
-
-      buyTab?.querySelectorAll(".category-content").forEach((content) => {
-        const active = content.dataset.cat === cat;
-        content.classList.toggle("active", active);
-        content.style.display = active ? "block" : "none";
-        if (!active) content.setAttribute("hidden", "hidden");
-        else content.removeAttribute("hidden");
-      });
-
-      return;
-    }
-
-    const buyBtn = event.target.closest(".js-buy-item");
-    if (buyBtn) {
-      const qty = getQtyFromButton(buyBtn, 1);
-      await window.buyItem?.(Number(buyBtn.dataset.traderId), Number(buyBtn.dataset.itemId), qty);
-      return;
-    }
-
-    const addCartBtn = event.target.closest(".js-add-cart");
-    if (addCartBtn) {
-      const qty = getQtyFromButton(addCartBtn, 1);
-      window.addToCart?.(Number(addCartBtn.dataset.traderId), Number(addCartBtn.dataset.itemId), qty);
-      return;
-    }
-
-    const reserveBtn = event.target.closest(".js-reserve-item");
-    if (reserveBtn) {
-      const qty = getQtyFromButton(reserveBtn, 1);
-      window.reserveItem?.(Number(reserveBtn.dataset.itemId), Number(reserveBtn.dataset.traderId), qty);
-      return;
-    }
-
-    const reserveFromCartBtn = event.target.closest(".js-reserve-from-cart");
-    if (reserveFromCartBtn) {
-      window.reserveItem?.(
-        Number(reserveFromCartBtn.dataset.itemId),
-        Number(reserveFromCartBtn.dataset.traderId),
-        1
-      );
-      window.removeFromCart?.(
-        Number(reserveFromCartBtn.dataset.itemId),
-        Number(reserveFromCartBtn.dataset.traderId)
-      );
-      return;
-    }
-
-    const removeCartBtn = event.target.closest(".js-remove-cart");
-    if (removeCartBtn) {
-      window.removeFromCart?.(
-        Number(removeCartBtn.dataset.itemId),
-        Number(removeCartBtn.dataset.traderId)
-      );
-      return;
-    }
-
-    const unreserveBtn = event.target.closest(".js-unreserve");
-    if (unreserveBtn) {
-      window.unreserveItem?.(
-        Number(unreserveBtn.dataset.itemId),
-        Number(unreserveBtn.dataset.traderId)
-      );
-      return;
-    }
-
-    const sellBtn = event.target.closest(".js-sell-item");
-    if (sellBtn) {
-      const qty = getQtyFromButton(sellBtn, 1);
-      await window.sellItem?.(Number(sellBtn.dataset.itemId), qty);
-      return;
-    }
-
-    const removeInventoryBtn = event.target.closest(".js-remove-inventory");
-    if (removeInventoryBtn) {
-      window.removeInventoryItem?.(Number(removeInventoryBtn.dataset.itemId));
-      return;
-    }
-
-    const openDescBtn = event.target.closest(".js-open-desc");
-    if (openDescBtn) {
-      const itemId = Number(openDescBtn.dataset.itemId);
-      const context = String(openDescBtn.dataset.context || "trader");
-      const traderId = openDescBtn.dataset.traderId ? Number(openDescBtn.dataset.traderId) : trader.id;
-
-      const item = window.getItemForDescription?.(itemId, context, traderId);
-      if (item) {
-        openItemDescriptionModal(item, context);
-      } else {
-        showToast("Описание предмета не найдено");
+        return;
       }
-    }
-  });
+
+      const catBtn = event.target.closest(".category-tab[data-cat]");
+      if (catBtn) {
+        const cat = catBtn.dataset.cat;
+        const buyTab = modal.querySelector("#tab-buy");
+
+        buyTab?.querySelectorAll(".category-tab").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.cat === cat);
+        });
+
+        buyTab?.querySelectorAll(".category-content").forEach((content) => {
+          const active = content.dataset.cat === cat;
+          content.classList.toggle("active", active);
+          content.style.display = active ? "block" : "none";
+          if (!active) content.setAttribute("hidden", "hidden");
+          else content.removeAttribute("hidden");
+        });
+
+        return;
+      }
+
+      if (await handleCollectionActionClick(event, currentTraderId)) {
+        return;
+      }
+    });
+  }
 
   if (!modal.dataset.boundOverlayClose) {
     modal.dataset.boundOverlayClose = "1";
@@ -1327,7 +1395,7 @@ export async function openTraderModal(traderId) {
   modal.dataset.traderId = String(trader.id);
   modal.style.display = "block";
 
-  bindTraderModal(modal, trader);
+  bindTraderModal(modal);
 }
 
 // ------------------------------------------------------------
@@ -1347,7 +1415,7 @@ function buildTraderCard(trader) {
       data-trader-card-id="${escapeHtml(String(trader.id))}"
       tabindex="0"
       role="button"
-      aria-label="Открыть торговца ${escapeHtml(trader?.name || "торговец")}"
+      aria-label="Открыть торговца ${escapeHtml(trader?.name || "торговец")}" 
     >
       ${
         hasImage
@@ -1449,6 +1517,8 @@ export function renderCart(items) {
   if (wrapper && itemsContainer) {
     bindCollectionFilters(wrapper, items || [], "cart", null);
   }
+
+  bindStandaloneCollectionActions(container, null);
 }
 
 // ------------------------------------------------------------
@@ -1476,6 +1546,8 @@ export function renderInventory(items) {
   if (wrapper && itemsContainer) {
     bindCollectionFilters(wrapper, items || [], "inventory", null);
   }
+
+  bindStandaloneCollectionActions(container, null);
 }
 
 // ------------------------------------------------------------

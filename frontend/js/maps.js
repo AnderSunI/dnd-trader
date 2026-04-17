@@ -779,23 +779,30 @@ function renderSummaryBar() {
 
   return `
     <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="trader-meta">
-        <span class="meta-item">Карт: ${MAPS_STATE.maps.length}</span>
-        <span class="meta-item">Источник: ${escapeHtml(MAPS_STATE.source)}</span>
-        <span class="meta-item">Роль: ${escapeHtml(MAPS_STATE.role)}</span>
-        ${
-          active
-            ? `<span class="meta-item">Активная: ${escapeHtml(active.name)}</span>`
-            : ""
-        }
+      <div class="flex-between" style="align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="trader-meta">
+          <span class="meta-item">Карт: ${MAPS_STATE.maps.length}</span>
+          <span class="meta-item">Источник: ${escapeHtml(MAPS_STATE.source)}</span>
+          <span class="meta-item">Роль: ${escapeHtml(MAPS_STATE.role)}</span>
+          ${
+            active
+              ? `<span class="meta-item">Активная: ${escapeHtml(active.name)}</span>`
+              : `<span class="meta-item">Активная: нет</span>`
+          }
+        </div>
+
+        <div class="cart-buttons">
+          <button class="btn" type="button" id="mapsRefreshBtn">Обновить</button>
+          <button class="btn btn-primary" type="button" id="mapsToggleCreateBtn">
+            ${MAPS_STATE.ui.createOpen ? "Скрыть форму" : "＋ Новая карта"}
+          </button>
+        </div>
       </div>
     </div>
   `;
 }
 
 function renderCreateForm() {
-  if (!isGm()) return "";
-
   return `
     <div
       class="cabinet-block"
@@ -955,8 +962,7 @@ function renderMapViewer() {
         <div class="filter-group">
           <label>Управление</label>
           <div class="cart-buttons">
-            <button class="btn" type="button" id="mapsRefreshBtn">Обновить</button>
-            ${isGm() ? `<button class="btn btn-primary" type="button" id="mapsToggleCreateBtn">${MAPS_STATE.ui.createOpen ? "Скрыть форму" : "＋ Новая карта"}</button>` : ""}
+            <span class="muted">Перетаскивание, zoom и метки</span>
           </div>
         </div>
 
@@ -1042,11 +1048,7 @@ function renderMarkerEditor() {
 
                           <div class="cart-buttons">
                             <button class="btn" type="button" data-map-select="${escapeHtml(map.id)}">Открыть</button>
-                            ${
-                              isGm()
-                                ? `<button class="btn btn-danger" type="button" data-map-delete="${escapeHtml(map.id)}">Удалить</button>`
-                                : ""
-                            }
+                            <button class="btn btn-danger" type="button" data-map-delete="${escapeHtml(map.id)}">Удалить</button>
                           </div>
                         </div>
                       </div>

@@ -1650,3 +1650,394 @@ footer a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   ROUND 4 — FULL REBALANCE FOR BESTIARI / LSS / STEEL LAYER
+   This block is already merged into the full file below.
+   ========================================================= */
+
+:root {
+  --bg-main-raise: #0f1a20;
+  --bg-panel-raise: #15242d;
+  --bg-panel-raise-2: #1b2b35;
+
+  --steel-1: #d7e2e8;
+  --steel-2: #b9c7cf;
+  --steel-3: #95a8b4;
+  --steel-4: #6d818d;
+
+  --steel-line: rgba(185, 199, 207, 0.20);
+  --steel-line-strong: rgba(185, 199, 207, 0.34);
+  --steel-fill-soft: rgba(185, 199, 207, 0.08);
+  --steel-fill-mid: rgba(185, 199, 207, 0.12);
+  --steel-glow: rgba(185, 199, 207, 0.14);
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(103, 188, 198, 0.09), transparent 26%),
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.05), transparent 24%),
+    radial-gradient(circle at right bottom, rgba(120, 184, 193, 0.05), transparent 24%),
+    linear-gradient(180deg, rgba(10, 16, 21, 0.76), rgba(6, 10, 13, 0.95)),
+    url("/static/images/background.jpg") center center / cover fixed no-repeat,
+    var(--bg-main-raise);
+}
+
+/* -------- general structural separation -------- */
+
+.page-shell,
+.modal-content,
+.cabinet-modal-content,
+.cabinet-layout,
+.cabinet-main,
+.cabinet-sidebar,
+.cabinet-block,
+.filters-panel,
+.cart-widget,
+.collection-wrapper,
+.quest-item,
+.item-meta-block,
+.item-description-pre,
+.inventory-item,
+.trader-detail-section {
+  backdrop-filter: blur(3px);
+}
+
+.cabinet-block,
+.item-meta-block,
+.quest-item,
+.inventory-item,
+.trader-detail-section,
+.lss-rich-block {
+  background:
+    linear-gradient(180deg, rgba(18, 28, 35, 0.94), rgba(9, 15, 20, 0.98));
+  border: 1px solid rgba(185, 199, 207, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.02),
+    0 10px 24px rgba(0,0,0,0.18);
+}
+
+.profile-grid,
+.stats-grid {
+  gap: 12px;
+}
+
+.stat-box {
+  background:
+    linear-gradient(180deg, rgba(20, 31, 39, 0.96), rgba(9, 15, 21, 0.99));
+  border: 1px solid rgba(185, 199, 207, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 10px 24px rgba(0,0,0,0.16);
+  color: var(--title-soft);
+}
+
+.stat-box .muted {
+  color: var(--steel-3);
+}
+
+/* -------- active cabinet button -------- */
+
+.cabinet-tab-buttons .btn.active,
+.cabinet-tab-buttons .btn.active:hover,
+.cabinet-tab-buttons .btn.active:focus {
+  background:
+    linear-gradient(180deg, #d8e2e5, #c3d0d6) !important;
+  color: #122029 !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    0 8px 18px rgba(0,0,0,0.18);
+}
+
+.cabinet-tab-buttons .btn.active *,
+.cabinet-tab-buttons .btn.active .muted,
+.cabinet-tab-buttons .btn.active .meta-item {
+  color: #122029 !important;
+}
+
+/* -------- bestiari main palette -------- */
+
+#cabinet-bestiari,
+#cabinet-codex {
+  color: var(--text);
+}
+
+#cabinet-bestiari .cabinet-block,
+#cabinet-codex .cabinet-block {
+  background:
+    radial-gradient(circle at top right, rgba(185, 199, 207, 0.04), transparent 24%),
+    linear-gradient(180deg, rgba(17, 27, 35, 0.96), rgba(8, 14, 19, 0.985));
+  border: 1px solid rgba(185, 199, 207, 0.14);
+}
+
+#cabinet-bestiari input,
+#cabinet-bestiari textarea,
+#cabinet-bestiari select,
+#cabinet-codex input,
+#cabinet-codex textarea,
+#cabinet-codex select {
+  background:
+    linear-gradient(180deg, rgba(9, 17, 24, 0.98), rgba(5, 11, 16, 0.99));
+  border: 1px solid rgba(185, 199, 207, 0.16);
+  color: var(--title-soft);
+}
+
+#cabinet-bestiari input::placeholder,
+#cabinet-bestiari textarea::placeholder,
+#cabinet-codex input::placeholder,
+#cabinet-codex textarea::placeholder {
+  color: #8fa1ab;
+}
+
+/* top category pills */
+#cabinet-bestiari [data-bestiari-category],
+#cabinet-codex [data-bestiari-category] {
+  background:
+    linear-gradient(180deg, rgba(18, 30, 38, 0.98), rgba(8, 15, 20, 0.99)) !important;
+  border: 1px solid rgba(185, 199, 207, 0.18) !important;
+  color: var(--steel-1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.025),
+    0 8px 20px rgba(0,0,0,0.14);
+}
+
+#cabinet-bestiari [data-bestiari-category]:hover,
+#cabinet-bestiari [data-bestiari-category]:focus,
+#cabinet-codex [data-bestiari-category]:hover,
+#cabinet-codex [data-bestiari-category]:focus {
+  border-color: rgba(185, 199, 207, 0.32) !important;
+  color: #f1f6f8 !important;
+}
+
+#cabinet-bestiari [data-bestiari-category].active,
+#cabinet-bestiari [data-bestiari-category].btn.active,
+#cabinet-codex [data-bestiari-category].active,
+#cabinet-codex [data-bestiari-category].btn.active {
+  background:
+    linear-gradient(180deg, #d7e2e8, #bccad2) !important;
+  color: #102029 !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.36),
+    0 10px 22px rgba(0,0,0,0.16);
+}
+
+/* left entry list */
+#cabinet-bestiari [data-bestiari-entry],
+#cabinet-codex [data-bestiari-entry] {
+  background:
+    linear-gradient(180deg, rgba(18, 29, 36, 0.98), rgba(8, 14, 19, 0.995)) !important;
+  border: 1px solid rgba(185, 199, 207, 0.15) !important;
+  color: var(--steel-1) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.02),
+    0 10px 24px rgba(0,0,0,0.18) !important;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease,
+    background .16s ease;
+}
+
+#cabinet-bestiari [data-bestiari-entry]:hover,
+#cabinet-codex [data-bestiari-entry]:hover {
+  transform: translateY(-1px);
+  border-color: rgba(185, 199, 207, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 14px 30px rgba(0,0,0,0.22) !important;
+}
+
+#cabinet-bestiari [data-bestiari-entry].active,
+#cabinet-bestiari [data-bestiari-entry].btn.active,
+#cabinet-codex [data-bestiari-entry].active,
+#cabinet-codex [data-bestiari-entry].btn.active {
+  background:
+    radial-gradient(circle at top right, rgba(185, 199, 207, 0.09), transparent 26%),
+    linear-gradient(180deg, rgba(28, 40, 48, 0.98), rgba(11, 18, 23, 1)) !important;
+  border-color: rgba(185, 199, 207, 0.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.045),
+    0 14px 34px rgba(0,0,0,0.22),
+    0 0 0 1px rgba(185, 199, 207, 0.08) !important;
+}
+
+#cabinet-bestiari [data-bestiari-entry] > div > div:first-child > div:first-child,
+#cabinet-codex [data-bestiari-entry] > div > div:first-child > div:first-child {
+  color: #edf3f6 !important;
+  font-weight: 800 !important;
+}
+
+#cabinet-bestiari [data-bestiari-entry] .muted,
+#cabinet-codex [data-bestiari-entry] .muted {
+  color: #9eb0ba !important;
+}
+
+#cabinet-bestiari [data-bestiari-entry] .meta-item,
+#cabinet-codex [data-bestiari-entry] .meta-item {
+  background: rgba(185, 199, 207, 0.08) !important;
+  border: 1px solid rgba(185, 199, 207, 0.16) !important;
+  color: var(--steel-1) !important;
+}
+
+#cabinet-bestiari [data-bestiari-entry] .quality-badge,
+#cabinet-codex [data-bestiari-entry] .quality-badge {
+  background: rgba(214, 181, 122, 0.10) !important;
+  border: 1px solid rgba(214, 181, 122, 0.18) !important;
+  color: #f3dfb3 !important;
+}
+
+/* right detail panel */
+#cabinet-bestiari .lss-rich-block,
+#cabinet-codex .lss-rich-block,
+#cabinet-bestiari .stat-box,
+#cabinet-codex .stat-box {
+  background:
+    linear-gradient(180deg, rgba(18, 30, 38, 0.95), rgba(9, 16, 21, 0.985)) !important;
+  border-color: rgba(185, 199, 207, 0.15) !important;
+}
+
+#cabinet-bestiari .trader-meta .meta-item,
+#cabinet-codex .trader-meta .meta-item {
+  background: rgba(185, 199, 207, 0.07);
+  border: 1px solid rgba(185, 199, 207, 0.14);
+  color: #d7e2e8;
+}
+
+#cabinet-bestiari .quality-badge,
+#cabinet-codex .quality-badge {
+  background: rgba(214, 181, 122, 0.10);
+  border: 1px solid rgba(214, 181, 122, 0.18);
+  color: #f2ddb1;
+}
+
+#cabinet-bestiari h3,
+#cabinet-bestiari h4,
+#cabinet-codex h3,
+#cabinet-codex h4 {
+  color: var(--title-strong);
+}
+
+#cabinet-bestiari .muted,
+#cabinet-codex .muted {
+  color: #9eb0ba;
+}
+
+/* ------- LSS system separation ------- */
+
+#cabinet-lss .cabinet-block {
+  background:
+    radial-gradient(circle at top right, rgba(185, 199, 207, 0.03), transparent 24%),
+    linear-gradient(180deg, rgba(16, 27, 34, 0.96), rgba(8, 14, 19, 0.985));
+  border: 1px solid rgba(185, 199, 207, 0.13);
+}
+
+#cabinet-lss .lss-rich-block,
+#cabinet-lss .stat-box {
+  background:
+    linear-gradient(180deg, rgba(18, 29, 36, 0.96), rgba(9, 15, 20, 0.99));
+  border-color: rgba(185, 199, 207, 0.14);
+}
+
+#cabinet-lss [data-lss-tab],
+#cabinet-lss .lss-tab-btn {
+  background:
+    linear-gradient(180deg, rgba(18, 29, 36, 0.98), rgba(8, 14, 19, 0.995)) !important;
+  color: var(--steel-1) !important;
+  border: 1px solid rgba(185, 199, 207, 0.15) !important;
+}
+
+#cabinet-lss [data-lss-tab].active,
+#cabinet-lss .lss-tab-btn.active,
+#cabinet-lss .btn.active[data-lss-tab] {
+  background:
+    linear-gradient(180deg, #d7e2e8, #bccad2) !important;
+  color: #102029 !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+#cabinet-lss .meta-item {
+  background: rgba(185, 199, 207, 0.06);
+  border-color: rgba(185, 199, 207, 0.14);
+  color: #dbe5ea;
+}
+
+/* -------- trader table readability -------- */
+
+.table-rarity-legendary,
+.item-rarity-legendary,
+.rarity-legendary,
+[data-rarity="legendary"] {
+  color: #f0c36b !important;
+}
+.table-rarity-very-rare,
+.item-rarity-very-rare,
+.rarity-very-rare,
+[data-rarity="very rare"] {
+  color: #c497ff !important;
+}
+.table-rarity-rare,
+.item-rarity-rare,
+.rarity-rare,
+[data-rarity="rare"] {
+  color: #74b8ff !important;
+}
+.table-rarity-uncommon,
+.item-rarity-uncommon,
+.rarity-uncommon,
+[data-rarity="uncommon"] {
+  color: #67d68d !important;
+}
+.table-rarity-common,
+.item-rarity-common,
+.rarity-common,
+[data-rarity="common"] {
+  color: #d7dde1 !important;
+}
+.table-rarity-artifact,
+.item-rarity-artifact,
+.rarity-artifact,
+[data-rarity="artifact"] {
+  color: #ff8a8a !important;
+}
+
+td .trader-item-name,
+td .item-name,
+.inventory-item-info strong {
+  color: inherit;
+}
+
+td .item-price,
+td .price-cell,
+.inventory-item .item-price {
+  color: #e1c07b !important;
+}
+
+td .item-short,
+td .item-description-short,
+.collection-items-container td:nth-child(6) {
+  color: #dbe4e9 !important;
+}
+
+/* -------- utility / subtle polish -------- */
+
+.meta-item {
+  color: #d8e2e8;
+}
+
+.quality-badge {
+  color: #f1ddb4;
+}
+
+@media (max-width: 980px) {
+  #cabinet-bestiari .profile-grid,
+  #cabinet-codex .profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cabinet-lss .profile-grid,
+  #cabinet-lss .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

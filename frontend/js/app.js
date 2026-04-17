@@ -357,17 +357,50 @@ function setTraderMoneyCp(trader, cp) {
 
   const normalizedCp = Math.max(0, safeNumber(cp, 0));
   const parts = cpToMoneyParts(normalizedCp);
+  const label = formatMoneyParts(parts.gold, parts.silver, parts.copper);
 
   trader.money_cp_total = normalizedCp;
   trader.gold_numeric = parts.gold;
   trader.gold = parts.gold;
   trader.silver = parts.silver;
   trader.copper = parts.copper;
-  trader.gold_label = formatMoneyParts(parts.gold, parts.silver, parts.copper);
+  trader.money_gold = parts.gold;
+  trader.money_silver = parts.silver;
+  trader.money_copper = parts.copper;
+  trader.gold_label = label;
+  trader.money_label = label;
 }
 
 function logTradeSnapshot(action, payload) {
   console.log(`[TRADE:${action}]`, payload);
+}
+
+function setAppLoadingStatus(message) {
+  try {
+    if (typeof window.__setAppLoadingStatus === "function") {
+      window.__setAppLoadingStatus(String(message || "Загрузка..."));
+    }
+  } catch (_) {}
+}
+
+function hideAppLoadingOverlay() {
+  try {
+    if (typeof window.__hideAppLoadingOverlay === "function") {
+      window.__hideAppLoadingOverlay();
+    }
+  } catch (_) {}
+}
+
+async function syncOpenTraderModalIfVisible(preferredTraderId = null) {
+  const modal = getEl("traderModal");
+  if (!modal || modal.style.display !== "block") return;
+
+  const targetId = preferredTraderId != null
+    ? Number(preferredTraderId)
+    : Number(STATE.activeTraderId);
+
+  if (!Number.isFinite(targetId)) return;
+  await renderOpenTraderModal(targetId);
 }
 
 // ------------------------------------------------------------
@@ -651,6 +684,33 @@ function findCollectionItemIndex(collection, traderId, itemId) {
   );
 }
 
+function consumeCollectionEntry(collection, traderId, itemId, quantity = 1) {
+  const index = findCollectionItemIndex(collection, traderId, itemId);
+  if (index < 0) return null;
+
+  const currentQty = Math.max(1, safeNumber(collection[index]?.quantity, 1));
+  const delta = Math.max(1, safeNumber(quantity, 1));
+
+  if (currentQty <= delta) {
+    const [removed] = collection.splice(index, 1);
+    return removed || null;
+  }
+
+  collection[index].quantity = currentQty - delta;
+  return collection[index];
+}
+
+function getTraderMoneyFromTradePayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  return normalizeMoneyFromPayload({
+    money_cp_total: payload.trader_money_cp ?? payload.trader_cp_total ?? undefined,
+    money_gold: payload.trader_money_gold ?? payload.trader_gold ?? undefined,
+    money_silver: payload.trader_money_silver ?? payload.trader_silver ?? undefined,
+    money_copper: payload.trader_money_copper ?? payload.trader_copper ?? undefined,
+    money_label: payload.trader_money_label ?? payload.trader_gold_label ?? undefined,
+  });
+}
+
 function getCartEntryTotalCp(item) {
   return (
     moneyPartsToCp(item.price_gold, item.price_silver, item.price_copper) *
@@ -700,6 +760,9 @@ function patchTraderFromTradePayload(traderId, itemId, payload, quantity, action
   const trader = getTraderById(traderId);
   if (!trader || !payload || typeof payload !== "object") return;
 
+  const traderItem = getTraderItem(traderId, itemId);
+  const delta = Math.max(1, safeNumber(quantity, 1));
+
   const traderMoney = normalizeMoneyFromPayload({
     money_cp_total: payload.trader_money_cp ?? payload.trader_cp_total ?? undefined,
     money_gold: payload.trader_money_gold ?? payload.trader_gold ?? undefined,
@@ -710,16 +773,33 @@ function patchTraderFromTradePayload(traderId, itemId, payload, quantity, action
 
   if (traderMoney) {
     setTraderMoneyCp(trader, traderMoney.cp);
+  } else {
+    const itemMoneyCp = traderItem
+      ? (action === "sell"
+          ? getSellTotalCp(traderItem, delta)
+          : moneyPartsToCp(
+              traderItem.buy_price_gold ?? traderItem.price_gold,
+              traderItem.buy_price_silver ?? traderItem.price_silver,
+              traderItem.buy_price_copper ?? traderItem.price_copper
+            ) * delta)
+      : 0;
+
+    if (itemMoneyCp > 0) {
+      const currentTraderMoneyCp = getTraderMoneyCp(trader);
+      const nextTraderMoneyCp = action === "sell"
+        ? Math.max(0, currentTraderMoneyCp - itemMoneyCp)
+        : currentTraderMoneyCp + itemMoneyCp;
+
+      setTraderMoneyCp(trader, nextTraderMoneyCp);
+    }
   }
 
-  const traderItem = getTraderItem(traderId, itemId);
   if (traderItem) {
     if (payload.trader_stock !== undefined) {
       const stock = Math.max(0, safeNumber(payload.trader_stock, 0));
       traderItem.stock = stock;
       traderItem.quantity = stock;
     } else {
-      const delta = Math.max(1, safeNumber(quantity, 1));
       if (action === "buy") {
         const nextStock = Math.max(0, safeNumber(traderItem.stock ?? traderItem.quantity, 0) - delta);
         traderItem.stock = nextStock;
@@ -1453,6 +1533,9 @@ window.removeInventoryItem = function (itemId) {
     return;
   }
 
+  const target = STATE.inventory[index];
+  if (!confirm(`Удалить из инвентаря ${target?.name || "предмет"}?`)) return;
+
   const [removed] = STATE.inventory.splice(index, 1);
   syncGlobalStateBridges();
   renderAllLocalState();
@@ -1566,22 +1649,51 @@ function applyLocalBuy(traderId, itemId, quantity = 1) {
 }
 
 async function applyServerBuy(traderId, itemId, quantity = 1) {
+  const traderBeforeCp = getTraderMoneyCp(getTraderById(traderId));
+  const traderItemBefore = getTraderItem(traderId, itemId);
+  const itemBuyCp = traderItemBefore
+    ? moneyPartsToCp(
+        traderItemBefore.buy_price_gold ?? traderItemBefore.price_gold,
+        traderItemBefore.buy_price_silver ?? traderItemBefore.price_silver,
+        traderItemBefore.buy_price_copper ?? traderItemBefore.price_copper
+      ) * Math.max(1, safeNumber(quantity, 1))
+    : 0;
+
   const payload = await apiBuyItem(itemId, traderId, quantity);
 
   updateUserMoneyFromPayload(payload);
   patchTraderFromTradePayload(traderId, itemId, payload, quantity, "buy");
 
-  await Promise.all([
-    loadInventoryFromServer(),
-    refreshTraderById(traderId),
-  ]);
+  await loadInventoryFromServer();
+  await refreshTraderById(traderId);
+
+  const payloadTraderMoney = getTraderMoneyFromTradePayload(payload);
+  const trader = getTraderById(traderId);
+  if (trader) {
+    if (payloadTraderMoney) {
+      setTraderMoneyCp(trader, payloadTraderMoney.cp);
+    } else if (itemBuyCp > 0) {
+      setTraderMoneyCp(trader, traderBeforeCp + itemBuyCp);
+    }
+  }
 
   syncGlobalStateBridges();
   return payload;
 }
 
-window.buyItem = async function (traderId, itemId, quantity = 1) {
+window.buyItem = async function (traderId, itemId, quantity = 1, options = {}) {
   const qty = Math.max(1, safeNumber(quantity, 1));
+  const settings = options && typeof options === "object" ? options : {};
+  const source = String(settings.source || "trader");
+  const skipConfirm = Boolean(settings.skipConfirm);
+
+  if (!skipConfirm) {
+    const item = getTraderItem(traderId, itemId) || STATE.cart.find((entry) => Number(entry.trader_id) === Number(traderId) && Number(entry.item_id || entry.id) === Number(itemId));
+    const itemName = item?.name || "предмет";
+    if (!confirm(`Купить ${itemName} × ${qty}?`)) {
+      return { cancelled: true };
+    }
+  }
 
   try {
     setBusy(true);
@@ -1593,6 +1705,7 @@ window.buyItem = async function (traderId, itemId, quantity = 1) {
       snapshot = {
         playerMoneyLabel: getCurrentMoneyLabel(),
         traderMoneyLabel:
+          getTraderById(traderId)?.money_label ||
           getTraderById(traderId)?.gold_label ||
           String(getTraderById(traderId)?.gold || "—"),
         traderStock:
@@ -1605,19 +1718,25 @@ window.buyItem = async function (traderId, itemId, quantity = 1) {
       snapshot = applyLocalBuy(traderId, itemId, qty);
     }
 
+    if (source === "cart") {
+      consumeCollectionEntry(STATE.cart, traderId, itemId, qty);
+    }
+    if (source === "reserved") {
+      consumeCollectionEntry(STATE.reserved, traderId, itemId, qty);
+    }
+
     renderAllLocalState();
     rerenderTraders();
-
-    if (STATE.activeTraderId != null) {
-      await window.openTraderModal(STATE.activeTraderId);
-    }
+    await syncOpenTraderModalIfVisible(STATE.activeTraderId ?? traderId);
 
     showToast(
       `Покупка успешна${snapshot?.playerMoneyLabel ? ` • Ваше золото: ${snapshot.playerMoneyLabel}` : ""}`
     );
+    return snapshot;
   } catch (error) {
     console.error(error);
     showToast(error.message || "Ошибка покупки");
+    throw error;
   } finally {
     setBusy(false);
   }
@@ -1682,13 +1801,17 @@ async function applyServerSell(itemId, quantity = 1) {
     (entry) => Number(entry.id || entry.item_id) === Number(itemId)
   );
 
-  const payload = await apiSellItem(itemId, inventoryEntry?.trader_id ?? null, quantity);
+  const traderId = inventoryEntry?.trader_id ?? null;
+  const traderBeforeCp = traderId != null ? getTraderMoneyCp(getTraderById(traderId)) : 0;
+  const sellDeltaCp = inventoryEntry ? getSellTotalCp(inventoryEntry, quantity) : 0;
+
+  const payload = await apiSellItem(itemId, traderId, quantity);
 
   updateUserMoneyFromPayload(payload);
 
-  if (inventoryEntry?.trader_id != null) {
+  if (traderId != null) {
     patchTraderFromTradePayload(
-      inventoryEntry.trader_id,
+      traderId,
       itemId,
       payload,
       quantity,
@@ -1698,16 +1821,35 @@ async function applyServerSell(itemId, quantity = 1) {
 
   await loadInventoryFromServer();
 
-  if (inventoryEntry?.trader_id != null) {
-    await refreshTraderById(inventoryEntry.trader_id);
+  if (traderId != null) {
+    await refreshTraderById(traderId);
+    const payloadTraderMoney = getTraderMoneyFromTradePayload(payload);
+    const trader = getTraderById(traderId);
+    if (trader) {
+      if (payloadTraderMoney) {
+        setTraderMoneyCp(trader, payloadTraderMoney.cp);
+      } else if (sellDeltaCp > 0) {
+        setTraderMoneyCp(trader, Math.max(0, traderBeforeCp - sellDeltaCp));
+      }
+    }
   }
 
   syncGlobalStateBridges();
   return payload;
 }
 
-window.sellItem = async function (itemId, quantity = 1) {
+window.sellItem = async function (itemId, quantity = 1, options = {}) {
   const qty = Math.max(1, safeNumber(quantity, 1));
+  const settings = options && typeof options === "object" ? options : {};
+  const skipConfirm = Boolean(settings.skipConfirm);
+
+  if (!skipConfirm) {
+    const item = STATE.inventory.find((entry) => Number(entry.id || entry.item_id) === Number(itemId));
+    const itemName = item?.name || "предмет";
+    if (!confirm(`Продать ${itemName} × ${qty}?`)) {
+      return { cancelled: true };
+    }
+  }
 
   try {
     setBusy(true);
@@ -1720,15 +1862,13 @@ window.sellItem = async function (itemId, quantity = 1) {
 
     renderAllLocalState();
     rerenderTraders();
-
-    if (STATE.activeTraderId != null) {
-      await window.openTraderModal(STATE.activeTraderId);
-    }
+    await syncOpenTraderModalIfVisible(STATE.activeTraderId);
 
     showToast(`Продажа успешна • Ваше золото: ${getCurrentMoneyLabel()}`);
   } catch (error) {
     console.error(error);
     showToast(error.message || "Ошибка продажи");
+    throw error;
   } finally {
     setBusy(false);
   }
@@ -1740,18 +1880,28 @@ window.checkoutCart = async function () {
     return { success: false, purchased: 0, failed: 0, errors: ["Корзина пуста"] };
   }
 
+  const totalItems = STATE.cart.reduce((sum, entry) => sum + Math.max(1, safeNumber(entry.quantity, 1)), 0);
+  if (!confirm(`Оформить корзину? Позиций: ${STATE.cart.length}, предметов: ${totalItems}.`)) {
+    return { success: false, purchased: 0, failed: 0, errors: ["cancelled"] };
+  }
+
   const items = [...STATE.cart];
   const errors = [];
   let purchased = 0;
 
   for (const entry of items) {
     try {
-      await window.buyItem(entry.trader_id, entry.item_id || entry.id, entry.quantity);
+      await window.buyItem(entry.trader_id, entry.item_id || entry.id, entry.quantity, {
+        skipConfirm: true,
+        source: "cart",
+      });
       purchased += 1;
     } catch (error) {
       errors.push(error.message || `Ошибка: ${entry.name || "предмет"}`);
     }
   }
+
+  renderAllLocalState();
 
   return {
     success: errors.length === 0,
@@ -1765,43 +1915,54 @@ window.checkoutCart = async function () {
 // 🚀 INIT
 // ------------------------------------------------------------
 async function initApp() {
-  STATE.user = restoreUserFromLocalStorage();
-  STATE.token = localStorage.getItem("token") || "";
-
-  syncGlobalStateBridges();
-  updateUserUI();
-
-  bindToolbarButtons();
-  bindAuthButtons();
-  bindModalButtons();
-  bindFilterEvents();
-  bindTraderDelegation();
-  bindMoneyControls();
-  bindRoleSwitchButton();
-
-  if (STATE.token && !STATE.user) {
-    const me = await fetchMeSafe();
-    if (me && typeof me === "object") {
-      STATE.user = me;
-      persistUser();
-      syncGlobalStateBridges();
-      updateUserUI();
-    }
-  }
+  setAppLoadingStatus("Поднимаем интерфейс...");
 
   try {
-    await loadTraders();
-  } catch (error) {
-    console.error(error);
-    showToast(error.message || "Не удалось загрузить торговцев");
-  }
+    STATE.user = restoreUserFromLocalStorage();
+    STATE.token = localStorage.getItem("token") || "";
 
-  if (STATE.token) {
-    await loadInventoryFromServer();
-  }
+    syncGlobalStateBridges();
+    updateUserUI();
 
-  renderAllLocalState();
-  await initCabinetModulesIfNeeded();
+    bindToolbarButtons();
+    bindAuthButtons();
+    bindModalButtons();
+    bindFilterEvents();
+    bindTraderDelegation();
+    bindMoneyControls();
+    bindRoleSwitchButton();
+
+    if (STATE.token && !STATE.user) {
+      setAppLoadingStatus("Проверяем профиль...");
+      const me = await fetchMeSafe();
+      if (me && typeof me === "object") {
+        STATE.user = me;
+        persistUser();
+        syncGlobalStateBridges();
+        updateUserUI();
+      }
+    }
+
+    try {
+      setAppLoadingStatus("Загружаем торговцев...");
+      await loadTraders();
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Не удалось загрузить торговцев");
+    }
+
+    if (STATE.token) {
+      setAppLoadingStatus("Синхронизируем инвентарь...");
+      await loadInventoryFromServer();
+    }
+
+    setAppLoadingStatus("Подготавливаем кабинет...");
+    renderAllLocalState();
+    await initCabinetModulesIfNeeded();
+  } finally {
+    renderAllLocalState();
+    hideAppLoadingOverlay();
+  }
 }
 
 if (document.readyState === "loading") {

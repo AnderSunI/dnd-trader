@@ -18,6 +18,10 @@ const LSS_STATE = {
   source: "empty",
   importPanelOpen: false,
   editPanelOpen: false,
+  activeTab: "overview",
+  dicePanelOpen: false,
+  diceType: "d20",
+  lastRoll: null,
 };
 
 // ------------------------------------------------------------
@@ -72,6 +76,75 @@ function showToast(message) {
     return;
   }
   console.log(message);
+}
+
+
+const DND_XP_THRESHOLDS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
+
+function getXpProgressData(profile) {
+  const info = profile?.info || {};
+  const level = Math.max(1, toNumber(unwrapValue(info?.level, 1), 1));
+  const xp = Math.max(0, toNumber(unwrapValue(info?.experience, 0), 0));
+  const floor = DND_XP_THRESHOLDS[Math.min(level - 1, DND_XP_THRESHOLDS.length - 1)] ?? 0;
+  const next = DND_XP_THRESHOLDS[Math.min(level, DND_XP_THRESHOLDS.length - 1)] ?? null;
+  const percent = next && next > floor ? Math.max(0, Math.min(100, ((xp - floor) / (next - floor)) * 100)) : 100;
+  return { level, xp, floor, next, percent };
+}
+
+function getSpellQuickSummary(profile) {
+  const ability = getSpellcastingAbility(profile);
+  const attack = getSpellAttackBonus(profile);
+  const saveDc = getSpellSaveDc(profile);
+  const slots = getSpellSlots(profile);
+  const totalSlots = slots.reduce((sum, slot) => sum + toNumber(slot.total, 0), 0);
+  const freeSlots = slots.reduce((sum, slot) => sum + Math.max(0, toNumber(slot.total, 0) - toNumber(slot.filled, 0)), 0);
+  return {
+    ability,
+    attack,
+    saveDc,
+    totalSlots,
+    freeSlots,
+  };
+}
+
+function rollSelectedDie(type) {
+  const match = String(type || '').match(/d(\d+)/i);
+  const sides = match ? Number(match[1]) : 20;
+  const result = Math.floor(Math.random() * sides) + 1;
+  LSS_STATE.diceType = `d${sides}`;
+  LSS_STATE.lastRoll = { type: `d${sides}`, result, at: Date.now() };
+  return LSS_STATE.lastRoll;
+}
+
+function updateLssProfile(mutator, toastMessage = '') {
+  if (!LSS_STATE.profile) return;
+  const nextProfile = cloneData(LSS_STATE.profile || {});
+  mutator(nextProfile);
+  setLssData(nextProfile, { persistLocal: true, source: 'manual' });
+  renderLSS();
+  if (toastMessage) showToast(toastMessage);
+}
+
+function quickAdjustHp(delta) {
+  const current = Math.max(0, toNumber(unwrapValue(LSS_STATE.profile?.vitality?.['hp-current'], 0), 0));
+  const next = Math.max(0, current + delta);
+  if (!confirm(`Изменить текущие хиты: ${current} → ${next}?`)) return;
+  updateLssProfile((profile) => {
+    profile.vitality = profile.vitality || {};
+    profile.vitality['hp-current'] = next;
+  }, 'Хиты обновлены');
+}
+
+function quickSetHp() {
+  const current = Math.max(0, toNumber(unwrapValue(LSS_STATE.profile?.vitality?.['hp-current'], 0), 0));
+  const raw = prompt('Текущие хиты персонажа', String(current));
+  if (raw === null) return;
+  const next = Math.max(0, toNumber(raw, current));
+  if (!confirm(`Сохранить текущие хиты: ${current} → ${next}?`)) return;
+  updateLssProfile((profile) => {
+    profile.vitality = profile.vitality || {};
+    profile.vitality['hp-current'] = next;
+  }, 'Хиты обновлены');
 }
 
 function tryParseJson(raw) {
@@ -525,6 +598,14 @@ function getPassivePerception(profile) {
   return 10 + getSkillModifier(profile, "perception");
 }
 
+function getPassiveInsight(profile) {
+  return 10 + getSkillModifier(profile, "insight");
+}
+
+function getPassiveInvestigation(profile) {
+  return 10 + getSkillModifier(profile, "investigation");
+}
+
 const STAT_DEFS = [
   { key: "str", label: "Сила" },
   { key: "dex", label: "Ловкость" },
@@ -554,6 +635,44 @@ const SKILL_LABELS = {
   "animal handling": "Уход за животными",
   investigation: "Анализ",
 };
+
+const SKILL_BASE_STATS = {
+  athletics: "str",
+  acrobatics: "dex",
+  "sleight of hand": "dex",
+  stealth: "dex",
+  arcana: "int",
+  history: "int",
+  investigation: "int",
+  nature: "int",
+  religion: "int",
+  "animal handling": "wis",
+  insight: "wis",
+  medicine: "wis",
+  perception: "wis",
+  survival: "wis",
+  deception: "cha",
+  intimidation: "cha",
+  performance: "cha",
+  persuasion: "cha",
+};
+
+function getSkillBaseStat(skillKey, profile = null) {
+  return getNested(profile, `skills.${skillKey}.baseStat`, SKILL_BASE_STATS[skillKey] || "int");
+}
+
+function toggleSkillProficiency(skillKey, enabled) {
+  if (!skillKey) return;
+  updateLssProfile((profile) => {
+    profile.skills = profile.skills || {};
+    const prev = profile.skills[skillKey] || {};
+    profile.skills[skillKey] = {
+      ...prev,
+      baseStat: prev.baseStat || getSkillBaseStat(skillKey, profile),
+      isProf: enabled ? 1 : 0,
+    };
+  }, enabled ? "Владение навыком включено" : "Владение навыком отключено");
+}
 
 function getSkillsByStat(profile, statKey) {
   const skills = profile?.skills || {};
@@ -995,35 +1114,25 @@ function getPrettyRawPreview() {
 }
 
 function renderTopToolbar() {
-  const sourceLabel = {
-    api: "API",
-    window: "window",
-    local: "local",
-    manual: "вручную",
-    empty: "нет данных",
-  }[LSS_STATE.source] || LSS_STATE.source;
-
   return `
     <div class="cabinet-block" style="margin-bottom:12px;">
       <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <div>
           <h3 style="margin:0 0 6px 0;">📖 Long Story Short</h3>
           <div class="muted">
-            Источник: <strong>${escapeHtml(sourceLabel)}</strong>
-            ${
-              LSS_STATE.profile
-                ? " • Профиль загружен"
-                : " • Профиль пока не загружен"
-            }
+            Игровой лист персонажа: импорт, конструктор, быстрые изменения и бросок кубов доступны прямо здесь.
           </div>
         </div>
 
-        <div class="cart-buttons">
+        <div class="cart-buttons" style="flex-wrap:wrap;">
           <button class="btn btn-primary" type="button" id="lssToggleImportBtn">
             ${LSS_STATE.importPanelOpen ? "Скрыть импорт" : "Загрузить данные"}
           </button>
           <button class="btn" type="button" id="lssToggleEditBtn" ${LSS_STATE.profile ? "" : "disabled"}>
-            ${LSS_STATE.editPanelOpen ? "Скрыть редактор" : "Редактировать поля"}
+            ${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : "🛠 Конструктор"}
+          </button>
+          <button class="btn" type="button" id="lssDiceToggleBtn" ${LSS_STATE.profile ? "" : "disabled"}>
+            ${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}
           </button>
           ${
             LSS_STATE.profile
@@ -1050,7 +1159,7 @@ function renderImportPanel() {
         >${escapeHtml(LSS_STATE.importPanelOpen ? getPrettyRawPreview() : "")}</textarea>
       </div>
 
-      <div class="modal-actions" style="margin-top:10px;">
+      <div class="modal-actions" style="margin-top:10px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-success" type="button" id="lssApplyJsonBtn">Применить JSON</button>
         <button class="btn" type="button" id="lssOpenFileBtn">Загрузить JSON-файл</button>
         <input
@@ -1062,7 +1171,7 @@ function renderImportPanel() {
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Поддерживается экспорт LSS целиком, включая формат с большим полем <code>data</code>.
+        Поддерживается экспорт LSS целиком. Сырые технические поля в пользовательском слое стараемся не показывать.
       </div>
     </div>
   `;
@@ -1333,6 +1442,11 @@ function bindLssActions() {
       if (!LSS_STATE.profile) return;
       LSS_STATE.editPanelOpen = !LSS_STATE.editPanelOpen;
       renderLSS();
+      if (LSS_STATE.editPanelOpen) {
+        setTimeout(() => {
+          getSection("lssEditPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+      }
     });
   }
 
@@ -1419,6 +1533,71 @@ function bindLssActions() {
     });
   }
 
+  [getSection("lssDiceToggleBtn"), getSection("lssDiceToggleInlineBtn")].forEach((btn) => {
+    if (!btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      if (!LSS_STATE.profile) return;
+      LSS_STATE.dicePanelOpen = !LSS_STATE.dicePanelOpen;
+      renderLSS();
+    });
+  });
+
+  document.querySelectorAll("[data-lss-roll-die]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const die = btn.dataset.lssRollDie || "d20";
+      const roll = rollSelectedDie(die);
+      renderLSS();
+      showToast(`Бросок ${String(roll.type).toUpperCase()}: ${roll.result}`);
+    });
+  });
+
+  [getSection("lssQuickEditBtn"), getSection("lssQuickEditBtnCompact")].forEach((quickEditBtn) => {
+    if (!quickEditBtn || quickEditBtn.dataset.bound === "1") return;
+    quickEditBtn.dataset.bound = "1";
+    quickEditBtn.addEventListener("click", () => {
+      if (!LSS_STATE.profile) return;
+      LSS_STATE.editPanelOpen = !LSS_STATE.editPanelOpen;
+      renderLSS();
+      if (LSS_STATE.editPanelOpen) {
+        setTimeout(() => {
+          getSection("lssEditPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-lss-hp-action]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.lssHpAction;
+      if (action === "minus") quickAdjustHp(-1);
+      else if (action === "plus") quickAdjustHp(1);
+      else if (action === "set") quickSetHp();
+    });
+  });
+
+  document.querySelectorAll("[data-lss-tab]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      LSS_STATE.activeTab = btn.dataset.lssTab || "overview";
+      renderLSS();
+    });
+  });
+
+  document.querySelectorAll("[data-lss-skill-prof]").forEach((input) => {
+    if (input.dataset.bound === "1") return;
+    input.dataset.bound = "1";
+    input.addEventListener("change", () => {
+      const skillKey = input.dataset.lssSkillProf || "";
+      toggleSkillProficiency(skillKey, Boolean(input.checked));
+    });
+  });
+
   if (pickImageBtn && pickImageBtn.dataset.bound !== "1") {
     pickImageBtn.dataset.bound = "1";
     pickImageBtn.addEventListener("click", () => {
@@ -1478,36 +1657,89 @@ function renderEmptyState() {
   `;
 }
 
+function renderDiceDock() {
+  if (!LSS_STATE.profile) return "";
+  const last = LSS_STATE.lastRoll;
+  const dieButtons = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
+
+  return `
+    <div style="position:sticky; top:8px; z-index:4; display:flex; justify-content:flex-end; margin-bottom:10px;">
+      <div class="cabinet-block" style="padding:10px 12px; width:min(100%, 360px); margin:0; box-shadow:0 10px 26px rgba(0,0,0,0.22);">
+        <div class="flex-between" style="gap:10px; align-items:center;">
+          <div>
+            <div style="font-weight:800;">🎲 Кубы</div>
+            <div class="muted" style="font-size:12px;">Быстрый бросок поверх LSS</div>
+          </div>
+          <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn">
+            ${LSS_STATE.dicePanelOpen ? "Скрыть" : "Открыть"}
+          </button>
+        </div>
+        ${LSS_STATE.dicePanelOpen ? `
+          <div class="cart-buttons" style="margin-top:10px; flex-wrap:wrap; gap:6px; justify-content:flex-start;">
+            ${dieButtons.map((die) => `
+              <button class="btn ${LSS_STATE.diceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-lss-roll-die="${die}" style="min-height:32px; padding:6px 10px;">
+                ${die.toUpperCase()}
+              </button>
+            `).join("")}
+          </div>
+          <div class="muted" style="margin-top:10px;">
+            ${last ? `Последний бросок: <strong>${escapeHtml(String(last.type).toUpperCase())}</strong> → <strong>${escapeHtml(String(last.result))}</strong>` : "Выбери куб для броска"}
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
+
 function renderHero(profile) {
   const name = unwrapValue(profile?.name, "Без имени");
   const info = profile?.info || {};
   const vitality = profile?.vitality || {};
   const portraitUrl = getPortraitUrl(profile);
-  const tags = getTagList(profile);
-  const edition = getEdition(profile);
   const hpCurrent = unwrapValue(vitality["hp-current"], "—");
   const hpMax = unwrapValue(vitality["hp-max"], "—");
+  const hpTemp = unwrapValue(vitality["hp-temp"], "0");
+  const hitDie = unwrapValue(vitality["hit-die"], "—");
+  const hitDiceCurrent = unwrapValue(vitality["hp-dice-current"], "0");
+  const deathSuccesses = unwrapValue(vitality?.deathSuccesses, 0);
+  const deathFails = unwrapValue(vitality?.deathFails, 0);
+  const xp = getXpProgressData(profile);
+  const spell = getSpellQuickSummary(profile);
+  const conditions = joinNonEmpty([
+    unwrapValue(profile?.conditions, ""),
+    unwrapValue(vitality?.conditions, ""),
+  ]);
+  const slotsLabel = spell.totalSlots ? `${spell.freeSlots}/${spell.totalSlots}` : "—";
+  const coins = parseCoins(profile);
+  const coinEntries = coins
+    ? Object.entries(coins).filter(([, value]) => String(value || "").trim())
+    : [];
+  const compactCoins = coinEntries.length
+    ? coinEntries
+        .map(([key, value]) => `${String(key).toUpperCase()}: ${String(value)}`)
+        .join(' • ')
+    : '';
 
   return `
     <div class="cabinet-block">
-      <div class="profile-grid" style="align-items:start;">
+      <div style="display:grid; grid-template-columns:minmax(96px,120px) minmax(0,1fr); gap:14px; align-items:start;">
         <div>
           ${
             portraitUrl
               ? `
-                <div class="trader-modal-image-wrap" style="max-width:240px;">
+                <div class="trader-modal-image-wrap" style="max-width:120px;">
                   <img
                     class="trader-modal-image"
                     src="${escapeHtml(portraitUrl)}"
                     alt="${escapeHtml(String(name))}"
                     loading="lazy"
                     referrerpolicy="no-referrer"
-                    onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:240px;display:flex;align-items:center;justify-content:center;font-size:48px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
+                    onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:136px;display:flex;align-items:center;justify-content:center;font-size:30px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
                   />
                 </div>
               `
               : `
-                <div class="stat-box" style="min-height:240px;display:flex;align-items:center;justify-content:center;font-size:48px;">
+                <div class="stat-box" style="min-height:150px;display:flex;align-items:center;justify-content:center;font-size:30px;">
                   🧙
                 </div>
               `
@@ -1515,39 +1747,90 @@ function renderHero(profile) {
         </div>
 
         <div>
-          <h2 style="margin-bottom:8px;">${escapeHtml(String(name))}</h2>
+          <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+            <div>
+              <h2 style="margin-bottom:4px;">${escapeHtml(String(name))}</h2>
+              <div class="muted" style="font-size:15px;">
+                ${escapeHtml(String(unwrapValue(info?.race, "—")))} —
+                ${escapeHtml(String(unwrapValue(info?.charClass, "—")))}
+                ${unwrapValue(info?.charSubclass, "") ? `(${escapeHtml(String(unwrapValue(info?.charSubclass, "")))})` : ""}
+              </div>
+              <div class="muted" style="font-size:13px; margin-top:4px;">
+                уровень ${escapeHtml(String(unwrapValue(info?.level, "1")))}
+                • ${escapeHtml(String(unwrapValue(info?.background, "—")))}
+                • ${escapeHtml(normalizeSize(unwrapValue(info?.size, "medium")))}
+              </div>
+            </div>
 
-          <div class="profile-grid">
-            <div><b>Класс:</b> ${escapeHtml(String(unwrapValue(info?.charClass, "—")))}</div>
-            <div><b>Подкласс:</b> ${escapeHtml(String(unwrapValue(info?.charSubclass, "—")))}</div>
-            <div><b>Уровень:</b> ${escapeHtml(String(unwrapValue(info?.level, "1")))}</div>
-            <div><b>Предыстория:</b> ${escapeHtml(String(unwrapValue(info?.background, "—")))}</div>
-            <div><b>Вид / Раса:</b> ${escapeHtml(String(unwrapValue(info?.race, "—")))}</div>
-            <div><b>Мировоззрение:</b> ${escapeHtml(String(unwrapValue(info?.alignment, "—")))}</div>
-            <div><b>Размер:</b> ${escapeHtml(normalizeSize(unwrapValue(info?.size, "medium")))}</div>
-            <div><b>Опыт:</b> ${escapeHtml(String(unwrapValue(info?.experience, "0")))}</div>
-            <div><b>Хиты:</b> ${escapeHtml(String(hpCurrent))} / ${escapeHtml(String(hpMax))}</div>
-            <div><b>КБ:</b> ${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div>
-            <div><b>Инициатива:</b> ${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div>
-            <div><b>Скорость:</b> ${escapeHtml(String(unwrapValue(vitality?.speed, "—")))} фт</div>
+            <div class="cart-buttons" style="gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+              <button class="btn btn-secondary" type="button" id="lssQuickEditBtnCompact">
+                🛠 Конструктор
+              </button>
+            </div>
           </div>
 
-          ${
-            edition || tags.length
-              ? `
-                <div class="trader-meta" style="margin-top:12px;">
-                  ${
-                    edition
-                      ? `<span class="meta-item">📘 ${escapeHtml(edition)}</span>`
-                      : ""
-                  }
-                  ${tags
-                    .map((tag) => `<span class="meta-item">${escapeHtml(String(tag))}</span>`)
-                    .join("")}
+          <div style="margin-top:10px;">
+            <div class="flex-between muted" style="font-size:12px; margin-bottom:6px; gap:10px;">
+              <span>Опыт: ${escapeHtml(String(xp.xp))}</span>
+              <span>${xp.next ? `до следующего уровня: ${escapeHtml(String(Math.max(0, xp.next - xp.xp)))}` : "максимальный уровень"}</span>
+            </div>
+            <div style="height:8px; border-radius:999px; background:rgba(255,255,255,0.08); overflow:hidden;">
+              <div style="height:100%; width:${escapeHtml(String(xp.percent.toFixed(2)))}%; background:linear-gradient(90deg, rgba(217,168,95,0.92), rgba(216,195,154,0.98));"></div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(220px,1.35fr) minmax(210px,1.15fr) repeat(4,minmax(92px,0.72fr)); gap:8px; margin-top:12px; align-items:stretch;">
+            <div class="stat-box" style="padding:12px; min-height:auto;">
+              <div class="flex-between" style="align-items:center; gap:8px;">
+                <div class="muted">Хиты</div>
+                <div class="cart-buttons" style="gap:4px;">
+                  <button class="btn btn-secondary" type="button" data-lss-hp-action="minus" style="min-height:28px; padding:4px 8px;">−1</button>
+                  <button class="btn btn-secondary" type="button" data-lss-hp-action="plus" style="min-height:28px; padding:4px 8px;">+1</button>
+                  <button class="btn btn-secondary" type="button" data-lss-hp-action="set" style="min-height:28px; padding:4px 8px;">✎</button>
                 </div>
-              `
-              : ""
-          }
+              </div>
+              <div style="font-size:30px; font-weight:900; line-height:1.05; margin-top:8px;">${escapeHtml(String(hpCurrent))} / ${escapeHtml(String(hpMax))}</div>
+              <div class="muted" style="margin-top:6px; display:flex; flex-wrap:wrap; gap:10px; font-size:12px;">
+                <span>временные: <strong>${escapeHtml(String(hpTemp))}</strong></span>
+                <span>кость: <strong>${escapeHtml(String(hitDie))}</strong></span>
+                <span>кости: <strong>${escapeHtml(String(hitDiceCurrent))}</strong></span>
+              </div>
+            </div>
+
+            <div class="stat-box" style="padding:12px; min-height:auto;">
+              <div class="muted">Состояния и ресурсы</div>
+              <div style="font-size:14px; font-weight:800; margin-top:8px; min-height:20px;">${escapeHtml(conditions || 'норма')}</div>
+              <div class="muted" style="margin-top:6px; font-size:12px; display:flex; flex-wrap:wrap; gap:10px;">
+                <span>смерть: <strong>${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</strong></span>
+                ${compactCoins ? `<span>${escapeHtml(compactCoins)}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">КБ</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div></div>
+            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Инициатива</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div></div>
+            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Скорость</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</div></div>
+            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Мастерство</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div></div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(220px,1.15fr) minmax(220px,1.05fr); gap:8px; margin-top:8px; align-items:stretch;">
+            <div class="stat-box" style="padding:12px; min-height:auto;">
+              <div class="muted">Заклинания</div>
+              <div style="font-size:16px; font-weight:800; margin-top:8px;">${escapeHtml(String(spell.ability))}</div>
+              <div class="inv-item-details" style="margin-top:8px;">
+                <span>атака ${escapeHtml(formatSigned(spell.attack))}</span>
+                <span>СЛ ${escapeHtml(String(spell.saveDc))}</span>
+                <span>ячейки ${escapeHtml(String(slotsLabel))}</span>
+              </div>
+            </div>
+            <div class="stat-box" style="padding:12px; min-height:auto;">
+              <div class="muted">Пассивные чувства</div>
+              <div class="inv-item-details" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px;">
+                <span>воспр. ${escapeHtml(String(getPassivePerception(profile)))}</span>
+                <span>прониц. ${escapeHtml(String(getPassiveInsight(profile)))}</span>
+                <span>анализ ${escapeHtml(String(getPassiveInvestigation(profile)))}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1711,17 +1994,28 @@ function renderAppearance(profile) {
   return `
     <div class="cabinet-block">
       <h3>Внешность</h3>
-      <div class="profile-grid">
-        <div><b>Возраст:</b> ${escapeHtml(String(unwrapValue(subInfo?.age, "—")))}</div>
-        <div><b>Рост:</b> ${escapeHtml(String(unwrapValue(subInfo?.height, "—")))}</div>
-        <div><b>Вес:</b> ${escapeHtml(String(unwrapValue(subInfo?.weight, "—")))}</div>
-        <div><b>Глаза:</b> ${escapeHtml(String(unwrapValue(subInfo?.eyes, "—")))}</div>
-        <div><b>Кожа:</b> ${escapeHtml(String(unwrapValue(subInfo?.skin, "—")))}</div>
-        <div><b>Волосы:</b> ${escapeHtml(String(unwrapValue(subInfo?.hair, "—")))}</div>
+      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px;">
+        <div class="stat-box lss-mini-box"><div class="muted">Возраст</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(subInfo?.age, "—")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Рост</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(subInfo?.height, "—")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Вес</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(subInfo?.weight, "—")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Глаза</div><div style="font-size:14px;font-weight:800;">${escapeHtml(String(unwrapValue(subInfo?.eyes, "—")))}</div></div>
       </div>
 
-      <div class="lss-rich-block" style="margin-top:12px;">
-        ${renderRichText(appearance, "Описание внешности отсутствует.")}
+      <div style="display:grid; grid-template-columns:minmax(0,1.15fr) minmax(260px,0.85fr); gap:12px; margin-top:12px; align-items:start;">
+        <div class="lss-rich-block">
+          <h4>Общее описание</h4>
+          ${renderRichText(appearance, "Описание внешности отсутствует.")}
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+          <div class="lss-rich-block">
+            <h4>Кожа</h4>
+            <p>${escapeHtml(String(unwrapValue(subInfo?.skin, "—")))}</p>
+          </div>
+          <div class="lss-rich-block">
+            <h4>Волосы</h4>
+            <p>${escapeHtml(String(unwrapValue(subInfo?.hair, "—")))}</p>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -1730,30 +2024,31 @@ function renderAppearance(profile) {
 function renderBackground(profile) {
   return `
     <div class="cabinet-block">
-      <h3>Предыстория и личные качества</h3>
-      <div class="lss-rich-block">
-        ${renderRichText(profile?.background, "Предыстория не заполнена.")}
-      </div>
-
-      <div class="profile-grid" style="margin-top:12px;">
-        <div class="lss-rich-block">
-          <h4>Личность</h4>
-          ${renderRichText(profile?.personality, "Не заполнено")}
+      <h3>Предыстория и характер</h3>
+      <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+        <div style="display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:12px; align-items:start;">
+          <div class="lss-rich-block">
+            <h4>Предыстория</h4>
+            ${renderRichText(profile?.background, "Предыстория не заполнена.")}
+          </div>
+          <div class="lss-rich-block">
+            <h4>Личность</h4>
+            ${renderRichText(profile?.personality, "Не заполнено")}
+          </div>
         </div>
-
-        <div class="lss-rich-block">
-          <h4>Идеалы</h4>
-          ${renderRichText(profile?.ideals, "Не заполнено")}
-        </div>
-
-        <div class="lss-rich-block">
-          <h4>Привязанности</h4>
-          ${renderRichText(profile?.bonds, "Не заполнено")}
-        </div>
-
-        <div class="lss-rich-block">
-          <h4>Изъяны</h4>
-          ${renderRichText(profile?.flaws, "Не заполнено")}
+        <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;">
+          <div class="lss-rich-block">
+            <h4>Идеалы</h4>
+            ${renderRichText(profile?.ideals, "Не заполнено")}
+          </div>
+          <div class="lss-rich-block">
+            <h4>Привязанности</h4>
+            ${renderRichText(profile?.bonds, "Не заполнено")}
+          </div>
+          <div class="lss-rich-block">
+            <h4>Изъяны</h4>
+            ${renderRichText(profile?.flaws, "Не заполнено")}
+          </div>
         </div>
       </div>
     </div>
@@ -1786,6 +2081,240 @@ function renderAlliesAndGoals(profile) {
       </div>
     </div>
   `;
+}
+
+
+const LSS_TAB_DEFS = [
+  { key: "overview", label: "ОБЗОР" },
+  { key: "attacks", label: "АТАКИ" },
+  { key: "abilities", label: "СПОСОБНОСТИ" },
+  { key: "equipment", label: "СНАРЯЖЕНИЕ" },
+  { key: "personality", label: "ЛИЧНОСТЬ" },
+  { key: "goals", label: "ЦЕЛИ" },
+  { key: "notes", label: "ЗАМЕТКИ" },
+  { key: "spells", label: "ЗАКЛИНАНИЯ" },
+];
+
+function renderQuickSummary(profile) {
+  const vitality = profile?.vitality || {};
+  const conditions = joinNonEmpty([
+    unwrapValue(profile?.conditions, ""),
+    unwrapValue(vitality?.conditions, ""),
+  ]);
+  const coins = parseCoins(profile);
+
+  return `
+    <div class="cabinet-block">
+      <h3>Краткая сводка</h3>
+      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px;">
+        <div class="stat-box"><div class="muted">Хиты</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-current"], "—")))} / ${escapeHtml(String(unwrapValue(vitality["hp-max"], "—")))}</div></div>
+        <div class="stat-box"><div class="muted">КБ</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div></div>
+        <div class="stat-box"><div class="muted">Инициатива</div><div style="font-size:20px;font-weight:800;">${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div></div>
+        <div class="stat-box"><div class="muted">Скорость</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</div></div>
+        <div class="stat-box"><div class="muted">Мастерство</div><div style="font-size:20px;font-weight:800;">${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div></div>
+        <div class="stat-box"><div class="muted">Пассивное восприятие</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(getPassivePerception(profile)))}</div></div>
+      </div>
+      ${(conditions || coins) ? `
+        <div class="trader-meta" style="margin-top:10px;">
+          ${conditions ? `<span class="meta-item">⚠️ ${escapeHtml(conditions)}</span>` : ""}
+          ${coins ? Object.entries(coins).filter(([, value]) => String(value || "").trim()).map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key).toUpperCase())}: ${escapeHtml(String(value))}</span>`).join("") : ""}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderStatsCompact(profile) {
+  return `
+    <div class="cabinet-block">
+      <h3>Характеристики</h3>
+      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+        ${STAT_DEFS.map(({ key, label }) => {
+          const score = getStatScore(profile, key);
+          const mod = getStatModifier(profile, key);
+          const save = getSaveModifier(profile, key);
+          const profMark = hasSaveProficiency(profile, key) ? "★" : "•";
+
+          return `
+            <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="flex-between" style="align-items:center; gap:8px;">
+                <b>${escapeHtml(label)}</b>
+                <span class="quality-badge" style="padding:2px 8px; min-height:auto;">${escapeHtml(formatSigned(mod))}</span>
+              </div>
+              <div style="font-size:26px; font-weight:900; margin-top:8px; line-height:1;">${escapeHtml(String(score))}</div>
+              <div class="muted" style="margin-top:6px;">${profMark} спасбросок ${escapeHtml(formatSigned(save))}</div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderSkillsFlat(profile) {
+  return `
+    <div class="cabinet-block">
+      <h3>Навыки по характеристикам</h3>
+      <div class="muted" style="margin-bottom:10px;">Галочка у навыка = владение. Нажал — бонус применился и сохранился.</div>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; align-items:start;">
+        ${STAT_DEFS.map(({ key, label }) => {
+          const statMod = getStatModifier(profile, key);
+          const skills = getSkillsByStat(profile, key);
+          return `
+            <div class="cabinet-block" style="padding:12px; min-width:0;">
+              <div class="flex-between" style="align-items:center; gap:10px; margin-bottom:10px;">
+                <div>
+                  <div style="font-weight:800; letter-spacing:0.02em;">${escapeHtml(label)}</div>
+                  <div class="muted" style="font-size:12px; margin-top:2px;">мод. ${escapeHtml(formatSigned(statMod))}</div>
+                </div>
+                <span class="quality-badge" style="padding:2px 8px; min-height:auto;">${escapeHtml(String(getStatScore(profile, key)))}</span>
+              </div>
+              ${skills.length ? `
+                <div style="display:flex; flex-direction:column; gap:8px; min-width:0;">
+                  ${skills.map(([skillKey]) => {
+                    const skillLabel = SKILL_LABELS[skillKey] || capitalizeRu(skillKey);
+                    const value = getSkillModifier(profile, skillKey);
+                    const prof = isSkillProficient(profile, skillKey);
+                    return `
+                      <label class="inline-checkbox" style="display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:auto; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); cursor:pointer;">
+                        <span style="display:flex; align-items:center; gap:8px; min-width:0;">
+                          <input type="checkbox" data-lss-skill-prof="${escapeHtml(skillKey)}" ${prof ? "checked" : ""} />
+                          <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(skillLabel)}</span>
+                        </span>
+                        <strong>${escapeHtml(formatSigned(value))}</strong>
+                      </label>
+                    `;
+                  }).join("")}
+                </div>
+              ` : `<div class="muted">Нет навыков на этой характеристике.</div>`}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderPassiveSenses(profile) {
+  return `
+    <div class="cabinet-block" style="padding:12px;">
+      <h4 style="margin-bottom:10px;">Пассивные чувства</h4>
+      <div class="lss-skill-stack">
+        <div class="lss-inline-row"><span>Мудрость (Восприятие)</span><strong>${escapeHtml(String(getPassivePerception(profile)))}</strong></div>
+        <div class="lss-inline-row"><span>Мудрость (Проницательность)</span><strong>${escapeHtml(String(getPassiveInsight(profile)))}</strong></div>
+        <div class="lss-inline-row"><span>Интеллект (Анализ)</span><strong>${escapeHtml(String(getPassiveInvestigation(profile)))}</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStatesAndResources(profile) {
+  const vitality = profile?.vitality || {};
+  const conditions = joinNonEmpty([
+    unwrapValue(profile?.conditions, ""),
+    unwrapValue(vitality?.conditions, ""),
+  ]);
+  const deathSuccesses = unwrapValue(vitality?.deathSuccesses, 0);
+  const deathFails = unwrapValue(vitality?.deathFails, 0);
+  const coins = parseCoins(profile);
+
+  return `
+    <div class="cabinet-block" style="padding:12px;">
+      <h4 style="margin-bottom:10px;">Состояния и ресурсы</h4>
+      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;">
+        <div class="stat-box lss-mini-box"><div class="muted">Врем. HP</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-temp"], "0")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Кость хитов</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hit-die"], "—")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Кости</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-dice-current"], "0")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Смерт. спасб.</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</div></div>
+      </div>
+      ${(conditions || coins) ? `
+        <div class="trader-meta" style="margin-top:10px;">
+          ${conditions ? `<span class="meta-item">⚠️ ${escapeHtml(conditions)}</span>` : ""}
+          ${coins ? Object.entries(coins).filter(([, value]) => String(value || "").trim()).map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key).toUpperCase())}: ${escapeHtml(String(value))}</span>`).join("") : ""}
+        </div>
+      ` : `<div class="muted" style="margin-top:10px;">Состояния и ресурсы не заданы.</div>`}
+    </div>
+  `;
+}
+
+function renderProfAndLanguages(profile) {
+  return `
+    <div class="cabinet-block" style="padding:12px;">
+      <h4 style="margin-bottom:10px;">Владения и языки</h4>
+      <div class="lss-rich-block">${renderRichText(profile?.prof, "Не заполнено")}</div>
+    </div>
+  `;
+}
+
+function renderOverviewSupportGrid(profile) {
+  return `
+    <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+      ${renderPassiveSenses(profile)}
+      ${renderProfAndLanguages(profile)}
+    </div>
+  `;
+}
+
+function renderOverviewTab(profile) {
+  return `
+    <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,0.95fr); gap:12px; align-items:start;">
+      <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+        ${renderStatsCompact(profile)}
+        ${renderSkillsFlat(profile)}
+      </div>
+      ${renderOverviewSupportGrid(profile)}
+    </div>
+  `;
+}
+
+function renderLssTabs() {
+  const active = LSS_STATE.activeTab || "overview";
+  return `
+    <div class="cabinet-block">
+      <div class="cart-buttons" style="justify-content:flex-start; gap:6px; flex-wrap:wrap;">
+        ${LSS_TAB_DEFS.map((tab) => `
+          <button class="btn ${tab.key === active ? "btn-primary active" : "btn-secondary"}" type="button" data-lss-tab="${escapeHtml(tab.key)}" style="min-height:34px; padding:6px 10px; border-radius:12px;">
+            ${escapeHtml(tab.label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderActiveLssTab(profile) {
+  const active = LSS_STATE.activeTab || "overview";
+  switch (active) {
+    case "attacks":
+      return `
+        ${renderWeapons(profile)}
+        <div class="cabinet-block">
+          <h3>Атаки и боевые заметки</h3>
+          <div class="lss-rich-block">${renderRichText(profile?.attacks, "Нет дополнительных заметок по атакам.")}</div>
+        </div>
+      `;
+    case "abilities":
+      return renderFeatures(profile);
+    case "equipment":
+      return renderEquipment(profile);
+    case "personality":
+      return `
+        ${renderAppearance(profile)}
+        ${renderBackground(profile)}
+      `;
+    case "goals":
+      return renderAlliesAndGoals(profile);
+    case "notes":
+      return renderNotes(profile);
+    case "spells":
+      return `
+        ${renderSpellcasting(profile)}
+        ${renderSpellCards(profile)}
+      `;
+    case "overview":
+    default:
+      return renderOverviewTab(profile);
+  }
 }
 
 function parseCoins(profile) {
@@ -1875,17 +2404,15 @@ function renderSpellcasting(profile) {
   const attack = getSpellAttackBonus(profile);
   const saveDc = getSpellSaveDc(profile);
   const slots = getSpellSlots(profile);
-  const mode = getSpellDisplayMode(profile);
 
   return `
     <div class="cabinet-block">
       <h3>Заклинания</h3>
 
-      <div class="profile-grid">
-        <div><b>Базовая характеристика:</b> ${escapeHtml(ability)}</div>
-        <div><b>Бонус атаки заклинанием:</b> ${escapeHtml(formatSigned(attack))}</div>
-        <div><b>Сложность спасброска:</b> ${escapeHtml(String(saveDc))}</div>
-        <div><b>Режим LSS:</b> ${escapeHtml(String(mode || "list"))}</div>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
+        <div class="stat-box"><div class="muted">Базовая характеристика</div><div style="font-size:18px;font-weight:800; margin-top:8px;">${escapeHtml(ability)}</div></div>
+        <div class="stat-box"><div class="muted">Атака заклинанием</div><div style="font-size:18px;font-weight:800; margin-top:8px;">${escapeHtml(formatSigned(attack))}</div></div>
+        <div class="stat-box"><div class="muted">СЛ спасброска</div><div style="font-size:18px;font-weight:800; margin-top:8px;">${escapeHtml(String(saveDc))}</div></div>
       </div>
 
       <div style="margin-top:12px;">
@@ -1893,14 +2420,13 @@ function renderSpellcasting(profile) {
         ${
           slots.length
             ? `
-              <div class="profile-grid" style="margin-top:8px;">
+              <div class="profile-grid" style="display:grid; margin-top:8px; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px;">
                 ${slots
                   .map(
                     (slot) => `
-                      <div class="stat-box">
-                        <div><b>${escapeHtml(String(slot.level))}-й круг</b></div>
-                        <div>Свободно: ${escapeHtml(String(Math.max(0, slot.total - slot.filled)))}</div>
-                        <div>Всего: ${escapeHtml(String(slot.total))}</div>
+                      <div class="stat-box lss-mini-box">
+                        <div class="muted">${escapeHtml(String(slot.level))}-й круг</div>
+                        <div style="font-size:16px;font-weight:800;">${escapeHtml(String(Math.max(0, slot.total - slot.filled)))} / ${escapeHtml(String(slot.total))}</div>
                       </div>
                     `
                   )
@@ -1938,23 +2464,9 @@ function renderSpellCards(profile) {
                     ${spell.duration ? `<span>${escapeHtml(String(spell.duration))}</span>` : ""}
                   </div>
 
-                  ${
-                    spell.components
-                      ? `<div class="muted" style="margin-bottom:8px;">${escapeHtml(String(spell.components))}</div>`
-                      : ""
-                  }
-
-                  ${
-                    spell.description
-                      ? `<div>${escapeHtml(String(spell.description))}</div>`
-                      : `<div class="muted">Описание пока не загружено.</div>`
-                  }
-
-                  ${
-                    spell.notes
-                      ? `<div class="muted" style="margin-top:10px;">${escapeHtml(String(spell.notes))}</div>`
-                      : ""
-                  }
+                  ${spell.components ? `<div class="muted" style="margin-bottom:8px;">${escapeHtml(String(spell.components))}</div>` : ""}
+                  ${spell.description ? `<div>${escapeHtml(String(spell.description))}</div>` : `<div class="muted">Описание пока не загружено.</div>`}
+                  ${spell.notes ? `<div class="muted" style="margin-top:10px;">${escapeHtml(String(spell.notes))}</div>` : ""}
                 </div>
               `
             )
@@ -1968,31 +2480,11 @@ function renderSpellCards(profile) {
     <div class="cabinet-block">
       <h3>Книга заклинаний</h3>
       <div class="muted" style="margin-bottom:10px;">
-        Полные карточки заклинаний появятся, когда подключим локальную/серверную базу заклинаний к ID из экспорта LSS.
+        Названия и карточки можно будет подтянуть из базы заклинаний. Пока показываем только краткую сводку по пулу.
       </div>
-
-      <div class="profile-grid">
-        <div class="lss-rich-block">
-          <h4>Подготовленные</h4>
-          ${
-            prepared.length
-              ? prepared
-                  .map((id, index) => `<div style="margin-bottom:6px;">${index + 1}. ${escapeHtml(String(id))}</div>`)
-                  .join("")
-              : `<div class="muted">Нет данных.</div>`
-          }
-        </div>
-
-        <div class="lss-rich-block">
-          <h4>Книга</h4>
-          ${
-            book.length
-              ? book
-                  .map((id, index) => `<div style="margin-bottom:6px;">${index + 1}. ${escapeHtml(String(id))}</div>`)
-                  .join("")
-              : `<div class="muted">Нет данных.</div>`
-          }
-        </div>
+      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+        <div class="stat-box"><div class="muted">Подготовлено</div><div style="font-size:22px;font-weight:900; margin-top:8px;">${escapeHtml(String(prepared.length))}</div></div>
+        <div class="stat-box"><div class="muted">В книге</div><div style="font-size:22px;font-weight:900; margin-top:8px;">${escapeHtml(String(book.length))}</div></div>
       </div>
     </div>
   `;
@@ -2015,19 +2507,10 @@ export function renderLSS() {
       profile
         ? `
           <div class="lss-root">
+            ${renderDiceDock()}
             ${renderHero(profile)}
-            ${renderCombatSummary(profile)}
-            ${renderStats(profile)}
-            ${renderSkills(profile)}
-            ${renderWeapons(profile)}
-            ${renderFeatures(profile)}
-            ${renderAppearance(profile)}
-            ${renderBackground(profile)}
-            ${renderAlliesAndGoals(profile)}
-            ${renderEquipment(profile)}
-            ${renderNotes(profile)}
-            ${renderSpellcasting(profile)}
-            ${renderSpellCards(profile)}
+            ${renderLssTabs()}
+            ${renderActiveLssTab(profile)}
           </div>
         `
         : renderEmptyState()
@@ -2076,6 +2559,9 @@ export function setLssData(raw, options = {}) {
   LSS_STATE.raw = cloneData(raw);
   LSS_STATE.profile = normalizeProfile(cloneData(raw));
   LSS_STATE.source = source;
+  if (!LSS_TAB_DEFS.some((tab) => tab.key === LSS_STATE.activeTab)) {
+    LSS_STATE.activeTab = "overview";
+  }
 
   if (persistLocal) {
     saveLocalLssRaw(LSS_STATE.raw);
@@ -2088,6 +2574,7 @@ export function clearLssData(options = {}) {
   LSS_STATE.raw = null;
   LSS_STATE.profile = null;
   LSS_STATE.source = "empty";
+  LSS_STATE.activeTab = "overview";
 
   if (persistLocal) {
     clearLocalLssRaw();
