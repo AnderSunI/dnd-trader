@@ -14,4 +14,5 @@ docker-compose.override.yml
 .idea/
 
 # OS
-.DS_Store
+.DS_Store1
+rebuild_longstoryshort_rebuilt_readable_v3.py
