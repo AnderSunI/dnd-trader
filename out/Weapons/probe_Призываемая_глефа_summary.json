@@ -1,0 +1,37 @@
+{
+  "title": "Призываемая глефа",
+  "resolved_title": "Призываемая глефа",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-08T14:34:26Z",
+  "wikitext_chars_query": 1373,
+  "wikitext_chars_parse": 1373,
+  "html_chars": 197019,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Как получить"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Обездвиживатель",
+  "resolved_title": "Обездвиживатель",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T10:27:40Z",
+  "wikitext_chars_query": 1933,
+  "wikitext_chars_parse": 1933,
+  "html_chars": 192939,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Посох прерывания",
+  "resolved_title": "Посох прерывания",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-11T16:31:28Z",
+  "wikitext_chars_query": 1119,
+  "wikitext_chars_parse": 1119,
+  "html_chars": 191793,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    }
+  ]
+}

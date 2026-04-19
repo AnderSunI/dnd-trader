@@ -1,0 +1,18 @@
+bg3_armor_round2_postclean_v6 report
+===================================
+Input:  /home/anderson/dnd-trader/out/Armor/items.armor.round2.v5.json
+Output: /home/anderson/dnd-trader/out/Armor/items.armor.round2.v6.json
+
+Items processed: 352
+
+bonus ids fixed (__bonuse_ -> __bonus_): 95
+near-duplicate lines removed: 4
+requirement/proficiency lines moved from drawbacks: 5
+short named effects moved to granted_actions: 41
+direct AC bonus lines moved to bonuses: 12
+missing armor_class fields opportunistically filled: 5
+
+Notes:
+- This pass does NOT change top-level schema.
+- It focuses on cleanup/consistency for the current armor normalized layer.
+- Review a few edge cases after run: bard items, named spells/effects, +1/+2 armors.

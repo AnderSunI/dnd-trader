@@ -1,0 +1,185 @@
+{
+  "requested_title": "Адская мантия",
+  "resolved_title": "Адская мантия",
+  "display_title": "<span class=\"mw-page-title-main\">Адская мантия</span>",
+  "pageid": 11971,
+  "revision_found": true,
+  "revision_chars": 1428,
+  "parse_wikitext_chars": 1428,
+  "parse_html_chars": 190928,
+  "category_count": 3,
+  "link_count": 915,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Одежда_BG3",
+      "missing": true,
+      "known": true
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Огненный щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый переполох",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Адская мантия"
+      },
+      {
+        "label": "Общее",
+        "value": "Очень редкое"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Очень редкое"
+      },
+      {
+        "label": "Класс",
+        "value": "Броня"
+      },
+      {
+        "label": "Тип",
+        "value": "Одежда"
+      },
+      {
+        "label": "Вес",
+        "value": "1.8 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "1600"
+      },
+      {
+        "label": "Характерное",
+        "value": "10"
+      },
+      {
+        "label": "",
+        "value": "Характерное"
+      },
+      {
+        "label": "Класс брони",
+        "value": "10"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Очень редкое",
+    "type": "Одежда",
+    "weight": "1.8 кг",
+    "value": "1600"
+  }
+}

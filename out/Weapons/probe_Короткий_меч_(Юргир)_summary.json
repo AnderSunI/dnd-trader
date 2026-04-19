@@ -1,0 +1,21 @@
+{
+  "title": "Короткий меч (Юргир)",
+  "resolved_title": "Короткий меч (Юргир)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T17:22:07Z",
+  "wikitext_chars_query": 1373,
+  "wikitext_chars_parse": 1373,
+  "html_chars": 194254,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    }
+  ]
+}

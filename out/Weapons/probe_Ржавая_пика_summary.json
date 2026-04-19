@@ -1,0 +1,29 @@
+{
+  "title": "Ржавая пика",
+  "resolved_title": "Ржавая пика",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-04T11:43:57Z",
+  "wikitext_chars_query": 982,
+  "wikitext_chars_parse": 982,
+  "html_chars": 191681,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

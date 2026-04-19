@@ -1,0 +1,29 @@
+{
+  "title": "Ржавый двуручный меч",
+  "resolved_title": "Ржавый двуручный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T12:29:21Z",
+  "wikitext_chars_query": 980,
+  "wikitext_chars_parse": 980,
+  "html_chars": 190979,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

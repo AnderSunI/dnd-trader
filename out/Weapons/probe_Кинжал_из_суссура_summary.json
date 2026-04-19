@@ -1,0 +1,41 @@
+{
+  "title": "Кинжал из суссура",
+  "resolved_title": "Кинжал из суссура",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-08T20:56:23Z",
+  "wikitext_chars_query": 1867,
+  "wikitext_chars_parse": 1867,
+  "html_chars": 197339,
+  "section_count": 7,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Галерея"
+    },
+    {
+      "index": "7",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Прижигатель Карвина",
+  "resolved_title": "Прижигатель Карвина",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T14:06:37Z",
+  "wikitext_chars_query": 1656,
+  "wikitext_chars_parse": 1656,
+  "html_chars": 193563,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

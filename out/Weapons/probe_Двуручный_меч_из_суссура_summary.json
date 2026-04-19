@@ -1,0 +1,45 @@
+{
+  "title": "Двуручный меч из суссура",
+  "resolved_title": "Двуручный меч из суссура",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-08T20:48:03Z",
+  "wikitext_chars_query": 1857,
+  "wikitext_chars_parse": 1857,
+  "html_chars": 197103,
+  "section_count": 8,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Связанные задания"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Урон"
+    },
+    {
+      "index": "5",
+      "line": "Особое"
+    },
+    {
+      "index": "6",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "7",
+      "line": "Галерея"
+    },
+    {
+      "index": "8",
+      "line": "Навигация"
+    }
+  ]
+}

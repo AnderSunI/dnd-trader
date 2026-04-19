@@ -1,0 +1,33 @@
+{
+  "title": "Трупомол",
+  "resolved_title": "Трупомол",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T13:25:01Z",
+  "wikitext_chars_query": 1465,
+  "wikitext_chars_parse": 1465,
+  "html_chars": 194667,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Сахваджинское копье",
+  "resolved_title": "Сахваджинское копье",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-04T10:13:31Z",
+  "wikitext_chars_query": 1045,
+  "wikitext_chars_parse": 1045,
+  "html_chars": 189743,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

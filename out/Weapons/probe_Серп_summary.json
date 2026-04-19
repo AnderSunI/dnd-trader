@@ -1,0 +1,37 @@
+{
+  "title": "Серп",
+  "resolved_title": "Серп",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-03T18:41:39Z",
+  "wikitext_chars_query": 1403,
+  "wikitext_chars_parse": 1403,
+  "html_chars": 191040,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Галерея"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

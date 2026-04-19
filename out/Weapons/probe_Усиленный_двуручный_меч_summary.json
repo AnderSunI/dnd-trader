@@ -1,0 +1,33 @@
+{
+  "title": "Усиленный двуручный меч",
+  "resolved_title": "Усиленный двуручный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-05-15T21:33:15Z",
+  "wikitext_chars_query": 1300,
+  "wikitext_chars_parse": 1300,
+  "html_chars": 191867,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

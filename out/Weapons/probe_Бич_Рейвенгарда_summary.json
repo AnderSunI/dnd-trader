@@ -1,0 +1,25 @@
+{
+  "title": "Бич Рейвенгарда",
+  "resolved_title": "Бич Рейвенгарда",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T18:46:49Z",
+  "wikitext_chars_query": 1272,
+  "wikitext_chars_parse": 1272,
+  "html_chars": 191565,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

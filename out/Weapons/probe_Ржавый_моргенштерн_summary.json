@@ -1,0 +1,21 @@
+{
+  "title": "Ржавый моргенштерн",
+  "resolved_title": "Ржавый моргенштерн",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T18:57:57Z",
+  "wikitext_chars_query": 1006,
+  "wikitext_chars_parse": 1006,
+  "html_chars": 190370,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    }
+  ]
+}

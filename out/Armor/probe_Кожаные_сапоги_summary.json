@@ -1,0 +1,183 @@
+{
+  "requested_title": "Кожаные сапоги",
+  "resolved_title": "Кожаные сапоги",
+  "display_title": "<span class=\"mw-page-title-main\">Кожаные сапоги</span>",
+  "pageid": 4033,
+  "revision_found": true,
+  "revision_chars": 1427,
+  "parse_wikitext_chars": 1427,
+  "parse_html_chars": 191107,
+  "category_count": 3,
+  "link_count": 910,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Сапоги_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый переполох",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Кожаные сапоги"
+      },
+      {
+        "label": "Общее",
+        "value": "Обычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Обычный"
+      },
+      {
+        "label": "Класс",
+        "value": "Броня"
+      },
+      {
+        "label": "Тип",
+        "value": "Обувь"
+      },
+      {
+        "label": "Вес",
+        "value": "0.55 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "15"
+      },
+      {
+        "label": "Характерное",
+        "value": "—"
+      },
+      {
+        "label": "",
+        "value": "Характерное"
+      },
+      {
+        "label": "Класс брони",
+        "value": "—"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Обычный",
+    "type": "Обувь",
+    "weight": "0.55 кг",
+    "value": "15"
+  }
+}

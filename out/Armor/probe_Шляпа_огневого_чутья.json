@@ -1,0 +1,73 @@
+{
+  "input": {
+    "title": "Шляпа огневого чутья",
+    "url": ""
+  },
+  "query": {
+    "batchcomplete": true,
+    "query": {
+      "pages": [
+        {
+          "pageid": 6248,
+          "ns": 0,
+          "title": "Шляпа огневого чутья",
+          "revisions": [
+            {
+              "revid": 39101,
+              "parentid": 35607,
+              "timestamp": "2025-06-21T22:24:35Z",
+              "slots": {
+                "main": {
+                  "contentmodel": "wikitext",
+                  "contentformat": "text/x-wiki",
+                  "content": "{{Инфо-Предмет BG3\n|Название={{PAGENAME}}\n|Вес=0,5\n|Цена=90\n|Иконка=Wizard Hat Icon.png\n|Изображение=Wizard Hat Icon.png\n|Описание=\n<!--Общая информация-->\n|Редкость = <div style=\"color:green;\">Необычный</div>\n|Тип=\n|Подтип=\n|Эффект=Испытания:\n}}\n{{Описание|Говорят, некоторые шляпы волшебников способны охлаждать голову владельцв - как в прямом, так и в переносном смысле.|Описание в игре}}\n'''{{PAGENAME}}''' (англ. ''Hat of Fire Acuity'') - это [[Предметы/Шлемы и головные уборы|головной убор]] в [[Baldur's Gate III]].\n==Свойства==\n* '''Огненная интуиция''': Всякий раз, когда вы наносите урон огнём, вы получаете магическую интуицию на 2 хода.\n\n==Получение==\nС тела [[Странный вол|Странного Вола]] в [[Ривингтон]]е. Если убъёте его раньше, шляпы не будет.\n[[Категория:Снаряжение BG3]]\n[[Категория:Броня BG3]]\n__NOTOC__"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "parse": {
+    "parse": {
+      "title": "Шляпа огневого чутья",
+      "pageid": 6248,
+      "text": "<div class=\"mw-content-ltr mw-parser-output\" lang=\"ru\" dir=\"ltr\"><p>\n<aside role=\"region\" class=\"portable-infobox pi-background pi-border-color pi-theme-bg pi-layout-default type-bg3\">\n<h2 class=\"pi-item pi-item-spacing pi-title pi-secondary-background\" data-source=\"Название\"><div class=\"bg-icon\"><figure class=\"mw-halign-center\" typeof=\"mw:File\"><a href=\"https://static.wikia.nocookie.net/baldursgate/images/f/f2/Wizard_Hat_Icon.png/revision/latest?cb=20231124190223&amp;path-prefix=ru\" class=\"mw-file-description image\"><img alt=\"Wizard Hat Icon\" src=\"https://static.wikia.nocookie.net/baldursgate/images/f/f2/Wizard_Hat_Icon.png/revision/latest/scale-to-width-down/40?cb=20231124190223&amp;path-prefix=ru\" decoding=\"async\" loading=\"lazy\" width=\"40\" height=\"40\" class=\"mw-file-element\" data-image-name=\"Wizard Hat Icon.png\" data-image-key=\"Wizard_Hat_Icon.png\" data-relevant=\"1\" /></a><figcaption></figcaption></figure></div><div class=\"bg-title\">Шляпа огневого чутья</div></h2>\n\n<figure class=\"pi-item pi-image\" data-source=\"Изображение\">\n\t<a href=\"https://static.wikia.nocookie.net/baldursgate/images/f/f2/Wizard_Hat_Icon.png/revision/latest?cb=20231124190223&amp;path-prefix=ru\" class=\"image image-thumbnail\" title=\"Wizard Hat Icon\">\n\t\t<img src=\"https://static.wikia.nocookie.net/baldursgate/images/f/f2/Wizard_Hat_Icon.png/revision/latest/scale-to-width-down/268?cb=20231124190223&amp;path-prefix=ru\" srcset=\"https://static.wikia.nocookie.net/baldursgate/images/f/f2/Wizard_Hat_Icon.png/revision/latest/scale-to-width-down/268?cb=20231124190223&amp;path-prefix=ru 1x, https://static.wikia.nocookie.net/baldursgate/images/f/f2/Wizard_Hat_Icon.png/revision/latest?cb=20231124190223&amp;path-prefix=ru 2x\" class=\"pi-image-thumbnail\" data-relevant=\"1\" alt=\"Wizard Hat Icon\" width=\"270\" height=\"270\" data-image-key=\"Wizard_Hat_Icon.png\" data-image-name=\"Wizard Hat Icon.png\" />\n\t\t\n\t</a>\n\t\n</figure>\n<section class=\"pi-item pi-group pi-border-color pi-collapse pi-collapse-open\">\n\t<h2 class=\"pi-item pi-header pi-secondary-font pi-item-spacing pi-secondary-background\">Общее</h2>\n\n<div class=\"pi-item pi-data pi-item-spacing pi-border-color\" data-source=\"Редкость\">\n\t\n\t\t<h3 class=\"pi-data-label pi-secondary-font\">Редкость</h3>\n\t\n\t<div class=\"pi-data-value pi-font\"><div style=\"color:green;\">Необычный</div></div>\n</div>\n\n<div class=\"pi-item pi-data pi-item-spacing pi-border-color\" data-source=\"Вес\">\n\t\n\t\t<h3 class=\"pi-data-label pi-secondary-font\">Вес</h3>\n\t\n\t<div class=\"pi-data-value pi-font\"><span typeof=\"mw:File\"><span><img alt=\"Иконка Гейм Вес\" src=\"https://static.wikia.nocookie.net/baldursgate/images/9/91/%D0%98%D0%BA%D0%BE%D0%BD%D0%BA%D0%B0_%D0%93%D0%B5%D0%B9%D0%BC_%D0%92%D0%B5%D1%81.png/revision/latest/scale-to-width-down/18?cb=20210131174204&amp;path-prefix=ru\" decoding=\"async\" loading=\"lazy\" width=\"18\" height=\"18\" class=\"mw-file-element\" data-image-name=\"Иконка Гейм Вес.png\" data-image-key=\"%D0%98%D0%BA%D0%BE%D0%BD%D0%BA%D0%B0_%D0%93%D0%B5%D0%B9%D0%BC_%D0%92%D0%B5%D1%81.png\" data-relevant=\"0\" /></span></span> 0,5 кг</div>\n</div>\n\n<div class=\"pi-item pi-data pi-item-spacing pi-border-color\" data-source=\"Цена\">\n\t\n\t\t<h3 class=\"pi-data-label pi-secondary-font\">Стоимость</h3>\n\t\n\t<div class=\"pi-data-value pi-font\"><span typeof=\"mw:File\"><span><img alt=\"Иконка Гейм Золото\" src=\"https://static.wikia.nocookie.net/baldursgate/images/b/ba/%D0%98%D0%BA%D0%BE%D0%BD%D0%BA%D0%B0_%D0%93%D0%B5%D0%B9%D0%BC_%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D0%BE.png/revision/latest/scale-to-width-down/18?cb=20210131171215&amp;path-prefix=ru\" decoding=\"async\" loading=\"lazy\" width=\"18\" height=\"18\" class=\"mw-file-element\" data-image-name=\"Иконка Гейм Золото.png\" data-image-key=\"%D0%98%D0%BA%D0%BE%D0%BD%D0%BA%D0%B0_%D0%93%D0%B5%D0%B9%D0%BC_%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D0%BE.png\" data-relevant=\"0\" /></span></span> 90</div>\n</div>\n\n</section>\n<section class=\"pi-item pi-group pi-border-color pi-collapse pi-collapse-open\">\n\t<h2 class=\"pi-item pi-header pi-secondary-font pi-item-spacing pi-secondary-background\">Характерное</h2>\n<section class=\"pi-item pi-group pi-border-color\">\n\t<table class=\"pi-horizontal-group\">\n\t\n\t\n\t<thead>\n\t\t<tr>\n\t\t\n\t\t\t<th class=\"pi-horizontal-group-item pi-data-label pi-secondary-font pi-border-color pi-item-spacing\" data-source=\"Эффект\">Эффект</th>\n\t\t\n\t\t</tr>\n\t</thead>\n\t\n\t<tbody>\n\t<tr>\n\t\n\t\t<td class=\"pi-horizontal-group-item pi-data-value pi-font pi-border-color pi-item-spacing\" data-source=\"Эффект\">Испытания:</td>\n\t\n\t</tr>\n\t</tbody>\n</table>\n\n</section>\n\n</section>\n</aside>\n\n</p>\n<div style=\"margin-top:1em\">\n<div style=\"display: block\"><span typeof=\"mw:File\"><span><img alt=\"Иконка Гейм Дневник\" src=\"data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D\" decoding=\"async\" loading=\"lazy\" width=\"36\" height=\"36\" class=\"mw-file-element lazyload\" data-image-name=\"Иконка Гейм Дневник.png\" data-image-key=\"%D0%98%D0%BA%D0%BE%D0%BD%D0%BA%D0%B0_%D0%93%D0%B5%D0%B9%D0%BC_%D0%94%D0%BD%D0%B5%D0%B2%D0%BD%D0%B8%D0%BA.png\" data-relevant=\"0\" data-src=\"https://static.wikia.nocookie.net/baldursgate/images/b/b3/%D0%98%D0%BA%D0%BE%D0%BD%D0%BA%D0%B0_%D0%93%D0%B5%D0%B9%D0%BC_%D0%94%D0%BD%D0%B5%D0%B2%D0%BD%D0%B8%D0%BA.png/revision/latest/scale-to-width-down/36?cb=20210724193634&amp;path-prefix=ru\" /></span></span></div>\n<div style=\"font-family:Kurale; font-style:italic; margin-left: 36px; margin-top: -28px; border-left: 2px ridge #4a4a4a; padding-left: 10px\">Говорят, некоторые шляпы волшебников способны охлаждать голову владельцв - как в прямом, так и в переносном смысле.</div>\n</div>\n<div style=\"font-style:italic; font-size:14px; padding-right:50px; color:lightcoral; text-shadow:1px 1px 2px #222, -1px 1px 2px #222, -1px -1px 2px #222, 1px -1px 2px #222; text-align:right; margin-bottom:2em\">Описание в игре</div>\n<p><b>Шляпа огневого чутья</b> (англ. <i>Hat of Fire Acuity</i>) - это <a href=\"/ru/wiki/%D0%9F%D1%80%D0%B5%D0%B4%D0%BC%D0%B5%D1%82%D1%8B/%D0%A8%D0%BB%D0%B5%D0%BC%D1%8B_%D0%B8_%D0%B3%D0%BE%D0%BB%D0%BE%D0%B2%D0%BD%D1%8B%D0%B5_%D1%83%D0%B1%D0%BE%D1%80%D1%8B\" title=\"Предметы/Шлемы и головные уборы\">головной убор</a> в <a href=\"/ru/wiki/Baldur%27s_Gate_III\" title=\"Baldur&#39;s Gate III\">Baldur's Gate III</a>.\n</p>\n<h2><span id=\".D0.A1.D0.B2.D0.BE.D0.B9.D1.81.D1.82.D0.B2.D0.B0\"></span><span class=\"mw-headline\" id=\"Свойства\">Свойства</span><span class=\"mw-editsection\"><span class=\"mw-editsection-bracket\">[</span><a title=\"Sign in to edit\" class=\"mw-editsection-visualeditor\" data-tracking-label=\"log-in-edit-section\" data-action=\"edit-section\" href=\"https://auth.fandom.com/signin?redirect=https%3A%2F%2Fbaldursgate.fandom.com%2Fru%2Fwiki%2F%25D0%25A8%25D0%25BB%25D1%258F%25D0%25BF%25D0%25B0_%25D0%25BE%25D0%25B3%25D0%25BD%25D0%25B5%25D0%25B2%25D0%25BE%25D0%25B3%25D0%25BE_%25D1%2587%25D1%2583%25D1%2582%25D1%258C%25D1%258F%3Fveaction%3Dedit%26section%3D1&amp;uselang=ru&amp;metadata=article-registration-edit-article-section\" data-testid=\"log-in-edit-section\" aria-label=\"Sign in to edit\"><svg class=\"wds-icon wds-icon-tiny\" aria-hidden=\"true\" focusable=\"false\"><use xlink:href=\"#wds-icons-pencil-tiny\"></use></svg></a><span class=\"mw-editsection-bracket\">]</span></span></h2>\n<ul><li><b>Огненная интуиция</b>: Всякий раз, когда вы наносите урон огнём, вы получаете магическую интуицию на 2 хода.</li></ul>\n<h2><span id=\".D0.9F.D0.BE.D0.BB.D1.83.D1.87.D0.B5.D0.BD.D0.B8.D0.B5\"></span><span class=\"mw-headline\" id=\"Получение\">Получение</span><span class=\"mw-editsection\"><span class=\"mw-editsection-bracket\">[</span><a title=\"Sign in to edit\" class=\"mw-editsection-visualeditor\" data-tracking-label=\"log-in-edit-section\" data-action=\"edit-section\" href=\"https://auth.fandom.com/signin?redirect=https%3A%2F%2Fbaldursgate.fandom.com%2Fru%2Fwiki%2F%25D0%25A8%25D0%25BB%25D1%258F%25D0%25BF%25D0%25B0_%25D0%25BE%25D0%25B3%25D0%25BD%25D0%25B5%25D0%25B2%25D0%25BE%25D0%25B3%25D0%25BE_%25D1%2587%25D1%2583%25D1%2582%25D1%258C%25D1%258F%3Fveaction%3Dedit%26section%3D2&amp;uselang=ru&amp;metadata=article-registration-edit-article-section\" data-testid=\"log-in-edit-section\" aria-label=\"Sign in to edit\"><svg class=\"wds-icon wds-icon-tiny\" aria-hidden=\"true\" focusable=\"false\"><use xlink:href=\"#wds-icons-pencil-tiny\"></use></svg></a><span class=\"mw-editsection-bracket\">]</span></span></h2>\n<p>С тела <a href=\"/ru/wiki/%D0%A1%D1%82%D1%80%D0%B0%D0%BD%D0%BD%D1%8B%D0%B9_%D0%B2%D0%BE%D0%BB\" title=\"Странный вол\">Странного Вола</a> в <a href=\"/ru/wiki/%D0%A0%D0%B8%D0%B2%D0%B8%D0%BD%D0%B3%D1%82%D0%BE%D0%BD\" title=\"Ривингтон\">Ривингтоне</a>. Если убъёте его раньше, шляпы не будет.\n</p>\n<!-- \nNewPP limit report\nCached time: 20260419155053\nCache expiry: 2592000\nReduced expiry: false\nComplications: [no‐toc]\nCPU time usage: 0.038 seconds\nReal time usage: 0.045 seconds\nPreprocessor visited node count: 187/1000000\nPost‐expand include size: 1722/2097152 bytes\nTemplate argument size: 529/2097152 bytes\nHighest expansion depth: 5/100\nExpensive parser function count: 0/100\nUnstrip recursion depth: 0/20\nUnstrip post‐expand size: 28/5000000 bytes\n-->\n<!--\nTransclusion expansion time report (%,ms,calls,template)\n100.00%   33.859      1 -total\n 93.74%   31.741      1 Шаблон:Инфо-Предмет_BG3\n  5.98%    2.025      1 Шаблон:Описание\n-->\n\n<!-- Saved in parser cache with key 1.43.1_prod_rubaldursgate813:pcache:idhash:6248-0!sseVary=RegularPage!FandomDesktop!LegacyGalleries and timestamp 20260419155053 and revision id 39101. Rendering was triggered because: api-parse\n -->\n</div>",
+      "categories": [
+        {
+          "sortkey": "",
+          "category": "Снаряжение_BG3"
+        },
+        {
+          "sortkey": "",
+          "category": "Броня_BG3"
+        }
+      ],
+      "links": [
+        {
+          "ns": 0,
+          "title": "Baldur's Gate III",
+          "exists": true
+        },
+        {
+          "ns": 0,
+          "title": "Предметы/Шлемы и головные уборы",
+          "exists": true
+        },
+        {
+          "ns": 0,
+          "title": "Ривингтон",
+          "exists": true
+        },
+        {
+          "ns": 0,
+          "title": "Странный вол",
+          "exists": true
+        }
+      ],
+      "displaytitle": "<span class=\"mw-page-title-main\">Шляпа огневого чутья</span>",
+      "wikitext": "{{Инфо-Предмет BG3\n|Название={{PAGENAME}}\n|Вес=0,5\n|Цена=90\n|Иконка=Wizard Hat Icon.png\n|Изображение=Wizard Hat Icon.png\n|Описание=\n<!--Общая информация-->\n|Редкость = <div style=\"color:green;\">Необычный</div>\n|Тип=\n|Подтип=\n|Эффект=Испытания:\n}}\n{{Описание|Говорят, некоторые шляпы волшебников способны охлаждать голову владельцв - как в прямом, так и в переносном смысле.|Описание в игре}}\n'''{{PAGENAME}}''' (англ. ''Hat of Fire Acuity'') - это [[Предметы/Шлемы и головные уборы|головной убор]] в [[Baldur's Gate III]].\n==Свойства==\n* '''Огненная интуиция''': Всякий раз, когда вы наносите урон огнём, вы получаете магическую интуицию на 2 хода.\n\n==Получение==\nС тела [[Странный вол|Странного Вола]] в [[Ривингтон]]е. Если убъёте его раньше, шляпы не будет.\n[[Категория:Снаряжение BG3]]\n[[Категория:Броня BG3]]\n__NOTOC__"
+    }
+  }
+}

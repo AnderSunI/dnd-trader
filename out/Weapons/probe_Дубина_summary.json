@@ -1,0 +1,25 @@
+{
+  "title": "Дубина",
+  "resolved_title": "Дубина",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T18:01:17Z",
+  "wikitext_chars_query": 1232,
+  "wikitext_chars_parse": 1232,
+  "html_chars": 191221,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

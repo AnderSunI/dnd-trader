@@ -1,0 +1,37 @@
+{
+  "title": "Соленый скимитар(р-р-р)",
+  "resolved_title": "Соленый скимитар(р-р-р)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T18:34:26Z",
+  "wikitext_chars_query": 1360,
+  "wikitext_chars_parse": 1360,
+  "html_chars": 192227,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

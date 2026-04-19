@@ -1,0 +1,37 @@
+{
+  "title": "\"Танцующий под дождем\"",
+  "resolved_title": "\"Танцующий под дождем\"",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-29T20:49:07Z",
+  "wikitext_chars_query": 1398,
+  "wikitext_chars_parse": 1398,
+  "html_chars": 196540,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

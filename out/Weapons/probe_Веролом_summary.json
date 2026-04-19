@@ -1,0 +1,33 @@
+{
+  "title": "Веролом",
+  "resolved_title": "Веролом",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T07:23:42Z",
+  "wikitext_chars_query": 1330,
+  "wikitext_chars_parse": 1330,
+  "html_chars": 193038,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

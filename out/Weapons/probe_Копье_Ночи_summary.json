@@ -1,0 +1,33 @@
+{
+  "title": "Копье Ночи",
+  "resolved_title": "Копье Ночи",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T14:00:47Z",
+  "wikitext_chars_query": 1088,
+  "wikitext_chars_parse": 1088,
+  "html_chars": 188875,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

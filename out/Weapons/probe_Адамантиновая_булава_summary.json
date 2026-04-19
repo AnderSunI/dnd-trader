@@ -1,0 +1,37 @@
+{
+  "title": "Адамантиновая булава",
+  "resolved_title": "Адамантиновая булава",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-08T05:46:41Z",
+  "wikitext_chars_query": 1902,
+  "wikitext_chars_parse": 1902,
+  "html_chars": 191042,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особые"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Заметки"
+    }
+  ]
+}

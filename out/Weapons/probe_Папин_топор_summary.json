@@ -1,0 +1,33 @@
+{
+  "title": "Папин топор",
+  "resolved_title": "Папин топор",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T06:56:53Z",
+  "wikitext_chars_query": 1137,
+  "wikitext_chars_parse": 1137,
+  "html_chars": 190273,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Кривая ветвь",
+  "resolved_title": "Кривая ветвь",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T10:12:17Z",
+  "wikitext_chars_query": 909,
+  "wikitext_chars_parse": 909,
+  "html_chars": 186709,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Адамантиновый скимитар",
+  "resolved_title": "Адамантиновый скимитар",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-07T19:14:14Z",
+  "wikitext_chars_query": 1956,
+  "wikitext_chars_parse": 1956,
+  "html_chars": 193224,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Особенности"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особые"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

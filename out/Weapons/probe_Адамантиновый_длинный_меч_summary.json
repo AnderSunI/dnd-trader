@@ -1,0 +1,33 @@
+{
+  "title": "Адамантиновый длинный меч",
+  "resolved_title": "Адамантиновый длинный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-05-20T19:54:55Z",
+  "wikitext_chars_query": 2163,
+  "wikitext_chars_parse": 2163,
+  "html_chars": 197498,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особые"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

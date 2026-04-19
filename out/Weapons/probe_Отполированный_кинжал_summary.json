@@ -1,0 +1,25 @@
+{
+  "title": "Отполированный кинжал",
+  "resolved_title": "Отполированный кинжал",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T15:33:03Z",
+  "wikitext_chars_query": 1169,
+  "wikitext_chars_parse": 1169,
+  "html_chars": 191205,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

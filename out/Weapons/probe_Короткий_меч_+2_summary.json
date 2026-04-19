@@ -1,0 +1,25 @@
+{
+  "title": "Короткий меч +2",
+  "resolved_title": "Короткий меч +2",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T16:41:51Z",
+  "wikitext_chars_query": 1284,
+  "wikitext_chars_parse": 1284,
+  "html_chars": 192314,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

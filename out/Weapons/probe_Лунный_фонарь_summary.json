@@ -1,0 +1,37 @@
+{
+  "title": "Лунный фонарь",
+  "resolved_title": "Лунный фонарь",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T10:26:42Z",
+  "wikitext_chars_query": 3820,
+  "wikitext_chars_parse": 3820,
+  "html_chars": 198451,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Остальное"
+    },
+    {
+      "index": "4",
+      "line": "Где найти"
+    },
+    {
+      "index": "5",
+      "line": "Интересные факты"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

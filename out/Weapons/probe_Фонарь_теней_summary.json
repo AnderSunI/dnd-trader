@@ -1,0 +1,37 @@
+{
+  "title": "Фонарь теней",
+  "resolved_title": "Фонарь теней",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-15T06:54:47Z",
+  "wikitext_chars_query": 2758,
+  "wikitext_chars_parse": 2758,
+  "html_chars": 195795,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Где найти"
+    },
+    {
+      "index": "5",
+      "line": "Интересные факты"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

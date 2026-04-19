@@ -1,0 +1,33 @@
+{
+  "title": "Рапира",
+  "resolved_title": "Рапира",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-24T22:58:29Z",
+  "wikitext_chars_query": 1391,
+  "wikitext_chars_parse": 1391,
+  "html_chars": 194926,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

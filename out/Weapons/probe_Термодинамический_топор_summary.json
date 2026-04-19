@@ -1,0 +1,37 @@
+{
+  "title": "Термодинамический топор",
+  "resolved_title": "Термодинамический топор",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T07:27:25Z",
+  "wikitext_chars_query": 1587,
+  "wikitext_chars_parse": 1587,
+  "html_chars": 192416,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

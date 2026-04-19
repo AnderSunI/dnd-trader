@@ -1,0 +1,29 @@
+{
+  "title": "Булава",
+  "resolved_title": "Булава",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:06:18Z",
+  "wikitext_chars_query": 1750,
+  "wikitext_chars_parse": 1750,
+  "html_chars": 191640,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

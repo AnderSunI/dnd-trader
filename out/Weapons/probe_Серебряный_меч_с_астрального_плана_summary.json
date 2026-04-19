@@ -1,0 +1,37 @@
+{
+  "title": "Серебряный меч с астрального плана",
+  "resolved_title": "Серебряный меч с астрального плана",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-01-21T05:13:07Z",
+  "wikitext_chars_query": 1971,
+  "wikitext_chars_parse": 1971,
+  "html_chars": 196095,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

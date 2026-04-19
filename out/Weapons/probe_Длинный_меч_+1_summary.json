@@ -1,0 +1,25 @@
+{
+  "title": "Длинный меч +1",
+  "resolved_title": "Длинный меч +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T05:42:07Z",
+  "wikitext_chars_query": 1988,
+  "wikitext_chars_parse": 1988,
+  "html_chars": 195384,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

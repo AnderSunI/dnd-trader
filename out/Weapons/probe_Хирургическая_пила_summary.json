@@ -1,0 +1,29 @@
+{
+  "title": "Хирургическая пила",
+  "resolved_title": "Хирургическая пила",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T08:34:28Z",
+  "wikitext_chars_query": 1100,
+  "wikitext_chars_parse": 1100,
+  "html_chars": 189722,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

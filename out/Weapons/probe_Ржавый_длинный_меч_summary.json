@@ -1,0 +1,33 @@
+{
+  "title": "Ржавый длинный меч",
+  "resolved_title": "Ржавый длинный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T07:59:17Z",
+  "wikitext_chars_query": 1245,
+  "wikitext_chars_parse": 1245,
+  "html_chars": 191801,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

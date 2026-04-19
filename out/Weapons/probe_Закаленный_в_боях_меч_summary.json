@@ -1,0 +1,33 @@
+{
+  "title": "Закаленный в боях меч",
+  "resolved_title": "Закаленный в боях меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:17:09Z",
+  "wikitext_chars_query": 1435,
+  "wikitext_chars_parse": 1435,
+  "html_chars": 193322,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

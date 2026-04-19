@@ -1,0 +1,25 @@
+{
+  "title": "Трепан",
+  "resolved_title": "Трепан",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T08:01:08Z",
+  "wikitext_chars_query": 1245,
+  "wikitext_chars_parse": 1245,
+  "html_chars": 192068,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

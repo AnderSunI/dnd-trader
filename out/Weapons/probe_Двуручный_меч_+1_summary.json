@@ -1,0 +1,37 @@
+{
+  "title": "Двуручный меч +1",
+  "resolved_title": "Двуручный меч +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-05-22T17:37:06Z",
+  "wikitext_chars_query": 1628,
+  "wikitext_chars_parse": 1628,
+  "html_chars": 192573,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Примечания"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

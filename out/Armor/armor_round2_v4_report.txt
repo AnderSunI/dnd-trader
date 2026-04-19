@@ -1,0 +1,34 @@
+BG3 armor round 2 v4 report
+===========================
+Input items file: /home/anderson/dnd-trader/out/Armor/items.armor.json
+Probe directory: /home/anderson/dnd-trader/out/Armor
+Output items file: /home/anderson/dnd-trader/out/Armor/items.armor.round2.v4.json
+
+Всего items: 352
+Найдено probe json: 343
+С flavor_text: 334
+С mechanics_text: 313
+С passives: 276
+С granted_actions: 29
+Без probe: 9
+
+Что чинит v4:
+- ищет probe_*.json не только по exact title, но и по underscore / sanitized filename
+- сначала тянет flavor и mechanics из parse.parse.text (HTML)
+- потом делает fallback на query.query.pages[].revisions[].slots.main.content (wikitext)
+- тянет {{Описание|...|Описание в игре}} в flavor_text / lore
+- тянет bullets из разделов Особенности / Свойства / Эффекты
+- тянет Эффекты ношения из infobox как fallback
+- обновляет slot/category overrides для head / hands / feet / cloak / shield
+- нормализует rarity, tags, ui.priority и summary_short
+
+Первые missing probe titles:
+- Кожаный доспех (Baldur's Gate III)
+- Нагрудник +1 (Обычный)
+- Плащ нимфы (Baldur's Gate III)
+- Полулаты темного юстициара (Очень редкий)
+- Полулаты темного юстициара (Редкий)
+- Рукавицы темного юстициара (необычные)
+- Рукавицы темного юстициара (редкие)
+- Шлем темного юстициара (Необычный)
+- Щит (Baldur's Gate III)

@@ -1,0 +1,29 @@
+{
+  "title": "Ржавый серп",
+  "resolved_title": "Ржавый серп",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T12:36:46Z",
+  "wikitext_chars_query": 806,
+  "wikitext_chars_parse": 806,
+  "html_chars": 186650,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

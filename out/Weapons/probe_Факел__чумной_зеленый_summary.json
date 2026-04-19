@@ -1,0 +1,25 @@
+{
+  "title": "Факел: чумной зеленый",
+  "resolved_title": "Факел: чумной зеленый",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-10T14:13:40Z",
+  "wikitext_chars_query": 1148,
+  "wikitext_chars_parse": 1148,
+  "html_chars": 12613,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    },
+    {
+      "index": "3",
+      "line": "Применение"
+    }
+  ]
+}

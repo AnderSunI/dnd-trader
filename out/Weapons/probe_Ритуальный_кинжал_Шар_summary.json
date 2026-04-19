@@ -1,0 +1,25 @@
+{
+  "title": "Ритуальный кинжал Шар",
+  "resolved_title": "Ритуальный кинжал Шар",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T14:52:19Z",
+  "wikitext_chars_query": 1352,
+  "wikitext_chars_parse": 1352,
+  "html_chars": 193329,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

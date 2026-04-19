@@ -1,0 +1,37 @@
+{
+  "title": "Булава служанки (Baldur's Gate III)",
+  "resolved_title": "Булава служанки (Baldur's Gate III)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T10:26:15Z",
+  "wikitext_chars_query": 1640,
+  "wikitext_chars_parse": 1640,
+  "html_chars": 189749,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "title": "Легкий арбалет +1",
+  "resolved_title": "Легкий арбалет +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-10T06:56:24Z",
+  "wikitext_chars_query": 1623,
+  "wikitext_chars_parse": 1623,
+  "html_chars": 191599,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

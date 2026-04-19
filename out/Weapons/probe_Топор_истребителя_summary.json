@@ -1,0 +1,33 @@
+{
+  "title": "Топор истребителя",
+  "resolved_title": "Топор истребителя",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T14:20:05Z",
+  "wikitext_chars_query": 1146,
+  "wikitext_chars_parse": 1146,
+  "html_chars": 191330,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

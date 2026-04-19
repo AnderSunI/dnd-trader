@@ -1,0 +1,29 @@
+{
+  "title": "Ведьмобой",
+  "resolved_title": "Ведьмобой",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-09-27T15:10:48Z",
+  "wikitext_chars_query": 1796,
+  "wikitext_chars_parse": 1796,
+  "html_chars": 195409,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

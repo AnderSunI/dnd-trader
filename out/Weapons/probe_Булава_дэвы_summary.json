@@ -1,0 +1,37 @@
+{
+  "title": "Булава дэвы",
+  "resolved_title": "Булава дэвы",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:09:50Z",
+  "wikitext_chars_query": 2376,
+  "wikitext_chars_parse": 2376,
+  "html_chars": 194367,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Примечания"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

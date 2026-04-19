@@ -1,0 +1,37 @@
+{
+  "title": "Призываемый двуручный меч",
+  "resolved_title": "Призываемый двуручный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-08T14:34:37Z",
+  "wikitext_chars_query": 1409,
+  "wikitext_chars_parse": 1409,
+  "html_chars": 196450,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Как получить"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

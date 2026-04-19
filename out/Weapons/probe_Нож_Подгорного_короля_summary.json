@@ -1,0 +1,29 @@
+{
+  "title": "Нож Подгорного короля",
+  "resolved_title": "Нож Подгорного короля",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-09-27T15:10:12Z",
+  "wikitext_chars_query": 2009,
+  "wikitext_chars_parse": 2009,
+  "html_chars": 194868,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

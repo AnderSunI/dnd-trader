@@ -62,6 +62,7 @@ const GM_NOTES_STATE = {
 
 const CABINET_INVENTORY_STATE = {
   customFormOpen: false,
+  filtersVisible: true,
 };
 
 const FILES_STATE = {
@@ -111,6 +112,12 @@ function escapeHtml(value) {
 function safeText(value, fallback = "—") {
   if (value === null || value === undefined || value === "") return fallback;
   return String(value);
+}
+
+function clampText(value, maxLength = 120) {
+  const text = safeText(value, "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  return text.length > maxLength ? `${text.slice(0, maxLength).trim()}…` : text;
 }
 
 function safeNumber(value, fallback = 0) {
@@ -466,6 +473,161 @@ function setActiveCabinetButton(tabName) {
   });
 }
 
+function splitCabinetTabLabel(label) {
+  const text = String(label || "").trim();
+  const match = text.match(/^([^\s]+)\s+(.*)$/);
+  if (!match) {
+    return {
+      icon: "•",
+      text,
+    };
+  }
+
+  return {
+    icon: match[1] || "•",
+    text: match[2] || text,
+  };
+}
+
+function getCabinetActiveTabLabel() {
+  return (
+    getVisibleTabsByRole(CABINET_STATE.role).find((tab) => tab.key === CABINET_STATE.activeTab)?.label ||
+    "Раздел"
+  );
+}
+
+function applyCabinetModalLayout() {
+  const modal = getEl("cabinetModal");
+  if (!modal) return;
+
+  const content =
+    modal.querySelector(".cabinet-modal-content") ||
+    modal.querySelector(".modal-content");
+
+  const layout = modal.querySelector(".cabinet-layout");
+  const sidebar = modal.querySelector(".cabinet-sidebar");
+  const main = modal.querySelector(".cabinet-main");
+  const closeBtn = content?.querySelector(".close");
+
+  if (content) {
+    const desktopWidth = window.innerWidth <= 1360
+      ? "calc(100vw - 40px)"
+      : "calc(100vw - 132px)";
+
+    content.style.position = "relative";
+    content.style.width = `min(1240px, ${desktopWidth})`;
+    content.style.maxWidth = "1240px";
+    content.style.maxHeight = "calc(100vh - 88px)";
+    content.style.margin = "40px auto";
+    content.style.padding = "14px 14px 16px";
+    content.style.overflow = "hidden auto";
+  }
+
+  if (layout) {
+    layout.style.display = "grid";
+    layout.style.gridTemplateColumns =
+      window.innerWidth <= 1180 ? "1fr" : "198px minmax(0, 1fr)";
+    layout.style.gap = "12px";
+    layout.style.alignItems = "start";
+  }
+
+  if (sidebar) {
+    sidebar.style.minWidth = "0";
+    sidebar.style.padding = "10px";
+    sidebar.style.borderRadius = "18px";
+  }
+
+  if (main) {
+    main.style.minWidth = "0";
+  }
+
+  if (closeBtn) {
+    closeBtn.style.position = "absolute";
+    closeBtn.style.top = "10px";
+    closeBtn.style.right = "10px";
+    closeBtn.style.left = "auto";
+    closeBtn.style.zIndex = "8";
+    closeBtn.style.width = "30px";
+    closeBtn.style.height = "30px";
+    closeBtn.style.minHeight = "30px";
+    closeBtn.style.fontSize = "19px";
+  }
+}
+
+function getEquippedEntries() {
+  const equipment = getEquipmentState();
+  const result = [];
+
+  EQUIPMENT_SLOT_CONFIG.forEach((slot) => {
+    const itemId = Number(equipment?.[slot.key]?.itemId);
+    const item = itemId ? findInventoryItemById(itemId) : null;
+
+    if (item) {
+      result.push({
+        slotKey: slot.key,
+        slotLabel: slot.label,
+        item,
+      });
+    }
+  });
+
+  return result;
+}
+
+function renderEquippedItemsInlineSummary() {
+  const equipped = getEquippedEntries();
+
+  if (!equipped.length) {
+    return `<div class="muted" style="font-size:0.82rem;">Ничего не надето. Открой слоты только когда они реально нужны.</div>`;
+  }
+
+  return `
+    <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+      ${equipped
+        .map((entry) => `
+          <span class="meta-item" title="${escapeHtml(entry.slotLabel)}">
+            ${escapeHtml(entry.slotLabel)}: ${escapeHtml(entry.item?.name || "Предмет")}
+          </span>
+        `)
+        .join("")}
+    </div>
+  `;
+}
+
+function inventoryCategoryLabel(value) {
+  const raw = String(value || "").trim().toLowerCase();
+
+  const map = {
+    accessory: "Аксессуары",
+    alchemy: "Алхимия",
+    armor: "Броня",
+    consumables: "Расходники",
+    food_drink: "Еда и напитки",
+    misc: "Разное",
+    potions_elixirs: "Зелья и эликсиры",
+    tools: "Инструменты",
+    weapon: "Оружие",
+    "прочее": "Разное",
+  };
+
+  return map[raw] || safeText(value, "—");
+}
+
+function rarityLabel(value) {
+  const raw = normalizeRarityValue(value);
+
+  const map = {
+    common: "Обычный",
+    uncommon: "Необычный",
+    rare: "Редкий",
+    "very rare": "Очень редкий",
+    legendary: "Легендарный",
+    artifact: "Артефакт",
+  };
+
+  return map[raw] || safeText(value, "—");
+}
+
 // ------------------------------------------------------------
 // 🏗️ SHELL
 // ------------------------------------------------------------
@@ -488,6 +650,7 @@ function ensureCabinetStructure() {
     main.appendChild(section);
   }
 
+  applyCabinetModalLayout();
   return modal;
 }
 
@@ -497,16 +660,22 @@ function renderCabinetHeader() {
 
   const user = getCurrentUser();
   const role = CABINET_STATE.role === "gm" ? "ГМ" : "Игрок";
+  const activeLabel = getCabinetActiveTabLabel();
 
   header.innerHTML = `
-    <div class="cabinet-header-inner">
-      <div class="flex-between">
+    <div class="cabinet-header-inner" style="padding-right:34px;">
+      <div class="flex-between" style="align-items:flex-start; gap:8px; flex-wrap:wrap;">
         <div>
-          <h2 style="margin:0;">Кабинет персонажа</h2>
-          <div class="muted">
+          <div class="muted" style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px;">Личный кабинет</div>
+          <h2 style="margin:0 0 3px 0; font-size:1.16rem;">Кабинет персонажа</h2>
+          <div class="muted" style="font-size:0.82rem;">
             Роль: <strong>${escapeHtml(role)}</strong>
             ${user?.email ? ` • ${escapeHtml(user.email)}` : ""}
           </div>
+        </div>
+
+        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+          <span class="meta-item">Раздел: ${escapeHtml(activeLabel)}</span>
         </div>
       </div>
     </div>
@@ -521,10 +690,29 @@ function renderCabinetTabs() {
 
   root.innerHTML = tabs
     .map((tab) => {
-      const active = tab.key === CABINET_STATE.activeTab ? "active" : "";
+      const active = tab.key === CABINET_STATE.activeTab;
+      const parts = splitCabinetTabLabel(tab.label);
+
       return `
-        <button class="btn ${active}" data-cabinet-tab="${escapeHtml(tab.key)}">
-          ${escapeHtml(tab.label)}
+        <button
+          class="btn ${active ? "active" : ""}"
+          data-cabinet-tab="${escapeHtml(tab.key)}"
+          style="
+            width:100%;
+            min-height:40px;
+            padding:8px 10px;
+            justify-content:flex-start;
+            text-align:left;
+            border-radius:15px;
+            font-size:0.86rem;
+            font-weight:800;
+            line-height:1.05;
+          "
+        >
+          <span style="display:flex; align-items:center; gap:9px; width:100%;">
+            <span style="width:16px; text-align:center; font-size:0.92rem;">${escapeHtml(parts.icon)}</span>
+            <span>${escapeHtml(parts.text)}</span>
+          </span>
         </button>
       `;
     })
@@ -860,14 +1048,15 @@ const EQUIPMENT_SLOT_CONFIG = [
 
 function ensureCabinetInventoryStateDefaults() {
   CABINET_INVENTORY_STATE.customFormOpen ??= false;
+  CABINET_INVENTORY_STATE.filtersVisible ??= false;
   CABINET_INVENTORY_STATE.search ??= "";
   CABINET_INVENTORY_STATE.rarity ??= "";
   CABINET_INVENTORY_STATE.magic ??= "";
   CABINET_INVENTORY_STATE.category ??= "";
   CABINET_INVENTORY_STATE.equippedOnly ??= false;
   CABINET_INVENTORY_STATE.sort ??= "name";
-  CABINET_INVENTORY_STATE.viewMode ??= "inventory";
-  CABINET_INVENTORY_STATE.equipmentVisible ??= true;
+  CABINET_INVENTORY_STATE.viewMode ??= "table";
+  CABINET_INVENTORY_STATE.equipmentVisible ??= false;
   CABINET_INVENTORY_STATE.slotSelections ??= {};
   CABINET_INVENTORY_STATE.equipment ??= loadEquipmentStateLocal();
 }
@@ -1084,6 +1273,45 @@ function collectItemPassiveTexts(item) {
   return [...new Set(pieces)].filter(Boolean).slice(0, 4);
 }
 
+function renderEquippedEffectsTextSummary(effects, emptySlots) {
+  if (!effects.length) {
+    return `
+      <div class="muted" style="font-size:0.82rem; line-height:1.45;">
+        Сейчас ничего не надето. Пустых слотов: <strong>${emptySlots}</strong>. Когда наденешь предметы, тут появится обычная текстовая сводка по слотам и эффектам.
+      </div>
+    `;
+  }
+
+  const totalEffects = effects.reduce(
+    (sum, entry) => sum + safeNumber(entry?.lines?.length, 0),
+    0
+  );
+  const attunedCount = effects.filter((entry) => entry?.attunement).length;
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div class="muted" style="font-size:0.82rem; line-height:1.45;">
+        Надето предметов: <strong>${effects.length}</strong> из ${EQUIPMENT_SLOT_CONFIG.length}. Пустых слотов: <strong>${emptySlots}</strong>. Требуют настройки: <strong>${attunedCount}</strong>. Найдено эффектов: <strong>${totalEffects}</strong>.
+      </div>
+
+      ${effects
+        .map((entry) => {
+          const details = (entry?.lines || []).length
+            ? entry.lines.join(" • ")
+            : "Эффекты не заданы";
+          const tail = entry?.attunement ? " Требует настройки." : "";
+
+          return `
+            <div class="muted" style="font-size:0.82rem; line-height:1.45;">
+              <strong>${escapeHtml(entry.slot)}</strong> — ${escapeHtml(entry.itemName)}. ${escapeHtml(details)}${tail}
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
 function renderEquipmentPanel(items) {
   ensureCabinetInventoryStateDefaults();
   cleanupEquipmentState();
@@ -1108,43 +1336,36 @@ function renderEquipmentPanel(items) {
     }
 
     return `
-      <div class="cabinet-block" style="padding:12px; min-height:148px; display:flex; flex-direction:column; gap:8px;">
+      <div class="cabinet-block" style="padding:10px 12px; min-height:92px; display:flex; flex-direction:column; gap:6px; border-radius:16px;">
         <div class="flex-between" style="align-items:flex-start; gap:8px;">
-          <strong>${escapeHtml(slot.label)}</strong>
-          ${item ? `<span class="meta-item ${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.rarity, "common"))}</span>` : `<span class="meta-item">пусто</span>`}
+          <strong style="font-size:0.86rem; line-height:1.15;">${escapeHtml(slot.label)}</strong>
+          <span class="meta-item ${item ? escapeHtml(rareClass) : ""}" style="font-size:0.72rem;">${item ? escapeHtml(rarityLabel(item?.rarity)) : "Пусто"}</span>
         </div>
 
         ${item ? `
-          <div>
-            <div class="${escapeHtml(rareClass)}" style="font-weight:800; line-height:1.25;">${escapeHtml(item?.name || "Предмет")}</div>
-            <div class="inv-item-details" style="margin-top:6px;">
-              <span>Цена: ${escapeHtml(formatPriceLabel(item))}</span>
-              <span>Категория: ${escapeHtml(safeText(item?.category, "—"))}</span>
-            </div>
-          </div>
-
-          ${passiveLines.length ? `
-            <div class="muted" style="font-size:0.82rem; line-height:1.35;">${escapeHtml(passiveLines.join(" • "))}</div>
-          ` : `<div class="muted" style="font-size:0.82rem;">Эффекты не заданы.</div>`}
-
-          <div class="cart-buttons" style="margin-top:auto;">
-            <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">📖 Описание</button>
-            <button class="btn btn-danger" type="button" data-cabinet-unequip-slot="${escapeHtml(slot.key)}">Снять</button>
+          <div class="${escapeHtml(rareClass)}" style="font-weight:800; line-height:1.2; font-size:0.86rem;">${escapeHtml(clampText(item?.name || "Предмет", 40))}</div>
+          <div class="muted" style="font-size:0.78rem; line-height:1.3;">${escapeHtml(clampText((passiveLines || []).join(" • ") || "Эффекты не заданы", 96))}</div>
+          <div class="cart-buttons" style="margin-top:auto; gap:6px; justify-content:flex-start;">
+            <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Описание</button>
+            <button class="btn btn-danger" type="button" data-cabinet-unequip-slot="${escapeHtml(slot.key)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Снять</button>
           </div>
         ` : `
-          <div class="muted" style="margin-top:10px;">Ничего не надето.</div>
-          <div class="muted" style="font-size:0.82rem; margin-top:auto;">Совместимые предметы из инвентаря можно надеть прямо из списка ниже.</div>
+          <div class="muted" style="font-size:0.8rem; line-height:1.3;">Ничего не надето.</div>
+          <div class="muted" style="font-size:0.76rem; line-height:1.25; margin-top:auto;">Подходящий предмет можно надеть из списка ниже.</div>
         `}
       </div>
     `;
   }).join("");
 
+  const equipped = getEquippedEntries();
+  const emptySlots = Math.max(0, EQUIPMENT_SLOT_CONFIG.length - equipped.length);
+
   return `
     <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
         <div>
-          <h3 style="margin:0 0 4px 0;">🧷 Экипировка</h3>
-          <div class="muted">BG3-подобные слоты поверх обычного инвентаря. Пока local-first, но уже готово под дальнейший бэк.</div>
+          <h3 style="margin:0 0 4px 0; font-size:1rem;">🧷 Экипировка</h3>
+          <div class="muted" style="font-size:0.8rem;">Сверху обычная текстовая сводка. Сами слоты открываются отдельным компактным блоком.</div>
         </div>
 
         <div class="cart-buttons">
@@ -1153,38 +1374,16 @@ function renderEquipmentPanel(items) {
       </div>
     </div>
 
+    <div class="cabinet-block" style="margin-bottom:12px; padding:10px 12px;">
+      <h4 style="margin:0 0 8px 0; font-size:0.92rem;">✨ Что даёт надетое</h4>
+      ${renderEquippedEffectsTextSummary(effects, emptySlots)}
+    </div>
+
     ${CABINET_INVENTORY_STATE.equipmentVisible ? `
-      <div class="profile-grid" style="margin-bottom:12px; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr); align-items:start; gap:12px;">
-        <div>
-          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
-            ${slotsMarkup}
-          </div>
-        </div>
-
-        <div class="cabinet-block" style="padding:12px;">
-          <h3 style="margin:0 0 10px 0;">✨ Что даёт надетое</h3>
-
-          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-bottom:10px;">
-            <div class="stat-box" style="min-height:auto; padding:10px;">
-              <div class="muted">Надето</div>
-              <div style="font-size:18px; font-weight:800;">${effects.length}</div>
-            </div>
-            <div class="stat-box" style="min-height:auto; padding:10px;">
-              <div class="muted">С настройкой</div>
-              <div style="font-size:18px; font-weight:800;">${effects.filter((entry) => entry?.attunement).length}</div>
-            </div>
-            <div class="stat-box" style="min-height:auto; padding:10px;">
-              <div class="muted">Эффектов</div>
-              <div style="font-size:18px; font-weight:800;">${effects.reduce((sum, entry) => sum + safeNumber(entry?.lines?.length, 0), 0)}</div>
-            </div>
-          </div>
-
-          ${effects.length ? effects.map((entry) => `
-            <div class="lss-rich-block" style="margin-bottom:10px;">
-              <h4 style="margin-bottom:6px;">${escapeHtml(entry.slot)} • ${escapeHtml(entry.itemName)}</h4>
-              <div class="muted" style="line-height:1.4;">${escapeHtml((entry.lines || []).join(" • ") || "Эффекты не заданы")}</div>
-            </div>
-          `).join("") : `<div class="muted">Слоты пока пусты. Надень предметы из инвентаря, чтобы увидеть эффекты и пассивки.</div>`}
+      <div class="cabinet-block" style="margin-bottom:12px; padding:10px 12px;">
+        <h4 style="margin:0 0 8px 0; font-size:0.92rem;">Слоты экипировки</h4>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+          ${slotsMarkup}
         </div>
       </div>
     ` : ""}
@@ -1251,17 +1450,28 @@ function getCabinetFilteredInventory(items) {
 }
 
 function renderInventorySummary(items) {
-  const equippedCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(getEquippedSlotForItem(getInventoryItemId(item)))).length;
+  const equippedEntries = getEquippedEntries();
   const magicalCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(item?.is_magical)).length;
   const customCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(item?.is_custom)).length;
 
   return `
     <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="trader-meta">
-        <span class="meta-item">🎒 Предметов: ${getInventoryCount(items)}</span>
-        <span class="meta-item">🧷 Надето: ${equippedCount}</span>
-        <span class="meta-item">✨ Магических: ${magicalCount}</span>
-        <span class="meta-item">🛠 Custom: ${customCount}</span>
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <h3 style="margin:0 0 4px 0; font-size:1rem;">Инвентарь игрока</h3>
+          <div class="muted" style="font-size:0.8rem;">Рабочий список предметов. Лишнее можно скрыть и оставить только нужные параметры.</div>
+        </div>
+
+        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+          <span class="meta-item">🎒 Предметов: ${getInventoryCount(items)}</span>
+          <span class="meta-item">✨ Магических: ${magicalCount}</span>
+          <span class="meta-item">🛠 Custom: ${customCount}</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="muted" style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Надето сейчас</div>
+        ${renderEquippedItemsInlineSummary()}
       </div>
     </div>
   `;
@@ -1272,80 +1482,86 @@ function renderInventoryToolbar() {
 
   return `
     <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
-        <div>
-          <h3 style="margin:0 0 4px 0;">Инвентарь игрока</h3>
-          <div class="muted">Теперь это не заглушка: те же действия, что и в основном модуле, плюс кастомные предметы и экипировка по слотам.</div>
-        </div>
-
-        <div class="cart-buttons">
+      <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div class="cart-buttons" style="justify-content:flex-start; gap:6px;">
           <button class="btn" type="button" id="cabinetRefreshInventoryBtn">Обновить</button>
+          <button class="btn" type="button" id="cabinetToggleInventoryFiltersBtn">${CABINET_INVENTORY_STATE.filtersVisible ? "Фильтры: скрыть" : "Фильтры: показать"}</button>
           <button class="btn btn-primary" type="button" id="cabinetAddCustomItemBtn">
-            ${CABINET_INVENTORY_STATE.customFormOpen ? "Скрыть форму" : "＋ Кастомный предмет"}
+            ${CABINET_INVENTORY_STATE.customFormOpen ? "Custom: скрыть" : "＋ Custom"}
           </button>
         </div>
-      </div>
 
-      <div class="collection-toolbar compact-collection-toolbar">
-        <div class="filter-group">
-          <label>🔍 Поиск</label>
-          <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, свойства, описание" />
-        </div>
-
-        <div class="filter-group">
-          <label>🎖 Редкость</label>
-          <select id="cabinetInventoryRarity">
-            <option value="">Любая</option>
-            <option value="common" ${CABINET_INVENTORY_STATE.rarity === "common" ? "selected" : ""}>common</option>
-            <option value="uncommon" ${CABINET_INVENTORY_STATE.rarity === "uncommon" ? "selected" : ""}>uncommon</option>
-            <option value="rare" ${CABINET_INVENTORY_STATE.rarity === "rare" ? "selected" : ""}>rare</option>
-            <option value="very rare" ${CABINET_INVENTORY_STATE.rarity === "very rare" ? "selected" : ""}>very rare</option>
-            <option value="legendary" ${CABINET_INVENTORY_STATE.rarity === "legendary" ? "selected" : ""}>legendary</option>
-            <option value="artifact" ${CABINET_INVENTORY_STATE.rarity === "artifact" ? "selected" : ""}>artifact</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>✨ Магия</label>
-          <select id="cabinetInventoryMagic">
-            <option value="" ${CABINET_INVENTORY_STATE.magic === "" ? "selected" : ""}>Любая</option>
-            <option value="magic" ${CABINET_INVENTORY_STATE.magic === "magic" ? "selected" : ""}>Только магические</option>
-            <option value="mundane" ${CABINET_INVENTORY_STATE.magic === "mundane" ? "selected" : ""}>Только обычные</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>📦 Категория</label>
-          <select id="cabinetInventoryCategory">
-            <option value="">Любая</option>
-            ${getInventoryCategories(getInventoryState()).map((category) => `<option value="${escapeHtml(category)}" ${String(CABINET_INVENTORY_STATE.category || "") === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}
-          </select>
-        </div>
-
-        <label class="inline-checkbox compact-inline-checkbox" style="margin-top:20px;">
-          <input id="cabinetInventoryEquippedOnly" type="checkbox" ${CABINET_INVENTORY_STATE.equippedOnly ? "checked" : ""} />
-          Только надетое
-        </label>
-
-        <div class="filter-group">
-          <label>↕ Сортировка</label>
-          <select id="cabinetInventorySort">
-            <option value="name" ${CABINET_INVENTORY_STATE.sort === "name" ? "selected" : ""}>Название</option>
-            <option value="price_asc" ${CABINET_INVENTORY_STATE.sort === "price_asc" ? "selected" : ""}>Дешёвые</option>
-            <option value="price_desc" ${CABINET_INVENTORY_STATE.sort === "price_desc" ? "selected" : ""}>Дорогие</option>
-            <option value="rarity" ${CABINET_INVENTORY_STATE.sort === "rarity" ? "selected" : ""}>Редкость</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>🧩 Вид</label>
-          <select id="cabinetInventoryViewMode">
-            <option value="inventory" ${CABINET_INVENTORY_STATE.viewMode === "inventory" ? "selected" : ""}>Список</option>
-            <option value="table" ${CABINET_INVENTORY_STATE.viewMode === "table" ? "selected" : ""}>Таблица</option>
-            <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
-          </select>
+        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+          <span class="meta-item">Вид: ${escapeHtml(CABINET_INVENTORY_STATE.viewMode === "table" ? "Таблица" : CABINET_INVENTORY_STATE.viewMode === "grid" ? "Карточки" : "Список")}</span>
+          ${CABINET_INVENTORY_STATE.equippedOnly ? `<span class="meta-item">Только надетое</span>` : ""}
+          ${CABINET_INVENTORY_STATE.filtersVisible ? `<span class="meta-item">Фильтры открыты</span>` : ""}
         </div>
       </div>
+
+      ${CABINET_INVENTORY_STATE.filtersVisible ? `
+        <div class="collection-toolbar compact-collection-toolbar" style="margin-top:6px;">
+          <div class="filter-group">
+            <label>🔍 Поиск</label>
+            <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, свойства, описание" />
+          </div>
+
+          <div class="filter-group">
+            <label>🎖 Редкость</label>
+            <select id="cabinetInventoryRarity">
+              <option value="">Любая</option>
+              <option value="common" ${CABINET_INVENTORY_STATE.rarity === "common" ? "selected" : ""}>Обычный</option>
+              <option value="uncommon" ${CABINET_INVENTORY_STATE.rarity === "uncommon" ? "selected" : ""}>Необычный</option>
+              <option value="rare" ${CABINET_INVENTORY_STATE.rarity === "rare" ? "selected" : ""}>Редкий</option>
+              <option value="very rare" ${CABINET_INVENTORY_STATE.rarity === "very rare" ? "selected" : ""}>Очень редкий</option>
+              <option value="legendary" ${CABINET_INVENTORY_STATE.rarity === "legendary" ? "selected" : ""}>Легендарный</option>
+              <option value="artifact" ${CABINET_INVENTORY_STATE.rarity === "artifact" ? "selected" : ""}>Артефакт</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>✨ Магия</label>
+            <select id="cabinetInventoryMagic">
+              <option value="" ${CABINET_INVENTORY_STATE.magic === "" ? "selected" : ""}>Любая</option>
+              <option value="magic" ${CABINET_INVENTORY_STATE.magic === "magic" ? "selected" : ""}>Только магические</option>
+              <option value="mundane" ${CABINET_INVENTORY_STATE.magic === "mundane" ? "selected" : ""}>Только обычные</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>📦 Категория</label>
+            <select id="cabinetInventoryCategory">
+              <option value="">Любая</option>
+              ${getInventoryCategories(getInventoryState())
+                .map((category) => `<option value="${escapeHtml(category)}" ${String(CABINET_INVENTORY_STATE.category || "") === category ? "selected" : ""}>${escapeHtml(inventoryCategoryLabel(category))}</option>`)
+                .join("")}
+            </select>
+          </div>
+
+          <label class="inline-checkbox compact-inline-checkbox" style="margin-top:20px;">
+            <input id="cabinetInventoryEquippedOnly" type="checkbox" ${CABINET_INVENTORY_STATE.equippedOnly ? "checked" : ""} />
+            Только надетое
+          </label>
+
+          <div class="filter-group">
+            <label>↕ Сортировка</label>
+            <select id="cabinetInventorySort">
+              <option value="name" ${CABINET_INVENTORY_STATE.sort === "name" ? "selected" : ""}>Название</option>
+              <option value="price_asc" ${CABINET_INVENTORY_STATE.sort === "price_asc" ? "selected" : ""}>Дешёвые</option>
+              <option value="price_desc" ${CABINET_INVENTORY_STATE.sort === "price_desc" ? "selected" : ""}>Дорогие</option>
+              <option value="rarity" ${CABINET_INVENTORY_STATE.sort === "rarity" ? "selected" : ""}>Редкость</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>🧩 Вид</label>
+            <select id="cabinetInventoryViewMode">
+              <option value="inventory" ${CABINET_INVENTORY_STATE.viewMode === "inventory" ? "selected" : ""}>Список</option>
+              <option value="table" ${CABINET_INVENTORY_STATE.viewMode === "table" ? "selected" : ""}>Таблица</option>
+              <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
+            </select>
+          </div>
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -1355,7 +1571,7 @@ function renderCustomItemForm() {
 
   return `
     <div class="cabinet-block" id="cabinetCustomItemFormBlock" style="margin-bottom:12px;">
-      <h3>Кастомный предмет</h3>
+      <h3 style="margin:0 0 10px 0;">Кастомный предмет</h3>
 
       <div class="collection-toolbar compact-collection-toolbar">
         <div class="filter-group">
@@ -1693,26 +1909,36 @@ function renderCabinetInventoryItemActions(item) {
   const allowedSlots = inferItemSlotOptions(item);
   const selectedSlot = CABINET_INVENTORY_STATE.slotSelections[itemId] || equippedSlot || allowedSlots[0] || "main_hand";
 
-  return `
-    <div class="cart-buttons" style="margin-top:10px; flex-wrap:wrap;">
-      <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">📖 Описание</button>
-      <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">💰 Продать</button>
-      <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">🗑 Удалить</button>
-      <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
-      <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
-    </div>
-
-    <div class="collection-toolbar compact-collection-toolbar" style="margin-top:10px; padding:0; background:none; border:none;">
-      <div class="filter-group" style="min-width:220px;">
-        <label>Слот экипировки</label>
+  const slotControl = allowedSlots.length > 1
+    ? `
+      <div class="filter-group" style="min-width:180px;">
+        <label>Слот</label>
         <select data-cabinet-slot-select="${escapeHtml(itemId)}">
-          ${allowedSlots.map((slotKey) => `<option value="${escapeHtml(slotKey)}" ${selectedSlot === slotKey ? "selected" : ""}>${escapeHtml(resolveSlotLabel(slotKey))}</option>`).join("")}
+          ${allowedSlots
+            .map((slotKey) => `<option value="${escapeHtml(slotKey)}" ${selectedSlot === slotKey ? "selected" : ""}>${escapeHtml(resolveSlotLabel(slotKey))}</option>`)
+            .join("")}
         </select>
       </div>
+    `
+    : allowedSlots.length === 1
+      ? `<div class="muted" style="font-size:0.8rem;">Слот: ${escapeHtml(resolveSlotLabel(allowedSlots[0]))}</div>`
+      : `<div class="muted" style="font-size:0.8rem;">Без экипируемого слота</div>`;
 
-      <div class="cart-buttons" style="align-self:flex-end;">
-        <button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">${equippedSlot ? "Переэкипировать" : "Надеть"}</button>
-        ${equippedSlot ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}">Снять</button>` : ""}
+  return `
+    <div class="collection-toolbar compact-collection-toolbar" style="margin-top:8px; gap:6px; align-items:flex-end;">
+      <div class="cart-buttons" style="gap:6px; justify-content:flex-start;">
+        <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Описание</button>
+        <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">−1</button>
+        <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">＋1</button>
+        <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Продать</button>
+        <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Удалить</button>
+      </div>
+
+      ${slotControl}
+
+      <div class="cart-buttons" style="gap:6px;">
+        ${allowedSlots.length ? `<button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">${equippedSlot ? "Переэкипировать" : "Надеть"}</button>` : ""}
+        ${equippedSlot ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Снять</button>` : ""}
       </div>
     </div>
   `;
@@ -1721,32 +1947,40 @@ function renderCabinetInventoryItemActions(item) {
 function renderCabinetInventoryCard(item) {
   const rareClass = rarityClass(item?.rarity);
   const quantity = safeText(item?.quantity, "1");
-  const rarity = safeText(item?.rarity, "—");
-  const category = safeText(item?.category, "—");
+  const rarity = rarityLabel(item?.rarity);
+  const category = inventoryCategoryLabel(item?.category);
   const price = formatPriceLabel(item);
   const itemId = getInventoryItemId(item);
   const customBadge = item?.is_custom ? `<span class="meta-item">custom</span>` : "";
   const equippedSlot = getEquippedSlotForItem(itemId);
   const passiveShort = collectItemPassiveTexts(item).slice(0, 2).join(" • ");
+  const shortDescription = clampText(item?.description, 120);
 
   return `
-    <div class="inventory-item">
+    <div class="inventory-item" style="padding:8px 0;">
       <div class="inventory-item-info">
-        <strong class="${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.name, "Без названия"))}</strong>
+        <div class="flex-between" style="align-items:flex-start; gap:8px; flex-wrap:wrap;">
+          <div>
+            <strong class="${escapeHtml(rareClass)}" style="font-size:0.92rem;">${escapeHtml(safeText(item?.name, "Без названия"))}</strong>
+            <div class="inv-item-details" style="margin-top:4px; font-size:0.78rem; gap:5px 8px;">
+              <span>Кол-во: ${escapeHtml(quantity)}</span>
+              <span class="${escapeHtml(rareClass)}">Редкость: ${escapeHtml(rarity)}</span>
+              <span>Категория: ${escapeHtml(category)}</span>
+              <span>Цена: ${escapeHtml(price)}</span>
+              ${item?.is_magical ? `<span>✨ магический</span>` : ""}
+              ${item?.attunement ? `<span>🔗 настройка</span>` : ""}
+              ${customBadge}
+              ${equippedSlot ? `<span>🧷 ${escapeHtml(resolveSlotLabel(equippedSlot))}</span>` : ""}
+            </div>
+          </div>
 
-        <div class="inv-item-details">
-          <span>Кол-во: ${escapeHtml(quantity)}</span>
-          <span class="${escapeHtml(rareClass)}">Редкость: ${escapeHtml(rarity)}</span>
-          <span>Категория: ${escapeHtml(category)}</span>
-          <span>Цена: ${escapeHtml(price)}</span>
-          ${item?.is_magical ? `<span>✨ магический</span>` : ""}
-          ${item?.attunement ? `<span>🔗 настройка</span>` : ""}
-          ${customBadge}
-          ${equippedSlot ? `<span>🧷 ${escapeHtml(resolveSlotLabel(equippedSlot))}</span>` : ""}
+          <div class="trader-meta" style="gap:6px;">
+            ${equippedSlot ? `<span class="meta-item">Надето</span>` : ""}
+          </div>
         </div>
 
-        ${item?.description ? `<div class="muted" style="margin-top:6px;">${escapeHtml(item.description)}</div>` : ""}
-        ${passiveShort ? `<div class="muted" style="margin-top:6px;">${escapeHtml(passiveShort)}</div>` : ""}
+        ${passiveShort ? `<div class="muted" style="margin-top:4px; font-size:0.78rem; line-height:1.28;">${escapeHtml(clampText(passiveShort, 110))}</div>` : ""}
+        ${shortDescription ? `<div class="muted" style="margin-top:3px; font-size:0.78rem; line-height:1.28;">${escapeHtml(shortDescription)}</div>` : ""}
 
         ${renderCabinetInventoryItemActions(item)}
       </div>
@@ -1756,8 +1990,8 @@ function renderCabinetInventoryCard(item) {
 
 function renderCabinetInventoryGrid(items) {
   return `
-    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px;">
-      ${items.map((item) => `<div class="cabinet-block" style="padding:12px;">${renderCabinetInventoryCard(item)}</div>`).join("")}
+    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
+      ${items.map((item) => `<div class="cabinet-block" style="padding:10px 12px;">${renderCabinetInventoryCard(item)}</div>`).join("")}
     </div>
   `;
 }
@@ -1785,7 +2019,7 @@ function renderCabinetInventoryTable(items) {
               <tr>
                 <td>
                   <div class="item-name ${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.name, "Без названия"))}</div>
-                  ${item?.description ? `<div class="muted" style="margin-top:4px; font-size:0.8rem;">${escapeHtml(item.description)}</div>` : ""}
+                  ${item?.description ? `<div class="muted" style="margin-top:3px; font-size:0.76rem; line-height:1.22;">${escapeHtml(clampText(item.description, 96))}</div>` : ""}
                 </td>
                 <td class="${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.rarity, "—"))}</td>
                 <td>${escapeHtml(safeText(item?.quantity, "1"))}</td>
@@ -1793,12 +2027,14 @@ function renderCabinetInventoryTable(items) {
                 <td>${equippedSlot ? escapeHtml(resolveSlotLabel(equippedSlot)) : "—"}</td>
                 <td>
                   <div class="item-actions item-actions-stack">
-                    <button class="btn js-cabinet-desc" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">📖</button>
+                    <button class="btn js-cabinet-desc" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">Описание</button>
                     <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
                     <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
-                    <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">💰</button>
-                    <button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">🧷</button>
-                    <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">🗑</button>
+                    <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">Продать</button>
+                    ${equippedSlot
+                      ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}">Снять</button>`
+                      : `<button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">Надеть</button>`}
+                    <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">Удалить</button>
                   </div>
                 </td>
               </tr>
@@ -1846,6 +2082,7 @@ function renderCabinetInventory() {
   const inventory = getInventoryState();
 
   container.innerHTML = `
+    ${renderInventorySummary(inventory)}
     ${renderInventoryToolbar()}
     ${renderEquipmentPanel(inventory)}
     ${renderCustomItemForm()}
@@ -1887,6 +2124,15 @@ function bindInventoryActions() {
     addCustomBtn.dataset.boundAddCustom = "1";
     addCustomBtn.addEventListener("click", () => {
       CABINET_INVENTORY_STATE.customFormOpen = !CABINET_INVENTORY_STATE.customFormOpen;
+      renderCabinetInventory();
+    });
+  }
+
+  const toggleFiltersBtn = getEl("cabinetToggleInventoryFiltersBtn");
+  if (toggleFiltersBtn && toggleFiltersBtn.dataset.boundToggleFilters !== "1") {
+    toggleFiltersBtn.dataset.boundToggleFilters = "1";
+    toggleFiltersBtn.addEventListener("click", () => {
+      CABINET_INVENTORY_STATE.filtersVisible = !CABINET_INVENTORY_STATE.filtersVisible;
       renderCabinetInventory();
     });
   }

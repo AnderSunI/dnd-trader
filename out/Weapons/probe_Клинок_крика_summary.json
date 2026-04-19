@@ -1,0 +1,29 @@
+{
+  "title": "Клинок крика",
+  "resolved_title": "Клинок крика",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-04T20:02:43Z",
+  "wikitext_chars_query": 1541,
+  "wikitext_chars_parse": 1541,
+  "html_chars": 193389,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Особенности"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Гоблинский лук",
+  "resolved_title": "Гоблинский лук",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T06:58:45Z",
+  "wikitext_chars_query": 1144,
+  "wikitext_chars_parse": 1144,
+  "html_chars": 189445,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

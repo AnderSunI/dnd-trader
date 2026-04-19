@@ -1,0 +1,29 @@
+{
+  "title": "Боевой топор",
+  "resolved_title": "Боевой топор",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:02:04Z",
+  "wikitext_chars_query": 1558,
+  "wikitext_chars_parse": 1558,
+  "html_chars": 192081,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

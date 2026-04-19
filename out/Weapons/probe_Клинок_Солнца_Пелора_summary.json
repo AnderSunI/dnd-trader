@@ -1,0 +1,33 @@
+{
+  "title": "Клинок Солнца Пелора",
+  "resolved_title": "Клинок Солнца Пелора",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-26T16:24:31Z",
+  "wikitext_chars_query": 2179,
+  "wikitext_chars_parse": 2179,
+  "html_chars": 199314,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

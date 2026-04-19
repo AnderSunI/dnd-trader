@@ -1,0 +1,187 @@
+{
+  "requested_title": "Перчатки силы",
+  "resolved_title": "Перчатки силы",
+  "display_title": "<span class=\"mw-page-title-main\">Перчатки силы</span>",
+  "pageid": 4017,
+  "revision_found": true,
+  "revision_chars": 1280,
+  "parse_wikitext_chars": 1280,
+  "parse_html_chars": 193156,
+  "category_count": 3,
+  "link_count": 914,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Перчатки_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый переполох",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Перчатки силы"
+      },
+      {
+        "label": "Общее",
+        "value": "Необычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Необычный"
+      },
+      {
+        "label": "Класс",
+        "value": "Аксессуары"
+      },
+      {
+        "label": "Тип",
+        "value": "Перчатки"
+      },
+      {
+        "label": "Вес",
+        "value": "0.5 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "90"
+      },
+      {
+        "label": "Прочее",
+        "value": "Закругг"
+      },
+      {
+        "label": "",
+        "value": "Прочее"
+      },
+      {
+        "label": "Персонаж",
+        "value": "Закругг"
+      },
+      {
+        "label": "Локация/место",
+        "value": "Роща Сильвануса"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Необычный",
+    "type": "Перчатки",
+    "weight": "0.5 кг",
+    "value": "90"
+  }
+}

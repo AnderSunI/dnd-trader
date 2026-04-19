@@ -1,0 +1,29 @@
+{
+  "title": "Силки природы",
+  "resolved_title": "Силки природы",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-29T20:31:06Z",
+  "wikitext_chars_query": 1936,
+  "wikitext_chars_parse": 1936,
+  "html_chars": 198907,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

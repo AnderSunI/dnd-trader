@@ -1,0 +1,33 @@
+{
+  "title": "Алый переполох",
+  "resolved_title": "Алый переполох",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-04T20:00:09Z",
+  "wikitext_chars_query": 2133,
+  "wikitext_chars_parse": 2133,
+  "html_chars": 192507,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

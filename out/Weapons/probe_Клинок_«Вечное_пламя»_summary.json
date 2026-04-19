@@ -1,0 +1,33 @@
+{
+  "title": "Клинок «Вечное пламя»",
+  "resolved_title": "Клинок «Вечное пламя»",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-18T10:33:06Z",
+  "wikitext_chars_query": 1837,
+  "wikitext_chars_parse": 1837,
+  "html_chars": 196938,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Использование"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Примечание"
+    }
+  ]
+}

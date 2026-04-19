@@ -1,0 +1,3940 @@
+[
+  {
+    "index": {
+      "title": "Беспощадный боевой топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Беспощадный_боевой_топор",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Беспощадный_боевой_топор.json",
+    "item_id": "bg3_besposchadnyy_boevoy_topor",
+    "name_ru": "Беспощадный боевой топор"
+  },
+  {
+    "index": {
+      "title": "Боевой топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_топор",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Боевой_топор.json",
+    "item_id": "bg3_boevoy_topor",
+    "name_ru": "Боевой топор"
+  },
+  {
+    "index": {
+      "title": "Боевой топор +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_топор_+1",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Боевой_топор_+1.json",
+    "item_id": "bg3_boevoy_topor_1",
+    "name_ru": "Боевой топор +1"
+  },
+  {
+    "index": {
+      "title": "Ведьмобой",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ведьмобой",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ведьмобой.json",
+    "item_id": "bg3_vedmoboy",
+    "name_ru": "Ведьмобой"
+  },
+  {
+    "index": {
+      "title": "Призываемый боевой топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призываемый_боевой_топор",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Призываемый_боевой_топор.json",
+    "item_id": "bg3_prizyvaemyy_boevoy_topor",
+    "name_ru": "Призываемый боевой топор"
+  },
+  {
+    "index": {
+      "title": "Термодинамический топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Термодинамический_топор",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Термодинамический_топор.json",
+    "item_id": "bg3_termodinamicheskiy_topor",
+    "name_ru": "Термодинамический топор"
+  },
+  {
+    "index": {
+      "title": "Церемониальный боевой топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Церемониальный_боевой_топор",
+      "subcategory": "Боевые топоры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Церемониальный_боевой_топор.json",
+    "item_id": "bg3_tseremonialnyy_boevoy_topor",
+    "name_ru": "Церемониальный боевой топор"
+  },
+  {
+    "index": {
+      "title": "Адамантиновая булава",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адамантиновая_булава",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Адамантиновая_булава.json",
+    "item_id": "bg3_adamantinovaya_bulava",
+    "name_ru": "Адамантиновая булава"
+  },
+  {
+    "index": {
+      "title": "Бич Ловиатар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бич_Ловиатар",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Бич_Ловиатар.json",
+    "item_id": "bg3_bich_loviatar",
+    "name_ru": "Бич Ловиатар"
+  },
+  {
+    "index": {
+      "title": "Булава",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Булава",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Булава.json",
+    "item_id": "bg3_bulava",
+    "name_ru": "Булава"
+  },
+  {
+    "index": {
+      "title": "Булава +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Булава_+1",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Булава_+1.json",
+    "item_id": "bg3_bulava_1",
+    "name_ru": "Булава +1"
+  },
+  {
+    "index": {
+      "title": "Булава +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Булава_+2",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Булава_+2.json",
+    "item_id": "bg3_bulava_2",
+    "name_ru": "Булава +2"
+  },
+  {
+    "index": {
+      "title": "Булава дэвы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Булава_дэвы",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Булава_дэвы.json",
+    "item_id": "bg3_bulava_devy",
+    "name_ru": "Булава дэвы"
+  },
+  {
+    "index": {
+      "title": "Булава поборника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Булава_поборника",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Булава_поборника.json",
+    "item_id": "bg3_bulava_pobornika",
+    "name_ru": "Булава поборника"
+  },
+  {
+    "index": {
+      "title": "Булава служанки (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Булава_служанки_(Baldur's_Gate_III)",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Булава_служанки_(Baldur's_Gate_III).json",
+    "item_id": "bg3_bulava_sluzhanki_baldur_s_gate_iii",
+    "name_ru": "Булава служанки (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Дьявольская булава",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дьявольская_булава",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дьявольская_булава.json",
+    "item_id": "bg3_dyavolskaya_bulava",
+    "name_ru": "Дьявольская булава"
+  },
+  {
+    "index": {
+      "title": "Кровь Латандера",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кровь_Латандера",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кровь_Латандера.json",
+    "item_id": "bg3_krov_latandera",
+    "name_ru": "Кровь Латандера"
+  },
+  {
+    "index": {
+      "title": "Ксианид",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ксианид",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ксианид.json",
+    "item_id": "bg3_ksianid",
+    "name_ru": "Ксианид"
+  },
+  {
+    "index": {
+      "title": "Примитивная булава",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Примитивная_булава",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Примитивная_булава.json",
+    "item_id": "bg3_primitivnaya_bulava",
+    "name_ru": "Примитивная булава"
+  },
+  {
+    "index": {
+      "title": "Разбитый цеп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разбитый_цеп",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Разбитый_цеп.json",
+    "item_id": "bg3_razbityy_tsep",
+    "name_ru": "Разбитый цеп"
+  },
+  {
+    "index": {
+      "title": "Ржавая булава",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавая_булава",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавая_булава.json",
+    "item_id": "bg3_rzhavaya_bulava",
+    "name_ru": "Ржавая булава"
+  },
+  {
+    "index": {
+      "title": "Церемониальная булава",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Церемониальная_булава",
+      "subcategory": "Булавы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Церемониальная_булава.json",
+    "item_id": "bg3_tseremonialnaya_bulava",
+    "name_ru": "Церемониальная булава"
+  },
+  {
+    "index": {
+      "title": "Адамантиновый длинный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адамантиновый_длинный_меч",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Адамантиновый_длинный_меч.json",
+    "item_id": "bg3_adamantinovyy_dlinnyy_mech",
+    "name_ru": "Адамантиновый длинный меч"
+  },
+  {
+    "index": {
+      "title": "Безжалостное жало",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Безжалостное_жало",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Безжалостное_жало.json",
+    "item_id": "bg3_bezzhalostnoe_zhalo",
+    "name_ru": "Безжалостное жало"
+  },
+  {
+    "index": {
+      "title": "Длинный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_меч",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Длинный_меч.json",
+    "item_id": "bg3_dlinnyy_mech",
+    "name_ru": "Длинный меч"
+  },
+  {
+    "index": {
+      "title": "Длинный меч +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_меч_+1",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Длинный_меч_+1.json",
+    "item_id": "bg3_dlinnyy_mech_1",
+    "name_ru": "Длинный меч +1"
+  },
+  {
+    "index": {
+      "title": "Длинный меч +2 (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_меч_+2_(Baldur's_Gate_III)",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Длинный_меч_+2_(Baldur's_Gate_III).json",
+    "item_id": "bg3_dlinnyy_mech_2_baldur_s_gate_iii",
+    "name_ru": "Длинный меч +2 (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Длинный меч гитьянки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_меч_гитьянки",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Длинный_меч_гитьянки.json",
+    "item_id": "bg3_dlinnyy_mech_gityanki",
+    "name_ru": "Длинный меч гитьянки"
+  },
+  {
+    "index": {
+      "title": "Длинный меч гитьянки (+1)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_меч_гитьянки_(+1)",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Длинный_меч_гитьянки_(+1).json",
+    "item_id": "bg3_dlinnyy_mech_gityanki_1",
+    "name_ru": "Длинный меч гитьянки (+1)"
+  },
+  {
+    "index": {
+      "title": "Длинный меч герцога Рейвенгарда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_меч_герцога_Рейвенгарда",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Длинный_меч_герцога_Рейвенгарда.json",
+    "item_id": "bg3_dlinnyy_mech_gertsoga_reyvengarda",
+    "name_ru": "Длинный меч герцога Рейвенгарда"
+  },
+  {
+    "index": {
+      "title": "Закаленный в боях меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Закаленный_в_боях_меч",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Закаленный_в_боях_меч.json",
+    "item_id": "bg3_zakalennyy_v_boyah_mech",
+    "name_ru": "Закаленный в боях меч"
+  },
+  {
+    "index": {
+      "title": "Катана (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Катана_(Baldur's_Gate_III)",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Катана_(Baldur's_Gate_III).json",
+    "item_id": "bg3_katana_baldur_s_gate_iii",
+    "name_ru": "Катана (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Клинок угнетенных душ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_угнетенных_душ",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клинок_угнетенных_душ.json",
+    "item_id": "bg3_klinok_ugnetennyh_dush",
+    "name_ru": "Клинок угнетенных душ"
+  },
+  {
+    "index": {
+      "title": "Королевский нож",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Королевский_нож",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Королевский_нож.json",
+    "item_id": "bg3_korolevskiy_nozh",
+    "name_ru": "Королевский нож"
+  },
+  {
+    "index": {
+      "title": "Меч Императора",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Меч_Императора",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Меч_Императора.json",
+    "item_id": "bg3_mech_imperatora",
+    "name_ru": "Меч Императора"
+  },
+  {
+    "index": {
+      "title": "Меч темного паладина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Меч_темного_паладина",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Меч_темного_паладина.json",
+    "item_id": "bg3_mech_temnogo_paladina",
+    "name_ru": "Меч темного паладина"
+  },
+  {
+    "index": {
+      "title": "Озлобление Ларетиана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Озлобление_Ларетиана",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Озлобление_Ларетиана.json",
+    "item_id": "bg3_ozloblenie_laretiana",
+    "name_ru": "Озлобление Ларетиана"
+  },
+  {
+    "index": {
+      "title": "Ржавый длинный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_длинный_меч",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_длинный_меч.json",
+    "item_id": "bg3_rzhavyy_dlinnyy_mech",
+    "name_ru": "Ржавый длинный меч"
+  },
+  {
+    "index": {
+      "title": "Серебряный меч Восса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_меч_Восса",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Серебряный_меч_Восса.json",
+    "item_id": "bg3_serebryanyy_mech_vossa",
+    "name_ru": "Серебряный меч Восса"
+  },
+  {
+    "index": {
+      "title": "Фалар Алувэ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фалар_Алувэ",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Фалар_Алувэ.json",
+    "item_id": "bg3_falar_aluve",
+    "name_ru": "Фалар Алувэ"
+  },
+  {
+    "index": {
+      "title": "Хирургическая пила",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Хирургическая_пила",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Хирургическая_пила.json",
+    "item_id": "bg3_hirurgicheskaya_pila",
+    "name_ru": "Хирургическая пила"
+  },
+  {
+    "index": {
+      "title": "Хирургическая пила (+1)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Хирургическая_пила_(+1)",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Хирургическая_пила_(+1).json",
+    "item_id": "bg3_hirurgicheskaya_pila_1",
+    "name_ru": "Хирургическая пила (+1)"
+  },
+  {
+    "index": {
+      "title": "Церемониальный длинный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Церемониальный_длинный_меч",
+      "subcategory": "Длинные мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Церемониальный_длинный_меч.json",
+    "item_id": "bg3_tseremonialnyy_dlinnyy_mech",
+    "name_ru": "Церемониальный длинный меч"
+  },
+  {
+    "index": {
+      "title": "Дубина холмового великана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубина_холмового_великана",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дубина_холмового_великана.json",
+    "item_id": "bg3_dubina_holmovogo_velikana",
+    "name_ru": "Дубина холмового великана"
+  },
+  {
+    "index": {
+      "title": "Дубинка (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубинка_(Baldur's_Gate_III)",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дубинка_(Baldur's_Gate_III).json",
+    "item_id": "bg3_dubinka_baldur_s_gate_iii",
+    "name_ru": "Дубинка (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Дубинка +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубинка_+1",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дубинка_+1.json",
+    "item_id": "bg3_dubinka_1",
+    "name_ru": "Дубинка +1"
+  },
+  {
+    "index": {
+      "title": "Дубинка из железного дерева",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубинка_из_железного_дерева",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дубинка_из_железного_дерева.json",
+    "item_id": "bg3_dubinka_iz_zheleznogo_dereva",
+    "name_ru": "Дубинка из железного дерева"
+  },
+  {
+    "index": {
+      "title": "Клеймо секты",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клеймо_секты",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клеймо_секты.json",
+    "item_id": "bg3_kleymo_sekty",
+    "name_ru": "Клеймо секты"
+  },
+  {
+    "index": {
+      "title": "Кривая ветвь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кривая_ветвь",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кривая_ветвь.json",
+    "item_id": "bg3_krivaya_vetv",
+    "name_ru": "Кривая ветвь"
+  },
+  {
+    "index": {
+      "title": "Лунный фонарь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лунный_фонарь",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Лунный_фонарь.json",
+    "item_id": "bg3_lunnyy_fonar",
+    "name_ru": "Лунный фонарь"
+  },
+  {
+    "index": {
+      "title": "Палка для телесных наказаний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Палка_для_телесных_наказаний",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Палка_для_телесных_наказаний.json",
+    "item_id": "bg3_palka_dlya_telesnyh_nakazaniy",
+    "name_ru": "Палка для телесных наказаний"
+  },
+  {
+    "index": {
+      "title": "Салями",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Салями",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Салями.json",
+    "item_id": "bg3_salyami",
+    "name_ru": "Салями"
+  },
+  {
+    "index": {
+      "title": "Сломанная дубинка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сломанная_дубинка",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Сломанная_дубинка.json",
+    "item_id": "bg3_slomannaya_dubinka",
+    "name_ru": "Сломанная дубинка"
+  },
+  {
+    "index": {
+      "title": "Факел",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Факел",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Факел.json",
+    "item_id": "bg3_fakel",
+    "name_ru": "Факел"
+  },
+  {
+    "index": {
+      "title": "Факел: кладбищенский синий",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Факел:_кладбищенский_синий",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Факел__кладбищенский_синий.json",
+    "item_id": "bg3_fakel_kladbischenskiy_siniy",
+    "name_ru": "Факел: кладбищенский синий"
+  },
+  {
+    "index": {
+      "title": "Факел: пьяный фиолетовый",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Факел:_пьяный_фиолетовый",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Факел__пьяный_фиолетовый.json",
+    "item_id": "bg3_fakel_pyanyy_fioletovyy",
+    "name_ru": "Факел: пьяный фиолетовый"
+  },
+  {
+    "index": {
+      "title": "Факел: чумной зеленый",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Факел:_чумной_зеленый",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Факел__чумной_зеленый.json",
+    "item_id": "bg3_fakel_chumnoy_zelenyy",
+    "name_ru": "Факел: чумной зеленый"
+  },
+  {
+    "index": {
+      "title": "Факел отмены",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Факел_отмены",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Факел_отмены.json",
+    "item_id": "bg3_fakel_otmeny",
+    "name_ru": "Факел отмены"
+  },
+  {
+    "index": {
+      "title": "Фонарь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фонарь",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Фонарь.json",
+    "item_id": "bg3_fonar",
+    "name_ru": "Фонарь"
+  },
+  {
+    "index": {
+      "title": "Фонарь теней",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фонарь_теней",
+      "subcategory": "Дубинки",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Фонарь_теней.json",
+    "item_id": "bg3_fonar_teney",
+    "name_ru": "Фонарь теней"
+  },
+  {
+    "index": {
+      "title": "Горечь Долора",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Горечь_Долора",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Горечь_Долора.json",
+    "item_id": "bg3_gorech_dolora",
+    "name_ru": "Горечь Долора"
+  },
+  {
+    "index": {
+      "title": "Дерьмочист",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дерьмочист",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дерьмочист.json",
+    "item_id": "bg3_dermochist",
+    "name_ru": "Дерьмочист"
+  },
+  {
+    "index": {
+      "title": "Игла вора",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Игла_вора",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Игла_вора.json",
+    "item_id": "bg3_igla_vora",
+    "name_ru": "Игла вора"
+  },
+  {
+    "index": {
+      "title": "Касание ассасина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Касание_ассасина",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Касание_ассасина.json",
+    "item_id": "bg3_kasanie_assasina",
+    "name_ru": "Касание ассасина"
+  },
+  {
+    "index": {
+      "title": "Кинжал",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал.json",
+    "item_id": "bg3_kinzhal",
+    "name_ru": "Кинжал"
+  },
+  {
+    "index": {
+      "title": "Кинжал +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал_+1",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал_+1.json",
+    "item_id": "bg3_kinzhal_1",
+    "name_ru": "Кинжал +1"
+  },
+  {
+    "index": {
+      "title": "Кинжал +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал_+2",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал_+2.json",
+    "item_id": "bg3_kinzhal_2",
+    "name_ru": "Кинжал +2"
+  },
+  {
+    "index": {
+      "title": "Кинжал железного страха",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал_железного_страха",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал_железного_страха.json",
+    "item_id": "bg3_kinzhal_zheleznogo_straha",
+    "name_ru": "Кинжал железного страха"
+  },
+  {
+    "index": {
+      "title": "Кинжал из суссура",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал_из_суссура",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал_из_суссура.json",
+    "item_id": "bg3_kinzhal_iz_sussura",
+    "name_ru": "Кинжал из суссура"
+  },
+  {
+    "index": {
+      "title": "Кинжал мерцающего танца",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал_мерцающего_танца",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал_мерцающего_танца.json",
+    "item_id": "bg3_kinzhal_mertsayuschego_tantsa",
+    "name_ru": "Кинжал мерцающего танца"
+  },
+  {
+    "index": {
+      "title": "Кинжал охотника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кинжал_охотника",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кинжал_охотника.json",
+    "item_id": "bg3_kinzhal_ohotnika",
+    "name_ru": "Кинжал охотника"
+  },
+  {
+    "index": {
+      "title": "Клык варга (кинжал)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клык_варга_(кинжал)",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клык_варга_(кинжал).json",
+    "item_id": "bg3_klyk_varga_kinzhal",
+    "name_ru": "Клык варга (кинжал)"
+  },
+  {
+    "index": {
+      "title": "Кровожадность",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кровожадность",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Кровожадность.json",
+    "item_id": "bg3_krovozhadnost",
+    "name_ru": "Кровожадность"
+  },
+  {
+    "index": {
+      "title": "Механическая пиявка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Механическая_пиявка",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Механическая_пиявка.json",
+    "item_id": "bg3_mehanicheskaya_piyavka",
+    "name_ru": "Механическая пиявка"
+  },
+  {
+    "index": {
+      "title": "Механическая пиявка (+1)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Механическая_пиявка_(+1)",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Механическая_пиявка_(+1).json",
+    "item_id": "bg3_mehanicheskaya_piyavka_1",
+    "name_ru": "Механическая пиявка (+1)"
+  },
+  {
+    "index": {
+      "title": "Обездвиживатель",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Обездвиживатель",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Обездвиживатель.json",
+    "item_id": "bg3_obezdvizhivatel",
+    "name_ru": "Обездвиживатель"
+  },
+  {
+    "index": {
+      "title": "Отполированный кинжал",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Отполированный_кинжал",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Отполированный_кинжал.json",
+    "item_id": "bg3_otpolirovannyy_kinzhal",
+    "name_ru": "Отполированный кинжал"
+  },
+  {
+    "index": {
+      "title": "Рапсодия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рапсодия",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Рапсодия.json",
+    "item_id": "bg3_rapsodiya",
+    "name_ru": "Рапсодия"
+  },
+  {
+    "index": {
+      "title": "Ржавый кинжал",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_кинжал",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_кинжал.json",
+    "item_id": "bg3_rzhavyy_kinzhal",
+    "name_ru": "Ржавый кинжал"
+  },
+  {
+    "index": {
+      "title": "Ржавый клинок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_клинок",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_клинок.json",
+    "item_id": "bg3_rzhavyy_klinok",
+    "name_ru": "Ржавый клинок"
+  },
+  {
+    "index": {
+      "title": "Ритуальный кинжал",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ритуальный_кинжал",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ритуальный_кинжал.json",
+    "item_id": "bg3_ritualnyy_kinzhal",
+    "name_ru": "Ритуальный кинжал"
+  },
+  {
+    "index": {
+      "title": "Ритуальный кинжал Шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ритуальный_кинжал_Шар",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ритуальный_кинжал_Шар.json",
+    "item_id": "bg3_ritualnyy_kinzhal_shar",
+    "name_ru": "Ритуальный кинжал Шар"
+  },
+  {
+    "index": {
+      "title": "Скальпель",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скальпель",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скальпель.json",
+    "item_id": "bg3_skalpel",
+    "name_ru": "Скальпель"
+  },
+  {
+    "index": {
+      "title": "Убийственный порез",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Убийственный_порез",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Убийственный_порез.json",
+    "item_id": "bg3_ubiystvennyy_porez",
+    "name_ru": "Убийственный порез"
+  },
+  {
+    "index": {
+      "title": "Холодный щелчок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Холодный_щелчок",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Холодный_щелчок.json",
+    "item_id": "bg3_holodnyy_schelchok",
+    "name_ru": "Холодный щелчок"
+  },
+  {
+    "index": {
+      "title": "Шприц",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шприц",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Шприц.json",
+    "item_id": "bg3_shprits",
+    "name_ru": "Шприц"
+  },
+  {
+    "index": {
+      "title": "Шприц (+1)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шприц_(+1)",
+      "subcategory": "Кинжалы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Шприц_(+1).json",
+    "item_id": "bg3_shprits_1",
+    "name_ru": "Шприц (+1)"
+  },
+  {
+    "index": {
+      "title": "Алый переполох",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Алый_переполох",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Алый_переполох.json",
+    "item_id": "bg3_alyy_perepoloh",
+    "name_ru": "Алый переполох"
+  },
+  {
+    "index": {
+      "title": "Короткий меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч.json",
+    "item_id": "bg3_korotkiy_mech",
+    "name_ru": "Короткий меч"
+  },
+  {
+    "index": {
+      "title": "Короткий меч +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч_+1",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч_+1.json",
+    "item_id": "bg3_korotkiy_mech_1",
+    "name_ru": "Короткий меч +1"
+  },
+  {
+    "index": {
+      "title": "Мастер засад",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Мастер_засад",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Мастер_засад.json",
+    "item_id": "bg3_master_zasad",
+    "name_ru": "Мастер засад"
+  },
+  {
+    "index": {
+      "title": "Нож Подгорного короля",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Нож_Подгорного_короля",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Нож_Подгорного_короля.json",
+    "item_id": "bg3_nozh_podgornogo_korolya",
+    "name_ru": "Нож Подгорного короля"
+  },
+  {
+    "index": {
+      "title": "Учебный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Учебный_меч",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Учебный_меч.json",
+    "item_id": "bg3_uchebnyy_mech",
+    "name_ru": "Учебный меч"
+  },
+  {
+    "index": {
+      "title": "Короткий меч гитьянки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч_гитьянки",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч_гитьянки.json",
+    "item_id": "bg3_korotkiy_mech_gityanki",
+    "name_ru": "Короткий меч гитьянки"
+  },
+  {
+    "index": {
+      "title": "Ржавый короткий меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_короткий_меч",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_короткий_меч.json",
+    "item_id": "bg3_rzhavyy_korotkiy_mech",
+    "name_ru": "Ржавый короткий меч"
+  },
+  {
+    "index": {
+      "title": "Трепан",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трепан",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Трепан.json",
+    "item_id": "bg3_trepan",
+    "name_ru": "Трепан"
+  },
+  {
+    "index": {
+      "title": "Учебный меч Чессы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Учебный_меч_Чессы",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Учебный_меч_Чессы.json",
+    "item_id": "bg3_uchebnyy_mech_chessy",
+    "name_ru": "Учебный меч Чессы"
+  },
+  {
+    "index": {
+      "title": "Клинок арфиста",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_арфиста",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клинок_арфиста.json",
+    "item_id": "bg3_klinok_arfista",
+    "name_ru": "Клинок арфиста"
+  },
+  {
+    "index": {
+      "title": "Учебный меч Касс",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Учебный_меч_Касс",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Учебный_меч_Касс.json",
+    "item_id": "bg3_uchebnyy_mech_kass",
+    "name_ru": "Учебный меч Касс"
+  },
+  {
+    "index": {
+      "title": "Короткий меч (Юргир)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч_(Юргир)",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч_(Юргир).json",
+    "item_id": "bg3_korotkiy_mech_yurgir",
+    "name_ru": "Короткий меч (Юргир)"
+  },
+  {
+    "index": {
+      "title": "Короткий меч ассасина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч_ассасина",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч_ассасина.json",
+    "item_id": "bg3_korotkiy_mech_assasina",
+    "name_ru": "Короткий меч ассасина"
+  },
+  {
+    "index": {
+      "title": "Короткий меч гитьянки (+1)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч_гитьянки_(+1)",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч_гитьянки_(+1).json",
+    "item_id": "bg3_korotkiy_mech_gityanki_1",
+    "name_ru": "Короткий меч гитьянки (+1)"
+  },
+  {
+    "index": {
+      "title": "Рассекатель разума и тела",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рассекатель_разума_и_тела",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Рассекатель_разума_и_тела.json",
+    "item_id": "bg3_rassekatel_razuma_i_tela",
+    "name_ru": "Рассекатель разума и тела"
+  },
+  {
+    "index": {
+      "title": "Клинок теней",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_теней",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клинок_теней.json",
+    "item_id": "bg3_klinok_teney",
+    "name_ru": "Клинок теней"
+  },
+  {
+    "index": {
+      "title": "Меч первой крови",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Меч_первой_крови",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Меч_первой_крови.json",
+    "item_id": "bg3_mech_pervoy_krovi",
+    "name_ru": "Меч первой крови"
+  },
+  {
+    "index": {
+      "title": "Стальной кованый меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стальной_кованый_меч",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Стальной_кованый_меч.json",
+    "item_id": "bg3_stalnoy_kovanyy_mech",
+    "name_ru": "Стальной кованый меч"
+  },
+  {
+    "index": {
+      "title": "Трепан (+1)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трепан_(+1)",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Трепан_(+1).json",
+    "item_id": "bg3_trepan_1",
+    "name_ru": "Трепан (+1)"
+  },
+  {
+    "index": {
+      "title": "Раздиратель плоти",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Раздиратель_плоти",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Раздиратель_плоти.json",
+    "item_id": "bg3_razdiratel_ploti",
+    "name_ru": "Раздиратель плоти"
+  },
+  {
+    "index": {
+      "title": "Короткий меч +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_меч_+2",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Короткий_меч_+2.json",
+    "item_id": "bg3_korotkiy_mech_2",
+    "name_ru": "Короткий меч +2"
+  },
+  {
+    "index": {
+      "title": "Режущий короткий меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Режущий_короткий_меч",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Режущий_короткий_меч.json",
+    "item_id": "bg3_rezhuschiy_korotkiy_mech",
+    "name_ru": "Режущий короткий меч"
+  },
+  {
+    "index": {
+      "title": "Меч цепкого мрака",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Меч_цепкого_мрака",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Меч_цепкого_мрака.json",
+    "item_id": "bg3_mech_tsepkogo_mraka",
+    "name_ru": "Меч цепкого мрака"
+  },
+  {
+    "index": {
+      "title": "Пагубный",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пагубный",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Пагубный.json",
+    "item_id": "bg3_pagubnyy",
+    "name_ru": "Пагубный"
+  },
+  {
+    "index": {
+      "title": "Меч вытягивания жизни",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Меч_вытягивания_жизни",
+      "subcategory": "Короткие мечи",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Меч_вытягивания_жизни.json",
+    "item_id": "bg3_mech_vytyagivaniya_zhizni",
+    "name_ru": "Меч вытягивания жизни"
+  },
+  {
+    "index": {
+      "title": "Легкий молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Легкий_молот",
+      "subcategory": "Лёгкие молоты",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Легкий_молот.json",
+    "item_id": "bg3_legkiy_molot",
+    "name_ru": "Легкий молот"
+  },
+  {
+    "index": {
+      "title": "Легкий молот +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Легкий_молот_+1",
+      "subcategory": "Лёгкие молоты",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Легкий_молот_+1.json",
+    "item_id": "bg3_legkiy_molot_1",
+    "name_ru": "Легкий молот +1"
+  },
+  {
+    "index": {
+      "title": "Молот Вульбрена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Молот_Вульбрена",
+      "subcategory": "Лёгкие молоты",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Молот_Вульбрена.json",
+    "item_id": "bg3_molot_vulbrena",
+    "name_ru": "Молот Вульбрена"
+  },
+  {
+    "index": {
+      "title": "Раскалывающий Небеса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Раскалывающий_Небеса",
+      "subcategory": "Лёгкие молоты",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Раскалывающий_Небеса.json",
+    "item_id": "bg3_raskalyvayuschiy_nebesa",
+    "name_ru": "Раскалывающий Небеса"
+  },
+  {
+    "index": {
+      "title": "Сверкающий крушитель черепов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сверкающий_крушитель_черепов",
+      "subcategory": "Лёгкие молоты",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Сверкающий_крушитель_черепов.json",
+    "item_id": "bg3_sverkayuschiy_krushitel_cherepov",
+    "name_ru": "Сверкающий крушитель черепов"
+  },
+  {
+    "index": {
+      "title": "Бич Рейвенгарда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бич_Рейвенгарда",
+      "subcategory": "Моргенштерны",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Бич_Рейвенгарда.json",
+    "item_id": "bg3_bich_reyvengarda",
+    "name_ru": "Бич Рейвенгарда"
+  },
+  {
+    "index": {
+      "title": "Богатство и удача",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Богатство_и_удача",
+      "subcategory": "Моргенштерны",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Богатство_и_удача.json",
+    "item_id": "bg3_bogatstvo_i_udacha",
+    "name_ru": "Богатство и удача"
+  },
+  {
+    "index": {
+      "title": "Моргенштерн",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Моргенштерн",
+      "subcategory": "Моргенштерны",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Моргенштерн.json",
+    "item_id": "bg3_morgenshtern",
+    "name_ru": "Моргенштерн"
+  },
+  {
+    "index": {
+      "title": "Моргенштерн +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Моргенштерн_+1",
+      "subcategory": "Моргенштерны",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Моргенштерн_+1.json",
+    "item_id": "bg3_morgenshtern_1",
+    "name_ru": "Моргенштерн +1"
+  },
+  {
+    "index": {
+      "title": "Ржавый моргенштерн",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_моргенштерн",
+      "subcategory": "Моргенштерны",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_моргенштерн.json",
+    "item_id": "bg3_rzhavyy_morgenshtern",
+    "name_ru": "Ржавый моргенштерн"
+  },
+  {
+    "index": {
+      "title": "Священная звезда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Священная_звезда",
+      "subcategory": "Моргенштерны",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Священная_звезда.json",
+    "item_id": "bg3_svyaschennaya_zvezda",
+    "name_ru": "Священная звезда"
+  },
+  {
+    "index": {
+      "title": "Адская рапира",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адская_рапира",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Адская_рапира.json",
+    "item_id": "bg3_adskaya_rapira",
+    "name_ru": "Адская рапира"
+  },
+  {
+    "index": {
+      "title": "Клинок крика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_крика",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клинок_крика.json",
+    "item_id": "bg3_klinok_krika",
+    "name_ru": "Клинок крика"
+  },
+  {
+    "index": {
+      "title": "Клинок Солнца Пелора",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_Солнца_Пелора",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Клинок_Солнца_Пелора.json",
+    "item_id": "bg3_klinok_solntsa_pelora",
+    "name_ru": "Клинок Солнца Пелора"
+  },
+  {
+    "index": {
+      "title": "Прерогатива дуэлянта",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Прерогатива_дуэлянта",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Прерогатива_дуэлянта.json",
+    "item_id": "bg3_prerogativa_duelyanta",
+    "name_ru": "Прерогатива дуэлянта"
+  },
+  {
+    "index": {
+      "title": "Призываемая рапира",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призываемая_рапира",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Призываемая_рапира.json",
+    "item_id": "bg3_prizyvaemaya_rapira",
+    "name_ru": "Призываемая рапира"
+  },
+  {
+    "index": {
+      "title": "Рассекающий клинок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рассекающий_клинок",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Рассекающий_клинок.json",
+    "item_id": "bg3_rassekayuschiy_klinok",
+    "name_ru": "Рассекающий клинок"
+  },
+  {
+    "index": {
+      "title": "Рапира",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рапира",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Рапира.json",
+    "item_id": "bg3_rapira",
+    "name_ru": "Рапира"
+  },
+  {
+    "index": {
+      "title": "Рапира +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рапира_+1",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Рапира_+1.json",
+    "item_id": "bg3_rapira_1",
+    "name_ru": "Рапира +1"
+  },
+  {
+    "index": {
+      "title": "Рапира +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рапира_+2",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Рапира_+2.json",
+    "item_id": "bg3_rapira_2",
+    "name_ru": "Рапира +2"
+  },
+  {
+    "index": {
+      "title": "Созвучный поединщик",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Созвучный_поединщик",
+      "subcategory": "Рапиры",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Созвучный_поединщик.json",
+    "item_id": "bg3_sozvuchnyy_poedinschik",
+    "name_ru": "Созвучный поединщик"
+  },
+  {
+    "index": {
+      "title": "Ржавый серп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_серп",
+      "subcategory": "Серпы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_серп.json",
+    "item_id": "bg3_rzhavyy_serp",
+    "name_ru": "Ржавый серп"
+  },
+  {
+    "index": {
+      "title": "Серп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серп",
+      "subcategory": "Серпы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Серп.json",
+    "item_id": "bg3_serp",
+    "name_ru": "Серп"
+  },
+  {
+    "index": {
+      "title": "Серп БУУАЛА",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серп_БУУАЛА",
+      "subcategory": "Серпы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Серп_БУУАЛА.json",
+    "item_id": "bg3_serp_buuala",
+    "name_ru": "Серп БУУАЛА"
+  },
+  {
+    "index": {
+      "title": "Серп из суссура",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серп_из_суссура",
+      "subcategory": "Серпы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Серп_из_суссура.json",
+    "item_id": "bg3_serp_iz_sussura",
+    "name_ru": "Серп из суссура"
+  },
+  {
+    "index": {
+      "title": "Серп (Красношапка)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серп_(Красношапка)",
+      "subcategory": "Серпы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Серп_(Красношапка).json",
+    "item_id": "bg3_serp_krasnoshapka",
+    "name_ru": "Серп (Красношапка)"
+  },
+  {
+    "index": {
+      "title": "Серп Матери Волн",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серп_Матери_Волн",
+      "subcategory": "Серпы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Серп_Матери_Волн.json",
+    "item_id": "bg3_serp_materi_voln",
+    "name_ru": "Серп Матери Волн"
+  },
+  {
+    "index": {
+      "title": "Адамантиновый скимитар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адамантиновый_скимитар",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Адамантиновый_скимитар.json",
+    "item_id": "bg3_adamantinovyy_skimitar",
+    "name_ru": "Адамантиновый скимитар"
+  },
+  {
+    "index": {
+      "title": "Бельм",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бельм",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Бельм.json",
+    "item_id": "bg3_belm",
+    "name_ru": "Бельм"
+  },
+  {
+    "index": {
+      "title": "Гоблинский скимитар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Гоблинский_скимитар",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Гоблинский_скимитар.json",
+    "item_id": "bg3_goblinskiy_skimitar",
+    "name_ru": "Гоблинский скимитар"
+  },
+  {
+    "index": {
+      "title": "Лесной скимитар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лесной_скимитар",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Лесной_скимитар.json",
+    "item_id": "bg3_lesnoy_skimitar",
+    "name_ru": "Лесной скимитар"
+  },
+  {
+    "index": {
+      "title": "Огненный клинок (оружие)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_клинок_(оружие)",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Огненный_клинок_(оружие).json",
+    "item_id": "bg3_ognennyy_klinok_oruzhie",
+    "name_ru": "Огненный клинок (оружие)"
+  },
+  {
+    "index": {
+      "title": "Прижигатель Карвина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Прижигатель_Карвина",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Прижигатель_Карвина.json",
+    "item_id": "bg3_prizhigatel_karvina",
+    "name_ru": "Прижигатель Карвина"
+  },
+  {
+    "index": {
+      "title": "Ржавый скимитар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_скимитар",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_скимитар.json",
+    "item_id": "bg3_rzhavyy_skimitar",
+    "name_ru": "Ржавый скимитар"
+  },
+  {
+    "index": {
+      "title": "Скимитар (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_(Baldur's_Gate_III)",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_(Baldur's_Gate_III).json",
+    "item_id": "bg3_skimitar_baldur_s_gate_iii",
+    "name_ru": "Скимитар (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Скимитар +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_+1",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_+1.json",
+    "item_id": "bg3_skimitar_1",
+    "name_ru": "Скимитар +1"
+  },
+  {
+    "index": {
+      "title": "Скимитар +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_+2",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_+2.json",
+    "item_id": "bg3_skimitar_2",
+    "name_ru": "Скимитар +2"
+  },
+  {
+    "index": {
+      "title": "Скимитар (Акаби)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_(Акаби)",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_(Акаби).json",
+    "item_id": "bg3_skimitar_akabi",
+    "name_ru": "Скимитар (Акаби)"
+  },
+  {
+    "index": {
+      "title": "Скимитар джинна",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_джинна",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_джинна.json",
+    "item_id": "bg3_skimitar_dzhinna",
+    "name_ru": "Скимитар джинна"
+  },
+  {
+    "index": {
+      "title": "Скимитар золы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_золы",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_золы.json",
+    "item_id": "bg3_skimitar_zoly",
+    "name_ru": "Скимитар золы"
+  },
+  {
+    "index": {
+      "title": "Скимитар (Шар)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_(Шар)",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_(Шар).json",
+    "item_id": "bg3_skimitar_shar",
+    "name_ru": "Скимитар (Шар)"
+  },
+  {
+    "index": {
+      "title": "Скорый ответ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скорый_ответ",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скорый_ответ.json",
+    "item_id": "bg3_skoryy_otvet",
+    "name_ru": "Скорый ответ"
+  },
+  {
+    "index": {
+      "title": "Соленый скимитар(р-р-р)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Соленый_скимитар(р-р-р)",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Соленый_скимитар(р-р-р).json",
+    "item_id": "bg3_solenyy_skimitar_r_r_r",
+    "name_ru": "Соленый скимитар(р-р-р)"
+  },
+  {
+    "index": {
+      "title": "Скимитар юстициара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скимитар_юстициара",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Скимитар_юстициара.json",
+    "item_id": "bg3_skimitar_yustitsiara",
+    "name_ru": "Скимитар юстициара"
+  },
+  {
+    "index": {
+      "title": "Терновый клинок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Терновый_клинок",
+      "subcategory": "Скимитары",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Терновый_клинок.json",
+    "item_id": "bg3_ternovyy_klinok",
+    "name_ru": "Терновый клинок"
+  },
+  {
+    "index": {
+      "title": "Папин топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Папин_топор",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Папин_топор.json",
+    "item_id": "bg3_papin_topor",
+    "name_ru": "Папин топор"
+  },
+  {
+    "index": {
+      "title": "Прикосновение дракона",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Прикосновение_дракона",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Прикосновение_дракона.json",
+    "item_id": "bg3_prikosnovenie_drakona",
+    "name_ru": "Прикосновение дракона"
+  },
+  {
+    "index": {
+      "title": "Ржавый топорик",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_топорик",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ржавый_топорик.json",
+    "item_id": "bg3_rzhavyy_toporik",
+    "name_ru": "Ржавый топорик"
+  },
+  {
+    "index": {
+      "title": "Ритуальный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ритуальный_топор",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Ритуальный_топор.json",
+    "item_id": "bg3_ritualnyy_topor",
+    "name_ru": "Ритуальный топор"
+  },
+  {
+    "index": {
+      "title": "Секач",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Секач",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Секач.json",
+    "item_id": "bg3_sekach",
+    "name_ru": "Секач"
+  },
+  {
+    "index": {
+      "title": "Топорик",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Топорик",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Топорик.json",
+    "item_id": "bg3_toporik",
+    "name_ru": "Топорик"
+  },
+  {
+    "index": {
+      "title": "Топорик +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Топорик_+1",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Топорик_+1.json",
+    "item_id": "bg3_toporik_1",
+    "name_ru": "Топорик +1"
+  },
+  {
+    "index": {
+      "title": "Топорик возвращения",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Топорик_возвращения",
+      "subcategory": "Топорики",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Топорик_возвращения.json",
+    "item_id": "bg3_toporik_vozvrascheniya",
+    "name_ru": "Топорик возвращения"
+  },
+  {
+    "index": {
+      "title": "Дьявольский цеп Миркула",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дьявольский_цеп_Миркула",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Дьявольский_цеп_Миркула.json",
+    "item_id": "bg3_dyavolskiy_tsep_mirkula",
+    "name_ru": "Дьявольский цеп Миркула"
+  },
+  {
+    "index": {
+      "title": "Едкий цеп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Едкий_цеп",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Едкий_цеп.json",
+    "item_id": "bg3_edkiy_tsep",
+    "name_ru": "Едкий цеп"
+  },
+  {
+    "index": {
+      "title": "Цеп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп.json",
+    "item_id": "bg3_tsep",
+    "name_ru": "Цеп"
+  },
+  {
+    "index": {
+      "title": "Цеп +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп_+1",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп_+1.json",
+    "item_id": "bg3_tsep_1",
+    "name_ru": "Цеп +1"
+  },
+  {
+    "index": {
+      "title": "Цеп +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп_+2",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп_+2.json",
+    "item_id": "bg3_tsep_2",
+    "name_ru": "Цеп +2"
+  },
+  {
+    "index": {
+      "title": "Цеп вихря",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп_вихря",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп_вихря.json",
+    "item_id": "bg3_tsep_vihrya",
+    "name_ru": "Цеп вихря"
+  },
+  {
+    "index": {
+      "title": "Цеп защитника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп_защитника",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп_защитника.json",
+    "item_id": "bg3_tsep_zaschitnika",
+    "name_ru": "Цеп защитника"
+  },
+  {
+    "index": {
+      "title": "Цеп Миркула",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп_Миркула",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп_Миркула.json",
+    "item_id": "bg3_tsep_mirkula",
+    "name_ru": "Цеп Миркула"
+  },
+  {
+    "index": {
+      "title": "Цеп эпох",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цеп_эпох",
+      "subcategory": "Цепы",
+      "parent_page": "light_and_one_handed"
+    },
+    "probe_file": "probe_Цеп_эпох.json",
+    "item_id": "bg3_tsep_epoh",
+    "name_ru": "Цеп эпох"
+  },
+  {
+    "index": {
+      "title": "Бескомпромиссный боевой молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бескомпромиссный_боевой_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Бескомпромиссный_боевой_молот.json",
+    "item_id": "bg3_beskompromissnyy_boevoy_molot",
+    "name_ru": "Бескомпромиссный боевой молот"
+  },
+  {
+    "index": {
+      "title": "Боевой молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Боевой_молот.json",
+    "item_id": "bg3_boevoy_molot",
+    "name_ru": "Боевой молот"
+  },
+  {
+    "index": {
+      "title": "Боевой молот +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_молот_+1",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Боевой_молот_+1.json",
+    "item_id": "bg3_boevoy_molot_1",
+    "name_ru": "Боевой молот +1"
+  },
+  {
+    "index": {
+      "title": "Боевой молот +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_молот_+2",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Боевой_молот_+2.json",
+    "item_id": "bg3_boevoy_molot_2",
+    "name_ru": "Боевой молот +2"
+  },
+  {
+    "index": {
+      "title": "Боевой молот Кетерика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_молот_Кетерика",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Боевой_молот_Кетерика.json",
+    "item_id": "bg3_boevoy_molot_keterika",
+    "name_ru": "Боевой молот Кетерика"
+  },
+  {
+    "index": {
+      "title": "Веролом",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Веролом",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Веролом.json",
+    "item_id": "bg3_verolom",
+    "name_ru": "Веролом"
+  },
+  {
+    "index": {
+      "title": "Гномий метатель",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Гномий_метатель",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Гномий_метатель.json",
+    "item_id": "bg3_gnomiy_metatel",
+    "name_ru": "Гномий метатель"
+  },
+  {
+    "index": {
+      "title": "Клоунский молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клоунский_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Клоунский_молот.json",
+    "item_id": "bg3_klounskiy_molot",
+    "name_ru": "Клоунский молот"
+  },
+  {
+    "index": {
+      "title": "Молот праведника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Молот_праведника",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Молот_праведника.json",
+    "item_id": "bg3_molot_pravednika",
+    "name_ru": "Молот праведника"
+  },
+  {
+    "index": {
+      "title": "Орфический молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Орфический_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Орфический_молот.json",
+    "item_id": "bg3_orficheskiy_molot",
+    "name_ru": "Орфический молот"
+  },
+  {
+    "index": {
+      "title": "Призываемый боевой молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призываемый_боевой_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Призываемый_боевой_молот.json",
+    "item_id": "bg3_prizyvaemyy_boevoy_molot",
+    "name_ru": "Призываемый боевой молот"
+  },
+  {
+    "index": {
+      "title": "Связанный с зарядом молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Связанный_с_зарядом_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Связанный_с_зарядом_молот.json",
+    "item_id": "bg3_svyazannyy_s_zaryadom_molot",
+    "name_ru": "Связанный с зарядом молот"
+  },
+  {
+    "index": {
+      "title": "Церемониальный боевой молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Церемониальный_боевой_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Церемониальный_боевой_молот.json",
+    "item_id": "bg3_tseremonialnyy_boevoy_molot",
+    "name_ru": "Церемониальный боевой молот"
+  },
+  {
+    "index": {
+      "title": "Эйзерский боевой молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Эйзерский_боевой_молот",
+      "subcategory": "Боевые молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Эйзерский_боевой_молот.json",
+    "item_id": "bg3_eyzerskiy_boevoy_molot",
+    "name_ru": "Эйзерский боевой молот"
+  },
+  {
+    "index": {
+      "title": "Глефа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Глефа",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Глефа.json",
+    "item_id": "bg3_glefa",
+    "name_ru": "Глефа"
+  },
+  {
+    "index": {
+      "title": "Глефа +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Глефа_+1",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Глефа_+1.json",
+    "item_id": "bg3_glefa_1",
+    "name_ru": "Глефа +1"
+  },
+  {
+    "index": {
+      "title": "Глефа драконьей глотки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Глефа_драконьей_глотки",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Глефа_драконьей_глотки.json",
+    "item_id": "bg3_glefa_drakoney_glotki",
+    "name_ru": "Глефа драконьей глотки"
+  },
+  {
+    "index": {
+      "title": "Глефа убийцы чудовищ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Глефа_убийцы_чудовищ",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Глефа_убийцы_чудовищ.json",
+    "item_id": "bg3_glefa_ubiytsy_chudovisch",
+    "name_ru": "Глефа убийцы чудовищ"
+  },
+  {
+    "index": {
+      "title": "Лунная глефа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лунная_глефа",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Лунная_глефа.json",
+    "item_id": "bg3_lunnaya_glefa",
+    "name_ru": "Лунная глефа"
+  },
+  {
+    "index": {
+      "title": "Призываемая глефа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призываемая_глефа",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Призываемая_глефа.json",
+    "item_id": "bg3_prizyvaemaya_glefa",
+    "name_ru": "Призываемая глефа"
+  },
+  {
+    "index": {
+      "title": "Ржавая глефа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавая_глефа",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ржавая_глефа.json",
+    "item_id": "bg3_rzhavaya_glefa",
+    "name_ru": "Ржавая глефа"
+  },
+  {
+    "index": {
+      "title": "Скорбь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скорбь",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Скорбь.json",
+    "item_id": "bg3_skorb",
+    "name_ru": "Скорбь"
+  },
+  {
+    "index": {
+      "title": "Танцующий бриз",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Танцующий_бриз",
+      "subcategory": "Глефы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Танцующий_бриз.json",
+    "item_id": "bg3_tantsuyuschiy_briz",
+    "name_ru": "Танцующий бриз"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч.json",
+    "item_id": "bg3_dvuruchnyy_mech",
+    "name_ru": "Двуручный меч"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_+1",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_+1.json",
+    "item_id": "bg3_dvuruchnyy_mech_1",
+    "name_ru": "Двуручный меч +1"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч +1 (обычный)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_+1_(обычный)",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_+1_(обычный).json",
+    "item_id": "bg3_dvuruchnyy_mech_1_obychnyy",
+    "name_ru": "Двуручный меч +1 (обычный)"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч гитьянки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_гитьянки",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_гитьянки.json",
+    "item_id": "bg3_dvuruchnyy_mech_gityanki",
+    "name_ru": "Двуручный меч гитьянки"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч гитьянки (Псионический)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_гитьянки_(Псионический)",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_гитьянки_(Псионический).json",
+    "item_id": "bg3_dvuruchnyy_mech_gityanki_psionicheskiy",
+    "name_ru": "Двуручный меч гитьянки (Псионический)"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч Джоргорала",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_Джоргорала",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_Джоргорала.json",
+    "item_id": "bg3_dvuruchnyy_mech_dzhorgorala",
+    "name_ru": "Двуручный меч Джоргорала"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч Душерез",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_Душерез",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_Душерез.json",
+    "item_id": "bg3_dvuruchnyy_mech_dusherez",
+    "name_ru": "Двуручный меч Душерез"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч из суссура",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_из_суссура",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_из_суссура.json",
+    "item_id": "bg3_dvuruchnyy_mech_iz_sussura",
+    "name_ru": "Двуручный меч из суссура"
+  },
+  {
+    "index": {
+      "title": "Двуручный меч стража",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_меч_стража",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_меч_стража.json",
+    "item_id": "bg3_dvuruchnyy_mech_strazha",
+    "name_ru": "Двуручный меч стража"
+  },
+  {
+    "index": {
+      "title": "Клинок «Вечное пламя»",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_«Вечное_пламя»",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Клинок_«Вечное_пламя».json",
+    "item_id": "bg3_klinok_vechnoe_plamya",
+    "name_ru": "Клинок «Вечное пламя»"
+  },
+  {
+    "index": {
+      "title": "Клинок Правосудия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клинок_Правосудия",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Клинок_Правосудия.json",
+    "item_id": "bg3_klinok_pravosudiya",
+    "name_ru": "Клинок Правосудия"
+  },
+  {
+    "index": {
+      "title": "Меч хаоса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Меч_хаоса",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Меч_хаоса.json",
+    "item_id": "bg3_mech_haosa",
+    "name_ru": "Меч хаоса"
+  },
+  {
+    "index": {
+      "title": "Призываемый двуручный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призываемый_двуручный_меч",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Призываемый_двуручный_меч.json",
+    "item_id": "bg3_prizyvaemyy_dvuruchnyy_mech",
+    "name_ru": "Призываемый двуручный меч"
+  },
+  {
+    "index": {
+      "title": "Ранитель Свартлеби",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ранитель_Свартлеби",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ранитель_Свартлеби.json",
+    "item_id": "bg3_ranitel_svartlebi",
+    "name_ru": "Ранитель Свартлеби"
+  },
+  {
+    "index": {
+      "title": "Ржавый двуручный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_двуручный_меч",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ржавый_двуручный_меч.json",
+    "item_id": "bg3_rzhavyy_dvuruchnyy_mech",
+    "name_ru": "Ржавый двуручный меч"
+  },
+  {
+    "index": {
+      "title": "Серебряный меч с астрального плана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_меч_с_астрального_плана",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Серебряный_меч_с_астрального_плана.json",
+    "item_id": "bg3_serebryanyy_mech_s_astralnogo_plana",
+    "name_ru": "Серебряный меч с астрального плана"
+  },
+  {
+    "index": {
+      "title": "Убийца великанов Балдурана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Убийца_великанов_Балдурана",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Убийца_великанов_Балдурана.json",
+    "item_id": "bg3_ubiytsa_velikanov_baldurana",
+    "name_ru": "Убийца великанов Балдурана"
+  },
+  {
+    "index": {
+      "title": "Усиленный двуручный меч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Усиленный_двуручный_меч",
+      "subcategory": "Двуручные мечи",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Усиленный_двуручный_меч.json",
+    "item_id": "bg3_usilennyy_dvuruchnyy_mech",
+    "name_ru": "Усиленный двуручный меч"
+  },
+  {
+    "index": {
+      "title": "Враголом",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Враголом",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Враголом.json",
+    "item_id": "bg3_vragolom",
+    "name_ru": "Враголом"
+  },
+  {
+    "index": {
+      "title": "Двуручный молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_молот",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_молот.json",
+    "item_id": "bg3_dvuruchnyy_molot",
+    "name_ru": "Двуручный молот"
+  },
+  {
+    "index": {
+      "title": "Двуручный молот +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_молот_+1",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_молот_+1.json",
+    "item_id": "bg3_dvuruchnyy_molot_1",
+    "name_ru": "Двуручный молот +1"
+  },
+  {
+    "index": {
+      "title": "Ржавый двуручный молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_двуручный_молот",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ржавый_двуручный_молот.json",
+    "item_id": "bg3_rzhavyy_dvuruchnyy_molot",
+    "name_ru": "Ржавый двуручный молот"
+  },
+  {
+    "index": {
+      "title": "Роковой молот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Роковой_молот",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Роковой_молот.json",
+    "item_id": "bg3_rokovoy_molot",
+    "name_ru": "Роковой молот"
+  },
+  {
+    "index": {
+      "title": "Трупомол",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трупомол",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Трупомол.json",
+    "item_id": "bg3_trupomol",
+    "name_ru": "Трупомол"
+  },
+  {
+    "index": {
+      "title": "Хамархрафт",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Хамархрафт",
+      "subcategory": "Двуручные молоты",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Хамархрафт.json",
+    "item_id": "bg3_hamarhraft",
+    "name_ru": "Хамархрафт"
+  },
+  {
+    "index": {
+      "title": "Гроза нежити",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Гроза_нежити",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Гроза_нежити.json",
+    "item_id": "bg3_groza_nezhiti",
+    "name_ru": "Гроза нежити"
+  },
+  {
+    "index": {
+      "title": "Двуручный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_топор",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_топор.json",
+    "item_id": "bg3_dvuruchnyy_topor",
+    "name_ru": "Двуручный топор"
+  },
+  {
+    "index": {
+      "title": "Двуручный топор +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_топор_+1",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_топор_+1.json",
+    "item_id": "bg3_dvuruchnyy_topor_1",
+    "name_ru": "Двуручный топор +1"
+  },
+  {
+    "index": {
+      "title": "Двуручный топор +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_топор_+2",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_топор_+2.json",
+    "item_id": "bg3_dvuruchnyy_topor_2",
+    "name_ru": "Двуручный топор +2"
+  },
+  {
+    "index": {
+      "title": "Двуручный топор адского пламени",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_топор_адского_пламени",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_топор_адского_пламени.json",
+    "item_id": "bg3_dvuruchnyy_topor_adskogo_plameni",
+    "name_ru": "Двуручный топор адского пламени"
+  },
+  {
+    "index": {
+      "title": "Двуручный топор защитника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Двуручный_топор_защитника",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Двуручный_топор_защитника.json",
+    "item_id": "bg3_dvuruchnyy_topor_zaschitnika",
+    "name_ru": "Двуручный топор защитника"
+  },
+  {
+    "index": {
+      "title": "Окровавленный двуручный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Окровавленный_двуручный_топор",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Окровавленный_двуручный_топор.json",
+    "item_id": "bg3_okrovavlennyy_dvuruchnyy_topor",
+    "name_ru": "Окровавленный двуручный топор"
+  },
+  {
+    "index": {
+      "title": "Очень тяжелый двуручный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Очень_тяжелый_двуручный_топор",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Очень_тяжелый_двуручный_топор.json",
+    "item_id": "bg3_ochen_tyazhelyy_dvuruchnyy_topor",
+    "name_ru": "Очень тяжелый двуручный топор"
+  },
+  {
+    "index": {
+      "title": "Сетан: духовный двуручный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_духовный_двуручный_топор",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Сетан__духовный_двуручный_топор.json",
+    "item_id": "bg3_setan_duhovnyy_dvuruchnyy_topor",
+    "name_ru": "Сетан: духовный двуручный топор"
+  },
+  {
+    "index": {
+      "title": "Топор истребителя",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Топор_истребителя",
+      "subcategory": "Двуручные топоры",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Топор_истребителя.json",
+    "item_id": "bg3_topor_istrebitelya",
+    "name_ru": "Топор истребителя"
+  },
+  {
+    "index": {
+      "title": "Дубина (Минотавр)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубина_(Минотавр)",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Дубина_(Минотавр).json",
+    "item_id": "bg3_dubina_minotavr",
+    "name_ru": "Дубина (Минотавр)"
+  },
+  {
+    "index": {
+      "title": "Дубина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубина",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Дубина.json",
+    "item_id": "bg3_dubina",
+    "name_ru": "Дубина"
+  },
+  {
+    "index": {
+      "title": "Дубина +1 (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубина_+1_(Baldur's_Gate_III)",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Дубина_+1_(Baldur's_Gate_III).json",
+    "item_id": "bg3_dubina_1_baldur_s_gate_iii",
+    "name_ru": "Дубина +1 (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Крысиная бита",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Крысиная_бита",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Крысиная_бита.json",
+    "item_id": "bg3_krysinaya_bita",
+    "name_ru": "Крысиная бита"
+  },
+  {
+    "index": {
+      "title": "Решатель споров",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Решатель_споров",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Решатель_споров.json",
+    "item_id": "bg3_reshatel_sporov",
+    "name_ru": "Решатель споров"
+  },
+  {
+    "index": {
+      "title": "Тяжелая дубина с шипами",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тяжелая_дубина_с_шипами",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Тяжелая_дубина_с_шипами.json",
+    "item_id": "bg3_tyazhelaya_dubina_s_shipami",
+    "name_ru": "Тяжелая дубина с шипами"
+  },
+  {
+    "index": {
+      "title": "Узловатая ветка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Узловатая_ветка",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Узловатая_ветка.json",
+    "item_id": "bg3_uzlovataya_vetka",
+    "name_ru": "Узловатая ветка"
+  },
+  {
+    "index": {
+      "title": "Упившийся подонок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Упившийся_подонок",
+      "subcategory": "Дубины",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Упившийся_подонок.json",
+    "item_id": "bg3_upivshiysya_podonok",
+    "name_ru": "Упившийся подонок"
+  },
+  {
+    "index": {
+      "title": "Глубинная пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Глубинная_пика",
+      "subcategory": "Клевцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Глубинная_пика.json",
+    "item_id": "bg3_glubinnaya_pika",
+    "name_ru": "Глубинная пика"
+  },
+  {
+    "index": {
+      "title": "Кирка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кирка",
+      "subcategory": "Клевцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Кирка.json",
+    "item_id": "bg3_kirka",
+    "name_ru": "Кирка"
+  },
+  {
+    "index": {
+      "title": "Клевец",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клевец",
+      "subcategory": "Клевцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Клевец.json",
+    "item_id": "bg3_klevets",
+    "name_ru": "Клевец"
+  },
+  {
+    "index": {
+      "title": "Клевец +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клевец_+1",
+      "subcategory": "Клевцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Клевец_+1.json",
+    "item_id": "bg3_klevets_1",
+    "name_ru": "Клевец +1"
+  },
+  {
+    "index": {
+      "title": "Прыгун",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Прыгун",
+      "subcategory": "Клевцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Прыгун.json",
+    "item_id": "bg3_prygun",
+    "name_ru": "Прыгун"
+  },
+  {
+    "index": {
+      "title": "Адское копье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адское_копье",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Адское_копье.json",
+    "item_id": "bg3_adskoe_kope",
+    "name_ru": "Адское копье"
+  },
+  {
+    "index": {
+      "title": "Видение Абсолют",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Видение_Абсолют",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Видение_Абсолют.json",
+    "item_id": "bg3_videnie_absolyut",
+    "name_ru": "Видение Абсолют"
+  },
+  {
+    "index": {
+      "title": "Вилы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вилы",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Вилы.json",
+    "item_id": "bg3_vily",
+    "name_ru": "Вилы"
+  },
+  {
+    "index": {
+      "title": "Зазубренное копье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Зазубренное_копье",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Зазубренное_копье.json",
+    "item_id": "bg3_zazubrennoe_kope",
+    "name_ru": "Зазубренное копье"
+  },
+  {
+    "index": {
+      "title": "Копье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Копье",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Копье.json",
+    "item_id": "bg3_kope",
+    "name_ru": "Копье"
+  },
+  {
+    "index": {
+      "title": "Копье +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Копье_+1",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Копье_+1.json",
+    "item_id": "bg3_kope_1",
+    "name_ru": "Копье +1"
+  },
+  {
+    "index": {
+      "title": "Копье +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Копье_+2",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Копье_+2.json",
+    "item_id": "bg3_kope_2",
+    "name_ru": "Копье +2"
+  },
+  {
+    "index": {
+      "title": "Копье вечера Шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Копье_вечера_Шар",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Копье_вечера_Шар.json",
+    "item_id": "bg3_kope_vechera_shar",
+    "name_ru": "Копье вечера Шар"
+  },
+  {
+    "index": {
+      "title": "Копье Ночи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Копье_Ночи",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Копье_Ночи.json",
+    "item_id": "bg3_kope_nochi",
+    "name_ru": "Копье Ночи"
+  },
+  {
+    "index": {
+      "title": "Копье ночи Селунэ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Копье_ночи_Селунэ",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Копье_ночи_Селунэ.json",
+    "item_id": "bg3_kope_nochi_selune",
+    "name_ru": "Копье ночи Селунэ"
+  },
+  {
+    "index": {
+      "title": "Ложное копье ночи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ложное_копье_ночи",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ложное_копье_ночи.json",
+    "item_id": "bg3_lozhnoe_kope_nochi",
+    "name_ru": "Ложное копье ночи"
+  },
+  {
+    "index": {
+      "title": "Молниеносный таратор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Молниеносный_таратор",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Молниеносный_таратор.json",
+    "item_id": "bg3_molnienosnyy_tarator",
+    "name_ru": "Молниеносный таратор"
+  },
+  {
+    "index": {
+      "title": "Путеводная нить хранителя",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Путеводная_нить_хранителя",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Путеводная_нить_хранителя.json",
+    "item_id": "bg3_putevodnaya_nit_hranitelya",
+    "name_ru": "Путеводная нить хранителя"
+  },
+  {
+    "index": {
+      "title": "Ржавое копье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавое_копье",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ржавое_копье.json",
+    "item_id": "bg3_rzhavoe_kope",
+    "name_ru": "Ржавое копье"
+  },
+  {
+    "index": {
+      "title": "Самодельное копье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Самодельное_копье",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Самодельное_копье.json",
+    "item_id": "bg3_samodelnoe_kope",
+    "name_ru": "Самодельное копье"
+  },
+  {
+    "index": {
+      "title": "Сахваджинское копье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сахваджинское_копье",
+      "subcategory": "Копья",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Сахваджинское_копье.json",
+    "item_id": "bg3_sahvadzhinskoe_kope",
+    "name_ru": "Сахваджинское копье"
+  },
+  {
+    "index": {
+      "title": "Возвратная пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Возвратная_пика",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Возвратная_пика.json",
+    "item_id": "bg3_vozvratnaya_pika",
+    "name_ru": "Возвратная пика"
+  },
+  {
+    "index": {
+      "title": "Волшебная пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_пика",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Волшебная_пика.json",
+    "item_id": "bg3_volshebnaya_pika",
+    "name_ru": "Волшебная пика"
+  },
+  {
+    "index": {
+      "title": "Незримая угроза",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Незримая_угроза",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Незримая_угроза.json",
+    "item_id": "bg3_nezrimaya_ugroza",
+    "name_ru": "Незримая угроза"
+  },
+  {
+    "index": {
+      "title": "Пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пика",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Пика.json",
+    "item_id": "bg3_pika",
+    "name_ru": "Пика"
+  },
+  {
+    "index": {
+      "title": "Пика +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пика_+1",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Пика_+1.json",
+    "item_id": "bg3_pika_1",
+    "name_ru": "Пика +1"
+  },
+  {
+    "index": {
+      "title": "Пробивающая пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пробивающая_пика",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Пробивающая_пика.json",
+    "item_id": "bg3_probivayuschaya_pika",
+    "name_ru": "Пробивающая пика"
+  },
+  {
+    "index": {
+      "title": "Ржавая пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавая_пика",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ржавая_пика.json",
+    "item_id": "bg3_rzhavaya_pika",
+    "name_ru": "Ржавая пика"
+  },
+  {
+    "index": {
+      "title": "Сломанная пика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сломанная_пика",
+      "subcategory": "Пики",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Сломанная_пика.json",
+    "item_id": "bg3_slomannaya_pika",
+    "name_ru": "Сломанная пика"
+  },
+  {
+    "index": {
+      "title": "Искрокол",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Искрокол",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Искрокол.json",
+    "item_id": "bg3_iskrokol",
+    "name_ru": "Искрокол"
+  },
+  {
+    "index": {
+      "title": "Нирулна",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Нирулна",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Нирулна.json",
+    "item_id": "bg3_nirulna",
+    "name_ru": "Нирулна"
+  },
+  {
+    "index": {
+      "title": "Призываемый трезубец",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призываемый_трезубец",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Призываемый_трезубец.json",
+    "item_id": "bg3_prizyvaemyy_trezubets",
+    "name_ru": "Призываемый трезубец"
+  },
+  {
+    "index": {
+      "title": "Ржавый трезубец",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_трезубец",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Ржавый_трезубец.json",
+    "item_id": "bg3_rzhavyy_trezubets",
+    "name_ru": "Ржавый трезубец"
+  },
+  {
+    "index": {
+      "title": "Трезубец",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трезубец",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Трезубец.json",
+    "item_id": "bg3_trezubets",
+    "name_ru": "Трезубец"
+  },
+  {
+    "index": {
+      "title": "Трезубец +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трезубец_+1",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Трезубец_+1.json",
+    "item_id": "bg3_trezubets_1",
+    "name_ru": "Трезубец +1"
+  },
+  {
+    "index": {
+      "title": "Трезубец +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трезубец_+2",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Трезубец_+2.json",
+    "item_id": "bg3_trezubets_2",
+    "name_ru": "Трезубец +2"
+  },
+  {
+    "index": {
+      "title": "Трезубец волн",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трезубец_волн",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Трезубец_волн.json",
+    "item_id": "bg3_trezubets_voln",
+    "name_ru": "Трезубец волн"
+  },
+  {
+    "index": {
+      "title": "Трезубец глубин",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Трезубец_глубин",
+      "subcategory": "Трезубцы",
+      "parent_page": "heavy"
+    },
+    "probe_file": "probe_Трезубец_глубин.json",
+    "item_id": "bg3_trezubets_glubin",
+    "name_ru": "Трезубец глубин"
+  },
+  {
+    "index": {
+      "title": "Гонтр Маэль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Гонтр_Маэль",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Гонтр_Маэль.json",
+    "item_id": "bg3_gontr_mael",
+    "name_ru": "Гонтр Маэль"
+  },
+  {
+    "index": {
+      "title": "Длинный лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_лук",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Длинный_лук.json",
+    "item_id": "bg3_dlinnyy_luk",
+    "name_ru": "Длинный лук"
+  },
+  {
+    "index": {
+      "title": "Длинный лук +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_лук_+1",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Длинный_лук_+1.json",
+    "item_id": "bg3_dlinnyy_luk_1",
+    "name_ru": "Длинный лук +1"
+  },
+  {
+    "index": {
+      "title": "Длинный лук +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_лук_+2",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Длинный_лук_+2.json",
+    "item_id": "bg3_dlinnyy_luk_2",
+    "name_ru": "Длинный лук +2"
+  },
+  {
+    "index": {
+      "title": "Длинный лук адского всадника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинный_лук_адского_всадника",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Длинный_лук_адского_всадника.json",
+    "item_id": "bg3_dlinnyy_luk_adskogo_vsadnika",
+    "name_ru": "Длинный лук адского всадника"
+  },
+  {
+    "index": {
+      "title": "Лук с титановой тетивой",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лук_с_титановой_тетивой",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Лук_с_титановой_тетивой.json",
+    "item_id": "bg3_luk_s_titanovoy_tetivoy",
+    "name_ru": "Лук с титановой тетивой"
+  },
+  {
+    "index": {
+      "title": "Молнестрел",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Молнестрел",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Молнестрел.json",
+    "item_id": "bg3_molnestrel",
+    "name_ru": "Молнестрел"
+  },
+  {
+    "index": {
+      "title": "Похититель заклинаний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Похититель_заклинаний",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Похититель_заклинаний.json",
+    "item_id": "bg3_pohititel_zaklinaniy",
+    "name_ru": "Похититель заклинаний"
+  },
+  {
+    "index": {
+      "title": "Сахваджинский длинный лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сахваджинский_длинный_лук",
+      "subcategory": "Длинные луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Сахваджинский_длинный_лук.json",
+    "item_id": "bg3_sahvadzhinskiy_dlinnyy_luk",
+    "name_ru": "Сахваджинский длинный лук"
+  },
+  {
+    "index": {
+      "title": "Гоблинский лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Гоблинский_лук",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Гоблинский_лук.json",
+    "item_id": "bg3_goblinskiy_luk",
+    "name_ru": "Гоблинский лук"
+  },
+  {
+    "index": {
+      "title": "Жестокий короткий лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Жестокий_короткий_лук",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Жестокий_короткий_лук.json",
+    "item_id": "bg3_zhestokiy_korotkiy_luk",
+    "name_ru": "Жестокий короткий лук"
+  },
+  {
+    "index": {
+      "title": "Короткий лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_лук",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Короткий_лук.json",
+    "item_id": "bg3_korotkiy_luk",
+    "name_ru": "Короткий лук"
+  },
+  {
+    "index": {
+      "title": "Короткий лук +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_лук_+1",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Короткий_лук_+1.json",
+    "item_id": "bg3_korotkiy_luk_1",
+    "name_ru": "Короткий лук +1"
+  },
+  {
+    "index": {
+      "title": "Короткий лук темного пламени",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Короткий_лук_темного_пламени",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Короткий_лук_темного_пламени.json",
+    "item_id": "bg3_korotkiy_luk_temnogo_plameni",
+    "name_ru": "Короткий лук темного пламени"
+  },
+  {
+    "index": {
+      "title": "Лук баньши",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лук_баньши",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Лук_баньши.json",
+    "item_id": "bg3_luk_banshi",
+    "name_ru": "Лук баньши"
+  },
+  {
+    "index": {
+      "title": "Лук осознанности",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лук_осознанности",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Лук_осознанности.json",
+    "item_id": "bg3_luk_osoznannosti",
+    "name_ru": "Лук осознанности"
+  },
+  {
+    "index": {
+      "title": "Несущий погибель",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Несущий_погибель",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Несущий_погибель.json",
+    "item_id": "bg3_nesuschiy_pogibel",
+    "name_ru": "Несущий погибель"
+  },
+  {
+    "index": {
+      "title": "Охотничий короткий лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Охотничий_короткий_лук",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Охотничий_короткий_лук.json",
+    "item_id": "bg3_ohotnichiy_korotkiy_luk",
+    "name_ru": "Охотничий короткий лук"
+  },
+  {
+    "index": {
+      "title": "Полная неожиданность",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Полная_неожиданность",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Полная_неожиданность.json",
+    "item_id": "bg3_polnaya_neozhidannost",
+    "name_ru": "Полная неожиданность"
+  },
+  {
+    "index": {
+      "title": "Самодельный лук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Самодельный_лук",
+      "subcategory": "Короткие луки",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Самодельный_лук.json",
+    "item_id": "bg3_samodelnyy_luk",
+    "name_ru": "Самодельный лук"
+  },
+  {
+    "index": {
+      "title": "Легкий арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Легкий_арбалет",
+      "subcategory": "Лёгкие арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Легкий_арбалет.json",
+    "item_id": "bg3_legkiy_arbalet",
+    "name_ru": "Легкий арбалет"
+  },
+  {
+    "index": {
+      "title": "Легкий арбалет +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Легкий_арбалет_+1",
+      "subcategory": "Лёгкие арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Легкий_арбалет_+1.json",
+    "item_id": "bg3_legkiy_arbalet_1",
+    "name_ru": "Легкий арбалет +1"
+  },
+  {
+    "index": {
+      "title": "Шаритский арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шаритский_арбалет",
+      "subcategory": "Лёгкие арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Шаритский_арбалет.json",
+    "item_id": "bg3_sharitskiy_arbalet",
+    "name_ru": "Шаритский арбалет"
+  },
+  {
+    "index": {
+      "title": "Не промах",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Не_промах",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Не_промах.json",
+    "item_id": "bg3_ne_promah",
+    "name_ru": "Не промах"
+  },
+  {
+    "index": {
+      "title": "Огнестрел",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огнестрел",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Огнестрел.json",
+    "item_id": "bg3_ognestrel",
+    "name_ru": "Огнестрел"
+  },
+  {
+    "index": {
+      "title": "Одноручный арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Одноручный_арбалет",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Одноручный_арбалет.json",
+    "item_id": "bg3_odnoruchnyy_arbalet",
+    "name_ru": "Одноручный арбалет"
+  },
+  {
+    "index": {
+      "title": "Одноручный арбалет +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Одноручный_арбалет_+1",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Одноручный_арбалет_+1.json",
+    "item_id": "bg3_odnoruchnyy_arbalet_1",
+    "name_ru": "Одноручный арбалет +1"
+  },
+  {
+    "index": {
+      "title": "Одноручный арбалет +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Одноручный_арбалет_+2",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Одноручный_арбалет_+2.json",
+    "item_id": "bg3_odnoruchnyy_arbalet_2",
+    "name_ru": "Одноручный арбалет +2"
+  },
+  {
+    "index": {
+      "title": "Одноручный арбалет (Юргир)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Одноручный_арбалет_(Юргир)",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Одноручный_арбалет_(Юргир).json",
+    "item_id": "bg3_odnoruchnyy_arbalet_yurgir",
+    "name_ru": "Одноручный арбалет (Юргир)"
+  },
+  {
+    "index": {
+      "title": "Одноручный арбалет адского пламени",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Одноручный_арбалет_адского_пламени",
+      "subcategory": "Одноручные арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Одноручный_арбалет_адского_пламени.json",
+    "item_id": "bg3_odnoruchnyy_arbalet_adskogo_plameni",
+    "name_ru": "Одноручный арбалет адского пламени"
+  },
+  {
+    "index": {
+      "title": "Адский самовзводный арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адский_самовзводный_арбалет",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Адский_самовзводный_арбалет.json",
+    "item_id": "bg3_adskiy_samovzvodnyy_arbalet",
+    "name_ru": "Адский самовзводный арбалет"
+  },
+  {
+    "index": {
+      "title": "Арбалет гитьянки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Арбалет_гитьянки",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Арбалет_гитьянки.json",
+    "item_id": "bg3_arbalet_gityanki",
+    "name_ru": "Арбалет гитьянки"
+  },
+  {
+    "index": {
+      "title": "Арбалет мистической мощи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Арбалет_мистической_мощи",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Арбалет_мистической_мощи.json",
+    "item_id": "bg3_arbalet_misticheskoy_moschi",
+    "name_ru": "Арбалет мистической мощи"
+  },
+  {
+    "index": {
+      "title": "Арбалет стража",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Арбалет_стража",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Арбалет_стража.json",
+    "item_id": "bg3_arbalet_strazha",
+    "name_ru": "Арбалет стража"
+  },
+  {
+    "index": {
+      "title": "Гарольд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Гарольд",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Гарольд.json",
+    "item_id": "bg3_garold",
+    "name_ru": "Гарольд"
+  },
+  {
+    "index": {
+      "title": "Длинная рука гурцев",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Длинная_рука_гурцев",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Длинная_рука_гурцев.json",
+    "item_id": "bg3_dlinnaya_ruka_gurtsev",
+    "name_ru": "Длинная рука гурцев"
+  },
+  {
+    "index": {
+      "title": "Истребитель великанов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Истребитель_великанов",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Истребитель_великанов.json",
+    "item_id": "bg3_istrebitel_velikanov",
+    "name_ru": "Истребитель великанов"
+  },
+  {
+    "index": {
+      "title": "Ржавый тяжелый арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ржавый_тяжелый_арбалет",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Ржавый_тяжелый_арбалет.json",
+    "item_id": "bg3_rzhavyy_tyazhelyy_arbalet",
+    "name_ru": "Ржавый тяжелый арбалет"
+  },
+  {
+    "index": {
+      "title": "Тяжелый арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тяжелый_арбалет",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Тяжелый_арбалет.json",
+    "item_id": "bg3_tyazhelyy_arbalet",
+    "name_ru": "Тяжелый арбалет"
+  },
+  {
+    "index": {
+      "title": "Тяжелый арбалет +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тяжелый_арбалет_+1",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Тяжелый_арбалет_+1.json",
+    "item_id": "bg3_tyazhelyy_arbalet_1",
+    "name_ru": "Тяжелый арбалет +1"
+  },
+  {
+    "index": {
+      "title": "Устремление Гандрела",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Устремление_Гандрела",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Устремление_Гандрела.json",
+    "item_id": "bg3_ustremlenie_gandrela",
+    "name_ru": "Устремление Гандрела"
+  },
+  {
+    "index": {
+      "title": "Фабричный арбалет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фабричный_арбалет",
+      "subcategory": "Тяжёлые арбалеты",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Фабричный_арбалет.json",
+    "item_id": "bg3_fabrichnyy_arbalet",
+    "name_ru": "Фабричный арбалет"
+  },
+  {
+    "index": {
+      "title": "Десница БУУАЛА",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Десница_БУУАЛА",
+      "subcategory": "Пилумы",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Десница_БУУАЛА.json",
+    "item_id": "bg3_desnitsa_buuala",
+    "name_ru": "Десница БУУАЛА"
+  },
+  {
+    "index": {
+      "title": "Пилум",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пилум",
+      "subcategory": "Пилумы",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Пилум.json",
+    "item_id": "bg3_pilum",
+    "name_ru": "Пилум"
+  },
+  {
+    "index": {
+      "title": "Пилум +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пилум_+1",
+      "subcategory": "Пилумы",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Пилум_+1.json",
+    "item_id": "bg3_pilum_1",
+    "name_ru": "Пилум +1"
+  },
+  {
+    "index": {
+      "title": "Боевой посох",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_посох",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Боевой_посох.json",
+    "item_id": "bg3_boevoy_posoh",
+    "name_ru": "Боевой посох"
+  },
+  {
+    "index": {
+      "title": "Боевой посох +1",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_посох_+1",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Боевой_посох_+1.json",
+    "item_id": "bg3_boevoy_posoh_1",
+    "name_ru": "Боевой посох +1"
+  },
+  {
+    "index": {
+      "title": "Боевой посох +2",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Боевой_посох_+2",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Боевой_посох_+2.json",
+    "item_id": "bg3_boevoy_posoh_2",
+    "name_ru": "Боевой посох +2"
+  },
+  {
+    "index": {
+      "title": "Бледный дуб",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бледный_дуб",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Бледный_дуб.json",
+    "item_id": "bg3_blednyy_dub",
+    "name_ru": "Бледный дуб"
+  },
+  {
+    "index": {
+      "title": "Друидский посох",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Друидский_посох",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Друидский_посох.json",
+    "item_id": "bg3_druidskiy_posoh",
+    "name_ru": "Друидский посох"
+  },
+  {
+    "index": {
+      "title": "Игрушка Здоровяка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Игрушка_Здоровяка",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Игрушка_Здоровяка.json",
+    "item_id": "bg3_igrushka_zdorovyaka",
+    "name_ru": "Игрушка Здоровяка"
+  },
+  {
+    "index": {
+      "title": "Искрометатель",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Искрометатель",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Искрометатель.json",
+    "item_id": "bg3_iskrometatel",
+    "name_ru": "Искрометатель"
+  },
+  {
+    "index": {
+      "title": "Какофония",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Какофония",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Какофония.json",
+    "item_id": "bg3_kakofoniya",
+    "name_ru": "Какофония"
+  },
+  {
+    "index": {
+      "title": "Крюк из крученого дуба",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Крюк_из_крученого_дуба",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Крюк_из_крученого_дуба.json",
+    "item_id": "bg3_kryuk_iz_kruchenogo_duba",
+    "name_ru": "Крюк из крученого дуба"
+  },
+  {
+    "index": {
+      "title": "Маркохешкир",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Маркохешкир",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Маркохешкир.json",
+    "item_id": "bg3_markoheshkir",
+    "name_ru": "Маркохешкир"
+  },
+  {
+    "index": {
+      "title": "Милость Кореллона",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Милость_Кореллона",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Милость_Кореллона.json",
+    "item_id": "bg3_milost_korellona",
+    "name_ru": "Милость Кореллона"
+  },
+  {
+    "index": {
+      "title": "Несчастье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Несчастье",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Несчастье.json",
+    "item_id": "bg3_neschaste",
+    "name_ru": "Несчастье"
+  },
+  {
+    "index": {
+      "title": "Отзвук творения",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Отзвук_творения",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Отзвук_творения.json",
+    "item_id": "bg3_otzvuk_tvoreniya",
+    "name_ru": "Отзвук творения"
+  },
+  {
+    "index": {
+      "title": "Отчаяние Аткатлы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Отчаяние_Аткатлы",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Отчаяние_Аткатлы.json",
+    "item_id": "bg3_otchayanie_atkatly",
+    "name_ru": "Отчаяние Аткатлы"
+  },
+  {
+    "index": {
+      "title": "Первый посох Мелфа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Первый_посох_Мелфа",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Первый_посох_Мелфа.json",
+    "item_id": "bg3_pervyy_posoh_melfa",
+    "name_ru": "Первый посох Мелфа"
+  },
+  {
+    "index": {
+      "title": "Пламенеющий посох",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пламенеющий_посох",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Пламенеющий_посох.json",
+    "item_id": "bg3_plameneyuschiy_posoh",
+    "name_ru": "Пламенеющий посох"
+  },
+  {
+    "index": {
+      "title": "Посох (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_(Baldur's_Gate_III)",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_(Baldur's_Gate_III).json",
+    "item_id": "bg3_posoh_baldur_s_gate_iii",
+    "name_ru": "Посох (Baldur's Gate III)"
+  },
+  {
+    "index": {
+      "title": "Посох ведьм",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_ведьм",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_ведьм.json",
+    "item_id": "bg3_posoh_vedm",
+    "name_ru": "Посох ведьм"
+  },
+  {
+    "index": {
+      "title": "Посох золотого змееныша",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_золотого_змееныша",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_золотого_змееныша.json",
+    "item_id": "bg3_posoh_zolotogo_zmeenysha",
+    "name_ru": "Посох золотого змееныша"
+  },
+  {
+    "index": {
+      "title": "Посох изгоя",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_изгоя",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_изгоя.json",
+    "item_id": "bg3_posoh_izgoya",
+    "name_ru": "Посох изгоя"
+  },
+  {
+    "index": {
+      "title": "Посох изнеженной некромантии",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_изнеженной_некромантии",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_изнеженной_некромантии.json",
+    "item_id": "bg3_posoh_iznezhennoy_nekromantii",
+    "name_ru": "Посох изнеженной некромантии"
+  },
+  {
+    "index": {
+      "title": "Посох Императора",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_Императора",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_Императора.json",
+    "item_id": "bg3_posoh_imperatora",
+    "name_ru": "Посох Императора"
+  },
+  {
+    "index": {
+      "title": "Посох косноязычного волшебника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_косноязычного_волшебника",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_косноязычного_волшебника.json",
+    "item_id": "bg3_posoh_kosnoyazychnogo_volshebnika",
+    "name_ru": "Посох косноязычного волшебника"
+  },
+  {
+    "index": {
+      "title": "Посох Лунной Девы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_Лунной_Девы",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_Лунной_Девы.json",
+    "item_id": "bg3_posoh_lunnoy_devy",
+    "name_ru": "Посох Лунной Девы"
+  },
+  {
+    "index": {
+      "title": "Посох мистического благословения",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_мистического_благословения",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_мистического_благословения.json",
+    "item_id": "bg3_posoh_misticheskogo_blagosloveniya",
+    "name_ru": "Посох мистического благословения"
+  },
+  {
+    "index": {
+      "title": "Посох овна",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_овна",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_овна.json",
+    "item_id": "bg3_posoh_ovna",
+    "name_ru": "Посох овна"
+  },
+  {
+    "index": {
+      "title": "Посох прерывания",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_прерывания",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_прерывания.json",
+    "item_id": "bg3_posoh_preryvaniya",
+    "name_ru": "Посох прерывания"
+  },
+  {
+    "index": {
+      "title": "Посох силы заклинаний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_силы_заклинаний",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_силы_заклинаний.json",
+    "item_id": "bg3_posoh_sily_zaklinaniy",
+    "name_ru": "Посох силы заклинаний"
+  },
+  {
+    "index": {
+      "title": "Посох Холлоу",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Посох_Холлоу",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Посох_Холлоу.json",
+    "item_id": "bg3_posoh_hollou",
+    "name_ru": "Посох Холлоу"
+  },
+  {
+    "index": {
+      "title": "Ритуальный посох",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ритуальный_посох",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Ритуальный_посох.json",
+    "item_id": "bg3_ritualnyy_posoh",
+    "name_ru": "Ритуальный посох"
+  },
+  {
+    "index": {
+      "title": "Священный посох арфиста",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Священный_посох_арфиста",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Священный_посох_арфиста.json",
+    "item_id": "bg3_svyaschennyy_posoh_arfista",
+    "name_ru": "Священный посох арфиста"
+  },
+  {
+    "index": {
+      "title": "Силки природы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Силки_природы",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Силки_природы.json",
+    "item_id": "bg3_silki_prirody",
+    "name_ru": "Силки природы"
+  },
+  {
+    "index": {
+      "title": "Скорбный хлад",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скорбный_хлад",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Скорбный_хлад.json",
+    "item_id": "bg3_skorbnyy_hlad",
+    "name_ru": "Скорбный хлад"
+  },
+  {
+    "index": {
+      "title": "\"Танцующий под дождем\"",
+      "url": "https://baldursgate.fandom.com/ru/wiki/\"Танцующий_под_дождем\"",
+      "subcategory": "Боевые посохи",
+      "parent_page": "ranged"
+    },
+    "probe_file": "probe_Танцующий_под_дождем.json",
+    "item_id": "bg3_tantsuyuschiy_pod_dozhdem",
+    "name_ru": "\"Танцующий под дождем\""
+  }
+]

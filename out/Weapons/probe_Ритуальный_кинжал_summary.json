@@ -1,0 +1,29 @@
+{
+  "title": "Ритуальный кинжал",
+  "resolved_title": "Ритуальный кинжал",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T14:52:09Z",
+  "wikitext_chars_query": 1646,
+  "wikitext_chars_parse": 1646,
+  "html_chars": 191996,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

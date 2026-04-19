@@ -1,0 +1,167 @@
+{
+  "requested_title": "Шлем с черным плюмажем",
+  "resolved_title": "Шлем с черным плюмажем",
+  "display_title": "<span class=\"mw-page-title-main\">Шлем с черным плюмажем</span>",
+  "pageid": 14647,
+  "revision_found": true,
+  "revision_chars": 824,
+  "parse_wikitext_chars": 824,
+  "parse_html_chars": 187961,
+  "category_count": 2,
+  "link_count": 911,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Шлемы_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый переполох",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Шлем с черным плюмажем"
+      },
+      {
+        "label": "Общее",
+        "value": "Обычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Обычный"
+      },
+      {
+        "label": "Класс",
+        "value": "Средняя броня"
+      },
+      {
+        "label": "Тип",
+        "value": "Шлем"
+      },
+      {
+        "label": "Вес",
+        "value": "1.0 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "40"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Обычный",
+    "type": "Шлем",
+    "weight": "1.0 кг",
+    "value": "40"
+  }
+}

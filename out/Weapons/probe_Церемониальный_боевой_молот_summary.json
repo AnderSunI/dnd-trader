@@ -1,0 +1,37 @@
+{
+  "title": "Церемониальный боевой молот",
+  "resolved_title": "Церемониальный боевой молот",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2026-01-06T19:54:06Z",
+  "wikitext_chars_query": 1418,
+  "wikitext_chars_parse": 1418,
+  "html_chars": 192529,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Как получить"
+    },
+    {
+      "index": "5",
+      "line": "Применение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

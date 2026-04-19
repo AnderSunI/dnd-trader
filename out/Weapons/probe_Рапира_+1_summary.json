@@ -1,0 +1,25 @@
+{
+  "title": "Рапира +1",
+  "resolved_title": "Рапира +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T12:30:15Z",
+  "wikitext_chars_query": 1171,
+  "wikitext_chars_parse": 1171,
+  "html_chars": 192369,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

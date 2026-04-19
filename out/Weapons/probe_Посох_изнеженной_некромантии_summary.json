@@ -1,0 +1,29 @@
+{
+  "title": "Посох изнеженной некромантии",
+  "resolved_title": "Посох изнеженной некромантии",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-11T17:21:17Z",
+  "wikitext_chars_query": 1770,
+  "wikitext_chars_parse": 1770,
+  "html_chars": 194042,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    }
+  ]
+}

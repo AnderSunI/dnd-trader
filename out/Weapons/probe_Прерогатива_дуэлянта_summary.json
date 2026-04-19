@@ -1,0 +1,33 @@
+{
+  "title": "Прерогатива дуэлянта",
+  "resolved_title": "Прерогатива дуэлянта",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-04-17T19:44:08Z",
+  "wikitext_chars_query": 2320,
+  "wikitext_chars_parse": 2320,
+  "html_chars": 199542,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

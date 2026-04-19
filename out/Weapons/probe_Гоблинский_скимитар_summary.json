@@ -1,0 +1,33 @@
+{
+  "title": "Гоблинский скимитар",
+  "resolved_title": "Гоблинский скимитар",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T13:53:56Z",
+  "wikitext_chars_query": 1212,
+  "wikitext_chars_parse": 1212,
+  "html_chars": 191052,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

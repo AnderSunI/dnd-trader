@@ -1,0 +1,29 @@
+{
+  "title": "Меч цепкого мрака",
+  "resolved_title": "Меч цепкого мрака",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T17:06:28Z",
+  "wikitext_chars_query": 1452,
+  "wikitext_chars_parse": 1452,
+  "html_chars": 195064,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

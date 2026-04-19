@@ -1,0 +1,33 @@
+{
+  "title": "Дьявольская булава",
+  "resolved_title": "Дьявольская булава",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:13:37Z",
+  "wikitext_chars_query": 1921,
+  "wikitext_chars_parse": 1921,
+  "html_chars": 194759,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особые"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

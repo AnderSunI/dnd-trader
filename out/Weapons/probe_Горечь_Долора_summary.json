@@ -1,0 +1,37 @@
+{
+  "title": "Горечь Долора",
+  "resolved_title": "Горечь Долора",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T14:50:22Z",
+  "wikitext_chars_query": 1429,
+  "wikitext_chars_parse": 1429,
+  "html_chars": 189403,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Где найти"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

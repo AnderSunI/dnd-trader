@@ -1,0 +1,37 @@
+{
+  "title": "Лук с титановой тетивой",
+  "resolved_title": "Лук с титановой тетивой",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-10T05:54:53Z",
+  "wikitext_chars_query": 1631,
+  "wikitext_chars_parse": 1631,
+  "html_chars": 193500,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Режущий короткий меч",
+  "resolved_title": "Режущий короткий меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T16:46:17Z",
+  "wikitext_chars_query": 1406,
+  "wikitext_chars_parse": 1406,
+  "html_chars": 192507,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

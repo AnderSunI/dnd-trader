@@ -1,0 +1,33 @@
+{
+  "title": "Клоунский молот",
+  "resolved_title": "Клоунский молот",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-04T20:12:57Z",
+  "wikitext_chars_query": 1533,
+  "wikitext_chars_parse": 1533,
+  "html_chars": 194408,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

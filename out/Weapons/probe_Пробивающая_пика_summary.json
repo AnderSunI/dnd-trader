@@ -1,0 +1,33 @@
+{
+  "title": "Пробивающая пика",
+  "resolved_title": "Пробивающая пика",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-04T11:41:53Z",
+  "wikitext_chars_query": 1135,
+  "wikitext_chars_parse": 1135,
+  "html_chars": 193427,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

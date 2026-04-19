@@ -1,0 +1,37 @@
+{
+  "title": "Тяжелая дубина с шипами",
+  "resolved_title": "Тяжелая дубина с шипами",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T18:02:44Z",
+  "wikitext_chars_query": 1125,
+  "wikitext_chars_parse": 1125,
+  "html_chars": 192086,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Как получить"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

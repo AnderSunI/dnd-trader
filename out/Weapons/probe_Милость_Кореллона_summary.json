@@ -1,0 +1,37 @@
+{
+  "title": "Милость Кореллона",
+  "resolved_title": "Милость Кореллона",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-29T21:15:15Z",
+  "wikitext_chars_query": 1638,
+  "wikitext_chars_parse": 1638,
+  "html_chars": 196581,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

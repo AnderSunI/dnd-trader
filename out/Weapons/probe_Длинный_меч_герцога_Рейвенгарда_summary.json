@@ -1,0 +1,37 @@
+{
+  "title": "Длинный меч герцога Рейвенгарда",
+  "resolved_title": "Длинный меч герцога Рейвенгарда",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T08:42:33Z",
+  "wikitext_chars_query": 1768,
+  "wikitext_chars_parse": 1768,
+  "html_chars": 193080,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

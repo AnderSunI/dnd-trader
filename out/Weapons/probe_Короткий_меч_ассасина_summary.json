@@ -1,0 +1,29 @@
+{
+  "title": "Короткий меч ассасина",
+  "resolved_title": "Короткий меч ассасина",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T08:43:38Z",
+  "wikitext_chars_query": 1394,
+  "wikitext_chars_parse": 1394,
+  "html_chars": 192613,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Двуручный молот +1",
+  "resolved_title": "Двуручный молот +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T13:13:21Z",
+  "wikitext_chars_query": 1011,
+  "wikitext_chars_parse": 1011,
+  "html_chars": 191259,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

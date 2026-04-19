@@ -1,0 +1,37 @@
+{
+  "title": "Булава поборника",
+  "resolved_title": "Булава поборника",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T08:11:47Z",
+  "wikitext_chars_query": 1368,
+  "wikitext_chars_parse": 1368,
+  "html_chars": 191806,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

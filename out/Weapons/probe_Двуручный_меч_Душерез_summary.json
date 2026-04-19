@@ -1,0 +1,33 @@
+{
+  "title": "Двуручный меч Душерез",
+  "resolved_title": "Двуручный меч Душерез",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T16:19:09Z",
+  "wikitext_chars_query": 1306,
+  "wikitext_chars_parse": 1306,
+  "html_chars": 190872,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

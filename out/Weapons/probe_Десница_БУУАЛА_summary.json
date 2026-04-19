@@ -1,0 +1,33 @@
+{
+  "title": "Десница БУУАЛА",
+  "resolved_title": "Десница БУУАЛА",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T05:46:17Z",
+  "wikitext_chars_query": 986,
+  "wikitext_chars_parse": 986,
+  "html_chars": 186140,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

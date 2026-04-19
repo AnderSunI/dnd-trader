@@ -1,0 +1,21 @@
+{
+  "title": "Короткий меч гитьянки (+1)",
+  "resolved_title": "Короткий меч гитьянки (+1)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T08:46:47Z",
+  "wikitext_chars_query": 1242,
+  "wikitext_chars_parse": 1242,
+  "html_chars": 192224,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    }
+  ]
+}

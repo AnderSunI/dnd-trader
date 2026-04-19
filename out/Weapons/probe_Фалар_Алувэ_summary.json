@@ -1,0 +1,33 @@
+{
+  "title": "Фалар Алувэ",
+  "resolved_title": "Фалар Алувэ",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-01-21T11:24:27Z",
+  "wikitext_chars_query": 2349,
+  "wikitext_chars_parse": 2349,
+  "html_chars": 203147,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Заметки"
+    }
+  ]
+}

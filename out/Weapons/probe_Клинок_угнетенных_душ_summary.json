@@ -1,0 +1,33 @@
+{
+  "title": "Клинок угнетенных душ",
+  "resolved_title": "Клинок угнетенных душ",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:21:23Z",
+  "wikitext_chars_query": 2642,
+  "wikitext_chars_parse": 2642,
+  "html_chars": 201048,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

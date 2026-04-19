@@ -1,0 +1,29 @@
+{
+  "title": "Двуручный меч +1 (обычный)",
+  "resolved_title": "Двуручный меч +1 (обычный)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T12:40:42Z",
+  "wikitext_chars_query": 975,
+  "wikitext_chars_parse": 975,
+  "html_chars": 190997,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

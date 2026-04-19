@@ -1,0 +1,29 @@
+{
+  "title": "Шприц (+1)",
+  "resolved_title": "Шприц (+1)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T15:46:24Z",
+  "wikitext_chars_query": 1410,
+  "wikitext_chars_parse": 1410,
+  "html_chars": 193000,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

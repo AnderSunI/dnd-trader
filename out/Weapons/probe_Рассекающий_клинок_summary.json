@@ -1,0 +1,33 @@
+{
+  "title": "Рассекающий клинок",
+  "resolved_title": "Рассекающий клинок",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T09:43:55Z",
+  "wikitext_chars_query": 1665,
+  "wikitext_chars_parse": 1665,
+  "html_chars": 197867,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

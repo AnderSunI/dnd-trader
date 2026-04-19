@@ -1,0 +1,41 @@
+{
+  "title": "Путеводная нить хранителя",
+  "resolved_title": "Путеводная нить хранителя",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-24T23:34:29Z",
+  "wikitext_chars_query": 2201,
+  "wikitext_chars_parse": 2201,
+  "html_chars": 202115,
+  "section_count": 7,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Примечание"
+    },
+    {
+      "index": "7",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "title": "Бич Ловиатар",
+  "resolved_title": "Бич Ловиатар",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:08:27Z",
+  "wikitext_chars_query": 2269,
+  "wikitext_chars_parse": 2269,
+  "html_chars": 200224,
+  "section_count": 8,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Дополнительный урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Получение"
+    },
+    {
+      "index": "7",
+      "line": "Замечания"
+    },
+    {
+      "index": "8",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Длинный меч +2 (Baldur's Gate III)",
+  "resolved_title": "Длинный меч +2 (Baldur's Gate III)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:26:12Z",
+  "wikitext_chars_query": 1790,
+  "wikitext_chars_parse": 1790,
+  "html_chars": 194006,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

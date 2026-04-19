@@ -1,0 +1,21 @@
+{
+  "title": "Учебный меч Касс",
+  "resolved_title": "Учебный меч Касс",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T08:30:49Z",
+  "wikitext_chars_query": 1248,
+  "wikitext_chars_parse": 1248,
+  "html_chars": 190919,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    }
+  ]
+}

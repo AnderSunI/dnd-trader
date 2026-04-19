@@ -1,0 +1,37 @@
+{
+  "title": "Озлобление Ларетиана",
+  "resolved_title": "Озлобление Ларетиана",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-09-27T15:10:26Z",
+  "wikitext_chars_query": 1562,
+  "wikitext_chars_parse": 1562,
+  "html_chars": 193317,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

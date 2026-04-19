@@ -1,0 +1,97 @@
+{
+  "requested_title": "Потрепанная накидка дроу",
+  "resolved_title": "Потрепанная накидка дроу",
+  "display_title": "<span class=\"mw-page-title-main\">Потрепанная накидка дроу</span>",
+  "pageid": 5627,
+  "revision_found": true,
+  "revision_chars": 857,
+  "parse_wikitext_chars": 857,
+  "parse_html_chars": 12749,
+  "category_count": 4,
+  "link_count": 4,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Лёгкая_броня_BG3",
+      "missing": true,
+      "known": true
+    },
+    {
+      "sortkey": "",
+      "category": "Шлемы_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Броня (Baldur's Gate III)/Головные уборы",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Ловкость",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Подземье",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Потрепанная накидка дроу"
+      },
+      {
+        "label": "Общее",
+        "value": "Обычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Обычный"
+      },
+      {
+        "label": "Тип",
+        "value": "Броня"
+      },
+      {
+        "label": "Подтип",
+        "value": "Легкая броня"
+      },
+      {
+        "label": "Вес",
+        "value": "0,5 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "25"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Обычный",
+    "type": "Легкая броня",
+    "weight": "0,5 кг",
+    "value": "25"
+  }
+}

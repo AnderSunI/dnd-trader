@@ -1,0 +1,93 @@
+{
+  "requested_title": "Шляпа огневого чутья",
+  "resolved_title": "Шляпа огневого чутья",
+  "display_title": "<span class=\"mw-page-title-main\">Шляпа огневого чутья</span>",
+  "pageid": 6248,
+  "revision_found": true,
+  "revision_chars": 823,
+  "parse_wikitext_chars": 823,
+  "parse_html_chars": 9440,
+  "category_count": 2,
+  "link_count": 4,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Предметы/Шлемы и головные уборы",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Ривингтон",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Странный вол",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Шляпа огневого чутья"
+      },
+      {
+        "label": "Общее",
+        "value": "Необычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Необычный"
+      },
+      {
+        "label": "Вес",
+        "value": "0,5 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "90"
+      },
+      {
+        "label": "Характерное",
+        "value": "Испытания:"
+      },
+      {
+        "label": "",
+        "value": "Характерное"
+      },
+      {
+        "label": "Эффект",
+        "value": "Испытания:"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Необычный",
+    "weight": "0,5 кг",
+    "value": "90",
+    "effects": [
+      "Испытания:"
+    ]
+  }
+}

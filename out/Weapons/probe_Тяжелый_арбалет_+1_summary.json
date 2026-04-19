@@ -1,0 +1,29 @@
+{
+  "title": "Тяжелый арбалет +1",
+  "resolved_title": "Тяжелый арбалет +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-10T06:57:35Z",
+  "wikitext_chars_query": 1743,
+  "wikitext_chars_parse": 1743,
+  "html_chars": 193418,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

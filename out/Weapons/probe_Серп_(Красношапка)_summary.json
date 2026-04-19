@@ -1,0 +1,33 @@
+{
+  "title": "Серп (Красношапка)",
+  "resolved_title": "Серп (Красношапка)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-30T12:39:03Z",
+  "wikitext_chars_query": 848,
+  "wikitext_chars_parse": 848,
+  "html_chars": 186503,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

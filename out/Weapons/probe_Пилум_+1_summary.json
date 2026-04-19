@@ -1,0 +1,33 @@
+{
+  "title": "Пилум +1",
+  "resolved_title": "Пилум +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T05:43:48Z",
+  "wikitext_chars_query": 980,
+  "wikitext_chars_parse": 980,
+  "html_chars": 186098,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

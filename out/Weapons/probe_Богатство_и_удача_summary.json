@@ -1,0 +1,25 @@
+{
+  "title": "Богатство и удача",
+  "resolved_title": "Богатство и удача",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T18:51:46Z",
+  "wikitext_chars_query": 1273,
+  "wikitext_chars_parse": 1273,
+  "html_chars": 191617,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

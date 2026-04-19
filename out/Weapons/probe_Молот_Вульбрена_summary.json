@@ -1,0 +1,29 @@
+{
+  "title": "Молот Вульбрена",
+  "resolved_title": "Молот Вульбрена",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T15:32:11Z",
+  "wikitext_chars_query": 1177,
+  "wikitext_chars_parse": 1177,
+  "html_chars": 192040,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    }
+  ]
+}

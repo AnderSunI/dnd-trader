@@ -1,0 +1,17 @@
+{
+  "title": "Учебный меч",
+  "resolved_title": "Учебный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-10T18:05:43Z",
+  "wikitext_chars_query": 1203,
+  "wikitext_chars_parse": 1203,
+  "html_chars": 190302,
+  "section_count": 1,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    }
+  ]
+}

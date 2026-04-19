@@ -1,0 +1,33 @@
+{
+  "title": "Лесной скимитар",
+  "resolved_title": "Лесной скимитар",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-11T17:18:38Z",
+  "wikitext_chars_query": 1807,
+  "wikitext_chars_parse": 1807,
+  "html_chars": 192813,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Особенности"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особые"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

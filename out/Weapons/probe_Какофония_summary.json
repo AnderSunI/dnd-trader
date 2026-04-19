@@ -1,0 +1,25 @@
+{
+  "title": "Какофония",
+  "resolved_title": "Какофония",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-04T19:45:42Z",
+  "wikitext_chars_query": 1535,
+  "wikitext_chars_parse": 1535,
+  "html_chars": 194959,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    }
+  ]
+}

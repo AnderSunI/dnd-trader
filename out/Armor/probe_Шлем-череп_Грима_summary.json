@@ -1,0 +1,209 @@
+{
+  "requested_title": "Шлем-череп Грима",
+  "resolved_title": "Шлем-череп Грима",
+  "display_title": "<span class=\"mw-page-title-main\">Шлем-череп Грима</span>",
+  "pageid": 5327,
+  "revision_found": true,
+  "revision_chars": 1188,
+  "parse_wikitext_chars": 1188,
+  "parse_html_chars": 187766,
+  "category_count": 4,
+  "link_count": 913,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Шлемы_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Очень_редкое_снаряжение_BG3",
+      "missing": true,
+      "known": true
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Гримфордж",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Метка охотника",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Шлем-череп Грима"
+      },
+      {
+        "label": "Общее",
+        "value": "Очень редкий"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Очень редкий"
+      },
+      {
+        "label": "Класс",
+        "value": "Шлемы и головные уборы"
+      },
+      {
+        "label": "Тип",
+        "value": "Шлем"
+      },
+      {
+        "label": "Вес",
+        "value": "1 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "570"
+      },
+      {
+        "label": "Характерное",
+        "value": "Метка охотника"
+      },
+      {
+        "label": "",
+        "value": "Характерное"
+      },
+      {
+        "label": "Оруж. навык",
+        "value": "Метка охотника"
+      },
+      {
+        "label": "Прочее",
+        "value": "после победы над Гримом"
+      },
+      {
+        "label": "",
+        "value": "Прочее"
+      },
+      {
+        "label": "Получение",
+        "value": "после победы над Гримом"
+      },
+      {
+        "label": "Координаты",
+        "value": "X:-558 Y:233"
+      },
+      {
+        "label": "Локация/место",
+        "value": "Гримфордж"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Очень редкий",
+    "type": "Шлем",
+    "weight": "1 кг",
+    "value": "570"
+  }
+}

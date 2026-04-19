@@ -1,0 +1,37 @@
+{
+  "title": "Созвучный поединщик",
+  "resolved_title": "Созвучный поединщик",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-05-28T16:39:48Z",
+  "wikitext_chars_query": 2002,
+  "wikitext_chars_parse": 2002,
+  "html_chars": 198521,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

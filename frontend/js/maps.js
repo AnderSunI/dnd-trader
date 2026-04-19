@@ -44,6 +44,14 @@ const MAPS_STATE = {
     dragOriginX: 0,
     dragOriginY: 0,
     suppressClick: false,
+
+    activePointerId: null,
+    dragMode: "",
+    dragMarkerId: null,
+    dragMarkerStartX: 0,
+    dragMarkerStartY: 0,
+    dragMarkerPreviewX: null,
+    dragMarkerPreviewY: null,
   },
 };
 
@@ -695,6 +703,13 @@ export function resetMapView(rerender = true) {
   MAPS_STATE.view.dragOriginX = 0;
   MAPS_STATE.view.dragOriginY = 0;
   MAPS_STATE.view.suppressClick = false;
+  MAPS_STATE.view.activePointerId = null;
+  MAPS_STATE.view.dragMode = "";
+  MAPS_STATE.view.dragMarkerId = null;
+  MAPS_STATE.view.dragMarkerStartX = 0;
+  MAPS_STATE.view.dragMarkerStartY = 0;
+  MAPS_STATE.view.dragMarkerPreviewX = null;
+  MAPS_STATE.view.dragMarkerPreviewY = null;
 
   syncToSharedState();
 
@@ -728,6 +743,8 @@ function applyMapTransform() {
 
   if (MAPS_STATE.view.markerMode) {
     viewport.style.cursor = "crosshair";
+  } else if (MAPS_STATE.view.dragMode === "marker") {
+    viewport.style.cursor = "grabbing";
   } else if (MAPS_STATE.view.isDragging) {
     viewport.style.cursor = "grabbing";
   } else {
@@ -769,6 +786,105 @@ function getMarkerCoordsFromClick(event, imageEl) {
     x: clampPercent(x),
     y: clampPercent(y),
   };
+}
+
+function setInteractionState(mode = "") {
+  MAPS_STATE.view.dragMode = mode;
+}
+
+function resetInteractionState() {
+  MAPS_STATE.view.isDragging = false;
+  MAPS_STATE.view.dragStartX = 0;
+  MAPS_STATE.view.dragStartY = 0;
+  MAPS_STATE.view.dragOriginX = 0;
+  MAPS_STATE.view.dragOriginY = 0;
+  MAPS_STATE.view.suppressClick = false;
+  MAPS_STATE.view.activePointerId = null;
+  MAPS_STATE.view.dragMode = "";
+  MAPS_STATE.view.dragMarkerId = null;
+  MAPS_STATE.view.dragMarkerStartX = 0;
+  MAPS_STATE.view.dragMarkerStartY = 0;
+  MAPS_STATE.view.dragMarkerPreviewX = null;
+  MAPS_STATE.view.dragMarkerPreviewY = null;
+}
+
+function getDraggedMarkerPreview() {
+  if (!MAPS_STATE.view.dragMarkerId) return null;
+  if (
+    MAPS_STATE.view.dragMarkerPreviewX === null ||
+    MAPS_STATE.view.dragMarkerPreviewY === null
+  ) {
+    return null;
+  }
+
+  return {
+    id: MAPS_STATE.view.dragMarkerId,
+    x: clampPercent(MAPS_STATE.view.dragMarkerPreviewX),
+    y: clampPercent(MAPS_STATE.view.dragMarkerPreviewY),
+  };
+}
+
+function getRenderableMarker(marker) {
+  const preview = getDraggedMarkerPreview();
+
+  if (preview && preview.id === marker.id) {
+    return {
+      ...marker,
+      x: preview.x,
+      y: preview.y,
+    };
+  }
+
+  return marker;
+}
+
+function updateDraggedMarkerPreviewOnDom() {
+  const markerId = MAPS_STATE.view.dragMarkerId;
+  if (!markerId) return;
+
+  const preview = getDraggedMarkerPreview();
+  if (!preview) return;
+
+  const btn = document.querySelector(`.map-marker-btn[data-marker-id="${markerId}"]`);
+  if (!btn) return;
+
+  btn.style.left = `${preview.x}%`;
+  btn.style.top = `${preview.y}%`;
+
+  const coordsInfo = getEl("mapMarkerCoordsInfo");
+  if (coordsInfo) {
+    coordsInfo.textContent = `Координаты: X ${Math.round(preview.x)}% • Y ${Math.round(preview.y)}%`;
+  }
+}
+
+async function commitDraggedMarker() {
+  const active = getActiveMap();
+  const markerId = MAPS_STATE.view.dragMarkerId;
+  const preview = getDraggedMarkerPreview();
+
+  if (!active || !markerId || !preview) {
+    resetInteractionState();
+    applyMapTransform();
+    return;
+  }
+
+  const current = active.markers.find((marker) => marker.id === markerId);
+  const movedEnough =
+    current &&
+    (Math.abs(preview.x - current.x) > 0.2 || Math.abs(preview.y - current.y) > 0.2);
+
+  if (movedEnough) {
+    await updateMarker(active.id, markerId, {
+      x: preview.x,
+      y: preview.y,
+    });
+    showToast("Метка перемещена");
+    return;
+  }
+
+  MAPS_STATE.ui.selectedMarkerId = markerId;
+  resetInteractionState();
+  renderMaps();
 }
 
 // ------------------------------------------------------------
@@ -860,7 +976,7 @@ function renderMapViewer() {
   const selectedMarker = getSelectedMarker();
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
+    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
       <div class="flex-between" style="align-items:flex-start; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
         <div>
           <h3 style="margin-bottom:4px;">${escapeHtml(active.name)}</h3>
@@ -871,7 +987,11 @@ function renderMapViewer() {
           }
         </div>
 
-        <div class="muted" id="mapViewportInfo">
+        <div
+          id="mapViewportInfo"
+          class="muted"
+          style="padding:8px 10px; border-radius:12px; background:rgba(7,16,20,0.54); border:1px solid rgba(152,223,227,0.10);"
+        >
           Zoom: ${escapeHtml(MAPS_STATE.view.zoom.toFixed(2))}
           • Rotate: ${escapeHtml(String(MAPS_STATE.view.rotation))}°
           • Pan: ${escapeHtml(String(Math.round(MAPS_STATE.view.panX)))}, ${escapeHtml(String(Math.round(MAPS_STATE.view.panY)))}
@@ -880,129 +1000,145 @@ function renderMapViewer() {
       </div>
 
       <div
-        id="mapStageViewport"
-        class="map-stage-outer"
+        class="map-stage-shell"
         style="
           position:relative;
-          overflow:hidden;
           width:100%;
-          min-height:540px;
-          max-height:74vh;
-          border:1px solid rgba(152,223,227,0.10);
-          border-radius:18px;
+          border-radius:20px;
+          border:1px solid rgba(152,223,227,0.14);
           background:
-            radial-gradient(circle at center, rgba(20,40,48,0.25), transparent 42%),
-            rgba(4,12,16,0.62);
+            radial-gradient(circle at center, rgba(20,40,48,0.22), transparent 44%),
+            linear-gradient(180deg, rgba(7,16,20,0.90), rgba(4,10,14,0.96));
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
           padding:14px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          user-select:none;
-          touch-action:none;
         "
       >
         <div
-          id="mapTransformLayer"
+          id="mapStageViewport"
+          class="map-stage-outer"
           style="
             position:relative;
-            width:max-content;
-            max-width:none;
-            transform-origin:center center;
-            will-change:transform;
+            overflow:hidden;
+            width:100%;
+            min-height:580px;
+            max-height:72vh;
+            border:1px solid rgba(152,223,227,0.10);
+            border-radius:18px;
+            background:
+              radial-gradient(circle at center, rgba(20,40,48,0.25), transparent 42%),
+              rgba(4,12,16,0.62);
+            padding:22px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            user-select:none;
+            touch-action:none;
           "
         >
-          <img
-            id="activeMapImage"
-            src="${escapeHtml(active.image)}"
-            alt="${escapeHtml(active.name)}"
-            draggable="false"
+          <div
+            id="mapTransformLayer"
             style="
-              display:block;
-              max-width:min(100%, 1200px);
-              max-height:64vh;
-              min-width:320px;
-              border-radius:12px;
-              user-select:none;
-              pointer-events:auto;
+              position:relative;
+              width:max-content;
+              max-width:none;
+              transform-origin:center center;
+              will-change:transform;
             "
-          />
+          >
+            <img
+              id="activeMapImage"
+              src="${escapeHtml(active.image)}"
+              alt="${escapeHtml(active.name)}"
+              draggable="false"
+              style="
+                display:block;
+                max-width:min(100%, 1320px);
+                max-height:62vh;
+                min-width:360px;
+                border-radius:14px;
+                user-select:none;
+                pointer-events:auto;
+                box-shadow:0 16px 36px rgba(0,0,0,0.32);
+              "
+            />
 
-          ${active.markers
-            .map((marker) => {
-              const isSelected = selectedMarker?.id === marker.id;
+            ${active.markers
+              .map((rawMarker) => {
+                const marker = getRenderableMarker(rawMarker);
+                const isSelected = selectedMarker?.id === marker.id;
 
-              return `
-                <button
-                  type="button"
-                  class="map-marker-btn"
-                  data-marker-id="${escapeHtml(marker.id)}"
-                  style="
-                    position:absolute;
-                    transform:translate(-50%, -100%);
-                    ${buildMarkerStyle(marker, isSelected)}
-                    color:#e8f2f5;
-                    border-radius:999px;
-                    border:2px solid ${escapeHtml(marker.color)};
-                    padding:5px 9px;
-                    font-size:12px;
-                    font-weight:700;
-                    cursor:pointer;
-                  "
-                  title="${escapeHtml(marker.label)}"
-                >
-                  📍 ${escapeHtml(marker.label)}
-                </button>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-
-      <div class="collection-toolbar compact-collection-toolbar" style="margin-top:12px;">
-        <div class="filter-group">
-          <label>Управление</label>
-          <div class="cart-buttons">
-            <span class="muted">Перетаскивание, zoom и метки</span>
+                return `
+                  <button
+                    type="button"
+                    class="map-marker-btn"
+                    data-marker-id="${escapeHtml(marker.id)}"
+                    style="
+                      position:absolute;
+                      transform:translate(-50%, -100%);
+                      ${buildMarkerStyle(marker, isSelected)}
+                      color:#e8f2f5;
+                      border-radius:999px;
+                      border:2px solid ${escapeHtml(marker.color)};
+                      padding:7px 11px;
+                      min-height:34px;
+                      font-size:13px;
+                      font-weight:700;
+                      cursor:${MAPS_STATE.view.markerMode ? "crosshair" : "grab"};
+                      touch-action:none;
+                      white-space:nowrap;
+                    "
+                    title="${escapeHtml(marker.label)}"
+                  >
+                    📍 ${escapeHtml(marker.label)}
+                  </button>
+                `;
+              })
+              .join("")}
           </div>
         </div>
 
-        <div class="filter-group">
-          <label>Масштаб</label>
-          <div class="cart-buttons">
-            <button class="btn" type="button" id="mapZoomOutBtn">−</button>
-            <button class="btn" type="button" id="mapZoomInBtn">＋</button>
-            <button class="btn" type="button" id="mapResetViewBtn">Сброс</button>
+        <div class="collection-toolbar compact-collection-toolbar" style="margin-top:12px; gap:12px;">
+          <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
+            <label>Подсказка</label>
+            <div class="muted" style="padding:10px 12px; border-radius:12px; background:rgba(7,16,20,0.42); border:1px solid rgba(152,223,227,0.08);">
+              ${
+                MAPS_STATE.view.markerMode
+                  ? "Режим меток включён. Кликни по карте, чтобы поставить новую метку."
+                  : "Колёсико — zoom. ЛКМ по пустому месту — двигать карту. ЛКМ по метке — перетащить её."
+              }
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Масштаб</label>
+            <div class="cart-buttons">
+              <button class="btn" type="button" id="mapZoomOutBtn">−</button>
+              <button class="btn" type="button" id="mapZoomInBtn">＋</button>
+              <button class="btn" type="button" id="mapResetViewBtn">Сброс</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Поворот</label>
+            <div class="cart-buttons">
+              <button class="btn" type="button" id="mapRotateBtn">↻ 90°</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Метки</label>
+            <div class="cart-buttons">
+              <button class="btn ${MAPS_STATE.view.markerMode ? "btn-primary" : ""}" type="button" id="mapMarkerModeBtn">
+                ${MAPS_STATE.view.markerMode ? "Добавление: ВКЛ" : "Добавление: ВЫКЛ"}
+              </button>
+              ${
+                active.markers.length
+                  ? `<button class="btn btn-danger" type="button" id="mapClearMarkersBtn">Очистить все</button>`
+                  : ""
+              }
+            </div>
           </div>
         </div>
-
-        <div class="filter-group">
-          <label>Поворот</label>
-          <div class="cart-buttons">
-            <button class="btn" type="button" id="mapRotateBtn">↻ 90°</button>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <label>Метки</label>
-          <div class="cart-buttons">
-            <button class="btn ${MAPS_STATE.view.markerMode ? "btn-primary" : ""}" type="button" id="mapMarkerModeBtn">
-              ${MAPS_STATE.view.markerMode ? "Добавление: ВКЛ" : "Добавление: ВЫКЛ"}
-            </button>
-            ${
-              active.markers.length
-                ? `<button class="btn btn-danger" type="button" id="mapClearMarkersBtn">Очистить все</button>`
-                : ""
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="muted" style="margin-top:10px;">
-        ${
-          MAPS_STATE.view.markerMode
-            ? "Режим меток включён. Кликни по карте, чтобы поставить новую метку."
-            : "Зажми левую кнопку мыши и двигай карту. Колёсико мыши меняет масштаб."
-        }
       </div>
     </div>
   `;
@@ -1011,6 +1147,7 @@ function renderMapViewer() {
 function renderMarkerEditor() {
   const active = getActiveMap();
   const marker = getSelectedMarker();
+  const preview = getDraggedMarkerPreview();
 
   if (!active) return "";
 
@@ -1113,13 +1250,16 @@ function renderMarkerEditor() {
               </div>
 
               <div class="muted" style="margin-top:10px;">
-                Координаты: X ${Math.round(marker.x)}% • Y ${Math.round(marker.y)}%
+                Выдели метку в списке или перетащи её прямо по карте.
+              </div>
+
+              <div class="muted" id="mapMarkerCoordsInfo" style="margin-top:6px;">
+                Координаты: X ${Math.round((preview?.id === marker.id ? preview.x : marker.x) ?? marker.x)}% • Y ${Math.round((preview?.id === marker.id ? preview.y : marker.y) ?? marker.y)}%
               </div>
             `
             : `
               <div class="muted">
-                Выбери метку из списка или кликни по ней на карте.  
-                Для новой метки включи режим добавления и кликни по карте.
+                Выбери метку из списка или кликни по ней на карте. Для новой метки включи режим добавления и кликни по карте.
               </div>
             `
         }
@@ -1264,8 +1404,49 @@ function bindMapActions() {
   document.querySelectorAll(".map-marker-btn").forEach((btn) => {
     btn.onclick = (event) => {
       event.stopPropagation();
+
+      if (MAPS_STATE.view.suppressClick) {
+        MAPS_STATE.view.suppressClick = false;
+        return;
+      }
+
       MAPS_STATE.ui.selectedMarkerId = btn.dataset.markerId;
       renderMaps();
+    };
+
+    btn.onpointerdown = (event) => {
+      if (MAPS_STATE.view.markerMode) return;
+      if (event.button !== 0) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const active = getActiveMap();
+      const markerId = btn.dataset.markerId;
+      const marker =
+        active?.markers.find((item) => item.id === markerId) || null;
+
+      if (!marker) return;
+
+      MAPS_STATE.ui.selectedMarkerId = markerId;
+      MAPS_STATE.view.isDragging = true;
+      MAPS_STATE.view.activePointerId = event.pointerId;
+      MAPS_STATE.view.dragStartX = event.clientX;
+      MAPS_STATE.view.dragStartY = event.clientY;
+      MAPS_STATE.view.dragMarkerId = markerId;
+      MAPS_STATE.view.dragMarkerStartX = marker.x;
+      MAPS_STATE.view.dragMarkerStartY = marker.y;
+      MAPS_STATE.view.dragMarkerPreviewX = marker.x;
+      MAPS_STATE.view.dragMarkerPreviewY = marker.y;
+      MAPS_STATE.view.suppressClick = false;
+      setInteractionState("marker");
+
+      try {
+        viewport?.setPointerCapture(event.pointerId);
+      } catch (_) {}
+
+      updateDraggedMarkerPreviewOnDom();
+      applyMapTransform();
     };
   });
 
@@ -1320,11 +1501,13 @@ function bindMapActions() {
       if (event.button !== 0) return;
 
       MAPS_STATE.view.isDragging = true;
+      MAPS_STATE.view.activePointerId = event.pointerId;
       MAPS_STATE.view.dragStartX = event.clientX;
       MAPS_STATE.view.dragStartY = event.clientY;
       MAPS_STATE.view.dragOriginX = MAPS_STATE.view.panX;
       MAPS_STATE.view.dragOriginY = MAPS_STATE.view.panY;
       MAPS_STATE.view.suppressClick = false;
+      setInteractionState("pan");
 
       try {
         viewport.setPointerCapture(event.pointerId);
@@ -1339,6 +1522,20 @@ function bindMapActions() {
       const dx = event.clientX - MAPS_STATE.view.dragStartX;
       const dy = event.clientY - MAPS_STATE.view.dragStartY;
 
+      if (MAPS_STATE.view.dragMode === "marker") {
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          MAPS_STATE.view.suppressClick = true;
+        }
+
+        const coords = image ? getMarkerCoordsFromClick(event, image) : null;
+        if (!coords) return;
+
+        MAPS_STATE.view.dragMarkerPreviewX = coords.x;
+        MAPS_STATE.view.dragMarkerPreviewY = coords.y;
+        updateDraggedMarkerPreviewOnDom();
+        return;
+      }
+
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         MAPS_STATE.view.suppressClick = true;
       }
@@ -1351,19 +1548,34 @@ function bindMapActions() {
       updateViewportStatus();
     };
 
-    viewport.onpointerup = (event) => {
-      MAPS_STATE.view.isDragging = false;
+    viewport.onpointerup = async () => {
+      const pointerId = MAPS_STATE.view.activePointerId;
+
       try {
-        viewport.releasePointerCapture(event.pointerId);
+        if (pointerId !== null && pointerId !== undefined) {
+          viewport.releasePointerCapture(pointerId);
+        }
       } catch (_) {}
+
+      if (MAPS_STATE.view.dragMode === "marker") {
+        await commitDraggedMarker();
+        return;
+      }
+
+      resetInteractionState();
       applyMapTransform();
     };
 
-    viewport.onpointercancel = (event) => {
-      MAPS_STATE.view.isDragging = false;
+    viewport.onpointercancel = () => {
+      const pointerId = MAPS_STATE.view.activePointerId;
+
       try {
-        viewport.releasePointerCapture(event.pointerId);
+        if (pointerId !== null && pointerId !== undefined) {
+          viewport.releasePointerCapture(pointerId);
+        }
       } catch (_) {}
+
+      resetInteractionState();
       applyMapTransform();
     };
   }

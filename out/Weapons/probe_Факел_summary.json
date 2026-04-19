@@ -1,0 +1,25 @@
+{
+  "title": "Факел",
+  "resolved_title": "Факел",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-25T17:29:39Z",
+  "wikitext_chars_query": 1462,
+  "wikitext_chars_parse": 1462,
+  "html_chars": 189603,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    },
+    {
+      "index": "3",
+      "line": "Навигация"
+    }
+  ]
+}

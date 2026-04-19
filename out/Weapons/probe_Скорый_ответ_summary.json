@@ -1,0 +1,41 @@
+{
+  "title": "Скорый ответ",
+  "resolved_title": "Скорый ответ",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-01-25T10:17:20Z",
+  "wikitext_chars_query": 1636,
+  "wikitext_chars_parse": 1636,
+  "html_chars": 195905,
+  "section_count": 7,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Галерея"
+    },
+    {
+      "index": "7",
+      "line": "Навигация"
+    }
+  ]
+}

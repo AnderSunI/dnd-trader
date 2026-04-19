@@ -1,0 +1,29 @@
+{
+  "title": "Сломанная дубинка",
+  "resolved_title": "Сломанная дубинка",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T10:13:00Z",
+  "wikitext_chars_query": 884,
+  "wikitext_chars_parse": 884,
+  "html_chars": 186516,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

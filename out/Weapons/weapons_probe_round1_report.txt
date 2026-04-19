@@ -1,0 +1,29 @@
+BG3 API Weapons Batch Probe Round1 v2
+===================================
+Titles file: out/Weapons/weapons_titles_round1.txt
+Output dir: out/Weapons
+Requested items: 358
+Max items: all
+OK: 358
+Failed: 0
+With revision data: 358
+With parse data: 358
+
+Failures: none
+
+Sample successes:
+- [ok] Беспощадный боевой топор | revision=True | parse=True
+- [ok] Боевой топор | revision=True | parse=True
+- [ok] Боевой топор +1 | revision=True | parse=True
+- [ok] Ведьмобой | revision=True | parse=True
+- [ok] Призываемый боевой топор | revision=True | parse=True
+- [ok] Термодинамический топор | revision=True | parse=True
+- [ok] Церемониальный боевой топор | revision=True | parse=True
+- [ok] Адамантиновая булава | revision=True | parse=True
+- [ok] Бич Ловиатар | revision=True | parse=True
+- [ok] Булава | revision=True | parse=True
+- [ok] Булава +1 | revision=True | parse=True
+- [ok] Булава +2 | revision=True | parse=True
+- [ok] Булава дэвы | revision=True | parse=True
+- [ok] Булава поборника | revision=True | parse=True
+- [ok] Булава служанки (Baldur's Gate III) | revision=True | parse=True

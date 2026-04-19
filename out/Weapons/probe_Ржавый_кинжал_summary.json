@@ -1,0 +1,21 @@
+{
+  "title": "Ржавый кинжал",
+  "resolved_title": "Ржавый кинжал",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-04T14:29:38Z",
+  "wikitext_chars_query": 1252,
+  "wikitext_chars_parse": 1252,
+  "html_chars": 191662,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Моргенштерн",
+  "resolved_title": "Моргенштерн",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T12:45:59Z",
+  "wikitext_chars_query": 1335,
+  "wikitext_chars_parse": 1335,
+  "html_chars": 191934,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    }
+  ]
+}

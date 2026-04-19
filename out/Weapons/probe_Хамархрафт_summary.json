@@ -1,0 +1,33 @@
+{
+  "title": "Хамархрафт",
+  "resolved_title": "Хамархрафт",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-16T11:02:45Z",
+  "wikitext_chars_query": 1475,
+  "wikitext_chars_parse": 1475,
+  "html_chars": 194164,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    }
+  ]
+}

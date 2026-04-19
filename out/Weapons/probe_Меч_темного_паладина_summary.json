@@ -1,0 +1,41 @@
+{
+  "title": "Меч темного паладина",
+  "resolved_title": "Меч темного паладина",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:24:49Z",
+  "wikitext_chars_query": 1942,
+  "wikitext_chars_parse": 1942,
+  "html_chars": 194454,
+  "section_count": 7,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Дополнительный урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Получение"
+    },
+    {
+      "index": "7",
+      "line": "Навигация"
+    }
+  ]
+}

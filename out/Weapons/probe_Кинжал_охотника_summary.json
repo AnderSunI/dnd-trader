@@ -1,0 +1,25 @@
+{
+  "title": "Кинжал охотника",
+  "resolved_title": "Кинжал охотника",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T14:51:25Z",
+  "wikitext_chars_query": 1464,
+  "wikitext_chars_parse": 1464,
+  "html_chars": 193254,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

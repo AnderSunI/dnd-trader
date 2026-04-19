@@ -127,6 +127,119 @@ function showToast(message) {
 
 window.showToast = showToast;
 
+
+const TRADER_ARCHETYPE_RULES = [
+  {
+    key: "warcraft",
+    label: "Военное ремесло",
+    types: ["кузнец", "оружейник", "оружейный мастер"],
+  },
+  {
+    key: "cloth_leather",
+    label: "Одежда и материалы",
+    types: ["портной", "портниха", "кожевник", "дубильщик", "каменотёс"],
+  },
+  {
+    key: "food_inn",
+    label: "Еда и постой",
+    types: ["трактирщик", "пансион", "пекарь", "мясник", "птицевод", "банщица"],
+  },
+  {
+    key: "transport_supply",
+    label: "Транспорт и снабжение",
+    types: ["мастер фургонов", "хозяйка стойл", "складской владелец"],
+  },
+  {
+    key: "knowledge_nature",
+    label: "Знания, природа и алхимия",
+    types: ["книготорговец", "друид-травница", "алхимик", "художник"],
+  },
+  {
+    key: "rare_odd",
+    label: "Сомнительные и редкости",
+    types: ["старьёвщик", "цирюльник", "торговец"],
+  },
+];
+
+function normalizeTraderTypeValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getTraderArchetypeMeta(traderOrType) {
+  const rawType = typeof traderOrType === "string"
+    ? traderOrType
+    : traderOrType?.subtype || traderOrType?.type || "";
+
+  const normalizedType = normalizeTraderTypeValue(rawType);
+
+  for (const rule of TRADER_ARCHETYPE_RULES) {
+    if (rule.types.some((type) => normalizeTraderTypeValue(type) === normalizedType)) {
+      return {
+        key: rule.key,
+        label: rule.label,
+        subtype: rawType || "",
+      };
+    }
+  }
+
+  return {
+    key: "other",
+    label: "Прочее",
+    subtype: rawType || "",
+  };
+}
+
+function getTypeFilterValueForArchetype(archetypeKey) {
+  return `arch:${String(archetypeKey || "").trim()}`;
+}
+
+function getTypeFilterValueForSubtype(type) {
+  return `type:${String(type || "").trim()}`;
+}
+
+function traderMatchesTypeFilter(trader, filterValue) {
+  const selected = String(filterValue || "").trim();
+  if (!selected) return true;
+
+  const meta = getTraderArchetypeMeta(trader);
+
+  if (selected.startsWith("arch:")) {
+    return meta.key === selected.slice(5);
+  }
+
+  if (selected.startsWith("type:")) {
+    return normalizeTraderTypeValue(trader?.type) === normalizeTraderTypeValue(selected.slice(5));
+  }
+
+  return normalizeTraderTypeValue(trader?.type) === normalizeTraderTypeValue(selected);
+}
+
+function setCurrentMoneyFromGold(goldValue) {
+  const normalizedGold = Math.max(0, Math.floor(safeNumber(goldValue, GUEST_START_GOLD)));
+  const cp = moneyPartsToCp(normalizedGold, 0, 0);
+  const label = formatMoneyCp(cp);
+
+  if (STATE.user) {
+    STATE.user.money_cp_total = cp;
+    STATE.user.money_label = label;
+    persistUser();
+  } else {
+    STATE.guestMoneyCp = cp;
+    persistGuestMoney();
+  }
+
+  syncMoneyControls();
+  syncGlobalStateBridges();
+}
+
+function toggleAuthFields(isLoggedIn) {
+  ["loginEmail", "loginPassword", "doLogin", "doRegister"].forEach((id) => {
+    const el = getEl(id);
+    if (!el) return;
+    el.classList.toggle("hidden", Boolean(isLoggedIn));
+  });
+}
+
 function openModal(modalId) {
   const modal = getEl(modalId);
   if (modal) modal.style.display = "block";
@@ -435,16 +548,24 @@ function syncMoneyControls() {
 
   if (playerGoldInput) {
     playerGoldInput.value = String(goldValue);
-    playerGoldInput.disabled = !guestMode || STATE.isBusy;
-    playerGoldInput.title = guestMode ? "Текущее золото в гостевом режиме" : moneyLabel;
+    playerGoldInput.disabled = STATE.isBusy;
+    playerGoldInput.title = guestMode
+      ? "Текущее золото в гостевом режиме"
+      : "Текущее золото аккаунта";
   }
 
   if (updateGoldBtn) {
-    updateGoldBtn.disabled = !guestMode || STATE.isBusy;
+    updateGoldBtn.disabled = STATE.isBusy;
+    updateGoldBtn.title = guestMode
+      ? "Применить золото в гостевом режиме"
+      : "Применить золото для текущего аккаунта";
   }
 
   if (resetGoldBtn) {
-    resetGoldBtn.disabled = !guestMode || STATE.isBusy;
+    resetGoldBtn.disabled = STATE.isBusy;
+    resetGoldBtn.title = guestMode
+      ? "Сбросить гостевое золото"
+      : "Сбросить золото аккаунта до стартового";
   }
 
   if (userMoney) {
@@ -513,7 +634,7 @@ function setBusy(flag) {
     if (!el) return;
 
     if (id === "updateGoldBtn" || id === "resetGoldBtn") {
-      el.disabled = STATE.isBusy || !isGuestMode();
+      el.disabled = STATE.isBusy;
       return;
     }
 
@@ -522,7 +643,7 @@ function setBusy(flag) {
 
   const playerGoldInput = getEl("playerGoldInput");
   if (playerGoldInput) {
-    playerGoldInput.disabled = STATE.isBusy || !isGuestMode();
+    playerGoldInput.disabled = STATE.isBusy;
   }
 }
 
@@ -825,6 +946,8 @@ function updateUserUI() {
   const authContainer = getEl("authContainer");
   const userMoney = getEl("user-money");
   const gmBadge = getEl("gmBadge");
+  const loginEmail = getEl("loginEmail");
+  const loginPassword = getEl("loginPassword");
 
   const effectiveRole = getEffectiveRole();
   const roleText = effectiveRole === "gm" ? "🎭 ГМ" : "👤 Игрок";
@@ -833,7 +956,8 @@ function updateUserUI() {
     guestWarning?.classList.add("hidden");
     logoutBtn?.classList.remove("hidden");
     showAuthBtn?.classList.add("hidden");
-    authContainer?.classList.add("hidden");
+    authContainer?.classList.remove("hidden");
+    toggleAuthFields(true);
 
     if (userMoney) {
       userMoney.classList.remove("hidden");
@@ -851,6 +975,10 @@ function updateUserUI() {
     logoutBtn?.classList.add("hidden");
     showAuthBtn?.classList.remove("hidden");
     authContainer?.classList.add("hidden");
+    toggleAuthFields(false);
+
+    if (loginEmail) loginEmail.value = loginEmail.value || "";
+    if (loginPassword) loginPassword.value = "";
 
     if (userMoney) {
       userMoney.classList.remove("hidden");
@@ -913,17 +1041,57 @@ function populateFilterOptions(traders) {
   const categoryFilter = getEl("categoryFilter");
 
   if (typeFilter) {
-    const types = [...new Set(traders.map((t) => t.type).filter(Boolean))].sort(
-      (a, b) => String(a).localeCompare(String(b), "ru")
-    );
+    const currentValue = String(typeFilter.value || "").trim();
+    const groups = new Map();
+
+    for (const trader of traders) {
+      if (!trader?.type) continue;
+      const meta = getTraderArchetypeMeta(trader);
+      if (!groups.has(meta.key)) {
+        groups.set(meta.key, {
+          label: meta.label,
+          types: new Set(),
+        });
+      }
+      groups.get(meta.key).types.add(String(trader.type));
+    }
 
     typeFilter.innerHTML = `<option value="">Все типы</option>`;
-    for (const type of types) {
-      const option = document.createElement("option");
-      option.value = String(type);
-      option.textContent = String(type);
-      typeFilter.appendChild(option);
+
+    const sortedGroups = [...groups.entries()].sort((a, b) =>
+      String(a[1].label).localeCompare(String(b[1].label), "ru")
+    );
+
+    for (const [groupKey, group] of sortedGroups) {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = group.label;
+
+      const archetypeOption = document.createElement("option");
+      archetypeOption.value = getTypeFilterValueForArchetype(groupKey);
+      archetypeOption.textContent = `Все: ${group.label}`;
+      optgroup.appendChild(archetypeOption);
+
+      const sortedTypes = [...group.types].sort((a, b) =>
+        String(a).localeCompare(String(b), "ru")
+      );
+
+      for (const type of sortedTypes) {
+        const option = document.createElement("option");
+        option.value = getTypeFilterValueForSubtype(type);
+        option.textContent = type;
+        optgroup.appendChild(option);
+      }
+
+      typeFilter.appendChild(optgroup);
     }
+
+    const availableValues = new Set(
+      [
+        ...typeFilter.querySelectorAll("option")
+      ].map((option) => String(option.value || ""))
+    );
+
+    typeFilter.value = availableValues.has(currentValue) ? currentValue : "";
   }
 
   if (regionFilter) {
@@ -1004,7 +1172,7 @@ function traderMatchesFilters(trader, filters) {
     if (!byName && !byDesc) return false;
   }
 
-  if (filters.type && String(trader.type || "") !== filters.type) return false;
+  if (!traderMatchesTypeFilter(trader, filters.type)) return false;
   if (filters.region && String(trader.region || "") !== filters.region) return false;
   if (filters.reputation && safeNumber(trader.reputation, 0) < filters.reputation) return false;
 
@@ -1145,6 +1313,9 @@ async function handleLogin() {
     renderAllLocalState();
     await initCabinetModulesIfNeeded();
 
+    const loginPassword = getEl("loginPassword");
+    if (loginPassword) loginPassword.value = "";
+
     showToast("Вход выполнен");
   } catch (error) {
     console.error(error);
@@ -1184,6 +1355,11 @@ function handleLogout() {
 
   logoutUser();
   clearPersistedUser();
+
+  const loginEmail = getEl("loginEmail");
+  const loginPassword = getEl("loginPassword");
+  if (loginPassword) loginPassword.value = "";
+  if (loginEmail) loginEmail.focus?.();
 
   syncGlobalStateBridges();
   updateUserUI();

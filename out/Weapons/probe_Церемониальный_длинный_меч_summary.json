@@ -1,0 +1,29 @@
+{
+  "title": "Церемониальный длинный меч",
+  "resolved_title": "Церемониальный длинный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2026-01-06T19:53:07Z",
+  "wikitext_chars_query": 1571,
+  "wikitext_chars_parse": 1571,
+  "html_chars": 196551,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Местонахождение"
+    },
+    {
+      "index": "4",
+      "line": "Применение"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Убийственный порез",
+  "resolved_title": "Убийственный порез",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-05-16T10:46:15Z",
+  "wikitext_chars_query": 1722,
+  "wikitext_chars_parse": 1722,
+  "html_chars": 195563,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

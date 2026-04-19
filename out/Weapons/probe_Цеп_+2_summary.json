@@ -1,0 +1,29 @@
+{
+  "title": "Цеп +2",
+  "resolved_title": "Цеп +2",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T12:54:46Z",
+  "wikitext_chars_query": 1432,
+  "wikitext_chars_parse": 1432,
+  "html_chars": 192456,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "requested_title": "Истлевшие кожаные доспехи дроу",
+  "resolved_title": "Истлевшие кожаные доспехи дроу",
+  "display_title": "<span class=\"mw-page-title-main\">Истлевшие кожаные доспехи дроу</span>",
+  "pageid": 11459,
+  "revision_found": true,
+  "revision_chars": 1246,
+  "parse_wikitext_chars": 1246,
+  "parse_html_chars": 186945,
+  "category_count": 3,
+  "link_count": 912,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Легкая_броня_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "«Приют Вокин»",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Истлевшие кожаные доспехи дроу"
+      },
+      {
+        "label": "Общее",
+        "value": "Обычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Обычный"
+      },
+      {
+        "label": "Класс",
+        "value": "Броня"
+      },
+      {
+        "label": "Тип",
+        "value": "Легкая броня"
+      },
+      {
+        "label": "Вес",
+        "value": "3,6 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "130"
+      },
+      {
+        "label": "Характерное",
+        "value": "11"
+      },
+      {
+        "label": "",
+        "value": "Характерное"
+      },
+      {
+        "label": "Класс брони",
+        "value": "11"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Обычный",
+    "type": "Легкая броня",
+    "weight": "3,6 кг",
+    "value": "130"
+  }
+}

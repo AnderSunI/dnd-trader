@@ -1,0 +1,25 @@
+{
+  "title": "Боевой топор +1",
+  "resolved_title": "Боевой топор +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:03:30Z",
+  "wikitext_chars_query": 1895,
+  "wikitext_chars_parse": 1895,
+  "html_chars": 193798,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

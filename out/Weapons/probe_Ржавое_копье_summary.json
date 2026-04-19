@@ -1,0 +1,29 @@
+{
+  "title": "Ржавое копье",
+  "resolved_title": "Ржавое копье",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-04T10:09:09Z",
+  "wikitext_chars_query": 1095,
+  "wikitext_chars_parse": 1095,
+  "html_chars": 189905,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

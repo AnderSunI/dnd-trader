@@ -1,0 +1,29 @@
+{
+  "title": "Глефа",
+  "resolved_title": "Глефа",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T09:34:12Z",
+  "wikitext_chars_query": 976,
+  "wikitext_chars_parse": 976,
+  "html_chars": 191544,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

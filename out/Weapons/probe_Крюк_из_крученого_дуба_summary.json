@@ -1,0 +1,25 @@
+{
+  "title": "Крюк из крученого дуба",
+  "resolved_title": "Крюк из крученого дуба",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-11T12:38:07Z",
+  "wikitext_chars_query": 1143,
+  "wikitext_chars_parse": 1143,
+  "html_chars": 190760,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

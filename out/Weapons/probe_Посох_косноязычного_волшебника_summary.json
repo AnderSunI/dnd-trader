@@ -1,0 +1,29 @@
+{
+  "title": "Посох косноязычного волшебника",
+  "resolved_title": "Посох косноязычного волшебника",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-11T16:14:49Z",
+  "wikitext_chars_query": 1360,
+  "wikitext_chars_parse": 1360,
+  "html_chars": 194463,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    }
+  ]
+}

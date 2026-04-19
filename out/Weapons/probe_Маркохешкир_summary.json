@@ -1,0 +1,29 @@
+{
+  "title": "Маркохешкир",
+  "resolved_title": "Маркохешкир",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-12T11:26:47Z",
+  "wikitext_chars_query": 2050,
+  "wikitext_chars_parse": 2050,
+  "html_chars": 199415,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

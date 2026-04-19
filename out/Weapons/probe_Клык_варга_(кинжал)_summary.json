@@ -1,0 +1,29 @@
+{
+  "title": "Клык варга (кинжал)",
+  "resolved_title": "Клык варга (кинжал)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T14:51:35Z",
+  "wikitext_chars_query": 1468,
+  "wikitext_chars_parse": 1468,
+  "html_chars": 191885,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

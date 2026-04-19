@@ -1,0 +1,25 @@
+{
+  "title": "Клинок арфиста",
+  "resolved_title": "Клинок арфиста",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T08:33:43Z",
+  "wikitext_chars_query": 1187,
+  "wikitext_chars_parse": 1187,
+  "html_chars": 192631,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

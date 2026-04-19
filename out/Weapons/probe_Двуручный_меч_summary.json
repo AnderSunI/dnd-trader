@@ -1,0 +1,37 @@
+{
+  "title": "Двуручный меч",
+  "resolved_title": "Двуручный меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-03T18:41:06Z",
+  "wikitext_chars_query": 1756,
+  "wikitext_chars_parse": 1756,
+  "html_chars": 194862,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Галерея"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

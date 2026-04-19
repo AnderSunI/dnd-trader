@@ -1,0 +1,33 @@
+{
+  "title": "Самодельный лук",
+  "resolved_title": "Самодельный лук",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T07:02:21Z",
+  "wikitext_chars_query": 1327,
+  "wikitext_chars_parse": 1327,
+  "html_chars": 191121,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

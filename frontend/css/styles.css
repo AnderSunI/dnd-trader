@@ -496,9 +496,9 @@ button.warning,
    ========================================================= */
 
 .filters-panel {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   background:
     radial-gradient(circle at top left, rgba(214, 181, 122, 0.06), transparent 22%),
     linear-gradient(180deg, rgba(13, 22, 28, 0.96), rgba(9, 16, 21, 0.98));
@@ -507,7 +507,22 @@ button.warning,
 
 .filters-left,
 .filters-right {
-  display: contents;
+  display: grid;
+  gap: 12px;
+  align-items: end;
+}
+
+.filters-left {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.filters-right {
+  grid-template-columns:
+    minmax(240px, 1.45fr)
+    minmax(180px, 0.9fr)
+    repeat(4, minmax(160px, 1fr));
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .filter-group {
@@ -519,7 +534,7 @@ button.warning,
 
 .filter-group label {
   color: #c9d7dc;
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -1472,7 +1487,11 @@ footer a:hover {
    ========================================================= */
 
 @media (max-width: 1240px) {
-  .filters-panel {
+  .filters-left {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filters-right {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -1498,7 +1517,8 @@ footer a:hover {
     justify-content: flex-start;
   }
 
-  .filters-panel {
+  .filters-left,
+  .filters-right {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1530,8 +1550,14 @@ footer a:hover {
     width: min(100%, calc(100% - 18px));
   }
 
-  .filters-panel {
+  .filters-left,
+  .filters-right {
     grid-template-columns: 1fr;
+  }
+
+  .filters-right {
+    padding-top: 0;
+    border-top: 0;
   }
 
   .traders-grid,
@@ -2039,5 +2065,193 @@ td .item-description-short,
   #cabinet-lss .profile-grid,
   #cabinet-lss .stats-grid {
     grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* =========================================================
+   ROUND 7 — TRADER MODAL SLIGHTLY BIGGER
+   Добавлено поверх текущего styles.css:
+   - модалка торговца чуть шире
+   - шапка торговца получает больше места
+   - не трогаем кабинет и другие модалки
+   ========================================================= */
+
+#traderModal {
+  padding: 18px;
+}
+
+#traderModal .modal-content {
+  width: min(1420px, calc(100% - 8px));
+  max-height: calc(100vh - 36px);
+  padding: 18px;
+}
+
+#traderModal .modal-large {
+  width: min(1480px, calc(100% - 8px));
+}
+
+#traderModal .trader-modal-layout {
+  gap: 16px;
+}
+
+#traderModal .trader-modal-header {
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+#traderModal .trader-modal-image-wrap {
+  max-width: 100%;
+}
+
+#traderModal .trader-modal-info h2,
+#traderModal .trader-header-title-row h2 {
+  font-size: clamp(1.42rem, 1.85vw, 1.92rem);
+}
+
+@media (max-width: 1100px) {
+  #traderModal .modal-content,
+  #traderModal .modal-large {
+    width: min(100%, calc(100% - 12px));
+  }
+
+  #traderModal .trader-modal-header {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  #traderModal {
+    padding: 14px;
+  }
+
+  #traderModal .modal-content,
+  #traderModal .modal-large {
+    width: 100%;
+    max-height: calc(100vh - 28px);
+    padding: 16px;
+  }
+
+  #traderModal .trader-modal-header {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  #traderModal .trader-modal-image-wrap {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+
+
+/* =========================================================
+   TUNING — trader modal size rollback to balanced middle
+   ========================================================= */
+
+#traderModal {
+  padding: 28px;
+}
+
+#traderModal .modal-content {
+  width: min(1320px, calc(100% - 56px));
+  max-height: calc(100vh - 56px);
+  padding: 16px 16px 18px;
+}
+
+#traderModal .modal-large {
+  width: min(1360px, calc(100% - 56px));
+}
+
+#traderModal .trader-modal-layout {
+  gap: 14px;
+}
+
+#traderModal .trader-modal-header {
+  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+#traderModal .trader-modal-image-wrap {
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+#traderModal .trader-modal-info h2,
+#traderModal .trader-header-title-row h2 {
+  font-size: clamp(1.34rem, 1.7vw, 1.82rem);
+}
+
+#traderModal .tab-bar {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#traderModal .tab-btn,
+#traderModal .category-tab {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 0.84rem;
+}
+
+#traderModal .collection-wrapper {
+  padding: 10px;
+}
+
+#traderModal .compact-collection-toolbar,
+#traderModal .collection-toolbar {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#traderModal .items-table th,
+#traderModal .items-table td {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+#traderModal .item-actions-stack {
+  gap: 6px;
+}
+
+@media (max-width: 1200px) {
+  #traderModal {
+    padding: 18px;
+  }
+
+  #traderModal .modal-content,
+  #traderModal .modal-large {
+    width: min(100%, calc(100% - 28px));
+    max-height: calc(100vh - 36px);
+  }
+
+  #traderModal .trader-modal-header {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  #traderModal .trader-modal-image-wrap {
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 860px) {
+  #traderModal {
+    padding: 12px;
+  }
+
+  #traderModal .modal-content,
+  #traderModal .modal-large {
+    width: min(100%, calc(100% - 16px));
+    max-height: calc(100vh - 24px);
+    padding: 12px 12px 14px;
+  }
+
+  #traderModal .trader-modal-header {
+    grid-template-columns: 1fr;
+  }
+
+  #traderModal .trader-modal-image-wrap {
+    max-width: 100%;
   }
 }

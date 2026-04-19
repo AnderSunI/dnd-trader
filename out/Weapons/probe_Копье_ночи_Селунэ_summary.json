@@ -1,0 +1,33 @@
+{
+  "title": "Копье ночи Селунэ",
+  "resolved_title": "Копье ночи Селунэ",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-25T13:42:48Z",
+  "wikitext_chars_query": 1798,
+  "wikitext_chars_parse": 1798,
+  "html_chars": 194888,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

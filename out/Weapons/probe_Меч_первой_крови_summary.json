@@ -1,0 +1,25 @@
+{
+  "title": "Меч первой крови",
+  "resolved_title": "Меч первой крови",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-29T16:22:57Z",
+  "wikitext_chars_query": 1462,
+  "wikitext_chars_parse": 1462,
+  "html_chars": 193508,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "3",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Кирка",
+  "resolved_title": "Кирка",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-04T08:09:36Z",
+  "wikitext_chars_query": 888,
+  "wikitext_chars_parse": 888,
+  "html_chars": 191287,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

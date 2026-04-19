@@ -1,0 +1,201 @@
+{
+  "requested_title": "Костюм химической защиты",
+  "resolved_title": "Костюм химической защиты",
+  "display_title": "<span class=\"mw-page-title-main\">Костюм химической защиты</span>",
+  "pageid": 5953,
+  "revision_found": true,
+  "revision_chars": 1455,
+  "parse_wikitext_chars": 1455,
+  "parse_html_chars": 193144,
+  "category_count": 3,
+  "link_count": 914,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Тяжелая_броня_BG3",
+      "missing": true,
+      "known": true
+    },
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Рейтвин",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Костюм химической защиты"
+      },
+      {
+        "label": "Общее",
+        "value": "Необычный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Необычный"
+      },
+      {
+        "label": "Класс",
+        "value": "Броня"
+      },
+      {
+        "label": "Тип",
+        "value": "Тяжелая броня"
+      },
+      {
+        "label": "Вес",
+        "value": "20 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "1000"
+      },
+      {
+        "label": "Характерное",
+        "value": "18"
+      },
+      {
+        "label": "",
+        "value": "Характерное"
+      },
+      {
+        "label": "Класс брони",
+        "value": "18"
+      },
+      {
+        "label": "Прочее",
+        "value": "X: 44 Y: -942"
+      },
+      {
+        "label": "",
+        "value": "Прочее"
+      },
+      {
+        "label": "Координаты",
+        "value": "X: 44 Y: -942"
+      },
+      {
+        "label": "Локация/место",
+        "value": "Рейтвин"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Необычный",
+    "type": "Тяжелая броня",
+    "weight": "20 кг",
+    "value": "1000"
+  }
+}

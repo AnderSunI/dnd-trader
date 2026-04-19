@@ -1,0 +1,41 @@
+{
+  "title": "Серебряный меч Восса",
+  "resolved_title": "Серебряный меч Восса",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T16:50:51Z",
+  "wikitext_chars_query": 1701,
+  "wikitext_chars_parse": 1701,
+  "html_chars": 195495,
+  "section_count": 7,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Дополнительный урон"
+    },
+    {
+      "index": "4",
+      "line": "Свойства"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Получение"
+    },
+    {
+      "index": "7",
+      "line": "Навигация"
+    }
+  ]
+}

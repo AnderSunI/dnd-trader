@@ -1,0 +1,37 @@
+{
+  "title": "Одноручный арбалет адского пламени",
+  "resolved_title": "Одноручный арбалет адского пламени",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-10T11:17:17Z",
+  "wikitext_chars_query": 1653,
+  "wikitext_chars_parse": 1653,
+  "html_chars": 191331,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Свойства"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

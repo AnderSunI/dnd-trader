@@ -1,0 +1,21 @@
+{
+  "title": "Шприц",
+  "resolved_title": "Шприц",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T15:40:57Z",
+  "wikitext_chars_query": 1164,
+  "wikitext_chars_parse": 1164,
+  "html_chars": 190424,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    }
+  ]
+}

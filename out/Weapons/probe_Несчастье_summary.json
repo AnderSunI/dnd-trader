@@ -1,0 +1,25 @@
+{
+  "title": "Несчастье",
+  "resolved_title": "Несчастье",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-04-20T07:56:14Z",
+  "wikitext_chars_query": 2160,
+  "wikitext_chars_parse": 2160,
+  "html_chars": 197270,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    }
+  ]
+}

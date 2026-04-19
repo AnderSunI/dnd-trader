@@ -1,0 +1,18 @@
+BG3 armor round 2 post-clean v5
+============================
+Input:  out/Armor/items.armor.round2.v4.json
+Output: out/Armor/items.armor.round2.v5.json
+Report: out/Armor/armor_round2_v5_report.txt
+
+Перекинуто по name-based overrides: 6
+Пересобрано summary_short: 9
+Удалено мусорных/дублей/хвостов: 925
+
+Что делает v5:
+- чистит мусорные строки и html/icon артефакты
+- убирает голые recharge/action строки без контекста
+- склеивает строки вида 'база — suffix'
+- дедуплит почти одинаковые mechanics_text
+- правит явные misclassify по name-based шаблонам
+- пересобирает buckets passives / granted_actions / bonuses / drawbacks
+- пересобирает tags и summary_short

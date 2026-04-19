@@ -1,0 +1,29 @@
+{
+  "title": "Клинок теней",
+  "resolved_title": "Клинок теней",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T09:04:49Z",
+  "wikitext_chars_query": 1501,
+  "wikitext_chars_parse": 1501,
+  "html_chars": 193414,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "title": "Клинок Правосудия",
+  "resolved_title": "Клинок Правосудия",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-01-23T04:24:40Z",
+  "wikitext_chars_query": 2556,
+  "wikitext_chars_parse": 2556,
+  "html_chars": 212662,
+  "section_count": 8,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Особое"
+    },
+    {
+      "index": "5",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "6",
+      "line": "Примечание"
+    },
+    {
+      "index": "7",
+      "line": "Галерея"
+    },
+    {
+      "index": "8",
+      "line": "Навигация"
+    }
+  ]
+}

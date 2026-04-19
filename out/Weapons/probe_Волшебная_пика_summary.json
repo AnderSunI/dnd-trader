@@ -1,0 +1,29 @@
+{
+  "title": "Волшебная пика",
+  "resolved_title": "Волшебная пика",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-04T11:24:10Z",
+  "wikitext_chars_query": 1004,
+  "wikitext_chars_parse": 1004,
+  "html_chars": 191644,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

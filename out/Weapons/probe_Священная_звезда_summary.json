@@ -1,0 +1,25 @@
+{
+  "title": "Священная звезда",
+  "resolved_title": "Священная звезда",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-10-24T17:22:12Z",
+  "wikitext_chars_query": 1564,
+  "wikitext_chars_parse": 1564,
+  "html_chars": 194746,
+  "section_count": 3,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Особое"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    }
+  ]
+}

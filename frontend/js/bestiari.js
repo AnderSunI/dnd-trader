@@ -535,6 +535,18 @@ function getAbilityMod(score) {
   return mod >= 0 ? `+${mod}` : String(mod);
 }
 
+function truncateText(value, maxLength = 160) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function compactMetaChip(label, value) {
+  if (!value) return "";
+  return `<span class="meta-item"><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</span>`;
+}
+
 function exportJson() {
   try {
     const blob = new Blob([
@@ -684,7 +696,16 @@ function renderCategoryButtons(entries) {
     .map(([key, label]) => {
       const active = BESTIARI_STATE.category === key ? "active" : "";
       const count = key === "all" ? entries.length : stats[key] || 0;
-      return `<button class="btn ${active}" type="button" data-bestiari-category="${escapeHtml(key)}">${escapeHtml(label)} · ${count}</button>`;
+      return `
+        <button
+          class="btn ${active}"
+          type="button"
+          data-bestiari-category="${escapeHtml(key)}"
+          style="min-height:34px; padding:7px 11px; border-radius:10px;"
+        >
+          ${escapeHtml(label)} <span style="opacity:.78;">${count}</span>
+        </button>
+      `;
     })
     .join("");
 }
@@ -692,12 +713,13 @@ function renderCategoryButtons(entries) {
 function renderEditorPanel() {
   if (!BESTIARI_STATE.editorOpen || !BESTIARI_STATE.draft) return "";
   const d = BESTIARI_STATE.draft;
+
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
         <div>
-          <h4 style="margin:0 0 6px 0;">🛠 Редактор bestiari</h4>
-          <div class="muted">Заполняй только то, что уже нужно. Остальное потом спокойно подтянем из JSON/БД.</div>
+          <h4 style="margin:0 0 4px 0;">🛠 Редактор записи</h4>
+          <div class="muted">Компактная форма для ручного добавления или правки записи.</div>
         </div>
         <div class="cart-buttons">
           <button class="btn btn-success" type="button" id="bestiariSaveDraftBtn">Сохранить</button>
@@ -707,7 +729,7 @@ function renderEditorPanel() {
 
       <input id="bestiariDraftId" type="hidden" value="${escapeHtml(d.id)}">
 
-      <div class="profile-grid" style="margin-top:12px;">
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
         <div class="filter-group">
           <label>Категория</label>
           <select id="bestiariDraftCategory">
@@ -731,7 +753,7 @@ function renderEditorPanel() {
         </div>
       </div>
 
-      <div class="profile-grid" style="margin-top:12px;">
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:10px;">
         <div class="filter-group">
           <label>Теги</label>
           <input id="bestiariDraftTags" type="text" value="${escapeHtml(d.tags)}" placeholder="монстр, огонь, магия">
@@ -742,32 +764,34 @@ function renderEditorPanel() {
         </div>
       </div>
 
-      <div class="filter-group" style="margin-top:12px;">
+      <div class="filter-group" style="margin-top:10px;">
         <label>Краткая сводка</label>
         <textarea id="bestiariDraftSummary" rows="3">${escapeHtml(d.summary)}</textarea>
       </div>
 
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Основное описание</label>
-        <textarea id="bestiariDraftBody" rows="6">${escapeHtml(d.body)}</textarea>
+      <div class="profile-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <div class="filter-group">
+          <label>Основное описание</label>
+          <textarea id="bestiariDraftBody" rows="6">${escapeHtml(d.body)}</textarea>
+        </div>
+        <div class="filter-group">
+          <label>Полное описание</label>
+          <textarea id="bestiariDraftFullDescription" rows="6">${escapeHtml(d.full_description)}</textarea>
+        </div>
       </div>
 
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Полное описание / большой текст</label>
-        <textarea id="bestiariDraftFullDescription" rows="6">${escapeHtml(d.full_description)}</textarea>
+      <div class="profile-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <div class="filter-group">
+          <label>Статблок (key: value)</label>
+          <textarea id="bestiariDraftStatblock" rows="8" placeholder="ac: 15&#10;hp: 120 (16к10+32)&#10;speed: 30 фт, полёт 60 фт&#10;str: 18&#10;dex: 14&#10;con: 15&#10;int: 10&#10;wis: 12&#10;cha: 16">${escapeHtml(d.statblock_text)}</textarea>
+        </div>
+        <div class="filter-group">
+          <label>Доп. механики / JSON</label>
+          <textarea id="bestiariDraftMechanics" rows="8" placeholder='{"short_rules":["..."],"examples":["..."]}'>${escapeHtml(d.mechanics_text)}</textarea>
+        </div>
       </div>
 
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Статблок / карточка параметров (key: value)</label>
-        <textarea id="bestiariDraftStatblock" rows="8" placeholder="ac: 15&#10;hp: 120 (16к10+32)&#10;speed: 30 фт, полёт 60 фт&#10;str: 18&#10;dex: 14&#10;con: 15&#10;int: 10&#10;wis: 12&#10;cha: 16">${escapeHtml(d.statblock_text)}</textarea>
-      </div>
-
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Доп. механики / JSON-блок</label>
-        <textarea id="bestiariDraftMechanics" rows="8" placeholder='{"short_rules":["..."],"examples":["..."]}'>${escapeHtml(d.mechanics_text)}</textarea>
-      </div>
-
-      <div class="trader-meta" style="margin-top:12px; gap:12px;">
+      <div class="trader-meta" style="margin-top:10px; gap:10px;">
         <label class="inline-checkbox"><input id="bestiariDraftPlayerVisible" type="checkbox" ${d.player_visible ? "checked" : ""}> Видно игроку</label>
         <label class="inline-checkbox"><input id="bestiariDraftGmOnly" type="checkbox" ${d.gm_only ? "checked" : ""}> GM-only</label>
       </div>
@@ -778,14 +802,18 @@ function renderEditorPanel() {
 function renderImportPanel() {
   if (!BESTIARI_STATE.importOpen) return "";
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <h4 style="margin:0 0 10px 0;">Импорт базы знаний</h4>
-      <div class="muted" style="margin-bottom:10px;">Поддерживается массив записей или объект вида { entries: [...] }.</div>
+    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <h4 style="margin:0 0 4px 0;">Импорт базы знаний</h4>
+          <div class="muted">Поддерживается массив записей или объект вида { entries: [...] }.</div>
+        </div>
+      </div>
       <div class="filter-group">
         <label>Вставь JSON</label>
         <textarea id="bestiariImportTextarea" rows="10" placeholder="{\"entries\":[...]}"></textarea>
       </div>
-      <div class="modal-actions" style="margin-top:12px; gap:8px; flex-wrap:wrap;">
+      <div class="modal-actions" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-success" type="button" id="bestiariApplyImportBtn">Применить JSON</button>
         <button class="btn" type="button" id="bestiariCloseImportBtn">Закрыть</button>
       </div>
@@ -798,24 +826,39 @@ function renderEntryList(entries, selected) {
     return `<div class="cabinet-block"><p>Ничего не найдено. Попробуй другой запрос или категорию.</p></div>`;
   }
 
-  return entries
-    .map((entry) => {
-      const active = entry.id === selected?.id ? "active" : "";
-      const tags = (entry.tags || []).slice(0, 4).map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`).join("");
-      return `
-        <button class="btn ${active}" type="button" data-bestiari-entry="${escapeHtml(entry.id)}" style="width:100%; justify-content:flex-start; text-align:left; padding:10px 12px; border-radius:12px;">
-          <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
-            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
-              <div style="font-weight:800;">${escapeHtml(entry.title)}</div>
-              <span class="meta-item">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry.category] || entry.category)}</span>
-            </div>
-            <div class="muted">${escapeHtml(entry.subtitle || "")}</div>
-            <div class="trader-meta">${tags}</div>
-          </div>
-        </button>
-      `;
-    })
-    .join("");
+  return `
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      ${entries
+        .map((entry) => {
+          const active = entry.id === selected?.id ? "active" : "";
+          const tags = (entry.tags || [])
+            .slice(0, 3)
+            .map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`)
+            .join("");
+          const summary = truncateText(entry.summary || entry.body?.[0] || "", 110);
+
+          return `
+            <button
+              class="btn ${active}"
+              type="button"
+              data-bestiari-entry="${escapeHtml(entry.id)}"
+              style="width:100%; justify-content:flex-start; text-align:left; padding:9px 10px; border-radius:10px; min-height:auto;"
+            >
+              <div style="display:flex; flex-direction:column; gap:5px; width:100%; min-width:0;">
+                <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+                  <div style="font-weight:800; line-height:1.2;">${escapeHtml(entry.title)}</div>
+                  <span class="meta-item" style="white-space:nowrap;">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry.category] || entry.category)}</span>
+                </div>
+                ${entry.subtitle ? `<div class="muted" style="font-size:12px; line-height:1.25;">${escapeHtml(entry.subtitle)}</div>` : ""}
+                ${summary ? `<div class="muted" style="font-size:12px; line-height:1.3;">${escapeHtml(summary)}</div>` : ""}
+                ${tags ? `<div class="trader-meta" style="gap:6px;">${tags}</div>` : ""}
+              </div>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
 }
 
 function renderInfoPanels(entry) {
@@ -859,13 +902,16 @@ function renderInfoPanels(entry) {
   if (!merged.length) return "";
 
   return `
-    <div class="profile-grid" style="margin-top:12px;">
-      ${merged.map((item) => `
-        <div class="stat-box">
-          <div class="muted">${escapeHtml(item.label)}</div>
-          <div style="margin-top:6px; font-weight:700;">${escapeHtml(item.value)}</div>
-        </div>
-      `).join("")}
+    <div class="profile-grid" style="margin-top:10px; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;">
+      ${merged
+        .slice(0, 8)
+        .map((item) => `
+          <div class="stat-box" style="min-height:auto; padding:10px;">
+            <div class="muted" style="font-size:11px;">${escapeHtml(item.label)}</div>
+            <div style="margin-top:4px; font-weight:700; font-size:13px; line-height:1.25;">${escapeHtml(item.value)}</div>
+          </div>
+        `)
+        .join("")}
     </div>
   `;
 }
@@ -881,16 +927,16 @@ function renderAbilities(statblock) {
     ["cha", "ХАР"],
   ];
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">Характеристики</h4>
-      <div class="stats-grid">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">Характеристики</h4>
+      <div class="stats-grid" style="gap:8px; grid-template-columns:repeat(6,minmax(0,1fr));">
         ${labels.map(([key, label]) => {
           const score = statblock.abilities[key] ?? 10;
           return `
-            <div class="stat-box">
-              <div><b>${label}</b></div>
-              <div style="font-size:20px; margin-top:4px;">${score}</div>
-              <div class="muted">Мод.: ${getAbilityMod(score)}</div>
+            <div class="stat-box" style="min-height:auto; padding:10px 8px;">
+              <div style="font-size:11px;"><b>${label}</b></div>
+              <div style="font-size:18px; margin-top:3px; font-weight:800;">${score}</div>
+              <div class="muted" style="font-size:11px;">${getAbilityMod(score)}</div>
             </div>
           `;
         }).join("")}
@@ -902,14 +948,16 @@ function renderAbilities(statblock) {
 function renderNamedList(title, items) {
   if (!items || !items.length) return "";
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">${escapeHtml(title)}</h4>
-      <div class="lss-rich-block">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">${escapeHtml(title)}</h4>
+      <div class="lss-rich-block" style="padding:10px 12px;">
         ${items.map((item) => {
-          if (typeof item === "string") return `<div style="margin-bottom:8px;">• ${escapeHtml(item)}</div>`;
+          if (typeof item === "string") {
+            return `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`;
+          }
           return `
-            <div style="margin-bottom:10px;">
-              <div style="font-weight:700; margin-bottom:4px;">${escapeHtml(item.name || "Элемент")}</div>
+            <div style="margin-bottom:8px; line-height:1.35;">
+              <div style="font-weight:700; margin-bottom:3px;">${escapeHtml(item.name || "Элемент")}</div>
               <div>${escapeHtml(item.text || "")}</div>
             </div>
           `;
@@ -933,21 +981,18 @@ function renderStatblock(entry) {
   ].filter(Boolean);
 
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
         <div>
-          <h4 style="margin:0 0 6px 0;">Статблок</h4>
-          <div class="muted">Для монстров и других боевых сущностей можно смотреть кратко или полно.</div>
+          <h4 style="margin:0 0 4px 0;">Статблок</h4>
+          <div class="muted">Краткая боевая сводка и разворот по кнопке.</div>
         </div>
         <div class="cart-buttons">
-          <button class="btn" type="button" id="bestiariToggleStatsBtn">${expanded ? "Скрыть полные статы" : "Показать полные статы"}</button>
+          <button class="btn" type="button" id="bestiariToggleStatsBtn">${expanded ? "Скрыть детали" : "Полные статы"}</button>
         </div>
       </div>
 
-      <div class="trader-meta" style="margin-top:10px; gap:8px;">
-        ${baseMeta.map((item) => `<span class="meta-item">${escapeHtml(item)}</span>`).join("")}
-      </div>
-
+      ${baseMeta.length ? `<div class="trader-meta" style="margin-top:8px; gap:6px;">${baseMeta.map((item) => `<span class="meta-item">${escapeHtml(item)}</span>`).join("")}</div>` : ""}
       ${renderAbilities(sb)}
 
       ${expanded ? `
@@ -974,10 +1019,10 @@ function renderMechanics(entry) {
   const examples = Array.isArray(entry.mechanics.examples) ? entry.mechanics.examples : [];
 
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">Механика</h4>
-      ${shortRules.length ? `<div class="lss-rich-block">${shortRules.map((item) => `<div style="margin-bottom:8px;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-      ${examples.length ? `<div class="lss-rich-block" style="margin-top:10px;"><h4 style="margin-bottom:8px;">Примеры</h4>${examples.map((item) => `<div style="margin-bottom:8px;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">Механика</h4>
+      ${shortRules.length ? `<div class="lss-rich-block" style="padding:10px 12px;">${shortRules.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
+      ${examples.length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><div style="font-weight:700; margin-bottom:6px;">Примеры</div>${examples.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
     </div>
   `;
 }
@@ -996,17 +1041,19 @@ function renderFullDescription(entry) {
         : [];
 
   const textHtml = textToRender.length
-    ? textToRender.map((paragraph) => `<div class="lss-rich-block" style="margin-top:10px;"><p>${escapeHtml(paragraph)}</p></div>`).join("")
-    : `<div class="lss-rich-block" style="margin-top:10px;"><p>Описание пока не заполнено.</p></div>`;
+    ? textToRender
+        .map((paragraph) => `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>${escapeHtml(paragraph)}</p></div>`)
+        .join("")
+    : `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>Описание пока не заполнено.</p></div>`;
 
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
         <div>
-          <h4 style="margin:0 0 6px 0;">Описание</h4>
-          <div class="muted">Коротко — для быстрого чтения, полно — если игрок хочет углубиться в текст и детали.</div>
+          <h4 style="margin:0 0 4px 0;">Описание</h4>
+          <div class="muted">Краткая подача по умолчанию, полный текст по кнопке.</div>
         </div>
-        ${hasLong ? `<div class="cart-buttons"><button class="btn" type="button" id="bestiariToggleDescriptionBtn">${expanded ? "Краткое описание" : "Полное описание"}</button></div>` : ""}
+        ${hasLong ? `<div class="cart-buttons"><button class="btn" type="button" id="bestiariToggleDescriptionBtn">${expanded ? "Свернуть" : "Развернуть"}</button></div>` : ""}
       </div>
       ${textHtml}
     </div>
@@ -1018,10 +1065,10 @@ function renderSpellSection(entry) {
   if (!data) return "";
 
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">Параметры заклинания</h4>
-      <div class="profile-grid">
-        <div><b>Время накладывания:</b> ${escapeHtml(data.casting_time || "—")}</div>
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">Параметры заклинания</h4>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+        <div><b>Время:</b> ${escapeHtml(data.casting_time || "—")}</div>
         <div><b>Дистанция:</b> ${escapeHtml(data.range || "—")}</div>
         <div><b>Компоненты:</b> ${escapeHtml(data.components || "—")}</div>
         <div><b>Длительность:</b> ${escapeHtml(data.duration || "—")}</div>
@@ -1030,8 +1077,8 @@ function renderSpellSection(entry) {
         <div><b>Урон / эффект:</b> ${escapeHtml(data.damage || "—")}</div>
         <div><b>Спасбросок:</b> ${escapeHtml(data.save || "—")}</div>
       </div>
-      ${(data.classes || []).length ? `<div class="trader-meta" style="margin-top:10px; gap:8px;">${data.classes.map((c) => `<span class="meta-item">${escapeHtml(c)}</span>`).join("")}</div>` : ""}
-      ${data.higher_levels ? `<div class="lss-rich-block" style="margin-top:10px;"><p>${escapeHtml(data.higher_levels)}</p></div>` : ""}
+      ${(data.classes || []).length ? `<div class="trader-meta" style="margin-top:8px; gap:6px;">${data.classes.map((c) => `<span class="meta-item">${escapeHtml(c)}</span>`).join("")}</div>` : ""}
+      ${data.higher_levels ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>${escapeHtml(data.higher_levels)}</p></div>` : ""}
     </div>
   `;
 }
@@ -1040,9 +1087,9 @@ function renderItemSection(entry) {
   const data = entry.item_data;
   if (!data) return "";
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">Параметры предмета</h4>
-      <div class="profile-grid">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">Параметры предмета</h4>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
         <div><b>Тип:</b> ${escapeHtml(data.type || "—")}</div>
         <div><b>Редкость:</b> ${escapeHtml(data.rarity || "—")}</div>
         <div><b>Слот:</b> ${escapeHtml(data.slot || "—")}</div>
@@ -1050,7 +1097,7 @@ function renderItemSection(entry) {
         <div><b>Вес (lb):</b> ${escapeHtml(data.weight_lb || "—")}</div>
         <div><b>Стоимость:</b> ${escapeHtml(data.value_gp || "—")}</div>
       </div>
-      ${(data.properties || []).length ? `<div class="lss-rich-block" style="margin-top:10px;">${data.properties.map((item) => `<div style="margin-bottom:8px;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
+      ${(data.properties || []).length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;">${data.properties.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
     </div>
   `;
 }
@@ -1059,14 +1106,14 @@ function renderClassSection(entry) {
   const data = entry.class_data;
   if (!data) return "";
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">Параметры класса</h4>
-      <div class="profile-grid">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">Параметры класса</h4>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
         <div><b>Кость хитов:</b> ${escapeHtml(data.hit_die || "—")}</div>
         <div><b>Осн. характеристика:</b> ${escapeHtml(data.primary_ability || "—")}</div>
       </div>
-      ${(data.proficiencies || []).length ? `<div class="lss-rich-block" style="margin-top:10px;"><h4 style="margin-bottom:8px;">Владения</h4>${data.proficiencies.map((item) => `<div style="margin-bottom:8px;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-      ${(data.core_features || []).length ? `<div class="lss-rich-block" style="margin-top:10px;"><h4 style="margin-bottom:8px;">Ключевые черты</h4>${data.core_features.map((item) => `<div style="margin-bottom:8px;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
+      ${(data.proficiencies || []).length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><div style="font-weight:700; margin-bottom:6px;">Владения</div>${data.proficiencies.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
+      ${(data.core_features || []).length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><div style="font-weight:700; margin-bottom:6px;">Ключевые черты</div>${data.core_features.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
     </div>
   `;
 }
@@ -1074,9 +1121,9 @@ function renderClassSection(entry) {
 function renderRelated(entry) {
   if (!entry.related?.length) return "";
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4 style="margin:0 0 10px 0;">Связанные сущности</h4>
-      <div class="trader-meta" style="gap:8px;">
+    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
+      <h4 style="margin:0 0 8px 0;">Связанные сущности</h4>
+      <div class="trader-meta" style="gap:6px;">
         ${entry.related.map((rel) => `<span class="meta-item">${escapeHtml(rel)}</span>`).join("")}
       </div>
     </div>
@@ -1089,11 +1136,11 @@ function renderEntryDetail(entry) {
   }
 
   return `
-    <div class="cabinet-block">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin:0 0 6px 0;">${escapeHtml(entry.title)}</h3>
-          <div class="muted">${escapeHtml(entry.subtitle || "")}</div>
+    <div class="cabinet-block" style="padding:14px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <h3 style="margin:0 0 4px 0; line-height:1.15;">${escapeHtml(entry.title)}</h3>
+          ${entry.subtitle ? `<div class="muted" style="font-size:13px;">${escapeHtml(entry.subtitle)}</div>` : ""}
         </div>
         <div class="cart-buttons">
           <button class="btn" type="button" id="bestiariEditEntryBtn">Редактировать</button>
@@ -1101,16 +1148,16 @@ function renderEntryDetail(entry) {
         </div>
       </div>
 
-      <div class="trader-meta" style="margin-top:10px; gap:8px;">
+      <div class="trader-meta" style="margin-top:8px; gap:6px;">
         <span class="meta-item">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry.category] || entry.category)}</span>
         ${entry.source ? `<span class="meta-item">Источник: ${escapeHtml(entry.source)}</span>` : ""}
         ${entry.gm_only ? `<span class="meta-item">GM-only</span>` : ""}
         ${entry.player_visible === false ? `<span class="meta-item">Скрыто от игрока</span>` : ""}
       </div>
 
-      ${(entry.tags || []).length ? `<div class="trader-meta" style="margin-top:10px; gap:8px;">${entry.tags.map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+      ${(entry.tags || []).length ? `<div class="trader-meta" style="margin-top:8px; gap:6px;">${entry.tags.map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+      ${entry.summary ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>${escapeHtml(entry.summary)}</p></div>` : ""}
 
-      <div class="lss-rich-block" style="margin-top:12px;"><p>${escapeHtml(entry.summary || "")}</p></div>
       ${renderInfoPanels(entry)}
       ${renderStatblock(entry)}
       ${renderSpellSection(entry)}
@@ -1294,22 +1341,37 @@ export function renderCodex() {
   const selected = getSelectedEntry(entries);
   if (selected) BESTIARI_STATE.selectedId = selected.id;
 
+  const visibleCount = entries.length;
+  const totalCount = Array.isArray(BESTIARI_STATE.entries) ? BESTIARI_STATE.entries.length : 0;
+
   container.innerHTML = `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
         <div>
-          <h3 style="margin:0 0 6px 0;">📚 Bestiari / Энциклопедия</h3>
-          <div class="muted">Игровой справочник по монстрам, богам, лору, механикам, предметам, спеллам, классам и другим сущностям D&D.</div>
+          <h3 style="margin:0 0 4px 0;">📚 Энциклопедия</h3>
+          <div class="muted">Компактный справочник по монстрам, лору, механикам, предметам и заклинаниям.</div>
         </div>
         <div class="cart-buttons">
-          <button class="btn btn-primary" type="button" id="bestiariNewEntryBtn">＋ Новая запись</button>
-          <button class="btn" type="button" id="bestiariImportBtn">Импорт JSON</button>
-          <button class="btn" type="button" id="bestiariExportBtn">Экспорт JSON</button>
+          <button class="btn btn-primary" type="button" id="bestiariNewEntryBtn">＋ Запись</button>
+          <button class="btn" type="button" id="bestiariImportBtn">Импорт</button>
+          <button class="btn" type="button" id="bestiariExportBtn">Экспорт</button>
         </div>
       </div>
-      <div class="trader-meta" style="margin-top:10px; gap:8px;">
+
+      <div class="collection-toolbar compact-collection-toolbar" style="gap:10px; align-items:flex-end; margin:12px 0 0 0;">
+        <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
+          <label>Поиск по справочнику</label>
+          <input id="bestiariSearchInput" type="text" value="${escapeHtml(BESTIARI_STATE.query)}" placeholder="Монстр, бог, предмет, механика...">
+        </div>
+        <div class="cart-buttons" style="align-items:flex-end; gap:6px; flex-wrap:wrap;">
+          ${renderCategoryButtons(entries)}
+        </div>
+      </div>
+
+      <div class="trader-meta" style="margin-top:10px; gap:6px;">
+        <span class="meta-item">Показано: ${visibleCount}</span>
+        <span class="meta-item">Всего: ${totalCount}</span>
         <span class="meta-item">Источник: ${escapeHtml(BESTIARI_STATE.source)}</span>
-        <span class="meta-item">Записей: ${entries.length}</span>
         <span class="meta-item">Роль: ${escapeHtml(BESTIARI_STATE.role)}</span>
       </div>
     </div>
@@ -1317,20 +1379,8 @@ export function renderCodex() {
     ${renderImportPanel()}
     ${renderEditorPanel()}
 
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="collection-toolbar compact-collection-toolbar" style="gap:10px; align-items:flex-end;">
-        <div class="filter-group" style="min-width:260px; flex:1 1 260px;">
-          <label>Поиск по справочнику</label>
-          <input id="bestiariSearchInput" type="text" value="${escapeHtml(BESTIARI_STATE.query)}" placeholder="Монстр, бог, предмет, механика, событие...">
-        </div>
-        <div class="cart-buttons" style="align-items:flex-end; gap:8px; flex-wrap:wrap;">
-          ${renderCategoryButtons(entries)}
-        </div>
-      </div>
-    </div>
-
-    <div class="profile-grid" style="align-items:start; grid-template-columns:minmax(290px, 0.95fr) minmax(0, 1.65fr);">
-      <div class="cabinet-block" style="display:flex; flex-direction:column; gap:8px; min-height:100%;">
+    <div class="profile-grid" style="align-items:start; grid-template-columns:minmax(260px, 0.82fr) minmax(0, 1.38fr); gap:12px;">
+      <div class="cabinet-block" style="padding:10px; display:flex; flex-direction:column; gap:8px; max-height:72vh; overflow:auto;">
         ${renderEntryList(entries, selected)}
       </div>
       <div>

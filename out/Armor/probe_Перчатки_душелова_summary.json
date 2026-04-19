@@ -1,0 +1,187 @@
+{
+  "requested_title": "Перчатки душелова",
+  "resolved_title": "Перчатки душелова",
+  "display_title": "<span class=\"mw-page-title-main\">Перчатки душелова</span>",
+  "pageid": 7893,
+  "revision_found": true,
+  "revision_chars": 1563,
+  "parse_wikitext_chars": 1563,
+  "parse_html_chars": 188666,
+  "category_count": 3,
+  "link_count": 912,
+  "categories_preview": [
+    {
+      "sortkey": "",
+      "category": "Перчатки_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Снаряжение_BG3"
+    },
+    {
+      "sortkey": "",
+      "category": "Броня_BG3"
+    }
+  ],
+  "links_preview": [
+    {
+      "ns": 0,
+      "title": "Спасти Надежду",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Baldur's Gate III",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "\"Танцующий под дождем\"",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновая булава",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый длинный меч",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый пластинчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый скимитар",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый чешуйчатый доспех",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адамантиновый щит",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская мантия",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адская рапира",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адский самовзводный арбалет",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Адское копье",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда +1",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда адской бороды",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда бдительности",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда гармонии",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алебарда меррегона",
+      "exists": true
+    },
+    {
+      "ns": 0,
+      "title": "Алый кожаный доспех",
+      "exists": true
+    }
+  ],
+  "portable_infobox": {
+    "portable_infobox_found": true,
+    "fields": [
+      {
+        "label": "",
+        "value": "Перчатки душелова"
+      },
+      {
+        "label": "Общее",
+        "value": "Легендарный"
+      },
+      {
+        "label": "",
+        "value": "Общее"
+      },
+      {
+        "label": "Редкость",
+        "value": "Легендарный"
+      },
+      {
+        "label": "Класс",
+        "value": "Аксессуары"
+      },
+      {
+        "label": "Тип",
+        "value": "Перчатки"
+      },
+      {
+        "label": "Вес",
+        "value": "0.5 кг"
+      },
+      {
+        "label": "Стоимость",
+        "value": "960"
+      },
+      {
+        "label": "Прочее",
+        "value": "Награда за квест"
+      },
+      {
+        "label": "",
+        "value": "Прочее"
+      },
+      {
+        "label": "Получение",
+        "value": "Награда за квест"
+      },
+      {
+        "label": "Связь с квестами",
+        "value": "Спасти Надежду"
+      }
+    ]
+  },
+  "field_guesses": {
+    "rarity": "Легендарный",
+    "type": "Перчатки",
+    "weight": "Спасти Надежду",
+    "value": "960"
+  }
+}

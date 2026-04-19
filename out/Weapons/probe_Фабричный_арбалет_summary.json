@@ -1,0 +1,33 @@
+{
+  "title": "Фабричный арбалет",
+  "resolved_title": "Фабричный арбалет",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-10-24T17:16:32Z",
+  "wikitext_chars_query": 1854,
+  "wikitext_chars_parse": 1854,
+  "html_chars": 196785,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

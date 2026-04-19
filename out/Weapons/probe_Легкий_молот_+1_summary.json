@@ -1,0 +1,29 @@
+{
+  "title": "Легкий молот +1",
+  "resolved_title": "Легкий молот +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T15:28:30Z",
+  "wikitext_chars_query": 1125,
+  "wikitext_chars_parse": 1125,
+  "html_chars": 190524,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    }
+  ]
+}

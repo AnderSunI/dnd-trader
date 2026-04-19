@@ -1,0 +1,33 @@
+{
+  "title": "Двуручный топор +1",
+  "resolved_title": "Двуручный топор +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-01-23T04:12:36Z",
+  "wikitext_chars_query": 2265,
+  "wikitext_chars_parse": 2265,
+  "html_chars": 208644,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

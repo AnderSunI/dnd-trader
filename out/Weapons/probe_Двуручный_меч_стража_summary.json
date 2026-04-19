@@ -1,0 +1,29 @@
+{
+  "title": "Двуручный меч стража",
+  "resolved_title": "Двуручный меч стража",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-03-04T21:05:49Z",
+  "wikitext_chars_query": 1025,
+  "wikitext_chars_parse": 1025,
+  "html_chars": 188142,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

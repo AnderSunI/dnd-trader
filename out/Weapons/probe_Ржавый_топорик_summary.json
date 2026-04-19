@@ -1,0 +1,33 @@
+{
+  "title": "Ржавый топорик",
+  "resolved_title": "Ржавый топорик",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T07:03:31Z",
+  "wikitext_chars_query": 1267,
+  "wikitext_chars_parse": 1267,
+  "html_chars": 190650,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

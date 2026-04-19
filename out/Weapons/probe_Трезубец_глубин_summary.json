@@ -1,0 +1,33 @@
+{
+  "title": "Трезубец глубин",
+  "resolved_title": "Трезубец глубин",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-09T16:47:14Z",
+  "wikitext_chars_query": 1645,
+  "wikitext_chars_parse": 1645,
+  "html_chars": 192434,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

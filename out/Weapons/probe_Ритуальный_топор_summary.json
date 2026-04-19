@@ -1,0 +1,37 @@
+{
+  "title": "Ритуальный топор",
+  "resolved_title": "Ритуальный топор",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T08:05:55Z",
+  "wikitext_chars_query": 1363,
+  "wikitext_chars_parse": 1363,
+  "html_chars": 190622,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

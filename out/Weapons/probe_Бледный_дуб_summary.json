@@ -1,0 +1,37 @@
+{
+  "title": "Бледный дуб",
+  "resolved_title": "Бледный дуб",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-12-29T19:56:21Z",
+  "wikitext_chars_query": 1732,
+  "wikitext_chars_parse": 1732,
+  "html_chars": 197625,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

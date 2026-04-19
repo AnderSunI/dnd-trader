@@ -1,0 +1,29 @@
+{
+  "title": "Клеймо секты",
+  "resolved_title": "Клеймо секты",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T10:12:00Z",
+  "wikitext_chars_query": 929,
+  "wikitext_chars_parse": 929,
+  "html_chars": 186608,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

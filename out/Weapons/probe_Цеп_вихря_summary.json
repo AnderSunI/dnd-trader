@@ -1,0 +1,37 @@
+{
+  "title": "Цеп вихря",
+  "resolved_title": "Цеп вихря",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T08:44:27Z",
+  "wikitext_chars_query": 1961,
+  "wikitext_chars_parse": 1961,
+  "html_chars": 196780,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

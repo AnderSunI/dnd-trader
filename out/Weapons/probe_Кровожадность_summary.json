@@ -1,0 +1,37 @@
+{
+  "title": "Кровожадность",
+  "resolved_title": "Кровожадность",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-09-25T08:20:32Z",
+  "wikitext_chars_query": 3006,
+  "wikitext_chars_parse": 3006,
+  "html_chars": 203330,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Интересные факты"
+    },
+    {
+      "index": "6",
+      "line": "Навигация"
+    }
+  ]
+}

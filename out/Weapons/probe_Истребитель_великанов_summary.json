@@ -1,0 +1,33 @@
+{
+  "title": "Истребитель великанов",
+  "resolved_title": "Истребитель великанов",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-10T17:03:15Z",
+  "wikitext_chars_query": 1400,
+  "wikitext_chars_parse": 1400,
+  "html_chars": 193028,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

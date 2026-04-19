@@ -1,0 +1,33 @@
+{
+  "title": "Одноручный арбалет +1",
+  "resolved_title": "Одноручный арбалет +1",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-23T09:02:52Z",
+  "wikitext_chars_query": 1329,
+  "wikitext_chars_parse": 1329,
+  "html_chars": 191011,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Получение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

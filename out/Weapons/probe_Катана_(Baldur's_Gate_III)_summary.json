@@ -1,0 +1,21 @@
+{
+  "title": "Катана (Baldur's Gate III)",
+  "resolved_title": "Катана (Baldur's Gate III)",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-09-11T03:18:07Z",
+  "wikitext_chars_query": 2011,
+  "wikitext_chars_parse": 2011,
+  "html_chars": 195210,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Действия с оружием"
+    }
+  ]
+}

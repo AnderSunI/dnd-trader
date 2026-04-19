@@ -1,0 +1,21 @@
+{
+  "title": "Учебный меч Чессы",
+  "resolved_title": "Учебный меч Чессы",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-28T08:27:20Z",
+  "wikitext_chars_query": 1213,
+  "wikitext_chars_parse": 1213,
+  "html_chars": 190879,
+  "section_count": 2,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Урон"
+    },
+    {
+      "index": "2",
+      "line": "Получение"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Салями",
+  "resolved_title": "Салями",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T10:12:51Z",
+  "wikitext_chars_query": 1157,
+  "wikitext_chars_parse": 1157,
+  "html_chars": 188813,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Применение"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

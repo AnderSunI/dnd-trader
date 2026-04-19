@@ -1,0 +1,33 @@
+{
+  "title": "Стальной кованый меч",
+  "resolved_title": "Стальной кованый меч",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-08T21:00:31Z",
+  "wikitext_chars_query": 1538,
+  "wikitext_chars_parse": 1538,
+  "html_chars": 196400,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

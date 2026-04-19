@@ -1,0 +1,29 @@
+{
+  "title": "Кинжал",
+  "resolved_title": "Кинжал",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-03T18:41:25Z",
+  "wikitext_chars_query": 1774,
+  "wikitext_chars_parse": 1774,
+  "html_chars": 194604,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Получение"
+    },
+    {
+      "index": "2",
+      "line": "Свойства"
+    },
+    {
+      "index": "3",
+      "line": "Урон"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

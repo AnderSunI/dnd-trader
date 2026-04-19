@@ -1,0 +1,56 @@
+BG3 API Weapons Round1 Driver v4
+================================
+Family: weapons
+Pages: 3
+Total unique items: 358
+
+PAGE: light_and_one_handed
+Title: Оружие (Baldur's Gate III)
+Items: 175
+  - Боевые топоры: 7
+  - Булавы: 15
+  - Длинные мечи: 21
+  - Дубинки: 17
+  - Кинжалы: 27
+  - Короткие мечи: 26
+  - Лёгкие молоты: 5
+  - Моргенштерны: 6
+  - Рапиры: 10
+  - Серпы: 6
+  - Скимитары: 18
+  - Топорики: 8
+  - Цепы: 9
+
+PAGE: heavy
+Title: Оружие (Baldur's Gate III)/Тяжёлое оружие
+Items: 104
+  - Боевые молоты: 14
+  - Глефы: 9
+  - Двуручные мечи: 18
+  - Двуручные молоты: 7
+  - Двуручные топоры: 10
+  - Дубины: 8
+  - Клевцы: 5
+  - Копья: 16
+  - Пики: 8
+  - Трезубцы: 9
+
+PAGE: ranged
+Title: Оружие (Baldur's Gate III)/Оружие дальнего боя
+Items: 79
+  - Длинные луки: 9
+  - Короткие луки: 11
+  - Лёгкие арбалеты: 3
+  - Одноручные арбалеты: 7
+  - Тяжёлые арбалеты: 12
+  - Пилумы: 3
+  - Боевые посохи: 34
+
+Collapsed duplicate titles:
+  - none
+
+Notes:
+- v3 uses API parse HTML + old heading/table walk
+- row-first parsing keeps only weapon-ish item links
+- action/state/stat pages are filtered at index stage
+- Боевые посохи moved to ranged

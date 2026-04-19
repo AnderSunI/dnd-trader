@@ -1,0 +1,33 @@
+{
+  "title": "Цеп эпох",
+  "resolved_title": "Цеп эпох",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2025-02-27T13:35:24Z",
+  "wikitext_chars_query": 2671,
+  "wikitext_chars_parse": 2671,
+  "html_chars": 194418,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

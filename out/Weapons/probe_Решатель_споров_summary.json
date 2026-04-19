@@ -1,0 +1,33 @@
+{
+  "title": "Решатель споров",
+  "resolved_title": "Решатель споров",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-03T18:02:24Z",
+  "wikitext_chars_query": 1233,
+  "wikitext_chars_parse": 1233,
+  "html_chars": 192530,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

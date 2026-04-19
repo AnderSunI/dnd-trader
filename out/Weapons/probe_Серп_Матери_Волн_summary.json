@@ -1,0 +1,33 @@
+{
+  "title": "Серп Матери Волн",
+  "resolved_title": "Серп Матери Волн",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-07-01T07:12:30Z",
+  "wikitext_chars_query": 1053,
+  "wikitext_chars_parse": 1053,
+  "html_chars": 188319,
+  "section_count": 5,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Навигация"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "title": "Видение Абсолют",
+  "resolved_title": "Видение Абсолют",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-02-18T13:41:52Z",
+  "wikitext_chars_query": 1938,
+  "wikitext_chars_parse": 1938,
+  "html_chars": 198315,
+  "section_count": 6,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Особое"
+    },
+    {
+      "index": "4",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "5",
+      "line": "Получение"
+    },
+    {
+      "index": "6",
+      "line": "Галерея"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Фонарь",
+  "resolved_title": "Фонарь",
+  "revision_found": true,
+  "parse_found": true,
+  "revision_timestamp": "2024-06-27T10:15:35Z",
+  "wikitext_chars_query": 953,
+  "wikitext_chars_parse": 953,
+  "html_chars": 188208,
+  "section_count": 4,
+  "sections": [
+    {
+      "index": "1",
+      "line": "Свойства"
+    },
+    {
+      "index": "2",
+      "line": "Урон"
+    },
+    {
+      "index": "3",
+      "line": "Действия с оружием"
+    },
+    {
+      "index": "4",
+      "line": "Навигация"
+    }
+  ]
+}

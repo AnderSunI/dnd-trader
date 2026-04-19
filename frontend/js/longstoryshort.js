@@ -1113,30 +1113,42 @@ function getPrettyRawPreview() {
   }
 }
 
+
 function renderTopToolbar() {
+  const sourceLabel = {
+    empty: "нет данных",
+    local: "локально",
+    manual: "вручную",
+    api: "API",
+    file: "файл",
+  }[String(LSS_STATE.source || "empty").toLowerCase()] || String(LSS_STATE.source || "нет данных");
+
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin:0 0 6px 0;">📖 Long Story Short</h3>
-          <div class="muted">
-            Игровой лист персонажа: импорт, конструктор, быстрые изменения и бросок кубов доступны прямо здесь.
+    <div class="cabinet-block" style="margin-bottom:12px; padding:12px 14px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div style="min-width:0; flex:1 1 260px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+            <h3 style="margin:0;">📖 Long Story Short</h3>
+            <span class="quality-badge" style="padding:3px 8px; min-height:auto;">источник: ${escapeHtml(sourceLabel)}</span>
+          </div>
+          <div class="muted" style="font-size:13px; line-height:1.35;">
+            Живой лист персонажа: обзор, навыки, черты, снаряжение и заклинания без лишней простыни.
           </div>
         </div>
 
-        <div class="cart-buttons" style="flex-wrap:wrap;">
-          <button class="btn btn-primary" type="button" id="lssToggleImportBtn">
-            ${LSS_STATE.importPanelOpen ? "Скрыть импорт" : "Загрузить данные"}
+        <div class="cart-buttons" style="gap:6px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-start;">
+          <button class="btn btn-primary" type="button" id="lssToggleImportBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">
+            ${LSS_STATE.importPanelOpen ? "Скрыть импорт" : "Загрузить"}
           </button>
-          <button class="btn" type="button" id="lssToggleEditBtn" ${LSS_STATE.profile ? "" : "disabled"}>
+          <button class="btn btn-secondary" type="button" id="lssToggleEditBtn" ${LSS_STATE.profile ? "" : "disabled"} style="min-height:34px; padding:6px 10px; border-radius:12px;">
             ${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : "🛠 Конструктор"}
           </button>
-          <button class="btn" type="button" id="lssDiceToggleBtn" ${LSS_STATE.profile ? "" : "disabled"}>
+          <button class="btn btn-secondary" type="button" id="lssDiceToggleBtn" ${LSS_STATE.profile ? "" : "disabled"} style="min-height:34px; padding:6px 10px; border-radius:12px;">
             ${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}
           </button>
           ${
             LSS_STATE.profile
-              ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn">Очистить LSS</button>`
+              ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">Очистить</button>`
               : ""
           }
         </div>
@@ -1657,39 +1669,41 @@ function renderEmptyState() {
   `;
 }
 
+
 function renderDiceDock() {
   if (!LSS_STATE.profile) return "";
   const last = LSS_STATE.lastRoll;
   const dieButtons = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
 
   return `
-    <div style="position:sticky; top:8px; z-index:4; display:flex; justify-content:flex-end; margin-bottom:10px;">
-      <div class="cabinet-block" style="padding:10px 12px; width:min(100%, 360px); margin:0; box-shadow:0 10px 26px rgba(0,0,0,0.22);">
-        <div class="flex-between" style="gap:10px; align-items:center;">
+    <div style="position:sticky; top:8px; z-index:4; display:flex; justify-content:flex-end; margin-bottom:10px; pointer-events:none;">
+      <div class="cabinet-block" style="pointer-events:auto; padding:8px 10px; width:min(100%, 280px); margin:0; box-shadow:0 10px 26px rgba(0,0,0,0.22);">
+        <div class="flex-between" style="gap:8px; align-items:center;">
           <div>
-            <div style="font-weight:800;">🎲 Кубы</div>
-            <div class="muted" style="font-size:12px;">Быстрый бросок поверх LSS</div>
+            <div style="font-weight:800; font-size:14px;">🎲 Кубы</div>
+            <div class="muted" style="font-size:11px;">быстрый бросок</div>
           </div>
-          <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn">
+          <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn" style="min-height:30px; padding:4px 9px; border-radius:10px;">
             ${LSS_STATE.dicePanelOpen ? "Скрыть" : "Открыть"}
           </button>
         </div>
         ${LSS_STATE.dicePanelOpen ? `
-          <div class="cart-buttons" style="margin-top:10px; flex-wrap:wrap; gap:6px; justify-content:flex-start;">
+          <div class="cart-buttons" style="margin-top:8px; flex-wrap:wrap; gap:5px; justify-content:flex-start;">
             ${dieButtons.map((die) => `
-              <button class="btn ${LSS_STATE.diceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-lss-roll-die="${die}" style="min-height:32px; padding:6px 10px;">
+              <button class="btn ${LSS_STATE.diceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-lss-roll-die="${die}" style="min-height:28px; padding:4px 8px; border-radius:10px; font-size:12px;">
                 ${die.toUpperCase()}
               </button>
             `).join("")}
           </div>
-          <div class="muted" style="margin-top:10px;">
-            ${last ? `Последний бросок: <strong>${escapeHtml(String(last.type).toUpperCase())}</strong> → <strong>${escapeHtml(String(last.result))}</strong>` : "Выбери куб для броска"}
+          <div class="muted" style="margin-top:8px; font-size:12px;">
+            ${last ? `Последний: <strong>${escapeHtml(String(last.type).toUpperCase())}</strong> → <strong>${escapeHtml(String(last.result))}</strong>` : "Выбери куб"}
           </div>
         ` : ""}
       </div>
     </div>
   `;
 }
+
 
 function renderHero(profile) {
   const name = unwrapValue(profile?.name, "Без имени");
@@ -1709,126 +1723,105 @@ function renderHero(profile) {
     unwrapValue(profile?.conditions, ""),
     unwrapValue(vitality?.conditions, ""),
   ]);
-  const slotsLabel = spell.totalSlots ? `${spell.freeSlots}/${spell.totalSlots}` : "—";
-  const coins = parseCoins(profile);
-  const coinEntries = coins
-    ? Object.entries(coins).filter(([, value]) => String(value || "").trim())
-    : [];
-  const compactCoins = coinEntries.length
-    ? coinEntries
-        .map(([key, value]) => `${String(key).toUpperCase()}: ${String(value)}`)
-        .join(' • ')
-    : '';
+  const quickBadges = [
+    `КБ ${String(unwrapValue(vitality?.ac, "—"))}`,
+    `Иниц. ${formatSigned(unwrapValue(vitality?.initiative, 0))}`,
+    `Скорость ${String(unwrapValue(vitality?.speed, "—"))}`,
+    `Мастерство ${formatSigned(getProficiencyBonus(profile))}`,
+    `Пасс. воспр. ${String(getPassivePerception(profile))}`,
+    spell.totalSlots ? `Ячейки ${spell.freeSlots}/${spell.totalSlots}` : "Ячейки —",
+  ];
 
   return `
-    <div class="cabinet-block">
-      <div style="display:grid; grid-template-columns:minmax(96px,120px) minmax(0,1fr); gap:14px; align-items:start;">
+    <div class="cabinet-block" style="padding:12px;">
+      <div style="display:grid; grid-template-columns:minmax(82px,96px) minmax(0,1fr); gap:12px; align-items:start;">
         <div>
           ${
             portraitUrl
               ? `
-                <div class="trader-modal-image-wrap" style="max-width:120px;">
+                <div class="trader-modal-image-wrap" style="max-width:96px; border-radius:14px; overflow:hidden;">
                   <img
                     class="trader-modal-image"
                     src="${escapeHtml(portraitUrl)}"
                     alt="${escapeHtml(String(name))}"
                     loading="lazy"
                     referrerpolicy="no-referrer"
-                    onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:136px;display:flex;align-items:center;justify-content:center;font-size:30px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
+                    onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:112px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:14px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
                   />
                 </div>
               `
               : `
-                <div class="stat-box" style="min-height:150px;display:flex;align-items:center;justify-content:center;font-size:30px;">
+                <div class="stat-box" style="min-height:112px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:14px;">
                   🧙
                 </div>
               `
           }
         </div>
 
-        <div>
-          <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
-            <div>
-              <h2 style="margin-bottom:4px;">${escapeHtml(String(name))}</h2>
-              <div class="muted" style="font-size:15px;">
-                ${escapeHtml(String(unwrapValue(info?.race, "—")))} —
-                ${escapeHtml(String(unwrapValue(info?.charClass, "—")))}
-                ${unwrapValue(info?.charSubclass, "") ? `(${escapeHtml(String(unwrapValue(info?.charSubclass, "")))})` : ""}
+        <div style="min-width:0; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+            <div style="min-width:0; flex:1 1 280px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                <h2 style="margin:0; line-height:1;">${escapeHtml(String(name))}</h2>
+                <span class="quality-badge" style="padding:3px 8px; min-height:auto;">ур. ${escapeHtml(String(unwrapValue(info?.level, "1")))}</span>
               </div>
-              <div class="muted" style="font-size:13px; margin-top:4px;">
-                уровень ${escapeHtml(String(unwrapValue(info?.level, "1")))}
-                • ${escapeHtml(String(unwrapValue(info?.background, "—")))}
-                • ${escapeHtml(normalizeSize(unwrapValue(info?.size, "medium")))}
+              <div class="muted" style="font-size:14px; line-height:1.3;">
+                ${escapeHtml(String(unwrapValue(info?.race, "—")))} •
+                ${escapeHtml(String(unwrapValue(info?.charClass, "—")))}
+                ${unwrapValue(info?.charSubclass, "") ? `• ${escapeHtml(String(unwrapValue(info?.charSubclass, "")))}` : ""}
+              </div>
+              <div class="trader-meta" style="margin-top:8px; gap:6px;">
+                <span class="meta-item">${escapeHtml(String(unwrapValue(info?.background, "—")))}</span>
+                <span class="meta-item">${escapeHtml(normalizeSize(unwrapValue(info?.size, "medium")))}</span>
+                <span class="meta-item">магия ${escapeHtml(String(spell.ability))}</span>
+                ${conditions ? `<span class="meta-item">⚠️ ${escapeHtml(conditions)}</span>` : ""}
               </div>
             </div>
 
-            <div class="cart-buttons" style="gap:6px; flex-wrap:wrap; justify-content:flex-end;">
-              <button class="btn btn-secondary" type="button" id="lssQuickEditBtnCompact">
+            <div class="cart-buttons" style="gap:6px; justify-content:flex-end;">
+              <button class="btn btn-secondary" type="button" id="lssQuickEditBtnCompact" style="min-height:32px; padding:5px 9px; border-radius:10px;">
                 🛠 Конструктор
               </button>
             </div>
           </div>
 
-          <div style="margin-top:10px;">
+          <div class="stat-box" style="padding:10px 12px; min-height:auto;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+              <div>
+                <div class="muted" style="font-size:12px;">Хиты</div>
+                <div style="font-size:26px; font-weight:900; line-height:1.05; margin-top:4px;">${escapeHtml(String(hpCurrent))} / ${escapeHtml(String(hpMax))}</div>
+              </div>
+              <div class="cart-buttons" style="gap:4px;">
+                <button class="btn btn-secondary" type="button" data-lss-hp-action="minus" style="min-height:28px; padding:4px 8px; border-radius:10px;">−1</button>
+                <button class="btn btn-secondary" type="button" data-lss-hp-action="plus" style="min-height:28px; padding:4px 8px; border-radius:10px;">+1</button>
+                <button class="btn btn-secondary" type="button" data-lss-hp-action="set" style="min-height:28px; padding:4px 8px; border-radius:10px;">✎</button>
+              </div>
+            </div>
+            <div class="inv-item-details" style="display:flex; flex-wrap:wrap; gap:8px;">
+              <span>временные ${escapeHtml(String(hpTemp))}</span>
+              <span>кость ${escapeHtml(String(hitDie))}</span>
+              <span>кости ${escapeHtml(String(hitDiceCurrent))}</span>
+              <span>смерть ${escapeHtml(String(deathSuccesses))}/${escapeHtml(String(deathFails))}</span>
+              <span>СЛ ${escapeHtml(String(spell.saveDc))}</span>
+              <span>атака ${escapeHtml(formatSigned(spell.attack))}</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px;">
+            ${quickBadges.map((badge) => `
+              <div class="stat-box" style="padding:8px 10px; min-height:auto; border-radius:12px;">
+                <div style="font-size:13px; font-weight:800; line-height:1.25;">${escapeHtml(String(badge))}</div>
+              </div>
+            `).join("")}
+          </div>
+
+          <div>
             <div class="flex-between muted" style="font-size:12px; margin-bottom:6px; gap:10px;">
               <span>Опыт: ${escapeHtml(String(xp.xp))}</span>
-              <span>${xp.next ? `до следующего уровня: ${escapeHtml(String(Math.max(0, xp.next - xp.xp)))}` : "максимальный уровень"}</span>
+              <span>${xp.next ? `до уровня: ${escapeHtml(String(Math.max(0, xp.next - xp.xp)))}` : "макс. уровень"}</span>
             </div>
-            <div style="height:8px; border-radius:999px; background:rgba(255,255,255,0.08); overflow:hidden;">
+            <div style="height:7px; border-radius:999px; background:rgba(255,255,255,0.08); overflow:hidden;">
               <div style="height:100%; width:${escapeHtml(String(xp.percent.toFixed(2)))}%; background:linear-gradient(90deg, rgba(217,168,95,0.92), rgba(216,195,154,0.98));"></div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:minmax(220px,1.35fr) minmax(210px,1.15fr) repeat(4,minmax(92px,0.72fr)); gap:8px; margin-top:12px; align-items:stretch;">
-            <div class="stat-box" style="padding:12px; min-height:auto;">
-              <div class="flex-between" style="align-items:center; gap:8px;">
-                <div class="muted">Хиты</div>
-                <div class="cart-buttons" style="gap:4px;">
-                  <button class="btn btn-secondary" type="button" data-lss-hp-action="minus" style="min-height:28px; padding:4px 8px;">−1</button>
-                  <button class="btn btn-secondary" type="button" data-lss-hp-action="plus" style="min-height:28px; padding:4px 8px;">+1</button>
-                  <button class="btn btn-secondary" type="button" data-lss-hp-action="set" style="min-height:28px; padding:4px 8px;">✎</button>
-                </div>
-              </div>
-              <div style="font-size:30px; font-weight:900; line-height:1.05; margin-top:8px;">${escapeHtml(String(hpCurrent))} / ${escapeHtml(String(hpMax))}</div>
-              <div class="muted" style="margin-top:6px; display:flex; flex-wrap:wrap; gap:10px; font-size:12px;">
-                <span>временные: <strong>${escapeHtml(String(hpTemp))}</strong></span>
-                <span>кость: <strong>${escapeHtml(String(hitDie))}</strong></span>
-                <span>кости: <strong>${escapeHtml(String(hitDiceCurrent))}</strong></span>
-              </div>
-            </div>
-
-            <div class="stat-box" style="padding:12px; min-height:auto;">
-              <div class="muted">Состояния и ресурсы</div>
-              <div style="font-size:14px; font-weight:800; margin-top:8px; min-height:20px;">${escapeHtml(conditions || 'норма')}</div>
-              <div class="muted" style="margin-top:6px; font-size:12px; display:flex; flex-wrap:wrap; gap:10px;">
-                <span>смерть: <strong>${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</strong></span>
-                ${compactCoins ? `<span>${escapeHtml(compactCoins)}</span>` : ''}
-              </div>
-            </div>
-
-            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">КБ</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div></div>
-            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Инициатива</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div></div>
-            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Скорость</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</div></div>
-            <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Мастерство</div><div style="font-size:22px; font-weight:900; margin-top:8px;">${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div></div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:minmax(220px,1.15fr) minmax(220px,1.05fr); gap:8px; margin-top:8px; align-items:stretch;">
-            <div class="stat-box" style="padding:12px; min-height:auto;">
-              <div class="muted">Заклинания</div>
-              <div style="font-size:16px; font-weight:800; margin-top:8px;">${escapeHtml(String(spell.ability))}</div>
-              <div class="inv-item-details" style="margin-top:8px;">
-                <span>атака ${escapeHtml(formatSigned(spell.attack))}</span>
-                <span>СЛ ${escapeHtml(String(spell.saveDc))}</span>
-                <span>ячейки ${escapeHtml(String(slotsLabel))}</span>
-              </div>
-            </div>
-            <div class="stat-box" style="padding:12px; min-height:auto;">
-              <div class="muted">Пассивные чувства</div>
-              <div class="inv-item-details" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px;">
-                <span>воспр. ${escapeHtml(String(getPassivePerception(profile)))}</span>
-                <span>прониц. ${escapeHtml(String(getPassiveInsight(profile)))}</span>
-                <span>анализ ${escapeHtml(String(getPassiveInvestigation(profile)))}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -2085,15 +2078,16 @@ function renderAlliesAndGoals(profile) {
 
 
 const LSS_TAB_DEFS = [
-  { key: "overview", label: "ОБЗОР" },
-  { key: "attacks", label: "АТАКИ" },
-  { key: "abilities", label: "СПОСОБНОСТИ" },
-  { key: "equipment", label: "СНАРЯЖЕНИЕ" },
-  { key: "personality", label: "ЛИЧНОСТЬ" },
-  { key: "goals", label: "ЦЕЛИ" },
-  { key: "notes", label: "ЗАМЕТКИ" },
-  { key: "spells", label: "ЗАКЛИНАНИЯ" },
+  { key: "overview", label: "Обзор" },
+  { key: "attacks", label: "Бой" },
+  { key: "abilities", label: "Черты" },
+  { key: "equipment", label: "Снаряжение" },
+  { key: "personality", label: "Личность" },
+  { key: "goals", label: "Цели" },
+  { key: "notes", label: "Заметки" },
+  { key: "spells", label: "Спеллы" },
 ];
+
 
 function renderQuickSummary(profile) {
   const vitality = profile?.vitality || {};
@@ -2104,18 +2098,18 @@ function renderQuickSummary(profile) {
   const coins = parseCoins(profile);
 
   return `
-    <div class="cabinet-block">
-      <h3>Краткая сводка</h3>
-      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px;">
-        <div class="stat-box"><div class="muted">Хиты</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-current"], "—")))} / ${escapeHtml(String(unwrapValue(vitality["hp-max"], "—")))}</div></div>
-        <div class="stat-box"><div class="muted">КБ</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div></div>
-        <div class="stat-box"><div class="muted">Инициатива</div><div style="font-size:20px;font-weight:800;">${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div></div>
-        <div class="stat-box"><div class="muted">Скорость</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</div></div>
-        <div class="stat-box"><div class="muted">Мастерство</div><div style="font-size:20px;font-weight:800;">${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div></div>
-        <div class="stat-box"><div class="muted">Пассивное восприятие</div><div style="font-size:20px;font-weight:800;">${escapeHtml(String(getPassivePerception(profile)))}</div></div>
+    <div class="cabinet-block" style="padding:12px;">
+      <h3 style="margin:0 0 10px 0;">Краткая сводка</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:8px;">
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Хиты</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(unwrapValue(vitality["hp-current"], "—")))} / ${escapeHtml(String(unwrapValue(vitality["hp-max"], "—")))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">КБ</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Инициатива</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Скорость</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Мастерство</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Пассивное восприятие</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(getPassivePerception(profile)))}</div></div>
       </div>
       ${(conditions || coins) ? `
-        <div class="trader-meta" style="margin-top:10px;">
+        <div class="trader-meta" style="margin-top:10px; gap:6px;">
           ${conditions ? `<span class="meta-item">⚠️ ${escapeHtml(conditions)}</span>` : ""}
           ${coins ? Object.entries(coins).filter(([, value]) => String(value || "").trim()).map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key).toUpperCase())}: ${escapeHtml(String(value))}</span>`).join("") : ""}
         </div>
@@ -2124,11 +2118,15 @@ function renderQuickSummary(profile) {
   `;
 }
 
+
 function renderStatsCompact(profile) {
   return `
-    <div class="cabinet-block">
-      <h3>Характеристики</h3>
-      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+    <div class="cabinet-block" style="padding:12px;">
+      <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <h3 style="margin:0;">Характеристики</h3>
+        <div class="muted" style="font-size:12px;">значение • модификатор • спасбросок</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:8px;">
         ${STAT_DEFS.map(({ key, label }) => {
           const score = getStatScore(profile, key);
           const mod = getStatModifier(profile, key);
@@ -2136,13 +2134,13 @@ function renderStatsCompact(profile) {
           const profMark = hasSaveProficiency(profile, key) ? "★" : "•";
 
           return `
-            <div class="stat-box" style="min-height:auto; padding:12px;">
-              <div class="flex-between" style="align-items:center; gap:8px;">
-                <b>${escapeHtml(label)}</b>
-                <span class="quality-badge" style="padding:2px 8px; min-height:auto;">${escapeHtml(formatSigned(mod))}</span>
+            <div class="stat-box" style="min-height:auto; padding:10px 11px; border-radius:14px;">
+              <div class="flex-between" style="align-items:flex-start; gap:8px;">
+                <div style="font-weight:800; line-height:1.1;">${escapeHtml(label)}</div>
+                <span class="quality-badge" style="padding:2px 7px; min-height:auto;">${escapeHtml(formatSigned(mod))}</span>
               </div>
-              <div style="font-size:26px; font-weight:900; margin-top:8px; line-height:1;">${escapeHtml(String(score))}</div>
-              <div class="muted" style="margin-top:6px;">${profMark} спасбросок ${escapeHtml(formatSigned(save))}</div>
+              <div style="font-size:24px; font-weight:900; margin-top:8px; line-height:1;">${escapeHtml(String(score))}</div>
+              <div class="muted" style="margin-top:6px; font-size:12px;">${profMark} спасбросок ${escapeHtml(formatSigned(save))}</div>
             </div>
           `;
         }).join("")}
@@ -2151,42 +2149,49 @@ function renderStatsCompact(profile) {
   `;
 }
 
+
 function renderSkillsFlat(profile) {
   return `
-    <div class="cabinet-block">
-      <h3>Навыки по характеристикам</h3>
-      <div class="muted" style="margin-bottom:10px;">Галочка у навыка = владение. Нажал — бонус применился и сохранился.</div>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; align-items:start;">
+    <div class="cabinet-block" style="padding:12px;">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <h3 style="margin:0 0 4px 0;">Навыки</h3>
+          <div class="muted" style="font-size:12px;">галочка = владение, клик сразу сохраняет бонус</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; align-items:start;">
         ${STAT_DEFS.map(({ key, label }) => {
           const statMod = getStatModifier(profile, key);
           const skills = getSkillsByStat(profile, key);
+          const profCount = skills.filter(([skillKey]) => isSkillProficient(profile, skillKey)).length;
           return `
-            <div class="cabinet-block" style="padding:12px; min-width:0;">
-              <div class="flex-between" style="align-items:center; gap:10px; margin-bottom:10px;">
+            <div class="stat-box" style="padding:10px; min-width:0; border-radius:16px; min-height:auto;">
+              <div class="flex-between" style="align-items:flex-start; gap:8px; margin-bottom:8px;">
                 <div>
-                  <div style="font-weight:800; letter-spacing:0.02em;">${escapeHtml(label)}</div>
-                  <div class="muted" style="font-size:12px; margin-top:2px;">мод. ${escapeHtml(formatSigned(statMod))}</div>
+                  <div style="font-weight:800; line-height:1.1;">${escapeHtml(label)}</div>
+                  <div class="muted" style="font-size:12px; margin-top:3px;">мод. ${escapeHtml(formatSigned(statMod))} • знач. ${escapeHtml(String(getStatScore(profile, key)))}</div>
                 </div>
-                <span class="quality-badge" style="padding:2px 8px; min-height:auto;">${escapeHtml(String(getStatScore(profile, key)))}</span>
+                <span class="quality-badge" style="padding:2px 7px; min-height:auto;">владений ${escapeHtml(String(profCount))}</span>
               </div>
               ${skills.length ? `
-                <div style="display:flex; flex-direction:column; gap:8px; min-width:0;">
+                <div style="display:flex; flex-direction:column; gap:6px; min-width:0;">
                   ${skills.map(([skillKey]) => {
                     const skillLabel = SKILL_LABELS[skillKey] || capitalizeRu(skillKey);
                     const value = getSkillModifier(profile, skillKey);
                     const prof = isSkillProficient(profile, skillKey);
                     return `
-                      <label class="inline-checkbox" style="display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:auto; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); cursor:pointer;">
-                        <span style="display:flex; align-items:center; gap:8px; min-width:0;">
+                      <label class="inline-checkbox" style="display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:auto; padding:7px 9px; border-radius:10px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); cursor:pointer;">
+                        <span style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
                           <input type="checkbox" data-lss-skill-prof="${escapeHtml(skillKey)}" ${prof ? "checked" : ""} />
                           <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(skillLabel)}</span>
                         </span>
-                        <strong>${escapeHtml(formatSigned(value))}</strong>
+                        <strong style="font-size:15px;">${escapeHtml(formatSigned(value))}</strong>
                       </label>
                     `;
                   }).join("")}
                 </div>
-              ` : `<div class="muted">Нет навыков на этой характеристике.</div>`}
+              ` : `<div class="muted" style="font-size:13px;">Нет навыков на этой характеристике.</div>`}
             </div>
           `;
         }).join("")}
@@ -2195,18 +2200,20 @@ function renderSkillsFlat(profile) {
   `;
 }
 
+
 function renderPassiveSenses(profile) {
   return `
-    <div class="cabinet-block" style="padding:12px;">
-      <h4 style="margin-bottom:10px;">Пассивные чувства</h4>
-      <div class="lss-skill-stack">
-        <div class="lss-inline-row"><span>Мудрость (Восприятие)</span><strong>${escapeHtml(String(getPassivePerception(profile)))}</strong></div>
-        <div class="lss-inline-row"><span>Мудрость (Проницательность)</span><strong>${escapeHtml(String(getPassiveInsight(profile)))}</strong></div>
-        <div class="lss-inline-row"><span>Интеллект (Анализ)</span><strong>${escapeHtml(String(getPassiveInvestigation(profile)))}</strong></div>
+    <div class="cabinet-block" style="padding:12px; min-height:auto;">
+      <h4 style="margin:0 0 10px 0;">Пассивные чувства</h4>
+      <div class="lss-skill-stack" style="gap:6px;">
+        <div class="lss-inline-row" style="padding:8px 10px;"><span>Восприятие</span><strong>${escapeHtml(String(getPassivePerception(profile)))}</strong></div>
+        <div class="lss-inline-row" style="padding:8px 10px;"><span>Проницательность</span><strong>${escapeHtml(String(getPassiveInsight(profile)))}</strong></div>
+        <div class="lss-inline-row" style="padding:8px 10px;"><span>Анализ</span><strong>${escapeHtml(String(getPassiveInvestigation(profile)))}</strong></div>
       </div>
     </div>
   `;
 }
+
 
 function renderStatesAndResources(profile) {
   const vitality = profile?.vitality || {};
@@ -2219,61 +2226,69 @@ function renderStatesAndResources(profile) {
   const coins = parseCoins(profile);
 
   return `
-    <div class="cabinet-block" style="padding:12px;">
-      <h4 style="margin-bottom:10px;">Состояния и ресурсы</h4>
-      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;">
+    <div class="cabinet-block" style="padding:12px; min-height:auto;">
+      <h4 style="margin:0 0 10px 0;">Состояния и ресурсы</h4>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:8px;">
         <div class="stat-box lss-mini-box"><div class="muted">Врем. HP</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-temp"], "0")))}</div></div>
         <div class="stat-box lss-mini-box"><div class="muted">Кость хитов</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hit-die"], "—")))}</div></div>
         <div class="stat-box lss-mini-box"><div class="muted">Кости</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-dice-current"], "0")))}</div></div>
-        <div class="stat-box lss-mini-box"><div class="muted">Смерт. спасб.</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Смерть</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</div></div>
       </div>
       ${(conditions || coins) ? `
-        <div class="trader-meta" style="margin-top:10px;">
+        <div class="trader-meta" style="margin-top:10px; gap:6px;">
           ${conditions ? `<span class="meta-item">⚠️ ${escapeHtml(conditions)}</span>` : ""}
           ${coins ? Object.entries(coins).filter(([, value]) => String(value || "").trim()).map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key).toUpperCase())}: ${escapeHtml(String(value))}</span>`).join("") : ""}
         </div>
-      ` : `<div class="muted" style="margin-top:10px;">Состояния и ресурсы не заданы.</div>`}
+      ` : `<div class="muted" style="margin-top:10px; font-size:12px;">Состояния и ресурсы не заданы.</div>`}
     </div>
   `;
 }
+
 
 function renderProfAndLanguages(profile) {
   return `
-    <div class="cabinet-block" style="padding:12px;">
-      <h4 style="margin-bottom:10px;">Владения и языки</h4>
-      <div class="lss-rich-block">${renderRichText(profile?.prof, "Не заполнено")}</div>
+    <div class="cabinet-block" style="padding:12px; min-height:auto;">
+      <h4 style="margin:0 0 10px 0;">Владения и языки</h4>
+      <div class="lss-rich-block" style="padding:10px 12px;">${renderRichText(profile?.prof, "Не заполнено")}</div>
     </div>
   `;
 }
 
+
 function renderOverviewSupportGrid(profile) {
   return `
-    <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+    <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
+      ${renderStatesAndResources(profile)}
       ${renderPassiveSenses(profile)}
       ${renderProfAndLanguages(profile)}
     </div>
   `;
 }
 
+
 function renderOverviewTab(profile) {
   return `
-    <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,0.95fr); gap:12px; align-items:start;">
-      <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
-        ${renderStatsCompact(profile)}
-        ${renderSkillsFlat(profile)}
+    <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
+      ${renderQuickSummary(profile)}
+      <div style="display:grid; grid-template-columns:minmax(0,1.45fr) minmax(250px,0.9fr); gap:10px; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
+          ${renderStatsCompact(profile)}
+          ${renderSkillsFlat(profile)}
+        </div>
+        ${renderOverviewSupportGrid(profile)}
       </div>
-      ${renderOverviewSupportGrid(profile)}
     </div>
   `;
 }
 
+
 function renderLssTabs() {
   const active = LSS_STATE.activeTab || "overview";
   return `
-    <div class="cabinet-block">
+    <div class="cabinet-block" style="padding:10px 12px;">
       <div class="cart-buttons" style="justify-content:flex-start; gap:6px; flex-wrap:wrap;">
         ${LSS_TAB_DEFS.map((tab) => `
-          <button class="btn ${tab.key === active ? "btn-primary active" : "btn-secondary"}" type="button" data-lss-tab="${escapeHtml(tab.key)}" style="min-height:34px; padding:6px 10px; border-radius:12px;">
+          <button class="btn ${tab.key === active ? "btn-primary active" : "btn-secondary"}" type="button" data-lss-tab="${escapeHtml(tab.key)}" style="min-height:32px; padding:5px 10px; border-radius:10px; font-size:12px; letter-spacing:0;">
             ${escapeHtml(tab.label)}
           </button>
         `).join("")}
@@ -2371,21 +2386,22 @@ function getNoteBlocks(profile) {
     .filter((entry) => entry.value);
 }
 
+
 function renderNotes(profile) {
   const notes = getNoteBlocks(profile);
 
   return `
-    <div class="cabinet-block">
-      <h3>Заметки персонажа</h3>
+    <div class="cabinet-block" style="padding:12px;">
+      <h3 style="margin:0 0 10px 0;">Заметки персонажа</h3>
       ${
         notes.length
           ? `
-            <div class="profile-grid">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
               ${notes
                 .map(
                   (note) => `
-                    <div class="lss-rich-block">
-                      <h4>${escapeHtml(note.title)}</h4>
+                    <div class="lss-rich-block" style="padding:10px 12px;">
+                      <h4 style="margin:0 0 8px 0;">${escapeHtml(note.title)}</h4>
                       ${renderRichText(note.value, "Пусто")}
                     </div>
                   `
@@ -2399,6 +2415,7 @@ function renderNotes(profile) {
   `;
 }
 
+
 function renderSpellcasting(profile) {
   const ability = getSpellcastingAbility(profile);
   const attack = getSpellAttackBonus(profile);
@@ -2406,27 +2423,27 @@ function renderSpellcasting(profile) {
   const slots = getSpellSlots(profile);
 
   return `
-    <div class="cabinet-block">
-      <h3>Заклинания</h3>
+    <div class="cabinet-block" style="padding:12px;">
+      <h3 style="margin:0 0 10px 0;">Заклинания</h3>
 
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
-        <div class="stat-box"><div class="muted">Базовая характеристика</div><div style="font-size:18px;font-weight:800; margin-top:8px;">${escapeHtml(ability)}</div></div>
-        <div class="stat-box"><div class="muted">Атака заклинанием</div><div style="font-size:18px;font-weight:800; margin-top:8px;">${escapeHtml(formatSigned(attack))}</div></div>
-        <div class="stat-box"><div class="muted">СЛ спасброска</div><div style="font-size:18px;font-weight:800; margin-top:8px;">${escapeHtml(String(saveDc))}</div></div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px;">
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Базовая характеристика</div><div style="font-size:17px;font-weight:800; margin-top:6px;">${escapeHtml(ability)}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Атака заклинанием</div><div style="font-size:17px;font-weight:800; margin-top:6px;">${escapeHtml(formatSigned(attack))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">СЛ спасброска</div><div style="font-size:17px;font-weight:800; margin-top:6px;">${escapeHtml(String(saveDc))}</div></div>
       </div>
 
       <div style="margin-top:12px;">
-        <b>Ячейки заклинаний</b>
+        <div style="font-weight:800; margin-bottom:8px;">Ячейки заклинаний</div>
         ${
           slots.length
             ? `
-              <div class="profile-grid" style="display:grid; margin-top:8px; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px;">
+              <div style="display:grid; margin-top:0; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:8px;">
                 ${slots
                   .map(
                     (slot) => `
-                      <div class="stat-box lss-mini-box">
+                      <div class="stat-box lss-mini-box" style="padding:9px 10px; min-height:auto;">
                         <div class="muted">${escapeHtml(String(slot.level))}-й круг</div>
-                        <div style="font-size:16px;font-weight:800;">${escapeHtml(String(Math.max(0, slot.total - slot.filled)))} / ${escapeHtml(String(slot.total))}</div>
+                        <div style="font-size:15px;font-weight:800;">${escapeHtml(String(Math.max(0, slot.total - slot.filled)))} / ${escapeHtml(String(slot.total))}</div>
                       </div>
                     `
                   )
@@ -2440,6 +2457,7 @@ function renderSpellcasting(profile) {
   `;
 }
 
+
 function renderSpellCards(profile) {
   const expanded = getSpellCardsExpanded(profile).map(normalizeSpellCard);
   const prepared = getPreparedSpellIds(profile);
@@ -2447,16 +2465,25 @@ function renderSpellCards(profile) {
 
   if (expanded.length) {
     return `
-      <div class="cabinet-block">
-        <h3>Карточки заклинаний</h3>
-        <div class="profile-grid">
+      <div class="cabinet-block" style="padding:12px;">
+        <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+          <h3 style="margin:0;">Карточки заклинаний</h3>
+          <div class="trader-meta" style="gap:6px;">
+            <span class="meta-item">Подготовлено: ${escapeHtml(String(prepared.length))}</span>
+            <span class="meta-item">В книге: ${escapeHtml(String(book.length))}</span>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
           ${expanded
             .map(
               (spell) => `
-                <div class="lss-rich-block">
-                  <h4 style="margin-bottom:8px;">${escapeHtml(String(spell.name))}</h4>
+                <div class="lss-rich-block" style="padding:10px 12px;">
+                  <div class="flex-between" style="align-items:flex-start; gap:8px; margin-bottom:8px;">
+                    <h4 style="margin:0;">${escapeHtml(String(spell.name))}</h4>
+                    ${prepared.includes(spell.id) ? `<span class="quality-badge" style="padding:2px 7px; min-height:auto;">подготовлено</span>` : ``}
+                  </div>
 
-                  <div class="inv-item-details" style="margin-bottom:8px;">
+                  <div class="inv-item-details" style="margin-bottom:8px; gap:6px;">
                     ${spell.level !== "" ? `<span>Круг: ${escapeHtml(String(spell.level))}</span>` : ""}
                     ${spell.school ? `<span>${escapeHtml(String(spell.school))}</span>` : ""}
                     ${spell.time ? `<span>${escapeHtml(String(spell.time))}</span>` : ""}
@@ -2464,9 +2491,9 @@ function renderSpellCards(profile) {
                     ${spell.duration ? `<span>${escapeHtml(String(spell.duration))}</span>` : ""}
                   </div>
 
-                  ${spell.components ? `<div class="muted" style="margin-bottom:8px;">${escapeHtml(String(spell.components))}</div>` : ""}
-                  ${spell.description ? `<div>${escapeHtml(String(spell.description))}</div>` : `<div class="muted">Описание пока не загружено.</div>`}
-                  ${spell.notes ? `<div class="muted" style="margin-top:10px;">${escapeHtml(String(spell.notes))}</div>` : ""}
+                  ${spell.components ? `<div class="muted" style="margin-bottom:8px; font-size:12px;">${escapeHtml(String(spell.components))}</div>` : ""}
+                  ${spell.description ? `<div style="font-size:14px; line-height:1.45;">${escapeHtml(String(spell.description))}</div>` : `<div class="muted">Описание пока не загружено.</div>`}
+                  ${spell.notes ? `<div class="muted" style="margin-top:8px; font-size:12px;">${escapeHtml(String(spell.notes))}</div>` : ""}
                 </div>
               `
             )
@@ -2477,15 +2504,15 @@ function renderSpellCards(profile) {
   }
 
   return `
-    <div class="cabinet-block">
-      <h3>Книга заклинаний</h3>
-      <div class="muted" style="margin-bottom:10px;">
-        Названия и карточки можно будет подтянуть из базы заклинаний. Пока показываем только краткую сводку по пулу.
+    <div class="cabinet-block" style="padding:12px;">
+      <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <h3 style="margin:0;">Карточки заклинаний</h3>
+        <div class="trader-meta" style="gap:6px;">
+          <span class="meta-item">Подготовлено: ${escapeHtml(String(prepared.length))}</span>
+          <span class="meta-item">В книге: ${escapeHtml(String(book.length))}</span>
+        </div>
       </div>
-      <div class="profile-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-        <div class="stat-box"><div class="muted">Подготовлено</div><div style="font-size:22px;font-weight:900; margin-top:8px;">${escapeHtml(String(prepared.length))}</div></div>
-        <div class="stat-box"><div class="muted">В книге</div><div style="font-size:22px;font-weight:900; margin-top:8px;">${escapeHtml(String(book.length))}</div></div>
-      </div>
+      <div class="muted">Развёрнутые карточки пока не загружены.</div>
     </div>
   `;
 }
