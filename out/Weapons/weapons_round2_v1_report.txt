@@ -1,0 +1,23 @@
+bg3_weapons_round2_postclean_v1 report
+=====================================
+Input:     out/Weapons/items.weapons.json
+Probe dir: out/Weapons
+Output:    out/Weapons/items.weapons.round2.v1.json
+
+Items processed:            358
+Rarity fixed:               55
+Style cleaned:              35
+Range cleaned:              0
+Reach cleaned:              115
+Damage type filled/cleaned: 160
+Tags cleaned:               117
+Summary rebuilt:            304
+Mechanics lines added:      407
+Buckets rebuilt:            358
+
+Notes:
+- Normalizes rarity_raw + rarity enum.
+- Fixes common garbage like 'Небычный', 'Полуторное}}', '1.5 м'.
+- Pulls extra mechanics from probe sections: Особое / Свойства / Эффекты.
+- Rebuilds passives / granted_actions / grants / bonuses / drawbacks from deduped mechanics lines.
+- Does not overwrite round1 file; writes a new versioned output.

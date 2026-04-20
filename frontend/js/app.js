@@ -51,6 +51,7 @@ const GUEST_MONEY_STORAGE_KEY = "guestMoneyCp";
 const GUEST_MONEY_STORAGE_VERSION_KEY = "guestMoneyCpVersion";
 const GUEST_MONEY_STORAGE_VERSION = "2";
 const GUEST_ROLE_STORAGE_KEY = "guestRoleMode";
+const TRADER_MODAL_UI_PREFS_KEY = "traderModalUiPrefsV1";
 
 // ------------------------------------------------------------
 // 🌐 LOCAL APP STATE
@@ -126,119 +127,6 @@ function showToast(message) {
 }
 
 window.showToast = showToast;
-
-
-const TRADER_ARCHETYPE_RULES = [
-  {
-    key: "warcraft",
-    label: "Военное ремесло",
-    types: ["кузнец", "оружейник", "оружейный мастер"],
-  },
-  {
-    key: "cloth_leather",
-    label: "Одежда и материалы",
-    types: ["портной", "портниха", "кожевник", "дубильщик", "каменотёс"],
-  },
-  {
-    key: "food_inn",
-    label: "Еда и постой",
-    types: ["трактирщик", "пансион", "пекарь", "мясник", "птицевод", "банщица"],
-  },
-  {
-    key: "transport_supply",
-    label: "Транспорт и снабжение",
-    types: ["мастер фургонов", "хозяйка стойл", "складской владелец"],
-  },
-  {
-    key: "knowledge_nature",
-    label: "Знания, природа и алхимия",
-    types: ["книготорговец", "друид-травница", "алхимик", "художник"],
-  },
-  {
-    key: "rare_odd",
-    label: "Сомнительные и редкости",
-    types: ["старьёвщик", "цирюльник", "торговец"],
-  },
-];
-
-function normalizeTraderTypeValue(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function getTraderArchetypeMeta(traderOrType) {
-  const rawType = typeof traderOrType === "string"
-    ? traderOrType
-    : traderOrType?.subtype || traderOrType?.type || "";
-
-  const normalizedType = normalizeTraderTypeValue(rawType);
-
-  for (const rule of TRADER_ARCHETYPE_RULES) {
-    if (rule.types.some((type) => normalizeTraderTypeValue(type) === normalizedType)) {
-      return {
-        key: rule.key,
-        label: rule.label,
-        subtype: rawType || "",
-      };
-    }
-  }
-
-  return {
-    key: "other",
-    label: "Прочее",
-    subtype: rawType || "",
-  };
-}
-
-function getTypeFilterValueForArchetype(archetypeKey) {
-  return `arch:${String(archetypeKey || "").trim()}`;
-}
-
-function getTypeFilterValueForSubtype(type) {
-  return `type:${String(type || "").trim()}`;
-}
-
-function traderMatchesTypeFilter(trader, filterValue) {
-  const selected = String(filterValue || "").trim();
-  if (!selected) return true;
-
-  const meta = getTraderArchetypeMeta(trader);
-
-  if (selected.startsWith("arch:")) {
-    return meta.key === selected.slice(5);
-  }
-
-  if (selected.startsWith("type:")) {
-    return normalizeTraderTypeValue(trader?.type) === normalizeTraderTypeValue(selected.slice(5));
-  }
-
-  return normalizeTraderTypeValue(trader?.type) === normalizeTraderTypeValue(selected);
-}
-
-function setCurrentMoneyFromGold(goldValue) {
-  const normalizedGold = Math.max(0, Math.floor(safeNumber(goldValue, GUEST_START_GOLD)));
-  const cp = moneyPartsToCp(normalizedGold, 0, 0);
-  const label = formatMoneyCp(cp);
-
-  if (STATE.user) {
-    STATE.user.money_cp_total = cp;
-    STATE.user.money_label = label;
-    persistUser();
-  } else {
-    STATE.guestMoneyCp = cp;
-    persistGuestMoney();
-  }
-
-  syncMoneyControls();
-  syncGlobalStateBridges();
-}
-
-function toggleAuthFields(isLoggedIn) {
-  ["loginEmail", "loginPassword", "doLogin", "doRegister"].forEach((id) => {
-    const el = getEl(id);
-    if (!el) return;
-    el.classList.toggle("hidden", Boolean(isLoggedIn));
-  });
-}
 
 function openModal(modalId) {
   const modal = getEl(modalId);
@@ -321,6 +209,167 @@ function persistGuestRole() {
     GUEST_ROLE_STORAGE_KEY,
     STATE.guestRole === "gm" ? "gm" : "player"
   );
+}
+
+function getDefaultTraderModalUiPrefs() {
+  return {
+    mainTab: "buy",
+    buyCategory: "",
+    buyViewMode: "table",
+    sellViewMode: "table",
+  };
+}
+
+function readTraderModalUiPrefs() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TRADER_MODAL_UI_PREFS_KEY) || "{}");
+    const defaults = getDefaultTraderModalUiPrefs();
+    const next = {
+      ...defaults,
+      ...(parsed && typeof parsed === "object" ? parsed : {}),
+    };
+
+    next.mainTab = ["buy", "sell", "stats", "info"].includes(String(next.mainTab || ""))
+      ? String(next.mainTab)
+      : defaults.mainTab;
+
+    next.buyCategory = String(next.buyCategory || "").trim();
+
+    next.buyViewMode = ["table", "inventory", "grid"].includes(String(next.buyViewMode || ""))
+      ? String(next.buyViewMode)
+      : defaults.buyViewMode;
+
+    next.sellViewMode = ["table", "inventory", "grid"].includes(String(next.sellViewMode || ""))
+      ? String(next.sellViewMode)
+      : defaults.sellViewMode;
+
+    return next;
+  } catch {
+    return getDefaultTraderModalUiPrefs();
+  }
+}
+
+function persistTraderModalUiPrefs(nextPrefs = {}) {
+  try {
+    const merged = {
+      ...readTraderModalUiPrefs(),
+      ...(nextPrefs && typeof nextPrefs === "object" ? nextPrefs : {}),
+    };
+    localStorage.setItem(TRADER_MODAL_UI_PREFS_KEY, JSON.stringify(merged));
+    return merged;
+  } catch {
+    return getDefaultTraderModalUiPrefs();
+  }
+}
+
+function getTraderModalElement() {
+  return getEl("traderModal");
+}
+
+function rememberTraderModalMainTab(tabName) {
+  persistTraderModalUiPrefs({ mainTab: String(tabName || "buy") });
+}
+
+function rememberTraderModalBuyCategory(categoryName) {
+  persistTraderModalUiPrefs({ buyCategory: String(categoryName || "").trim() });
+}
+
+function rememberTraderModalViewMode(mode, scope = "buy") {
+  const nextMode = ["table", "inventory", "grid"].includes(String(mode || ""))
+    ? String(mode)
+    : "table";
+
+  if (scope === "sell") {
+    persistTraderModalUiPrefs({ sellViewMode: nextMode });
+    return;
+  }
+
+  persistTraderModalUiPrefs({ buyViewMode: nextMode });
+}
+
+function triggerControlChange(control) {
+  if (!control) return;
+  control.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function applyTraderModalViewModes(modal, prefs) {
+  if (!modal) return;
+
+  modal
+    .querySelectorAll('#tab-buy .category-content .view-mode-inline')
+    .forEach((select) => {
+      if (select.value !== prefs.buyViewMode) {
+        select.value = prefs.buyViewMode;
+        triggerControlChange(select);
+      }
+    });
+
+  modal
+    .querySelectorAll('#tab-sell .view-mode-inline')
+    .forEach((select) => {
+      if (select.value !== prefs.sellViewMode) {
+        select.value = prefs.sellViewMode;
+        triggerControlChange(select);
+      }
+    });
+}
+
+function restoreTraderModalUiPrefs(modal = null) {
+  const targetModal = modal || getTraderModalElement();
+  if (!targetModal) return;
+
+  const prefs = readTraderModalUiPrefs();
+
+  applyTraderModalViewModes(targetModal, prefs);
+
+  const tabBtn =
+    targetModal.querySelector(`.tab-btn[data-main-tab="${prefs.mainTab}"]`) ||
+    targetModal.querySelector('.tab-btn[data-main-tab="buy"]');
+
+  if (tabBtn) {
+    tabBtn.click();
+  }
+
+  const buyCategoryButtons = [...targetModal.querySelectorAll('#tab-buy .category-tab[data-cat]')];
+  if (buyCategoryButtons.length) {
+    const categoryBtn =
+      buyCategoryButtons.find((btn) => String(btn.dataset.cat || "") === prefs.buyCategory) ||
+      buyCategoryButtons[0];
+
+    if (categoryBtn) {
+      categoryBtn.click();
+    }
+  }
+
+  applyTraderModalViewModes(targetModal, prefs);
+}
+
+function bindTraderModalUiPersistence() {
+  const modal = getTraderModalElement();
+  if (!modal || modal.dataset.boundUiPrefs === "1") return;
+
+  modal.dataset.boundUiPrefs = "1";
+
+  modal.addEventListener("click", (event) => {
+    const tabBtn = event.target.closest(".tab-btn[data-main-tab]");
+    if (tabBtn) {
+      rememberTraderModalMainTab(tabBtn.dataset.mainTab);
+      return;
+    }
+
+    const categoryBtn = event.target.closest(".category-tab[data-cat]");
+    if (categoryBtn) {
+      rememberTraderModalBuyCategory(categoryBtn.dataset.cat);
+    }
+  });
+
+  modal.addEventListener("change", (event) => {
+    const viewSelect = event.target.closest(".view-mode-inline");
+    if (!viewSelect) return;
+
+    const scope = viewSelect.closest("#tab-sell") ? "sell" : "buy";
+    rememberTraderModalViewMode(viewSelect.value, scope);
+  });
 }
 
 function getEffectiveRole() {
@@ -514,6 +563,7 @@ async function syncOpenTraderModalIfVisible(preferredTraderId = null) {
 
   if (!Number.isFinite(targetId)) return;
   await renderOpenTraderModal(targetId);
+  restoreTraderModalUiPrefs();
 }
 
 // ------------------------------------------------------------
@@ -548,24 +598,16 @@ function syncMoneyControls() {
 
   if (playerGoldInput) {
     playerGoldInput.value = String(goldValue);
-    playerGoldInput.disabled = STATE.isBusy;
-    playerGoldInput.title = guestMode
-      ? "Текущее золото в гостевом режиме"
-      : "Текущее золото аккаунта";
+    playerGoldInput.disabled = !guestMode || STATE.isBusy;
+    playerGoldInput.title = guestMode ? "Текущее золото в гостевом режиме" : moneyLabel;
   }
 
   if (updateGoldBtn) {
-    updateGoldBtn.disabled = STATE.isBusy;
-    updateGoldBtn.title = guestMode
-      ? "Применить золото в гостевом режиме"
-      : "Применить золото для текущего аккаунта";
+    updateGoldBtn.disabled = !guestMode || STATE.isBusy;
   }
 
   if (resetGoldBtn) {
-    resetGoldBtn.disabled = STATE.isBusy;
-    resetGoldBtn.title = guestMode
-      ? "Сбросить гостевое золото"
-      : "Сбросить золото аккаунта до стартового";
+    resetGoldBtn.disabled = !guestMode || STATE.isBusy;
   }
 
   if (userMoney) {
@@ -634,7 +676,7 @@ function setBusy(flag) {
     if (!el) return;
 
     if (id === "updateGoldBtn" || id === "resetGoldBtn") {
-      el.disabled = STATE.isBusy;
+      el.disabled = STATE.isBusy || !isGuestMode();
       return;
     }
 
@@ -643,7 +685,7 @@ function setBusy(flag) {
 
   const playerGoldInput = getEl("playerGoldInput");
   if (playerGoldInput) {
-    playerGoldInput.disabled = STATE.isBusy;
+    playerGoldInput.disabled = STATE.isBusy || !isGuestMode();
   }
 }
 
@@ -946,8 +988,6 @@ function updateUserUI() {
   const authContainer = getEl("authContainer");
   const userMoney = getEl("user-money");
   const gmBadge = getEl("gmBadge");
-  const loginEmail = getEl("loginEmail");
-  const loginPassword = getEl("loginPassword");
 
   const effectiveRole = getEffectiveRole();
   const roleText = effectiveRole === "gm" ? "🎭 ГМ" : "👤 Игрок";
@@ -956,8 +996,7 @@ function updateUserUI() {
     guestWarning?.classList.add("hidden");
     logoutBtn?.classList.remove("hidden");
     showAuthBtn?.classList.add("hidden");
-    authContainer?.classList.remove("hidden");
-    toggleAuthFields(true);
+    authContainer?.classList.add("hidden");
 
     if (userMoney) {
       userMoney.classList.remove("hidden");
@@ -975,10 +1014,6 @@ function updateUserUI() {
     logoutBtn?.classList.add("hidden");
     showAuthBtn?.classList.remove("hidden");
     authContainer?.classList.add("hidden");
-    toggleAuthFields(false);
-
-    if (loginEmail) loginEmail.value = loginEmail.value || "";
-    if (loginPassword) loginPassword.value = "";
 
     if (userMoney) {
       userMoney.classList.remove("hidden");
@@ -1041,57 +1076,17 @@ function populateFilterOptions(traders) {
   const categoryFilter = getEl("categoryFilter");
 
   if (typeFilter) {
-    const currentValue = String(typeFilter.value || "").trim();
-    const groups = new Map();
-
-    for (const trader of traders) {
-      if (!trader?.type) continue;
-      const meta = getTraderArchetypeMeta(trader);
-      if (!groups.has(meta.key)) {
-        groups.set(meta.key, {
-          label: meta.label,
-          types: new Set(),
-        });
-      }
-      groups.get(meta.key).types.add(String(trader.type));
-    }
+    const types = [...new Set(traders.map((t) => t.type).filter(Boolean))].sort(
+      (a, b) => String(a).localeCompare(String(b), "ru")
+    );
 
     typeFilter.innerHTML = `<option value="">Все типы</option>`;
-
-    const sortedGroups = [...groups.entries()].sort((a, b) =>
-      String(a[1].label).localeCompare(String(b[1].label), "ru")
-    );
-
-    for (const [groupKey, group] of sortedGroups) {
-      const optgroup = document.createElement("optgroup");
-      optgroup.label = group.label;
-
-      const archetypeOption = document.createElement("option");
-      archetypeOption.value = getTypeFilterValueForArchetype(groupKey);
-      archetypeOption.textContent = `Все: ${group.label}`;
-      optgroup.appendChild(archetypeOption);
-
-      const sortedTypes = [...group.types].sort((a, b) =>
-        String(a).localeCompare(String(b), "ru")
-      );
-
-      for (const type of sortedTypes) {
-        const option = document.createElement("option");
-        option.value = getTypeFilterValueForSubtype(type);
-        option.textContent = type;
-        optgroup.appendChild(option);
-      }
-
-      typeFilter.appendChild(optgroup);
+    for (const type of types) {
+      const option = document.createElement("option");
+      option.value = String(type);
+      option.textContent = String(type);
+      typeFilter.appendChild(option);
     }
-
-    const availableValues = new Set(
-      [
-        ...typeFilter.querySelectorAll("option")
-      ].map((option) => String(option.value || ""))
-    );
-
-    typeFilter.value = availableValues.has(currentValue) ? currentValue : "";
   }
 
   if (regionFilter) {
@@ -1172,7 +1167,7 @@ function traderMatchesFilters(trader, filters) {
     if (!byName && !byDesc) return false;
   }
 
-  if (!traderMatchesTypeFilter(trader, filters.type)) return false;
+  if (filters.type && String(trader.type || "") !== filters.type) return false;
   if (filters.region && String(trader.region || "") !== filters.region) return false;
   if (filters.reputation && safeNumber(trader.reputation, 0) < filters.reputation) return false;
 
@@ -1313,9 +1308,6 @@ async function handleLogin() {
     renderAllLocalState();
     await initCabinetModulesIfNeeded();
 
-    const loginPassword = getEl("loginPassword");
-    if (loginPassword) loginPassword.value = "";
-
     showToast("Вход выполнен");
   } catch (error) {
     console.error(error);
@@ -1355,11 +1347,6 @@ function handleLogout() {
 
   logoutUser();
   clearPersistedUser();
-
-  const loginEmail = getEl("loginEmail");
-  const loginPassword = getEl("loginPassword");
-  if (loginPassword) loginPassword.value = "";
-  if (loginEmail) loginEmail.focus?.();
 
   syncGlobalStateBridges();
   updateUserUI();
@@ -1599,6 +1586,7 @@ window.openTraderModal = async function (traderId) {
 
   syncGlobalStateBridges();
   await renderOpenTraderModal(traderId);
+  restoreTraderModalUiPrefs();
 };
 
 window.openTrader = window.openTraderModal;
@@ -1897,9 +1885,8 @@ window.buyItem = async function (traderId, itemId, quantity = 1, options = {}) {
     if (source === "cart") {
       consumeCollectionEntry(STATE.cart, traderId, itemId, qty);
     }
-    if (source === "reserved") {
-      consumeCollectionEntry(STATE.reserved, traderId, itemId, qty);
-    }
+
+    consumeCollectionEntry(STATE.reserved, traderId, itemId, qty);
 
     renderAllLocalState();
     rerenderTraders();
@@ -2107,6 +2094,7 @@ async function initApp() {
     bindTraderDelegation();
     bindMoneyControls();
     bindRoleSwitchButton();
+    bindTraderModalUiPersistence();
 
     if (STATE.token && !STATE.user) {
       setAppLoadingStatus("Проверяем профиль...");

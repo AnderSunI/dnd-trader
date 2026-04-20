@@ -1,0 +1,26 @@
+bg3_weapons_round2_finalfix_v3 report
+====================================
+Input:     out/Weapons/items.weapons.round2.v2.json
+Probe dir: out/Weapons
+Output:    out/Weapons/items.weapons.round2.v3.json
+
+Items processed:              358
+Title overrides applied:      2
+Rarity cleaned:               363
+Common fallback applied:      0
+Story tags fixed:             3
+Probe scalar fills:           1
+Flavor filled:                0
+Weight filled:                0
+Value filled:                 0
+Standard skills separated:    316
+Garbage removed:              158
+Tags rebuilt:                 4
+Summary rebuilt:              3
+
+Main goals of v3:
+- fixes stubborn broken records like 'Кровь Латандера' and 'Длинный меч'
+- preserves 'Лунный фонарь' as story item instead of forcing common rarity
+- sets 'Фонарь теней' to rare based on the user-supplied weapons source list
+- expands standard-weapon-skill separation for heavy/two-handed groups too
+- keeps writing to a new versioned file without touching v2

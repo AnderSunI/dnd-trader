@@ -727,6 +727,7 @@ function renderItemActions(item, context, contextId) {
     return `
       <div class="item-actions item-actions-stack">
         <button class="btn js-open-desc" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}" data-context="reserved">📖 Описание</button>
+        <button class="btn btn-success js-buy-reserved" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}">🛒 Купить</button>
         <button class="btn btn-danger js-unreserve" data-item-id="${itemId}" data-trader-id="${traderId ?? ""}">❌ Снять резерв</button>
       </div>
     `;
@@ -750,7 +751,7 @@ function renderItemActions(item, context, contextId) {
 
 function handleCollectionActionClick(event, traderFallback = null) {
   const actionRoot = event.target.closest(
-    ".js-buy-item, .js-add-cart, .js-reserve-item, .js-reserve-from-cart, .js-remove-cart, .js-unreserve, .js-sell-item, .js-remove-inventory, .js-open-desc"
+    ".js-buy-item, .js-buy-reserved, .js-add-cart, .js-reserve-item, .js-reserve-from-cart, .js-remove-cart, .js-unreserve, .js-sell-item, .js-remove-inventory, .js-open-desc"
   );
 
   if (!actionRoot) return false;
@@ -764,6 +765,12 @@ function handleCollectionActionClick(event, traderFallback = null) {
   if (actionRoot.classList.contains("js-buy-item")) {
     const qty = getQtyFromButton(actionRoot, 1);
     window.buyItem?.(Number(traderId), itemId, qty);
+    return true;
+  }
+
+  if (actionRoot.classList.contains("js-buy-reserved")) {
+    const qty = getQtyFromButton(actionRoot, 1);
+    window.buyItem?.(Number(traderId), itemId, qty, { source: "reserved" });
     return true;
   }
 

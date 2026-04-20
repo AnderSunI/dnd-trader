@@ -1,0 +1,24 @@
+bg3_weapons_master_safehotfix_v1 report
+=======================================
+Input:     out/Weapons/items.weapons.round2.v2.json
+Probe dir: out/Weapons
+Output:    out/Weapons/items.weapons.master.safe.json
+
+Items processed:           358
+Rarity fixed/filled:       1
+Title overrides applied:   2
+Flavor filled:             0
+Weight filled:             0
+Value filled:              0
+type_raw fixed:            0
+Tags extended:             4
+Mechanics lines added:     227
+Unclassified added:        749
+Weapon skills added:       258
+Summary rebuilt:           3
+
+Safety rules:
+- does NOT delete existing mechanics_text/passives/bonuses/grants/drawbacks
+- only appends probe-derived lines and stores them in mechanics.unclassified too
+- keeps story items as story items
+- turns v2 into a safer master layer for manual editing

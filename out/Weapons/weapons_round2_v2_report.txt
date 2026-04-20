@@ -1,0 +1,25 @@
+bg3_weapons_round2_structfix_v2 report
+=====================================
+Input:     out/Weapons/items.weapons.round2.v1.json
+Probe dir: out/Weapons
+Output:    out/Weapons/items.weapons.round2.v2.json
+
+Items processed:               358
+Rarity filled from probe:      1
+Rarity common fallback:        11
+type_raw fixed:                122
+Tags fixed:                    251
+Weapon skills separated:       218
+Mechanics garbage removed:     36
+Flavor filled:                 0
+Scalar fields filled:          0
+Summary rebuilt:               12
+
+What this pass does:
+- fills missing rarity from probe infobox when possible
+- uses cautious fallback to Common for plain mundane weapons still missing rarity
+- normalizes raw_meta.type_raw to the weapon family/type actually matching subtype
+- splits repeated standard weapon skills into mechanics.weapon_skills
+- removes wiki garbage like __NOTOC__ / Категория:* / empty section headers
+- rebuilds tags to a minimal stable set: subtype + rarity + display_group
+- writes a new versioned output without touching v1
