@@ -22,6 +22,7 @@ from .database import get_db
 from .models import Base, Character, User, engine
 from .routers.admin import create_admin_router
 from .routers.auth import create_auth_router
+from .routers.gm import create_gm_router
 from .routers.inventory import create_inventory_router
 from .routers.traders import create_traders_router
 from .services.inventory import buy_item, get_player_inventory, sell_item
@@ -50,6 +51,9 @@ LEGACY_SCHEMA_PATCHES: dict[str, list[tuple[str, str]]] = {
     "users": [
         ("is_active", "BOOLEAN DEFAULT TRUE"),
         ("role", "VARCHAR DEFAULT 'player'"),
+        ("nickname", "VARCHAR DEFAULT ''"),
+        ("display_name", "VARCHAR DEFAULT ''"),
+        ("bio", "VARCHAR DEFAULT ''"),
         ("money_cp_total", "INTEGER DEFAULT 1000000"),
         ("created_at", "TIMESTAMP"),
         ("updated_at", "TIMESTAMP"),
@@ -283,6 +287,9 @@ def serialize_user(user: User) -> dict[str, Any]:
     return {
         "id": user.id,
         "email": user.email,
+        "nickname": user.nickname or "",
+        "display_name": user.display_name or "",
+        "bio": user.bio or "",
         "is_active": user.is_active,
         "role": user.role,
         "money_cp_total": int(user.money_cp_total or 0),
@@ -323,6 +330,7 @@ app.include_router(
         cleaned_items_path=CLEANED_ITEMS_PATH,
     )
 )
+app.include_router(create_gm_router(get_db=get_db))
 
 
 @app.post("/register")

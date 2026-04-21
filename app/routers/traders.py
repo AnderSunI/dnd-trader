@@ -5,7 +5,16 @@ import json
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 
-from ..models import Item, Trader, TraderItem
+from ..auth import get_optional_current_user
+from ..models import (
+    Item,
+    PartyMembership,
+    PartyTable,
+    PartyTraderAccess,
+    Trader,
+    TraderItem,
+    User,
+)
 
 
 def create_traders_router(
@@ -327,6 +336,50 @@ def create_traders_router(
             "inventory_count": len(items),
         }
 
+    def get_allowed_trader_ids_for_user(
+        db: Session,
+        current_user: User | None,
+    ) -> set[int] | None:
+        if not current_user:
+            return None
+
+        role = str(current_user.role or "").strip().lower()
+        if role in {"gm", "admin"}:
+            return None
+
+        memberships = (
+            db.query(PartyMembership)
+            .join(PartyTable, PartyTable.id == PartyMembership.table_id)
+            .filter(
+                PartyMembership.user_id == current_user.id,
+                PartyMembership.status == "active",
+                PartyTable.status == "active",
+            )
+            .all()
+        )
+
+        if not memberships:
+            return None
+
+        restricted_table_ids = {
+            int(membership.table_id)
+            for membership in memberships
+            if membership.table and str(membership.table.trader_access_mode or "open") == "restricted"
+        }
+
+        if not restricted_table_ids:
+            return None
+
+        rows = (
+            db.query(PartyTraderAccess)
+            .filter(
+                PartyTraderAccess.table_id.in_(restricted_table_ids),
+                PartyTraderAccess.is_enabled.is_(True),
+            )
+            .all()
+        )
+        return {int(row.trader_id) for row in rows}
+
     # ========================================================
     # 🏪 LIST ALL TRADERS
     # ========================================================
@@ -338,6 +391,7 @@ def create_traders_router(
         region: str | None = Query(default=None),
         trader_type: str | None = Query(default=None),
         search: str | None = Query(default=None),
+        current_user: User | None = Depends(get_optional_current_user),
         db: Session = Depends(get_db),
     ):
         """
@@ -352,6 +406,7 @@ def create_traders_router(
             .order_by(Trader.id.asc())
             .all()
         )
+        allowed_trader_ids = get_allowed_trader_ids_for_user(db, current_user)
 
         normalized_category = safe_str(category).strip().lower()
         normalized_rarity = safe_str(rarity).strip().lower()
@@ -362,6 +417,9 @@ def create_traders_router(
         result: list[dict] = []
 
         for trader in traders:
+            if allowed_trader_ids is not None and trader.id not in allowed_trader_ids:
+                continue
+
             serialized = serialize_trader(trader)
 
             if normalized_region and normalized_region != "all":
@@ -417,11 +475,19 @@ def create_traders_router(
     @router.get("/traders/{trader_id}")
     def get_trader(
         trader_id: int,
+        current_user: User | None = Depends(get_optional_current_user),
         db: Session = Depends(get_db),
     ):
         """
         Получить одного торговца с актуальным составом items.
         """
+        allowed_trader_ids = get_allowed_trader_ids_for_user(db, current_user)
+        if allowed_trader_ids is not None and trader_id not in allowed_trader_ids:
+            return {
+                "status": "error",
+                "detail": "Торговец недоступен для текущей партии",
+            }
+
         trader = (
             db.query(Trader)
             .options(

@@ -287,11 +287,39 @@ export async function fetchMe() {
 
   for (const url of attempts) {
     try {
-      return await apiGet(url);
+      const payload = await apiGet(url);
+      if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
+        return payload.user;
+      }
+      return payload;
     } catch (_) {}
   }
 
   throw new Error("Не удалось получить профиль пользователя");
+}
+
+export async function fetchProfile() {
+  const payload = await apiGet("/profile/me");
+  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
+    return payload.user;
+  }
+  return payload;
+}
+
+export async function updateProfile(data) {
+  const payload = await apiPatch("/profile/me", data ?? {});
+  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
+    return payload.user;
+  }
+  return payload;
+}
+
+export async function activateGmMode() {
+  const payload = await apiPost("/gm/activate", {});
+  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
+    return payload.user;
+  }
+  return payload;
 }
 
 // ------------------------------------------------------------
@@ -461,6 +489,9 @@ window.apiModule = {
   loginUser,
   registerUser,
   fetchMe,
+  fetchProfile,
+  updateProfile,
+  activateGmMode,
   fetchTraders,
   fetchTraderById,
   fetchPlayerInventory,

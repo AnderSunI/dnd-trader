@@ -394,7 +394,11 @@ function restoreUserFromLocalStorage() {
     const raw = localStorage.getItem("user");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (parsed.user && typeof parsed.user === "object") {
+      return parsed.user;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -1064,6 +1068,17 @@ function renderAllLocalState() {
   updateCartCounter();
   updateCartTotalLabels();
   updateInventoryCounter();
+  updateUserUI();
+}
+
+function applyExternalUserUpdate(user) {
+  if (!user || typeof user !== "object") return;
+  STATE.user = {
+    ...(STATE.user && typeof STATE.user === "object" ? STATE.user : {}),
+    ...user,
+  };
+  persistUser();
+  syncGlobalStateBridges();
   updateUserUI();
 }
 
@@ -2095,6 +2110,10 @@ async function initApp() {
     bindMoneyControls();
     bindRoleSwitchButton();
     bindTraderModalUiPersistence();
+
+    window.addEventListener("dnd:user:updated", (event) => {
+      applyExternalUserUpdate(event?.detail?.user);
+    });
 
     if (STATE.token && !STATE.user) {
       setAppLoadingStatus("Проверяем профиль...");

@@ -44,6 +44,9 @@ def serialize_user(user: User) -> dict:
     return {
         "id": user.id,
         "email": user.email,
+        "nickname": user.nickname or "",
+        "display_name": user.display_name or "",
+        "bio": user.bio or "",
         "is_active": user.is_active,
         "role": user.role,
         "money_cp_total": int(user.money_cp_total or 0),

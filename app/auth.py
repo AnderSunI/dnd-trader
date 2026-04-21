@@ -24,6 +24,10 @@ from .models import User
 # Даже если фронт логинится через /login,
 # этот endpoint нужен для Swagger/OAuth2 совместимости.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+optional_oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/auth/token",
+    auto_error=False,
+)
 
 # ============================================================
 # 🧱 USER CRUD
@@ -36,11 +40,56 @@ def get_user_by_email(db: Session, email: str) -> User | None:
     return db.query(User).filter(User.email == email).first()
 
 
+def get_user_by_nickname(db: Session, nickname: str) -> User | None:
+    """
+    Найти пользователя по nickname.
+    """
+    normalized = str(nickname or "").strip().lower()
+    if not normalized:
+        return None
+
+    return db.query(User).filter(User.nickname == normalized).first()
+
+
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     """
     Найти пользователя по id.
     """
     return db.query(User).filter(User.id == user_id).first()
+
+
+def normalize_nickname_candidate(value: str) -> str:
+    """
+    Базовая нормализация ника для invite/search.
+    """
+    normalized = "".join(
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_"
+        for ch in str(value or "").strip().lower()
+    )
+    normalized = normalized.strip("._-")
+    while "__" in normalized:
+        normalized = normalized.replace("__", "_")
+    return normalized[:40]
+
+
+def build_unique_nickname(db: Session, email: str, preferred: str | None = None) -> str:
+    """
+    Построить уникальный nickname, совместимый с текущей БД без отдельного индекса.
+    """
+    base = normalize_nickname_candidate(preferred or "")
+    if not base:
+        base = normalize_nickname_candidate(str(email or "").split("@", 1)[0])
+    if not base:
+        base = "player"
+
+    candidate = base
+    suffix = 1
+
+    while get_user_by_nickname(db, candidate):
+        suffix += 1
+        candidate = f"{base}_{suffix}"[:40]
+
+    return candidate
 
 
 def create_user(db: Session, email: str, password: str) -> User:
@@ -54,6 +103,9 @@ def create_user(db: Session, email: str, password: str) -> User:
     user = User(
         email=email,
         hashed_password="",
+        nickname=build_unique_nickname(db, email=email),
+        display_name="",
+        bio="",
         is_active=True,
         role="player",
         money_cp_total=1000000,  # стартовый капитал по умолчанию
@@ -170,6 +222,28 @@ def get_current_active_user(
         )
 
     return current_user
+
+
+def get_optional_current_user(
+    token: str | None = Depends(optional_oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """
+    Опционально получить пользователя из Bearer token.
+    Для mixed guest/auth endpoint'ов.
+    """
+    if not token:
+        return None
+
+    payload = decode_access_token(token)
+    sub = payload.get("sub")
+
+    try:
+        user_id = int(sub)
+    except (TypeError, ValueError):
+        return None
+
+    return get_user_by_id(db, user_id)
 
 
 def get_current_gm_user(

@@ -18,6 +18,12 @@ import {
 } from "./longstoryshort.js";
 
 import {
+  activateGmMode,
+  fetchProfile,
+  updateProfile,
+} from "./api.js";
+
+import {
   loadHistory,
   renderHistory,
 } from "./history.js";
@@ -41,6 +47,24 @@ import {
   loadCodex as loadBestiari,
   renderCodex as renderBestiari,
 } from "./bestiari.js";
+
+import {
+  apiGet,
+  apiWrite as sharedApiWrite,
+  escapeHtml,
+  formatDateTime,
+  formatTime,
+  getCurrentRole,
+  getCurrentUser,
+  getEl,
+  getHeaders,
+  getToken,
+  normalizeRole,
+  safeNumber,
+  safeText as sharedSafeText,
+  showToast,
+  tryParseJson,
+} from "./shared.js";
 
 // ------------------------------------------------------------
 // 🌐 STATE
@@ -81,6 +105,14 @@ const MASTER_ROOM_STATE = {
   activeTableId: "",
   createOpen: false,
   inviteQuery: "",
+  userSearchResults: [],
+  traderSearchQuery: "",
+  traderSearchResults: [],
+  itemSearchQuery: "",
+  itemSearchResults: [],
+  selectedTraderId: "",
+  selectedItemId: "",
+  grantQuantity: 1,
 };
 
 const CODEX_STATE = {
@@ -97,69 +129,22 @@ const CABINET_RUNTIME = {
 // ------------------------------------------------------------
 // 🧰 HELPERS
 // ------------------------------------------------------------
-function getEl(id) {
-  return document.getElementById(id);
-}
-
-function showToast(message) {
-  if (typeof window.showToast === "function") {
-    window.showToast(message);
-    return;
-  }
-  console.log(message);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function safeText(value, fallback = "—") {
-  if (value === null || value === undefined || value === "") return fallback;
-  return String(value);
+  return sharedSafeText(value, fallback);
+}
+
+async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {
+  const result = await sharedApiWrite(urls, body, methods);
+  if (result === null) {
+    throw new Error("Failed to save");
+  }
+  return result;
 }
 
 function clampText(value, maxLength = 120) {
   const text = safeText(value, "").replace(/\s+/g, " ").trim();
   if (!text) return "";
   return text.length > maxLength ? `${text.slice(0, maxLength).trim()}…` : text;
-}
-
-function safeNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function tryParseJson(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function normalizeRole(role) {
-  const raw = String(role || "").trim().toLowerCase();
-  if (raw === "gm" || raw === "admin") return "gm";
-  return "player";
-}
-
-function getCurrentRole() {
-  return normalizeRole(
-    window.__appUserRole ||
-      window.__userRole ||
-      window.__appUser?.role ||
-      document.body?.dataset?.role ||
-      "player"
-  );
-}
-
-function getCurrentUser() {
-  return window.__appUser || null;
 }
 
 function getInventoryState() {
@@ -188,95 +173,6 @@ function closeModal(modal) {
   if (modal) modal.style.display = "none";
 }
 
-function formatTime(value) {
-  if (!value) return "—";
-
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return date.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
-
-function formatDateTime(value) {
-  if (!value) return "—";
-
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return date.toLocaleString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
-
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
-
-function getHeaders(withJson = false) {
-  const headers = {};
-  const token = getToken();
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (withJson) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  return headers;
-}
-
-async function apiGet(urls) {
-  const list = Array.isArray(urls) ? urls : [urls];
-
-  for (const url of list) {
-    try {
-      const res = await fetch(url, { headers: getHeaders() });
-      if (!res.ok) continue;
-      return await res.json();
-    } catch (_) {}
-  }
-
-  return null;
-}
-
-async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {
-  const list = Array.isArray(urls) ? urls : [urls];
-
-  for (const method of methods) {
-    for (const url of list) {
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: getHeaders(true),
-          body: JSON.stringify(body),
-        });
-
-        if (!res.ok) continue;
-        return await res.json().catch(() => ({}));
-      } catch (_) {}
-    }
-  }
-
-  throw new Error("Failed to save");
-}
-
 function emitCabinetHistory(detail) {
   const payload = {
     created_at: new Date().toISOString(),
@@ -299,6 +195,39 @@ function emitCabinetHistory(detail) {
         prepend: true,
       });
     }
+  } catch (_) {}
+}
+
+function syncCurrentUserProfile(userPatch = {}) {
+  const currentUser = getCurrentUser() || {};
+  const nextUser = {
+    ...currentUser,
+    ...(userPatch && typeof userPatch === "object" ? userPatch : {}),
+  };
+
+  window.__appUser = nextUser;
+  window.__appUserRole = normalizeRole(nextUser.role || currentUser.role || "player");
+  window.__userRole = window.__appUserRole;
+  document.body.dataset.role = window.__appUserRole;
+
+  try {
+    localStorage.setItem("user", JSON.stringify(nextUser));
+  } catch (_) {}
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("dnd:role:changed", {
+        detail: { role: window.__appUserRole, user: nextUser },
+      })
+    );
+  } catch (_) {}
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("dnd:user:updated", {
+        detail: { user: nextUser },
+      })
+    );
   } catch (_) {}
 }
 
@@ -680,10 +609,13 @@ function renderCabinetHeader() {
   const user = getCurrentUser();
   const role = CABINET_STATE.role === "gm" ? "ГМ" : "Игрок";
   const activeLabel = getCabinetActiveTabLabel();
+  const nickname = safeText(user?.nickname || user?.email?.split?.("@")?.[0] || "", "");
+  const displayName = safeText(user?.display_name || "", "");
+  const bio = safeText(user?.bio || "", "");
 
   header.innerHTML = `
     <div class="cabinet-header-inner" style="padding-right:34px;">
-      <div class="flex-between" style="align-items:flex-start; gap:8px; flex-wrap:wrap;">
+      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <div>
           <div class="muted" style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px;">Личный кабинет</div>
           <h2 style="margin:0 0 3px 0; font-size:1.16rem;">Кабинет персонажа</h2>
@@ -697,8 +629,32 @@ function renderCabinetHeader() {
           <span class="meta-item">Раздел: ${escapeHtml(activeLabel)}</span>
         </div>
       </div>
+
+      ${user ? `
+        <div class="profile-grid" style="margin-top:12px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+          <div class="filter-group">
+            <label>Ник</label>
+            <input id="cabinetProfileNickname" type="text" value="${escapeHtml(nickname)}" placeholder="nickname">
+          </div>
+          <div class="filter-group">
+            <label>Отображаемое имя</label>
+            <input id="cabinetProfileDisplayName" type="text" value="${escapeHtml(displayName)}" placeholder="Как тебя видят в столах">
+          </div>
+          <div class="filter-group" style="grid-column:1 / -1;">
+            <label>О себе</label>
+            <textarea id="cabinetProfileBio" rows="2" placeholder="Короткое описание профиля">${escapeHtml(bio)}</textarea>
+          </div>
+        </div>
+
+        <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary" type="button" id="cabinetProfileSaveBtn">Сохранить профиль</button>
+          ${CABINET_STATE.role !== "gm" ? `<button class="btn btn-warning" type="button" id="cabinetActivateGmBtn">Включить GM-режим</button>` : ""}
+        </div>
+      ` : ""}
     </div>
   `;
+
+  bindCabinetHeaderActions();
 }
 
 function renderCabinetTabs() {
@@ -736,6 +692,48 @@ function renderCabinetTabs() {
       `;
     })
     .join("");
+}
+
+function bindCabinetHeaderActions() {
+  const saveBtn = getEl("cabinetProfileSaveBtn");
+  if (saveBtn && saveBtn.dataset.boundCabinetProfileSave !== "1") {
+    saveBtn.dataset.boundCabinetProfileSave = "1";
+    saveBtn.addEventListener("click", async () => {
+      try {
+        const profile = await updateProfile({
+          nickname: String(getEl("cabinetProfileNickname")?.value || "").trim(),
+          display_name: String(getEl("cabinetProfileDisplayName")?.value || "").trim(),
+          bio: String(getEl("cabinetProfileBio")?.value || "").trim(),
+        });
+        syncCurrentUserProfile(profile);
+        renderCabinetHeader();
+        bindCabinetHeaderActions();
+        showToast("Профиль обновлён");
+      } catch (error) {
+        showToast(error.message || "Не удалось сохранить профиль");
+      }
+    });
+  }
+
+  const activateBtn = getEl("cabinetActivateGmBtn");
+  if (activateBtn && activateBtn.dataset.boundCabinetActivateGm !== "1") {
+    activateBtn.dataset.boundCabinetActivateGm = "1";
+    activateBtn.addEventListener("click", async () => {
+      try {
+        const profile = await activateGmMode();
+        syncCurrentUserProfile(profile);
+        CABINET_STATE.role = getCurrentRole();
+        renderCabinetHeader();
+        renderCabinetTabs();
+        bindCabinetHeaderActions();
+        bindCabinetTabs();
+        await refreshCurrentCabinetTab();
+        showToast("GM-режим включён");
+      } catch (error) {
+        showToast(error.message || "Не удалось включить GM-режим");
+      }
+    });
+  }
 }
 
 // ------------------------------------------------------------
@@ -2990,66 +2988,68 @@ function getMasterRoomStorageKey() {
 
 function normalizeMasterRoomVisibility(value) {
   const raw = String(value || "").trim().toLowerCase();
-  if (["private", "basic", "sheet", "full"].includes(raw)) return raw;
-  return "basic";
+  return ["private", "basic", "sheet", "full"].includes(raw) ? raw : "basic";
 }
 
-function normalizeMasterRoomMember(member, index = 0) {
-  const raw = member && typeof member === "object" ? member : {};
-  const nickname = String(
-    raw.nickname ||
-    raw.display_name ||
-    raw.username ||
-    raw.email ||
-    `Игрок ${index + 1}`
-  ).trim();
-
-  return {
-    id: String(raw.id || raw.user_id || raw.member_id || `member_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 7)}`),
-    user_id: String(raw.user_id || raw.id || ""),
-    nickname,
-    email: String(raw.email || "").trim(),
-    character_name: String(raw.character_name || raw.characterName || "").trim(),
-    visibility: normalizeMasterRoomVisibility(raw.visibility),
-    is_gm: Boolean(raw.is_gm),
-    joined_at: raw.joined_at || new Date().toISOString(),
-  };
+function normalizeMasterRoomRole(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return raw === "gm" ? "gm" : "player";
 }
 
 function normalizeMasterRoomTable(table, index = 0) {
   const raw = table && typeof table === "object" ? table : {};
-  const title = String(raw.title || raw.name || `Стол ${index + 1}`).trim() || `Стол ${index + 1}`;
-  const tokenBase = String(raw.token || raw.code || title)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-zа-я0-9_-]+/gi, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "") || `table-${index + 1}`;
-
-  const members = Array.isArray(raw.members)
-    ? raw.members.map((member, memberIndex) => normalizeMasterRoomMember(member, memberIndex))
-    : [];
-
   return {
-    id: String(raw.id || raw.table_id || `table_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 7)}`),
-    title,
-    token: tokenBase,
-    gm_user_id: String(raw.gm_user_id || raw.owner_id || getCurrentUser()?.id || ""),
-    members,
+    id: String(raw.id || raw.table_id || `table_${index}`),
+    title: String(raw.title || raw.name || `Стол ${index + 1}`).trim() || `Стол ${index + 1}`,
+    token: String(raw.token || raw.code || "").trim(),
+    status: String(raw.status || "active").trim() || "active",
+    notes: String(raw.notes || "").trim(),
+    trader_access_mode: String(raw.trader_access_mode || "open").trim() || "open",
     created_at: raw.created_at || new Date().toISOString(),
     updated_at: raw.updated_at || new Date().toISOString(),
+    members: safeArray(raw.members).map((member, memberIndex) => ({
+      id: String(member?.id || `member_${memberIndex}`),
+      user_id: String(member?.user_id || ""),
+      nickname: String(member?.nickname || member?.email || `Игрок ${memberIndex + 1}`).trim(),
+      email: String(member?.email || "").trim(),
+      display_name: String(member?.display_name || "").trim(),
+      role_in_table: normalizeMasterRoomRole(member?.role_in_table),
+      visibility_preset: normalizeMasterRoomVisibility(member?.visibility_preset),
+      selected_character_id: String(member?.selected_character_id || ""),
+      selected_character_name: String(member?.selected_character_name || "").trim(),
+      notes: String(member?.notes || "").trim(),
+      hidden_sections: member?.hidden_sections && typeof member.hidden_sections === "object"
+        ? member.hidden_sections
+        : {},
+      joined_at: member?.joined_at || new Date().toISOString(),
+    })),
+    trader_accesses: safeArray(raw.trader_accesses).map((entry, traderIndex) => ({
+      id: String(entry?.id || `access_${traderIndex}`),
+      trader_id: Number(entry?.trader_id || entry?.id || 0),
+      name: String(entry?.name || `Trader #${entry?.trader_id || traderIndex + 1}`).trim(),
+      notes: String(entry?.notes || "").trim(),
+      is_enabled: Boolean(entry?.is_enabled ?? true),
+    })),
+    grants: safeArray(raw.grants).map((entry, grantIndex) => ({
+      id: String(entry?.id || `grant_${grantIndex}`),
+      membership_id: String(entry?.membership_id || ""),
+      target_user_id: String(entry?.target_user_id || ""),
+      item_id: Number(entry?.item_id || 0),
+      item_name: String(entry?.item_name || entry?.custom_name || "").trim(),
+      quantity: Math.max(1, safeNumber(entry?.quantity, 1)),
+      notes: String(entry?.notes || "").trim(),
+      created_by_nickname: String(entry?.created_by_nickname || "").trim(),
+      created_at: entry?.created_at || new Date().toISOString(),
+    })),
   };
 }
 
 function ensureMasterRoomDefaults() {
-  MASTER_ROOM_STATE.tables = Array.isArray(MASTER_ROOM_STATE.tables)
-    ? MASTER_ROOM_STATE.tables.map((table, index) => normalizeMasterRoomTable(table, index))
-    : [];
+  MASTER_ROOM_STATE.tables = safeArray(MASTER_ROOM_STATE.tables).map((table, index) =>
+    normalizeMasterRoomTable(table, index)
+  );
 
-  if (
-    MASTER_ROOM_STATE.activeTableId &&
-    MASTER_ROOM_STATE.tables.some((table) => table.id === MASTER_ROOM_STATE.activeTableId)
-  ) {
+  if (MASTER_ROOM_STATE.activeTableId && MASTER_ROOM_STATE.tables.some((table) => table.id === MASTER_ROOM_STATE.activeTableId)) {
     return;
   }
 
@@ -3064,183 +3064,109 @@ function getMasterRoomActiveTable() {
 function getCurrentLssCharacterName() {
   const shared = window.__sharedState?.lss?.profile || window.__sharedState?.lss?.raw || {};
   const direct = window.__LSS_EXPORT__ || window.__lssExport || {};
-  return String(
-    shared?.name ||
-    shared?.info?.name ||
-    direct?.name ||
-    direct?.info?.name ||
-    ""
-  ).trim();
+  return String(shared?.name || shared?.info?.name || direct?.name || direct?.info?.name || "").trim();
 }
 
-function getCurrentProfileNickname() {
-  const user = getCurrentUser() || {};
-  return String(
-    user.nickname ||
-    user.display_name ||
-    user.username ||
-    user.email ||
-    "Игрок"
-  ).trim();
+async function apiDeleteJson(url) {
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: getHeaders(true),
+  });
+
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload?.detail || payload?.message || `Ошибка удаления: ${res.status}`);
+  }
+  return payload;
 }
 
-function tryLoadMasterRoomFromWindow() {
-  const candidates = [
-    window.__MASTER_ROOM__,
-    window.__masterRoom,
-    window.__MASTER_ROOM_DATA__,
-    window.__masterRoomData,
-  ];
+function applyMasterRoomTableResponse(payload) {
+  const table = payload?.table ? normalizeMasterRoomTable(payload.table, 0) : null;
+  if (!table) return;
 
-  for (const candidate of candidates) {
-    if (candidate && typeof candidate === "object") return candidate;
+  const index = MASTER_ROOM_STATE.tables.findIndex((entry) => entry.id === table.id);
+  if (index >= 0) {
+    MASTER_ROOM_STATE.tables[index] = table;
+  } else {
+    MASTER_ROOM_STATE.tables = [table, ...MASTER_ROOM_STATE.tables];
+  }
+  MASTER_ROOM_STATE.activeTableId = table.id;
+  MASTER_ROOM_STATE.source = "api";
+  ensureMasterRoomDefaults();
+}
+
+async function loadMasterRoomUsers(query) {
+  const needle = String(query || "").trim();
+  if (!needle) {
+    MASTER_ROOM_STATE.userSearchResults = [];
+    return [];
   }
 
-  return null;
+  const data = await apiGet(`/gm/users/search?q=${encodeURIComponent(needle)}`);
+  MASTER_ROOM_STATE.userSearchResults = safeArray(data?.users);
+  return MASTER_ROOM_STATE.userSearchResults;
 }
 
-function loadMasterRoomLocal() {
-  try {
-    const raw = localStorage.getItem(getMasterRoomStorageKey());
-    const parsed = tryParseJson(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch (_) {
-    return null;
-  }
+async function loadMasterRoomTraders(query) {
+  const needle = String(query || "").trim();
+  const data = await apiGet(`/gm/traders/search?q=${encodeURIComponent(needle)}`);
+  MASTER_ROOM_STATE.traderSearchResults = safeArray(data?.traders);
+  return MASTER_ROOM_STATE.traderSearchResults;
 }
 
-function saveMasterRoomLocal() {
-  try {
-    localStorage.setItem(
-      getMasterRoomStorageKey(),
-      JSON.stringify({
-        tables: MASTER_ROOM_STATE.tables,
-        activeTableId: MASTER_ROOM_STATE.activeTableId,
-      })
-    );
-  } catch (_) {}
+async function loadMasterRoomItems(query) {
+  const needle = String(query || "").trim();
+  const data = await apiGet(`/gm/items/search?q=${encodeURIComponent(needle)}`);
+  MASTER_ROOM_STATE.itemSearchResults = safeArray(data?.items);
+  return MASTER_ROOM_STATE.itemSearchResults;
 }
 
 async function loadMasterRoom() {
-  let data = await apiGet([
-    "/master-room",
-    "/master-room/me",
-    "/party/tables",
-  ]);
-  let source = "api";
-
-  if (!data) {
-    data = tryLoadMasterRoomFromWindow();
-    source = "window";
-  }
-
-  if (!data) {
-    data = loadMasterRoomLocal();
-    source = "local";
-  }
-
-  const tables = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.tables)
-      ? data.tables
-      : [];
-
-  MASTER_ROOM_STATE.tables = tables.map((table, index) => normalizeMasterRoomTable(table, index));
-  MASTER_ROOM_STATE.activeTableId = String(data?.activeTableId || data?.active_table_id || MASTER_ROOM_STATE.activeTableId || "");
   MASTER_ROOM_STATE.loaded = true;
-  MASTER_ROOM_STATE.source = MASTER_ROOM_STATE.tables.length ? source : "empty";
-  ensureMasterRoomDefaults();
-  saveMasterRoomLocal();
+  try {
+    const data = await apiGet("/gm/master-room");
+    MASTER_ROOM_STATE.tables = safeArray(data?.tables).map((table, index) => normalizeMasterRoomTable(table, index));
+    MASTER_ROOM_STATE.source = "api";
+    ensureMasterRoomDefaults();
+  } catch (error) {
+    MASTER_ROOM_STATE.tables = [];
+    MASTER_ROOM_STATE.source = "error";
+    if (CABINET_STATE.role === "gm") {
+      showToast(error.message || "Не удалось загрузить Master Room");
+    }
+  }
   renderMasterRoom();
   return MASTER_ROOM_STATE.tables;
 }
 
-async function saveMasterRoom() {
-  saveMasterRoomLocal();
+function renderMasterRoomUserSearchResults(table) {
+  if (!MASTER_ROOM_STATE.inviteQuery.trim()) return "";
 
-  try {
-    await apiWrite(
-      ["/master-room", "/master-room/me", "/party/tables"],
-      {
-        tables: MASTER_ROOM_STATE.tables,
-        activeTableId: MASTER_ROOM_STATE.activeTableId,
-      },
-      ["POST", "PUT", "PATCH"]
-    );
-    MASTER_ROOM_STATE.source = "api";
-  } catch (_) {
-    MASTER_ROOM_STATE.source = "local";
-  }
-}
+  const existing = new Set(safeArray(table?.members).map((member) => String(member.user_id || "").trim()));
+  const users = MASTER_ROOM_STATE.userSearchResults.filter((user) => !existing.has(String(user.id || "")));
 
-function collectKnownPlayers() {
-  const user = getCurrentUser() || {};
-  const known = new Map();
-
-  const pushPlayer = (player) => {
-    if (!player) return;
-    const nickname = String(player.nickname || player.display_name || player.username || player.email || "").trim();
-    if (!nickname) return;
-    const email = String(player.email || "").trim();
-    const key = `${nickname.toLowerCase()}|${email.toLowerCase()}`;
-    if (known.has(key)) return;
-    known.set(key, {
-      nickname,
-      email,
-    });
-  };
-
-  pushPlayer(user);
-
-  MASTER_ROOM_STATE.tables.forEach((table) => {
-    (table.members || []).forEach((member) => pushPlayer(member));
-  });
-
-  return [...known.values()].sort((a, b) => a.nickname.localeCompare(b.nickname, "ru"));
-}
-
-function renderMasterRoomKnownPlayers(query) {
-  const needle = String(query || "").trim().toLowerCase();
-  if (!needle) return "";
-
-  const active = getMasterRoomActiveTable();
-  const existingKeys = new Set((active?.members || []).map((member) => String(member.nickname || "").trim().toLowerCase()));
-  const players = collectKnownPlayers()
-    .filter((player) => player.nickname.toLowerCase().includes(needle) || player.email.toLowerCase().includes(needle))
-    .filter((player) => !existingKeys.has(player.nickname.toLowerCase()))
-    .slice(0, 8);
-
-  if (!players.length) {
-    return `<div class="muted" style="font-size:0.8rem;">Совпадений по известным никам пока нет. Можно добавить игрока вручную ниже.</div>`;
+  if (!users.length) {
+    return `<div class="muted" style="font-size:0.8rem;">Совпадений не найдено.</div>`;
   }
 
-  return `
-    <div style="display:flex; flex-direction:column; gap:8px;">
-      ${players.map((player) => `
-        <div class="cabinet-block" style="padding:10px 12px;">
-          <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
-            <div>
-              <div style="font-weight:800;">${escapeHtml(player.nickname)}</div>
-              <div class="muted" style="font-size:0.8rem;">${escapeHtml(player.email || "email не задан")}</div>
-            </div>
-            <button
-              class="btn btn-primary"
-              type="button"
-              data-master-room-add-known="${escapeHtml(player.nickname)}"
-              data-master-room-add-known-email="${escapeHtml(player.email || "")}"
-            >
-              Добавить в стол
-            </button>
-          </div>
+  return users.map((user) => `
+    <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">
+      <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:800;">${escapeHtml(user.nickname || user.email || "Игрок")}</div>
+          <div class="muted" style="font-size:0.8rem;">${escapeHtml(user.email || "")}</div>
         </div>
-      `).join("")}
+        <button class="btn btn-primary" type="button" data-master-room-add-user-id="${escapeHtml(String(user.id || ""))}">
+          Добавить
+        </button>
+      </div>
     </div>
-  `;
+  `).join("");
 }
 
 function renderMasterRoomParticipants(table) {
   if (!table?.members?.length) {
-    return `<div class="cabinet-block"><p>Участников пока нет. Добавь игрока по нику или вручную.</p></div>`;
+    return `<div class="cabinet-block"><p>Участников пока нет.</p></div>`;
   }
 
   return table.members.map((member) => `
@@ -3249,52 +3175,163 @@ function renderMasterRoomParticipants(table) {
         <div>
           <div style="font-weight:800;">${escapeHtml(member.nickname)}</div>
           <div class="muted" style="font-size:0.8rem;">
-            ${member.email ? escapeHtml(member.email) : "Без email"}
-            ${member.is_gm ? " • ГМ" : " • Игрок"}
+            ${escapeHtml(member.email || "email не задан")}
+            • ${member.role_in_table === "gm" ? "ГМ" : "Игрок"}
           </div>
         </div>
-
-        <div class="cart-buttons" style="gap:6px;">
-          <button
-            class="btn"
-            type="button"
-            data-master-room-use-lss="${escapeHtml(member.id)}"
-          >
-            Взять из LSS
-          </button>
-          <button
-            class="btn btn-danger"
-            type="button"
-            data-master-room-remove-member="${escapeHtml(member.id)}"
-          >
-            Убрать
-          </button>
-        </div>
+        <button class="btn btn-danger" type="button" data-master-room-remove-member="${escapeHtml(member.id)}">
+          Убрать
+        </button>
       </div>
 
       <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
         <div class="filter-group">
-          <label>Персонаж</label>
-          <input
-            type="text"
-            value="${escapeHtml(member.character_name || "")}"
-            placeholder="Имя персонажа / LSS"
-            data-master-room-member-character="${escapeHtml(member.id)}"
-          />
-        </div>
-
-        <div class="filter-group">
-          <label>Видимость</label>
-          <select data-master-room-member-visibility="${escapeHtml(member.id)}">
-            <option value="private" ${member.visibility === "private" ? "selected" : ""}>private</option>
-            <option value="basic" ${member.visibility === "basic" ? "selected" : ""}>basic</option>
-            <option value="sheet" ${member.visibility === "sheet" ? "selected" : ""}>sheet</option>
-            <option value="full" ${member.visibility === "full" ? "selected" : ""}>full</option>
+          <label>Роль в столе</label>
+          <select data-master-room-member-role="${escapeHtml(member.id)}">
+            <option value="player" ${member.role_in_table === "player" ? "selected" : ""}>player</option>
+            <option value="gm" ${member.role_in_table === "gm" ? "selected" : ""}>gm</option>
           </select>
+        </div>
+        <div class="filter-group">
+          <label>Видимость персонажа</label>
+          <select data-master-room-member-visibility="${escapeHtml(member.id)}">
+            <option value="private" ${member.visibility_preset === "private" ? "selected" : ""}>private</option>
+            <option value="basic" ${member.visibility_preset === "basic" ? "selected" : ""}>basic</option>
+            <option value="sheet" ${member.visibility_preset === "sheet" ? "selected" : ""}>sheet</option>
+            <option value="full" ${member.visibility_preset === "full" ? "selected" : ""}>full</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Персонаж</label>
+          <input type="text" value="${escapeHtml(member.selected_character_name || "")}" data-master-room-member-character="${escapeHtml(member.id)}" placeholder="Имя персонажа">
         </div>
       </div>
     </div>
   `).join("");
+}
+
+function renderMasterRoomTraderAccesses(table) {
+  const accesses = safeArray(table?.trader_accesses);
+  const currentLabel = table?.trader_access_mode === "restricted" ? "restricted" : "open";
+
+  return `
+    <div class="cabinet-block" style="margin-top:12px;">
+      <div class="flex-between" style="gap:12px; flex-wrap:wrap;">
+        <div>
+          <h4 style="margin:0 0 6px 0;">Доступ к торговцам</h4>
+          <div class="muted" style="font-size:0.82rem;">В режиме <strong>${escapeHtml(currentLabel)}</strong> игроки видят либо всех торговцев, либо только разрешённых ГМом.</div>
+        </div>
+        <div class="filter-group" style="min-width:180px;">
+          <label>Режим доступа</label>
+          <select id="masterRoomTraderAccessMode">
+            <option value="open" ${table?.trader_access_mode !== "restricted" ? "selected" : ""}>open</option>
+            <option value="restricted" ${table?.trader_access_mode === "restricted" ? "selected" : ""}>restricted</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="collection-toolbar compact-collection-toolbar" style="margin-top:10px;">
+        <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
+          <label>Найти торговца</label>
+          <input id="masterRoomTraderSearchInput" type="text" value="${escapeHtml(MASTER_ROOM_STATE.traderSearchQuery || "")}" placeholder="Имя торговца">
+        </div>
+      </div>
+
+      <div style="margin-top:8px;">
+        ${safeArray(MASTER_ROOM_STATE.traderSearchResults).map((trader) => `
+          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">
+            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:800;">${escapeHtml(trader.name || "Торговец")}</div>
+                <div class="muted" style="font-size:0.8rem;">${escapeHtml(trader.type || "")} ${trader.region ? `• ${escapeHtml(trader.region)}` : ""}</div>
+              </div>
+              <button class="btn btn-primary" type="button" data-master-room-add-trader-id="${escapeHtml(String(trader.id || ""))}">
+                Открыть доступ
+              </button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <div style="margin-top:10px;">
+        ${accesses.length ? accesses.map((entry) => `
+          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">
+            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:800;">${escapeHtml(entry.name || "Торговец")}</div>
+                <div class="muted" style="font-size:0.8rem;">ID: ${escapeHtml(String(entry.trader_id || ""))}</div>
+              </div>
+              <button class="btn btn-danger" type="button" data-master-room-remove-trader-id="${escapeHtml(String(entry.trader_id || ""))}">
+                Закрыть доступ
+              </button>
+            </div>
+          </div>
+        `).join("") : `<div class="muted" style="margin-top:8px;">Разрешённых торговцев пока нет.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomGrantPanel(table) {
+  const playerOptions = safeArray(table?.members)
+    .filter((member) => member.role_in_table !== "gm")
+    .map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.nickname)}</option>`)
+    .join("");
+
+  return `
+    <div class="cabinet-block" style="margin-top:12px;">
+      <h4 style="margin:0 0 8px 0;">Ручная выдача предметов</h4>
+
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+        <div class="filter-group">
+          <label>Игрок</label>
+          <select id="masterRoomGrantMemberId">
+            <option value="">Выбери игрока</option>
+            ${playerOptions}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Количество</label>
+          <input id="masterRoomGrantQuantity" type="number" min="1" step="1" value="${escapeHtml(String(MASTER_ROOM_STATE.grantQuantity || 1))}">
+        </div>
+        <div class="filter-group" style="grid-column:1 / -1;">
+          <label>Найти предмет</label>
+          <input id="masterRoomItemSearchInput" type="text" value="${escapeHtml(MASTER_ROOM_STATE.itemSearchQuery || "")}" placeholder="Название предмета">
+        </div>
+      </div>
+
+      <div style="margin-top:8px;">
+        ${safeArray(MASTER_ROOM_STATE.itemSearchResults).map((item) => `
+          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">
+            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:800;">${escapeHtml(item.name || "Предмет")}</div>
+                <div class="muted" style="font-size:0.8rem;">${escapeHtml(item.category || "")} ${item.rarity ? `• ${escapeHtml(item.rarity)}` : ""}</div>
+              </div>
+              <button class="btn btn-primary" type="button" data-master-room-grant-item-id="${escapeHtml(String(item.id || ""))}">
+                Выдать
+              </button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+
+      <div style="margin-top:10px;">
+        <h5 style="margin:0 0 8px 0;">Последние выдачи</h5>
+        ${safeArray(table?.grants).length ? safeArray(table.grants).map((grant) => `
+          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">
+            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:800;">${escapeHtml(grant.item_name || "Предмет")}</div>
+                <div class="muted" style="font-size:0.8rem;">×${escapeHtml(String(grant.quantity || 1))} • ${escapeHtml(formatDateTime(grant.created_at))}</div>
+              </div>
+              <div class="muted" style="font-size:0.8rem;">${escapeHtml(grant.created_by_nickname || "ГМ")}</div>
+            </div>
+          </div>
+        `).join("") : `<div class="muted">Выдач пока нет.</div>`}
+      </div>
+    </div>
+  `;
 }
 
 function renderMasterRoom() {
@@ -3306,105 +3343,41 @@ function renderMasterRoom() {
   if (CABINET_STATE.role !== "gm") {
     container.innerHTML = `
       <div class="cabinet-block">
-        <p>Master Room доступен только ГМу.</p>
+        <p>Master Room доступен только в GM-режиме аккаунта.</p>
       </div>
     `;
     return;
   }
 
   const active = getMasterRoomActiveTable();
-  const currentLssName = getCurrentLssCharacterName();
   const createOpen = Boolean(MASTER_ROOM_STATE.createOpen);
 
   const tablesHtml = MASTER_ROOM_STATE.tables.length
     ? MASTER_ROOM_STATE.tables.map((table) => `
-        <div class="cabinet-block" style="padding:10px 12px;">
-          <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
-            <div>
-              <div style="font-weight:800;">${escapeHtml(table.title)}</div>
-              <div class="muted" style="font-size:0.8rem;">token: ${escapeHtml(table.token)} • участников: ${(table.members || []).length}</div>
-            </div>
-            <div class="cart-buttons" style="gap:6px;">
-              <button class="btn ${table.id === MASTER_ROOM_STATE.activeTableId ? "active" : ""}" type="button" data-master-room-open="${escapeHtml(table.id)}">
-                Открыть
-              </button>
-              <button class="btn btn-danger" type="button" data-master-room-delete="${escapeHtml(table.id)}">
-                Удалить
-              </button>
-            </div>
+      <div class="cabinet-block" style="padding:10px 12px; margin-bottom:8px;">
+        <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:800;">${escapeHtml(table.title)}</div>
+            <div class="muted" style="font-size:0.8rem;">token: ${escapeHtml(table.token)} • участников: ${safeArray(table.members).length}</div>
+          </div>
+          <div class="cart-buttons" style="gap:6px;">
+            <button class="btn ${table.id === MASTER_ROOM_STATE.activeTableId ? "active" : ""}" type="button" data-master-room-open="${escapeHtml(table.id)}">Открыть</button>
+            <button class="btn btn-danger" type="button" data-master-room-delete="${escapeHtml(table.id)}">Удалить</button>
           </div>
         </div>
-      `).join("")
-    : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол ГМа.</p></div>`;
-
-  const activeHtml = active ? `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
-        <div>
-          <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>
-          <div class="muted" style="font-size:0.82rem;">Код / token: <strong>${escapeHtml(active.token)}</strong></div>
-        </div>
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-          <span class="meta-item">Участников: ${(active.members || []).length}</span>
-          <span class="meta-item">Источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</span>
-        </div>
       </div>
-
-      <div class="collection-toolbar compact-collection-toolbar" style="margin-top:0;">
-        <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
-          <label>Поиск игрока по нику / email</label>
-          <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: AnderSunI">
-        </div>
-
-        <div class="filter-group" style="min-width:180px;">
-          <label>Добавить вручную</label>
-          <input id="masterRoomManualNickname" type="text" placeholder="Ник игрока">
-        </div>
-
-        <div class="filter-group" style="min-width:180px;">
-          <label>Email игрока</label>
-          <input id="masterRoomManualEmail" type="text" placeholder="Опционально">
-        </div>
-
-        <div class="cart-buttons" style="align-items:flex-end; gap:8px;">
-          <button class="btn btn-primary" type="button" id="masterRoomAddManualBtn">Добавить в стол</button>
-        </div>
-      </div>
-
-      <div style="margin-top:10px;">
-        ${renderMasterRoomKnownPlayers(MASTER_ROOM_STATE.inviteQuery)}
-      </div>
-
-      <div class="cabinet-block" style="margin-top:12px; padding:10px 12px;">
-        <div class="muted" style="font-size:0.82rem; line-height:1.45;">
-          Текущий активный LSS у ГМа: <strong>${escapeHtml(currentLssName || "не выбран")}</strong>. Кнопка "Взять из LSS" подставляет это имя в поле персонажа выбранного участника.
-        </div>
-      </div>
-    </div>
-
-    <div>
-      ${renderMasterRoomParticipants(active)}
-    </div>
-  ` : `
-    <div class="cabinet-block">
-      <p>Выбери стол слева или создай новый.</p>
-    </div>
-  `;
+    `).join("")
+    : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол.</p></div>`;
 
   container.innerHTML = `
     <div class="cabinet-block" style="margin-bottom:12px;">
       <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <div>
           <h3 style="margin:0 0 6px 0;">🛡️ Master Room</h3>
-          <div class="muted">
-            Заготовка под стол ГМа: столы, участники, поиск по никам, выбор персонажа и базовые права видимости.
-          </div>
+          <div class="muted">Реальный серверный слой ГМа: столы, игроки, доступы к торговцам и ручная выдача.</div>
         </div>
-
         <div class="cart-buttons" style="gap:8px;">
-          <button class="btn" type="button" id="masterRoomToggleCreateBtn">
-            ${createOpen ? "Скрыть создание" : "Создать стол"}
-          </button>
+          <button class="btn" type="button" id="masterRoomToggleCreateBtn">${createOpen ? "Скрыть создание" : "Создать стол"}</button>
           <button class="btn" type="button" id="masterRoomReloadBtn">Обновить</button>
         </div>
       </div>
@@ -3417,13 +3390,11 @@ function renderMasterRoom() {
             <label>Название стола</label>
             <input id="masterRoomCreateTitle" type="text" placeholder="Например: Подземелье Арканума">
           </div>
-
           <div class="filter-group">
             <label>Token / код</label>
             <input id="masterRoomCreateToken" type="text" placeholder="arcanum-party">
           </div>
         </div>
-
         <div class="cart-buttons" style="margin-top:10px; gap:8px;">
           <button class="btn btn-primary" type="button" id="masterRoomCreateBtn">Создать стол</button>
         </div>
@@ -3431,11 +3402,54 @@ function renderMasterRoom() {
     ` : ""}
 
     <div class="profile-grid" style="grid-template-columns:minmax(280px,0.95fr) minmax(0,1.45fr); align-items:start;">
+      <div>${tablesHtml}</div>
       <div>
-        ${tablesHtml}
-      </div>
-      <div>
-        ${activeHtml}
+        ${active ? `
+          <div class="cabinet-block">
+            <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+              <div>
+                <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>
+                <div class="muted" style="font-size:0.82rem;">Token: <strong>${escapeHtml(active.token)}</strong> • источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</div>
+              </div>
+              <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+                <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
+                <span class="meta-item">LSS ГМа: ${escapeHtml(getCurrentLssCharacterName() || "не выбран")}</span>
+              </div>
+            </div>
+
+            <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+              <div class="filter-group">
+                <label>Название стола</label>
+                <input id="masterRoomTableTitle" type="text" value="${escapeHtml(active.title)}">
+              </div>
+              <div class="filter-group">
+                <label>Статус</label>
+                <input id="masterRoomTableStatus" type="text" value="${escapeHtml(active.status)}">
+              </div>
+              <div class="filter-group" style="grid-column:1 / -1;">
+                <label>Заметки ГМа по столу</label>
+                <textarea id="masterRoomTableNotes" rows="3" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(active.notes || "")}</textarea>
+              </div>
+            </div>
+            <div class="cart-buttons" style="margin-top:10px; gap:8px;">
+              <button class="btn btn-primary" type="button" id="masterRoomSaveTableBtn">Сохранить стол</button>
+            </div>
+
+            <div class="collection-toolbar compact-collection-toolbar" style="margin-top:12px;">
+              <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
+                <label>Поиск игрока по нику / email</label>
+                <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: andersun">
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              ${renderMasterRoomUserSearchResults(active)}
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">${renderMasterRoomParticipants(active)}</div>
+          ${renderMasterRoomTraderAccesses(active)}
+          ${renderMasterRoomGrantPanel(active)}
+        ` : `<div class="cabinet-block"><p>Выбери стол слева или создай новый.</p></div>`}
       </div>
     </div>
   `;
@@ -3444,56 +3458,29 @@ function renderMasterRoom() {
 }
 
 async function createMasterRoomTable(title, token) {
-  const normalized = normalizeMasterRoomTable({
-    title,
-    token,
-    gm_user_id: getCurrentUser()?.id || "",
-    members: [
-      {
-        nickname: getCurrentProfileNickname(),
-        email: getCurrentUser()?.email || "",
-        character_name: getCurrentLssCharacterName(),
-        visibility: "full",
-        is_gm: true,
-      },
-    ],
-  }, MASTER_ROOM_STATE.tables.length);
+  const payload = await apiWrite(["/gm/tables"], {
+    title: String(title || "").trim(),
+    token: String(token || "").trim(),
+  }, ["POST"]);
 
-  MASTER_ROOM_STATE.tables = [normalized, ...MASTER_ROOM_STATE.tables];
-  MASTER_ROOM_STATE.activeTableId = normalized.id;
+  applyMasterRoomTableResponse(payload);
   MASTER_ROOM_STATE.createOpen = false;
-  await saveMasterRoom();
   renderMasterRoom();
 
   emitCabinetHistory({
     scope: "gm",
     type: "master_room_create",
     action: "master_room_create",
-    title: `Создан стол: ${normalized.title}`,
-    message: `Token: ${normalized.token}`,
+    title: `Создан стол: ${payload?.table?.title || title}`,
+    message: `Token: ${payload?.table?.token || token}`,
   });
-
-  showToast(`Создан стол: ${normalized.title}`);
 }
 
 async function deleteMasterRoomTable(tableId) {
-  const table = MASTER_ROOM_STATE.tables.find((entry) => entry.id === tableId);
-  MASTER_ROOM_STATE.tables = MASTER_ROOM_STATE.tables.filter((entry) => entry.id !== tableId);
-  if (MASTER_ROOM_STATE.activeTableId === tableId) {
-    MASTER_ROOM_STATE.activeTableId = MASTER_ROOM_STATE.tables[0]?.id || "";
-  }
-  await saveMasterRoom();
+  await apiDeleteJson(`/gm/tables/${encodeURIComponent(String(tableId || ""))}`);
+  MASTER_ROOM_STATE.tables = MASTER_ROOM_STATE.tables.filter((entry) => entry.id !== String(tableId || ""));
+  MASTER_ROOM_STATE.activeTableId = MASTER_ROOM_STATE.tables[0]?.id || "";
   renderMasterRoom();
-
-  emitCabinetHistory({
-    scope: "gm",
-    type: "master_room_delete",
-    action: "master_room_delete",
-    title: `Удалён стол: ${table?.title || "Стол"}`,
-    message: table?.token ? `Token: ${table.token}` : "",
-  });
-
-  showToast("Стол удалён");
 }
 
 async function addMemberToMasterRoom(payload) {
@@ -3503,78 +3490,88 @@ async function addMemberToMasterRoom(payload) {
     return;
   }
 
-  const nickname = String(payload?.nickname || "").trim();
-  const email = String(payload?.email || "").trim();
+  const body = {};
+  if (payload?.user_id) body.user_id = Number(payload.user_id);
+  if (payload?.nickname) body.nickname = String(payload.nickname).trim();
+  if (payload?.email) body.email = String(payload.email).trim();
 
-  if (!nickname) {
-    showToast("Укажи ник игрока");
-    return;
-  }
-
-  const exists = (active.members || []).some((member) => String(member.nickname || "").trim().toLowerCase() === nickname.toLowerCase());
-  if (exists) {
-    showToast("Игрок уже в этом столе");
-    return;
-  }
-
-  active.members.push(normalizeMasterRoomMember({
-    nickname,
-    email,
-    visibility: "basic",
-    is_gm: false,
-  }, active.members.length));
-
-  active.updated_at = new Date().toISOString();
-  await saveMasterRoom();
+  const result = await apiWrite([`/gm/tables/${active.id}/members`], body, ["POST"]);
+  applyMasterRoomTableResponse(result);
   renderMasterRoom();
-
-  emitCabinetHistory({
-    scope: "gm",
-    type: "master_room_add_member",
-    action: "master_room_add_member",
-    title: `Игрок добавлен в стол: ${nickname}`,
-    message: `Стол: ${active.title}`,
-  });
-
-  showToast(`Добавлен игрок: ${nickname}`);
 }
 
 async function removeMemberFromMasterRoom(memberId) {
   const active = getMasterRoomActiveTable();
   if (!active) return;
 
-  const target = active.members.find((member) => member.id === memberId);
-  active.members = active.members.filter((member) => member.id !== memberId);
-  active.updated_at = new Date().toISOString();
-
-  await saveMasterRoom();
-  renderMasterRoom();
-
-  emitCabinetHistory({
-    scope: "gm",
-    type: "master_room_remove_member",
-    action: "master_room_remove_member",
-    title: `Игрок убран из стола: ${target?.nickname || "игрок"}`,
-    message: `Стол: ${active.title}`,
-  });
-
-  showToast(`Убран игрок: ${target?.nickname || "игрок"}`);
+  await apiDeleteJson(`/gm/tables/${encodeURIComponent(active.id)}/members/${encodeURIComponent(String(memberId || ""))}`);
+  await loadMasterRoom();
 }
 
 async function patchMasterRoomMember(memberId, patch) {
   const active = getMasterRoomActiveTable();
   if (!active) return;
 
-  active.members = active.members.map((member) => {
-    if (member.id !== memberId) return member;
-    return normalizeMasterRoomMember({
-      ...member,
-      ...patch,
-    });
-  });
-  active.updated_at = new Date().toISOString();
+  const result = await apiWrite(
+    [`/gm/tables/${active.id}/members/${encodeURIComponent(String(memberId || ""))}`],
+    patch,
+    ["PATCH"]
+  );
+  applyMasterRoomTableResponse(result);
+  renderMasterRoom();
+}
 
-  await saveMasterRoom();
+async function patchMasterRoomTable(patch) {
+  const active = getMasterRoomActiveTable();
+  if (!active) return;
+
+  const result = await apiWrite([`/gm/tables/${active.id}`], patch, ["PATCH"]);
+  applyMasterRoomTableResponse(result);
+  renderMasterRoom();
+}
+
+async function addTraderAccessToMasterRoom(traderId) {
+  const active = getMasterRoomActiveTable();
+  if (!active) return;
+
+  const result = await apiWrite(
+    [`/gm/tables/${active.id}/trader-accesses`],
+    { trader_id: Number(traderId) },
+    ["POST"]
+  );
+  applyMasterRoomTableResponse(result);
+  renderMasterRoom();
+}
+
+async function removeTraderAccessFromMasterRoom(traderId) {
+  const active = getMasterRoomActiveTable();
+  if (!active) return;
+
+  await apiDeleteJson(`/gm/tables/${encodeURIComponent(active.id)}/trader-accesses/${encodeURIComponent(String(traderId || ""))}`);
+  await loadMasterRoom();
+}
+
+async function grantItemToMasterRoomMember(itemId) {
+  const active = getMasterRoomActiveTable();
+  const membershipId = String(getEl("masterRoomGrantMemberId")?.value || "").trim();
+  const quantity = Math.max(1, safeNumber(getEl("masterRoomGrantQuantity")?.value, 1));
+
+  if (!active) return;
+  if (!membershipId) {
+    showToast("Сначала выбери игрока");
+    return;
+  }
+
+  const result = await apiWrite(
+    [`/gm/tables/${active.id}/grants/item`],
+    {
+      membership_id: Number(membershipId),
+      item_id: Number(itemId),
+      quantity,
+    },
+    ["POST"]
+  );
+  applyMasterRoomTableResponse(result);
   renderMasterRoom();
 }
 
@@ -3614,19 +3611,55 @@ function bindMasterRoomActions() {
   const inviteInput = getEl("masterRoomInviteQuery");
   if (inviteInput && inviteInput.dataset.boundMasterRoomInviteQuery !== "1") {
     inviteInput.dataset.boundMasterRoomInviteQuery = "1";
-    inviteInput.addEventListener("input", () => {
+    inviteInput.addEventListener("input", async () => {
       MASTER_ROOM_STATE.inviteQuery = inviteInput.value || "";
+      await loadMasterRoomUsers(MASTER_ROOM_STATE.inviteQuery);
       renderMasterRoom();
     });
   }
 
-  const addManualBtn = getEl("masterRoomAddManualBtn");
-  if (addManualBtn && addManualBtn.dataset.boundMasterRoomAddManual !== "1") {
-    addManualBtn.dataset.boundMasterRoomAddManual = "1";
-    addManualBtn.addEventListener("click", async () => {
-      const nickname = String(getEl("masterRoomManualNickname")?.value || "").trim();
-      const email = String(getEl("masterRoomManualEmail")?.value || "").trim();
-      await addMemberToMasterRoom({ nickname, email });
+  const saveTableBtn = getEl("masterRoomSaveTableBtn");
+  if (saveTableBtn && saveTableBtn.dataset.boundMasterRoomSaveTable !== "1") {
+    saveTableBtn.dataset.boundMasterRoomSaveTable = "1";
+    saveTableBtn.addEventListener("click", async () => {
+      await patchMasterRoomTable({
+        title: String(getEl("masterRoomTableTitle")?.value || "").trim(),
+        status: String(getEl("masterRoomTableStatus")?.value || "").trim(),
+        notes: String(getEl("masterRoomTableNotes")?.value || "").trim(),
+        trader_access_mode: String(getEl("masterRoomTraderAccessMode")?.value || "open").trim(),
+      });
+      showToast("Стол обновлён");
+    });
+  }
+
+  const traderAccessMode = getEl("masterRoomTraderAccessMode");
+  if (traderAccessMode && traderAccessMode.dataset.boundMasterRoomTraderMode !== "1") {
+    traderAccessMode.dataset.boundMasterRoomTraderMode = "1";
+    traderAccessMode.addEventListener("change", async () => {
+      await patchMasterRoomTable({
+        trader_access_mode: String(traderAccessMode.value || "open").trim(),
+      });
+      showToast("Режим доступа к торговцам обновлён");
+    });
+  }
+
+  const traderSearchInput = getEl("masterRoomTraderSearchInput");
+  if (traderSearchInput && traderSearchInput.dataset.boundMasterRoomTraderSearch !== "1") {
+    traderSearchInput.dataset.boundMasterRoomTraderSearch = "1";
+    traderSearchInput.addEventListener("input", async () => {
+      MASTER_ROOM_STATE.traderSearchQuery = traderSearchInput.value || "";
+      await loadMasterRoomTraders(MASTER_ROOM_STATE.traderSearchQuery);
+      renderMasterRoom();
+    });
+  }
+
+  const itemSearchInput = getEl("masterRoomItemSearchInput");
+  if (itemSearchInput && itemSearchInput.dataset.boundMasterRoomItemSearch !== "1") {
+    itemSearchInput.dataset.boundMasterRoomItemSearch = "1";
+    itemSearchInput.addEventListener("input", async () => {
+      MASTER_ROOM_STATE.itemSearchQuery = itemSearchInput.value || "";
+      await loadMasterRoomItems(MASTER_ROOM_STATE.itemSearchQuery);
+      renderMasterRoom();
     });
   }
 
@@ -3651,14 +3684,12 @@ function bindMasterRoomActions() {
     });
   });
 
-  document.querySelectorAll("[data-master-room-add-known]").forEach((btn) => {
-    if (btn.dataset.boundMasterRoomAddKnown === "1") return;
-    btn.dataset.boundMasterRoomAddKnown = "1";
+  document.querySelectorAll("[data-master-room-add-user-id]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomAddUserId === "1") return;
+    btn.dataset.boundMasterRoomAddUserId = "1";
     btn.addEventListener("click", async () => {
-      await addMemberToMasterRoom({
-        nickname: btn.dataset.masterRoomAddKnown || "",
-        email: btn.dataset.masterRoomAddKnownEmail || "",
-      });
+      await addMemberToMasterRoom({ user_id: btn.dataset.masterRoomAddUserId || "" });
+      showToast("Игрок добавлен в стол");
     });
   });
 
@@ -3681,9 +3712,21 @@ function bindMasterRoomActions() {
     select.addEventListener("change", async () => {
       await patchMasterRoomMember(
         select.dataset.masterRoomMemberVisibility || "",
-        { visibility: normalizeMasterRoomVisibility(select.value) }
+        { visibility_preset: normalizeMasterRoomVisibility(select.value) }
       );
       showToast("Видимость участника обновлена");
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-member-role]").forEach((select) => {
+    if (select.dataset.boundMasterRoomMemberRole === "1") return;
+    select.dataset.boundMasterRoomMemberRole = "1";
+    select.addEventListener("change", async () => {
+      await patchMasterRoomMember(
+        select.dataset.masterRoomMemberRole || "",
+        { role_in_table: normalizeMasterRoomRole(select.value) }
+      );
+      showToast("Роль участника обновлена");
     });
   });
 
@@ -3693,26 +3736,36 @@ function bindMasterRoomActions() {
     input.addEventListener("change", async () => {
       await patchMasterRoomMember(
         input.dataset.masterRoomMemberCharacter || "",
-        { character_name: String(input.value || "").trim() }
+        { selected_character_name: String(input.value || "").trim() }
       );
       showToast("Персонаж участника обновлён");
     });
   });
 
-  document.querySelectorAll("[data-master-room-use-lss]").forEach((btn) => {
-    if (btn.dataset.boundMasterRoomUseLss === "1") return;
-    btn.dataset.boundMasterRoomUseLss = "1";
+  document.querySelectorAll("[data-master-room-add-trader-id]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomAddTraderId === "1") return;
+    btn.dataset.boundMasterRoomAddTraderId = "1";
     btn.addEventListener("click", async () => {
-      const characterName = getCurrentLssCharacterName();
-      if (!characterName) {
-        showToast("Сначала открой или загрузи LSS персонажа");
-        return;
-      }
-      await patchMasterRoomMember(
-        btn.dataset.masterRoomUseLss || "",
-        { character_name: characterName }
-      );
-      showToast("Имя персонажа подтянуто из LSS");
+      await addTraderAccessToMasterRoom(btn.dataset.masterRoomAddTraderId || "");
+      showToast("Доступ к торговцу открыт");
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-remove-trader-id]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomRemoveTraderId === "1") return;
+    btn.dataset.boundMasterRoomRemoveTraderId = "1";
+    btn.addEventListener("click", async () => {
+      await removeTraderAccessFromMasterRoom(btn.dataset.masterRoomRemoveTraderId || "");
+      showToast("Доступ к торговцу закрыт");
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-grant-item-id]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomGrantItemId === "1") return;
+    btn.dataset.boundMasterRoomGrantItemId = "1";
+    btn.addEventListener("click", async () => {
+      await grantItemToMasterRoomMember(btn.dataset.masterRoomGrantItemId || "");
+      showToast("Предмет выдан игроку");
     });
   });
 }
@@ -3724,6 +3777,13 @@ function bindMasterRoomActions() {
 export async function openCabinet() {
   const modal = ensureCabinetStructure();
   if (!modal) return;
+
+  try {
+    const profile = await fetchProfile();
+    if (profile && typeof profile === "object") {
+      syncCurrentUserProfile(profile);
+    }
+  } catch (_) {}
 
   CABINET_STATE.role = getCurrentRole();
   normalizeActiveTabForRole();

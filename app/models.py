@@ -358,6 +358,9 @@ class User(Base):
 
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
+    nickname = Column(String, default="", index=True)
+    display_name = Column(String, default="")
+    bio = Column(String, default="")
 
     is_active = Column(Boolean, default=True)
     role = Column(String, default="player")
@@ -378,6 +381,26 @@ class User(Base):
         "UserItem",
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+
+    owned_party_tables = relationship(
+        "PartyTable",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+        foreign_keys="PartyTable.owner_user_id",
+    )
+
+    party_memberships = relationship(
+        "PartyMembership",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="PartyMembership.user_id",
+    )
+
+    party_grants_created = relationship(
+        "PartyGrant",
+        back_populates="granted_by",
+        foreign_keys="PartyGrant.created_by_user_id",
     )
 
     def set_password(self, password: str) -> None:
@@ -432,6 +455,139 @@ class Character(Base):
     user = relationship("User", back_populates="characters")
 
 
+class PartyTable(Base):
+    __tablename__ = "party_tables"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    title = Column(String, nullable=False, default="Новый стол")
+    token = Column(String, nullable=False, index=True)
+    status = Column(String, default="active")
+    trader_access_mode = Column(String, default="open")
+    notes = Column(String, default="")
+    settings = Column(JSON, default=_default_dict)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    owner = relationship(
+        "User",
+        back_populates="owned_party_tables",
+        foreign_keys=[owner_user_id],
+    )
+
+    memberships = relationship(
+        "PartyMembership",
+        back_populates="table",
+        cascade="all, delete-orphan",
+    )
+
+    trader_accesses = relationship(
+        "PartyTraderAccess",
+        back_populates="table",
+        cascade="all, delete-orphan",
+    )
+
+    grants = relationship(
+        "PartyGrant",
+        back_populates="table",
+        cascade="all, delete-orphan",
+    )
+
+
+class PartyMembership(Base):
+    __tablename__ = "party_memberships"
+    __table_args__ = (
+        UniqueConstraint("table_id", "user_id", name="uq_party_memberships_table_user"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    table_id = Column(Integer, ForeignKey("party_tables.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    selected_character_id = Column(Integer, ForeignKey("characters.id"), nullable=True, index=True)
+
+    role_in_table = Column(String, default="player")
+    visibility_preset = Column(String, default="basic")
+    selected_character_name = Column(String, default="")
+    hidden_sections = Column(JSON, default=_default_dict)
+    notes = Column(String, default="")
+    status = Column(String, default="active")
+
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    table = relationship("PartyTable", back_populates="memberships")
+    user = relationship(
+        "User",
+        back_populates="party_memberships",
+        foreign_keys=[user_id],
+    )
+    selected_character = relationship("Character")
+    grants = relationship(
+        "PartyGrant",
+        back_populates="membership",
+        foreign_keys="PartyGrant.membership_id",
+    )
+
+
+class PartyTraderAccess(Base):
+    __tablename__ = "party_trader_accesses"
+    __table_args__ = (
+        UniqueConstraint("table_id", "trader_id", name="uq_party_trader_accesses_table_trader"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    table_id = Column(Integer, ForeignKey("party_tables.id"), nullable=False, index=True)
+    trader_id = Column(Integer, ForeignKey("traders.id"), nullable=False, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
+    is_enabled = Column(Boolean, default=True, nullable=False)
+    notes = Column(String, default="")
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    table = relationship("PartyTable", back_populates="trader_accesses")
+    trader = relationship("Trader")
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
+
+
+class PartyGrant(Base):
+    __tablename__ = "party_grants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    table_id = Column(Integer, ForeignKey("party_tables.id"), nullable=False, index=True)
+    membership_id = Column(Integer, ForeignKey("party_memberships.id"), nullable=True, index=True)
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    grant_type = Column(String, default="item")
+    quantity = Column(Integer, default=1, nullable=False)
+    custom_name = Column(String, default="")
+    notes = Column(String, default="")
+    meta = Column(JSON, default=_default_dict)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    table = relationship("PartyTable", back_populates="grants")
+    membership = relationship(
+        "PartyMembership",
+        back_populates="grants",
+        foreign_keys=[membership_id],
+    )
+    item = relationship("Item")
+    target_user = relationship("User", foreign_keys=[target_user_id])
+    granted_by = relationship(
+        "User",
+        back_populates="party_grants_created",
+        foreign_keys=[created_by_user_id],
+    )
+
+
 __all__ = [
     "Base",
     "SessionLocal",
@@ -442,4 +598,8 @@ __all__ = [
     "Item",
     "User",
     "Character",
+    "PartyTable",
+    "PartyMembership",
+    "PartyTraderAccess",
+    "PartyGrant",
 ]
