@@ -1,0 +1,12 @@
+BG3 Spells Split To Files
+========================
+Input: out/Spells/items.spells.probe.round2.ru.v1.json
+Output folder: out/Spells/probe_items
+Total input records: 225
+Saved files: 1
+Skipped existing: 224
+Filename collisions handled: 1
+
+Важно:
+- Этот скрипт ничего не парсит из сети.
+- Он просто берёт уже готовый общий JSON и раскладывает каждый спелл в отдельный файл.

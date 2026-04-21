@@ -1,0 +1,426 @@
+{
+  "id": "bg3_spell_солнечный_луч",
+  "entity_type": "spell",
+  "source": {
+    "system": "bg3",
+    "origin": "bg3_ru_wiki",
+    "page_title": "Солнечный луч",
+    "url": "https://baldursgate.fandom.com/ru/wiki/Солнечный_луч"
+  },
+  "spell_index_meta": {
+    "level": null,
+    "source_bucket": null,
+    "source_section": null,
+    "row_text": null,
+    "source_list": "input_seed"
+  },
+  "page_probe": {
+    "fetched_ok": true,
+    "fetch_method": "parse_api",
+    "categories": [
+      {
+        "sortkey": "",
+        "*": "Заклинания_BG3"
+      },
+      {
+        "sortkey": "",
+        "*": "Заклинания_6-го_круга_BG3"
+      }
+    ]
+  },
+  "infobox_rows": [
+    {
+      "label": "Фокус/Школа",
+      "value": "Школа эвокации"
+    },
+    {
+      "label": "Уровень",
+      "value": "6"
+    },
+    {
+      "label": "Длительность",
+      "value": "10 ходов"
+    },
+    {
+      "label": "Концентрация",
+      "value": "Требуется"
+    },
+    {
+      "label": "Дальность",
+      "value": "18 м"
+    },
+    {
+      "label": "Школа/Фокус",
+      "value": "Школа эвокации"
+    },
+    {
+      "label": "Стоимость",
+      "value": "600"
+    }
+  ],
+  "lead_paragraphs": [
+    "Заклинание Свиток Солнечный луч Общее Фокус/Школа Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Действие + Ячейка заклинания Солнечный луч Общее Школа/Фокус Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Получение Стоимость Вес 600 0.02 кг",
+    "Солнечный луч (англ. Sunbeam ) — заклинание 6-го круга в Baldur's Gate III ."
+  ],
+  "sections": [
+    {
+      "heading": "Свойства [ ]",
+      "slug": "свойства",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "Наносит 6d8 лучистого урона .",
+            "Заклинание создает луч ярчайшего света обжигает и ослепляет всех существ на своём пути.",
+            "Пока заклинание действует вы можете выпускать новый луч, не тратя ячейку заклинания ."
+          ]
+        }
+      ],
+      "paragraphs": [],
+      "bullets": [
+        "Наносит 6d8 лучистого урона .",
+        "Заклинание создает луч ярчайшего света обжигает и ослепляет всех существ на своём пути.",
+        "Пока заклинание действует вы можете выпускать новый луч, не тратя ячейку заклинания ."
+      ],
+      "tables": []
+    },
+    {
+      "heading": "Получение [ ]",
+      "slug": "получение",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Доступно:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Друидам , Чародеям , Волшебникам с 11-го уровня."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "От предметов:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Кровь Латандера"
+          ]
+        }
+      ],
+      "paragraphs": [
+        "Доступно:",
+        "От предметов:"
+      ],
+      "bullets": [
+        "Друидам , Чародеям , Волшебникам с 11-го уровня.",
+        "Кровь Латандера"
+      ],
+      "tables": []
+    },
+    {
+      "heading": "Произношение [ ]",
+      "slug": "произношение",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "«Incende!»"
+        }
+      ],
+      "paragraphs": [
+        "«Incende!»"
+      ],
+      "bullets": [],
+      "tables": []
+    },
+    {
+      "heading": "Галерея [ ]",
+      "slug": "галерея",
+      "blocks": [],
+      "paragraphs": [],
+      "bullets": [],
+      "tables": []
+    }
+  ],
+  "content_blocks": [
+    {
+      "type": "paragraph",
+      "text": "Заклинание Свиток Солнечный луч Общее Фокус/Школа Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Действие + Ячейка заклинания Солнечный луч Общее Школа/Фокус Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Получение Стоимость Вес 600 0.02 кг"
+    },
+    {
+      "type": "paragraph",
+      "text": "Солнечный луч (англ. Sunbeam ) — заклинание 6-го круга в Baldur's Gate III ."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Наносит 6d8 лучистого урона .",
+        "Заклинание создает луч ярчайшего света обжигает и ослепляет всех существ на своём пути.",
+        "Пока заклинание действует вы можете выпускать новый луч, не тратя ячейку заклинания ."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Доступно:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Друидам , Чародеям , Волшебникам с 11-го уровня."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "От предметов:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Кровь Латандера"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "«Incende!»"
+    }
+  ],
+  "internal_links": [
+    {
+      "title": "Ячейка заклинания",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%AF%D1%87%D0%B5%D0%B9%D0%BA%D0%B0_%D0%B7%D0%B0%D0%BA%D0%BB%D0%B8%D0%BD%D0%B0%D0%BD%D0%B8%D1%8F_(Baldur%27s_Gate_III)"
+    },
+    {
+      "title": "Baldur's Gate III",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Baldur%27s_Gate_III"
+    },
+    {
+      "title": "здесь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%A1%D0%BE%D0%BB%D0%BD%D0%B5%D1%87%D0%BD%D1%8B%D0%B9_%D0%BB%D1%83%D1%87_(Baldur%27s_Gate)"
+    },
+    {
+      "title": "заклинание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%97%D0%B0%D0%BA%D0%BB%D0%B8%D0%BD%D0%B0%D0%BD%D0%B8%D1%8F_(Baldur%27s_Gate_III)"
+    },
+    {
+      "title": "Друидам",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%94%D1%80%D1%83%D0%B8%D0%B4_(Baldur%27s_Gate_III)"
+    },
+    {
+      "title": "Чародеям",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%A7%D0%B0%D1%80%D0%BE%D0%B4%D0%B5%D0%B9_(Baldur%27s_Gate_III)"
+    },
+    {
+      "title": "Волшебникам",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%92%D0%BE%D0%BB%D1%88%D0%B5%D0%B1%D0%BD%D0%B8%D0%BA_(Baldur%27s_Gate_III)"
+    },
+    {
+      "title": "Кровь Латандера",
+      "url": "https://baldursgate.fandom.com/ru/wiki/%D0%9A%D1%80%D0%BE%D0%B2%D1%8C_%D0%9B%D0%B0%D1%82%D0%B0%D0%BD%D0%B4%D0%B5%D1%80%D0%B0"
+    }
+  ],
+  "qa": {
+    "thin_page": false,
+    "lead_count": 2,
+    "section_count": 4,
+    "content_block_count": 8,
+    "internal_link_count": 8,
+    "hidden_nav_table_count": 0
+  },
+  "raw_preserved": {
+    "infobox_rows_raw": [
+      {
+        "label": "Фокус/Школа",
+        "value": "Школа эвокации"
+      },
+      {
+        "label": "Уровень",
+        "value": "6"
+      },
+      {
+        "label": "Длительность",
+        "value": "10 ходов"
+      },
+      {
+        "label": "Концентрация",
+        "value": "Требуется"
+      },
+      {
+        "label": "Дальность",
+        "value": "18 м"
+      },
+      {
+        "label": "Школа/Фокус",
+        "value": "Школа эвокации"
+      },
+      {
+        "label": "Стоимость",
+        "value": "600"
+      }
+    ],
+    "lead_paragraphs_raw": [
+      "Заклинание Свиток Солнечный луч Общее Фокус/Школа Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Действие + Ячейка заклинания Солнечный луч Общее Школа/Фокус Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Получение Стоимость Вес 600 0.02 кг",
+      "Солнечный луч (англ. Sunbeam ) — заклинание 6-го круга в Baldur's Gate III ."
+    ],
+    "sections_raw": [
+      {
+        "heading": "Свойства [ ]",
+        "slug": "свойства",
+        "blocks": [
+          {
+            "type": "list",
+            "items": [
+              "Наносит 6d8 лучистого урона .",
+              "Заклинание создает луч ярчайшего света обжигает и ослепляет всех существ на своём пути.",
+              "Пока заклинание действует вы можете выпускать новый луч, не тратя ячейку заклинания ."
+            ]
+          }
+        ],
+        "paragraphs": [],
+        "bullets": [
+          "Наносит 6d8 лучистого урона .",
+          "Заклинание создает луч ярчайшего света обжигает и ослепляет всех существ на своём пути.",
+          "Пока заклинание действует вы можете выпускать новый луч, не тратя ячейку заклинания ."
+        ],
+        "tables": []
+      },
+      {
+        "heading": "Получение [ ]",
+        "slug": "получение",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Доступно:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "Друидам , Чародеям , Волшебникам с 11-го уровня."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "text": "От предметов:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "Кровь Латандера"
+            ]
+          }
+        ],
+        "paragraphs": [
+          "Доступно:",
+          "От предметов:"
+        ],
+        "bullets": [
+          "Друидам , Чародеям , Волшебникам с 11-го уровня.",
+          "Кровь Латандера"
+        ],
+        "tables": []
+      },
+      {
+        "heading": "Произношение [ ]",
+        "slug": "произношение",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "«Incende!»"
+          }
+        ],
+        "paragraphs": [
+          "«Incende!»"
+        ],
+        "bullets": [],
+        "tables": []
+      },
+      {
+        "heading": "Галерея [ ]",
+        "slug": "галерея",
+        "blocks": [],
+        "paragraphs": [],
+        "bullets": [],
+        "tables": []
+      }
+    ],
+    "content_blocks_raw": [
+      {
+        "type": "paragraph",
+        "text": "Заклинание Свиток Солнечный луч Общее Фокус/Школа Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Действие + Ячейка заклинания Солнечный луч Общее Школа/Фокус Школа эвокации Уровень 6 Статистика Длительность 10 ходов Концентрация Требуется Дальность 18 м Получение Стоимость Вес 600 0.02 кг"
+      },
+      {
+        "type": "paragraph",
+        "text": "Солнечный луч (англ. Sunbeam ) — заклинание 6-го круга в Baldur's Gate III ."
+      },
+      {
+        "type": "list",
+        "items": [
+          "Наносит 6d8 лучистого урона .",
+          "Заклинание создает луч ярчайшего света обжигает и ослепляет всех существ на своём пути.",
+          "Пока заклинание действует вы можете выпускать новый луч, не тратя ячейку заклинания ."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Доступно:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Друидам , Чародеям , Волшебникам с 11-го уровня."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "От предметов:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Кровь Латандера"
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "«Incende!»"
+      }
+    ],
+    "internal_links_raw": [
+      {
+        "title": "Ячейка заклинания",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%AF%D1%87%D0%B5%D0%B9%D0%BA%D0%B0_%D0%B7%D0%B0%D0%BA%D0%BB%D0%B8%D0%BD%D0%B0%D0%BD%D0%B8%D1%8F_(Baldur%27s_Gate_III)"
+      },
+      {
+        "title": "Baldur's Gate III",
+        "url": "https://baldursgate.fandom.com/ru/wiki/Baldur%27s_Gate_III"
+      },
+      {
+        "title": "здесь",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%A1%D0%BE%D0%BB%D0%BD%D0%B5%D1%87%D0%BD%D1%8B%D0%B9_%D0%BB%D1%83%D1%87_(Baldur%27s_Gate)"
+      },
+      {
+        "title": "заклинание",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%97%D0%B0%D0%BA%D0%BB%D0%B8%D0%BD%D0%B0%D0%BD%D0%B8%D1%8F_(Baldur%27s_Gate_III)"
+      },
+      {
+        "title": "Друидам",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%94%D1%80%D1%83%D0%B8%D0%B4_(Baldur%27s_Gate_III)"
+      },
+      {
+        "title": "Чародеям",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%A7%D0%B0%D1%80%D0%BE%D0%B4%D0%B5%D0%B9_(Baldur%27s_Gate_III)"
+      },
+      {
+        "title": "Волшебникам",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%92%D0%BE%D0%BB%D1%88%D0%B5%D0%B1%D0%BD%D0%B8%D0%BA_(Baldur%27s_Gate_III)"
+      },
+      {
+        "title": "Кровь Латандера",
+        "url": "https://baldursgate.fandom.com/ru/wiki/%D0%9A%D1%80%D0%BE%D0%B2%D1%8C_%D0%9B%D0%B0%D1%82%D0%B0%D0%BD%D0%B4%D0%B5%D1%80%D0%B0"
+      }
+    ],
+    "hidden_nav_tables_raw": [],
+    "notes": [],
+    "unclassified": []
+  }
+}

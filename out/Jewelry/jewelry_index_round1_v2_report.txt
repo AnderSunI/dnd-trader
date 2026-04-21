@@ -1,0 +1,23 @@
+BG3 Jewelry Index Probe Round1 v2
+================================
+Family: jewelry
+Pages: 1
+Total unique items: 64
+
+PAGE: jewelry
+Title: Украшения (Baldur's Gate III)
+Items: 64
+  - Амулеты: 0
+  - Обычные амулеты: 22
+  - Необычные амулеты: 15
+  - Редкие амулеты: 17
+  - Очень редкие амулеты: 9
+  - Сюжетные амулеты: 5
+
+Collapsed duplicate titles:
+  - none
+
+Notes:
+- v2 walks full section nodes like working weapons index
+- parse API is used to avoid 403
+- no aggressive cleanup, only safe link indexing

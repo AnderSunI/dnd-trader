@@ -1,0 +1,23 @@
+BG3 Jewelry Index Probe Round1
+==============================
+Family: jewelry
+Pages: 1
+Total unique items: 0
+
+PAGE: jewelry
+Title: Украшения (Baldur's Gate III)
+Items: 0
+  - Обычные амулеты: 0
+  - Необычные амулеты: 0
+  - Редкие амулеты: 0
+  - Очень редкие амулеты: 0
+  - Сюжетные амулеты: 0
+
+Outputs:
+- JSON: out/Jewelry/items.jewelry.index.round1.json
+- titles: out/Jewelry/jewelry_titles_round1.txt
+
+Notes:
+- round1 only builds a safe index
+- no aggressive cleanup
+- next step is batch probe by titles file

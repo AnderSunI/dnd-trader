@@ -1,0 +1,15 @@
+BG3 RU Spells Probe — one file per spell
+========================================
+Generated at UTC: 2026-04-21T14:35:42.852349+00:00
+Input: out/Spells/items.spells.index.round1.ru.v1.json
+Output dir: out/Spells/probe_items
+Total input records: 226
+Saved per-spell JSON files: 0
+Skipped existing: 226
+Failed: 0
+Thin pages: 0
+
+Important:
+- Этот режим НЕ пишет один общий huge probe json.
+- Каждый спелл сохраняется отдельным JSON-файлом в probe_items/.
+- Если страница бедная, файл всё равно сохраняется отдельно и помечается thin_page.

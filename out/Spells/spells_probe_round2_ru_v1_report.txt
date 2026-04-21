@@ -1,0 +1,44 @@
+BG3 Spells Batch Probe Round2 RU v1
+=================================
+Family: spells
+Source: bg3_ru_wiki
+Input index items: 226
+Fetched ok: 225
+Failed: 1
+Records with infobox rows: 225
+Thin pages flagged: 3
+Output JSON: out/Spells/items.spells.probe.round2.ru.v1.json
+
+Extraction sources:
+  - parse_api: 225
+
+Buckets:
+  - cantrip: 22
+  - item_granted: 20
+  - level_1: 54
+  - level_2: 40
+  - level_3: 32
+  - level_4: 20
+  - level_5: 16
+  - level_6: 19
+  - unique_npc: 2
+
+Sections:
+  - 1-й круг: 54
+  - 2-й круг: 40
+  - 3-й круг: 32
+  - 4-й круг: 20
+  - 5-й круг: 16
+  - 6-й круг: 19
+  - Заклинания от предметов: 20
+  - Уникальные и для НПС: 2
+  - Фокусы: 22
+
+Failures:
+  - Увеличение/Уменьшение: parse_api failed: API parse error for Уменьшение: {'code': 'missingtitle', 'info': "The page you specified doesn't exist.", '*': 'See https://baldursgate.fandom.com/ru/api.php for API usage. Subscribe to the mediawiki-api-announce mailing list at &lt;https://lists.wikimedia.org/postorius/lists/mediawiki-api-announce.lists.wikimedia.org/&gt; for notice of API deprecations and breaking changes.'}; page_html failed: 403 Client Error: Forbidden for url: https://baldursgate.fandom.com/ru/wiki/%D0%A3%D0%B2%D0%B5%D0%BB%D0%B8%D1%87%D0%B5%D0%BD%D0%B8%D0%B5/%D0%A3%D0%BC%D0%B5%D0%BD%D1%8C%D1%88%D0%B5%D0%BD%D0%B8%D0%B5
+
+Notes:
+- round2 умеет fallback на обычный HTML страницы, если parse API дал бедную запись или умер
+- flow extraction стал глубже: вложенные div/section больше не теряются
+- hidden bg-nav таблицы сохраняются отдельно в probe и не пропадают
+- это всё ещё safe probe, а не финальный canonical layer
