@@ -10,6 +10,8 @@
 // - совместим со старым index.html и текущим app.js
 // ============================================================
 
+import { buildRestockButtonsMarkup } from "./modules/traderUiHelpers.js";
+
 function safe(value, fallback = "") {
   return value === null || value === undefined ? fallback : value;
 }
@@ -1073,9 +1075,12 @@ function buildTraderHeader(trader) {
   const hasImage = Boolean(imageUrl);
 
   const repStars = getReputationStars(trader?.reputation);
-  const repTitle = getTraderQuality(trader?.reputation);
-  const currentDiscount = getTraderDiscountPercent(trader?.reputation);
+  const repTitle = trader?.skill_label || getTraderQuality(trader?.reputation);
+  const currentDiscount = Number.isFinite(Number(trader?.discount_percent))
+    ? Number(trader?.discount_percent)
+    : getTraderDiscountPercent(trader?.reputation);
   const traderEmoji = getTraderEmoji(trader?.type);
+  const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
 
   return `
     <div class="trader-modal-header">
@@ -1104,12 +1109,14 @@ function buildTraderHeader(trader) {
         </div>
 
         <div class="trader-detail-section trader-reputation-box">
-          <p><strong>⭐ Репутация:</strong> ${escapeHtml(repTitle)}</p>
+          <p><strong>⭐ Репутация:</strong> ${escapeHtml(String(trader?.reputation ?? 0))}</p>
+          <p><strong>🏷 Скилл торговца:</strong> ${escapeHtml(repTitle)}</p>
           <p><strong>💸 Текущая скидка:</strong> ${escapeHtml(String(currentDiscount))}%</p>
           <p><strong>🎯 Специализация:</strong> ${escapeHtml(specialization)}</p>
           <p><strong>💰 Золото торговца:</strong> ${escapeHtml(
             String(trader?.money_label || trader?.gold_label || trader?.gold || "—")
           )}</p>
+          ${restockButtonsMarkup}
         </div>
 
         <div class="trader-detail-section">

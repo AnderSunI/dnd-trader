@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import random
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from ..auth import get_optional_current_user
@@ -15,7 +17,10 @@ from ..models import (
     TraderItem,
     User,
 )
-
+from ..services.trader_progression import (
+    trader_discount_percent,
+    trader_skill_label,
+)
 
 def create_traders_router(
     *,
@@ -34,6 +39,11 @@ def create_traders_router(
     - деньги торговца наружу отдаём уже через новую money-модель
     """
     router = APIRouter(tags=["traders"])
+
+    class TraderRestockRequest(BaseModel):
+        # Если true — делаем мягкий "реролл" количества.
+        # Если false — просто дотягиваем до базового запаса.
+        reroll: bool = False
 
     # ========================================================
     # 🧰 HELPERS
@@ -310,6 +320,11 @@ def create_traders_router(
             "type": safe_str(trader.type),
             "specialization": parse_json_list(trader.specialization),
             "reputation": safe_int(trader.reputation, 0),
+            # Новые поля для фронта:
+            # - skill_label: "ранг" торговца по репутации
+            # - discount_percent: текущая скидка на покупку у торговца
+            "skill_label": trader_skill_label(trader.reputation),
+            "discount_percent": trader_discount_percent(trader.reputation),
             "region": safe_str(trader.region),
             "settlement": safe_str(trader.settlement),
             "level_min": safe_int(trader.level_min, 1),
@@ -570,4 +585,73 @@ def create_traders_router(
             "rarities": rarities,
         }
 
+    # ========================================================
+    # 🔄 RESTOCK (ручное обновление ассортимента)
+    # ========================================================
+
+    @router.post("/traders/{trader_id}/restock")
+    def restock_trader(
+        trader_id: int,
+        payload: TraderRestockRequest,
+        db: Session = Depends(get_db),
+    ):
+        """
+        Ручной restock торговца для кнопки на фронте.
+
+        Безопасный режим:
+        - locked-слоты не трогаем
+        - не удаляем товары
+        - обновляем только quantity
+        """
+        trader = (
+            db.query(Trader)
+            .options(
+                joinedload(Trader.trader_items).joinedload(TraderItem.item)
+            )
+            .filter(Trader.id == trader_id)
+            .first()
+        )
+
+        if not trader:
+            return {
+                "status": "error",
+                "detail": "Торговец не найден",
+            }
+
+        changed = 0
+
+        for slot in trader.trader_items or []:
+            if not slot.item:
+                continue
+            if bool(slot.restock_locked):
+                continue
+
+            base_stock = max(1, safe_int(slot.item.stock, 1))
+            current_qty = max(0, safe_int(slot.quantity, 0))
+
+            if payload.reroll:
+                # Мягкий реролл: 80%-130% от базового.
+                # Чтобы витрина менялась, но не превращалась в хаос.
+                next_qty = max(1, int(round(base_stock * random.uniform(0.8, 1.3))))
+            else:
+                # Стандартный restock: просто дотягиваем минимум до базы.
+                next_qty = max(current_qty, base_stock)
+
+            if next_qty != current_qty:
+                slot.quantity = next_qty
+                db.add(slot)
+                changed += 1
+
+        trader.last_restock = "manual"
+        db.add(trader)
+        db.commit()
+        db.refresh(trader)
+
+        return {
+            "status": "ok",
+            "trader_id": trader.id,
+            "updated_slots": changed,
+            "mode": "reroll" if payload.reroll else "refill",
+            "trader": serialize_trader(trader),
+        }
     return router

@@ -15,6 +15,7 @@ from .pricing import (
     calculate_buy_price_cp,
     calculate_sell_price_cp,
 )
+from .trader_progression import update_reputation_after_trade
 
 
 def normalize_quantity(value: int | None) -> int:
@@ -314,6 +315,13 @@ def buy_item(
             trader.money_cp_total,
             total_price_cp,
         )
+        # Репутация растёт после покупки у торговца:
+        # чем больше покупок, тем лучше отношение и цены в будущем.
+        trader.reputation = update_reputation_after_trade(
+            trader.reputation,
+            action="buy",
+            quantity=quantity,
+        )
 
         slot.quantity = current_stock - quantity
 
@@ -348,6 +356,8 @@ def buy_item(
             "trader_id": trader_id,
             "trader_gold": int(trader.gold or 0),
             "trader_stock": int(slot.quantity or 0),
+            # Явно отдаём новую репутацию, чтобы фронт не пересчитывал её сам.
+            "trader_reputation": int(trader.reputation or 0),
             "player_item_quantity": int(user_item.quantity or 0),
             **split_price_payload("trader_money", trader.money_cp_total),
             **cp_payload(user.money_cp_total),
@@ -413,6 +423,13 @@ def sell_item(
             trader.money_cp_total,
             total_reward_cp,
         )
+        # Репутация тоже растёт после продажи торговцу,
+        # но мягче, чем при покупке (чтобы не абьюзить фарм).
+        trader.reputation = update_reputation_after_trade(
+            trader.reputation,
+            action="sell",
+            quantity=quantity,
+        )
 
         new_user_quantity = current_user_quantity - quantity
         if new_user_quantity <= 0:
@@ -455,6 +472,8 @@ def sell_item(
             "trader_id": trader_id,
             "trader_gold": int(trader.gold or 0),
             "trader_stock": int(slot.quantity or 0),
+            # Отдаём текущее значение для мгновенного обновления UI.
+            "trader_reputation": int(trader.reputation or 0),
             "player_item_quantity": int(player_item_quantity or 0),
             **split_price_payload("trader_money", trader.money_cp_total),
             **cp_payload(user.money_cp_total),

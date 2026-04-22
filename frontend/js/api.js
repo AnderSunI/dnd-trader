@@ -333,6 +333,29 @@ export async function fetchTraderById(traderId) {
   return apiGet(`/traders/${Number(traderId)}`);
 }
 
+export async function restockTrader(traderId, { reroll = false } = {}) {
+  const id = Number(traderId);
+  const payload = { reroll: Boolean(reroll) };
+
+  // Держим fallback-маршрут для совместимости старых стендов,
+  // где мог использоваться /trader/{id}/restock вместо /traders/{id}/restock.
+  const attempts = [
+    () => apiPost(`/traders/${id}/restock`, payload),
+    () => apiPost(`/trader/${id}/restock`, payload),
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      return await attempt();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Не удалось выполнить restock торговца");
+}
+
 // ------------------------------------------------------------
 // 🎒 INVENTORY / TRADE
 // ------------------------------------------------------------
@@ -494,6 +517,7 @@ window.apiModule = {
   activateGmMode,
   fetchTraders,
   fetchTraderById,
+  restockTrader,
   fetchPlayerInventory,
   buyItem,
   sellItem,
