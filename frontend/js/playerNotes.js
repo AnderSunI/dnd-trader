@@ -12,6 +12,21 @@
 // - пишет события в history.js
 // ============================================================
 
+import {
+  apiGet,
+  apiWrite as sharedApiWrite,
+  buildUserScopedStorageKey,
+  escapeHtml,
+  formatTime,
+  getCurrentRole,
+  getEl,
+  normalizeRole,
+  safeText,
+  showToast,
+  trimText,
+  tryParseJson,
+} from "./shared.js";
+
 // ------------------------------------------------------------
 // 🌐 STATE
 // ------------------------------------------------------------
@@ -34,122 +49,16 @@ const PLAYER_NOTES_STATE = {
 // ------------------------------------------------------------
 // 🧰 HELPERS
 // ------------------------------------------------------------
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
-
-function getHeaders(withJson = false) {
-  const headers = {};
-  const token = getToken();
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (withJson) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  return headers;
-}
-
-function getEl(id) {
-  return document.getElementById(id);
-}
-
-function showToast(message) {
-  if (typeof window.showToast === "function") {
-    window.showToast(message);
-    return;
-  }
-  console.log(message);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function safeText(value, fallback = "") {
-  if (value === null || value === undefined || value === "") return fallback;
-  return String(value);
-}
-
-function trimText(value) {
-  return String(value ?? "").trim();
-}
-
-function normalizeRole(role) {
-  const raw = String(role || "").trim().toLowerCase();
-  if (raw === "gm" || raw === "admin") return "gm";
-  return "player";
-}
-
-function getCurrentRole() {
-  return normalizeRole(
-    window.__appUserRole ||
-      window.__userRole ||
-      window.__appUser?.role ||
-      document.body?.dataset?.role ||
-      "player"
-  );
-}
-
-function tryParseJson(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-async function apiGet(urls) {
-  const list = Array.isArray(urls) ? urls : [urls];
-
-  for (const url of list) {
-    try {
-      const res = await fetch(url, { headers: getHeaders() });
-      if (!res.ok) continue;
-      return await res.json();
-    } catch (_) {}
-  }
-
-  return null;
-}
-
 async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {
-  const list = Array.isArray(urls) ? urls : [urls];
-
-  for (const method of methods) {
-    for (const url of list) {
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: getHeaders(true),
-          body: JSON.stringify(body),
-        });
-
-        if (!res.ok) continue;
-        return await res.json().catch(() => ({}));
-      } catch (_) {}
-    }
+  const result = await sharedApiWrite(urls, body, methods);
+  if (result === null) {
+    throw new Error("Failed to save notes");
   }
-
-  throw new Error("Failed to save notes");
+  return result;
 }
 
 function getLocalStorageKey() {
-  const user = window.__appUser;
-  const userKey =
-    user?.email ||
-    user?.id ||
-    (getToken() ? "auth-user" : "guest");
-
-  return `playerNotes:${userKey}`;
+  return buildUserScopedStorageKey("playerNotes:");
 }
 
 function saveLocalState(payload) {
@@ -344,20 +253,6 @@ function renderRichText(value, fallback = "—") {
 
 function getPlainTextLength(value) {
   return docToPlainText(value).trim().length;
-}
-
-function formatTime(value) {
-  if (!value) return "—";
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
 }
 
 // ------------------------------------------------------------

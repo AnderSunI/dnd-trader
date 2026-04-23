@@ -1,0 +1,53 @@
+BG3 Spells Batch Probe Round1 RU v1
+=================================
+Family: spells
+Source: bg3_ru_wiki
+Input index items: 226
+Fetched ok: 225
+Failed: 1
+Records with infobox rows: 225
+Output JSON: out/Spells/items.spells.probe.round1.ru.v1.json
+
+Buckets:
+  - cantrip: 22
+  - item_granted: 20
+  - level_1: 54
+  - level_2: 40
+  - level_3: 32
+  - level_4: 20
+  - level_5: 16
+  - level_6: 19
+  - unique_npc: 2
+
+Sections:
+  - 1-й круг: 54
+  - 2-й круг: 40
+  - 3-й круг: 32
+  - 4-й круг: 20
+  - 5-й круг: 16
+  - 6-й круг: 19
+  - Заклинания от предметов: 20
+  - Уникальные и для НПС: 2
+  - Фокусы: 22
+
+Top categories:
+  - Действия: 222
+  - Заклинания_1-го_круга_BG3: 59
+  - Заклинания_2-го_круга_BG3: 43
+  - Заклинания_3-го_круга_BG3: 36
+  - Фокусы: 24
+  - Заклинания_4-го_круга_BG3: 21
+  - Заклинания_6-го_круга_BG3: 21
+  - Заклинания_5-го_круга_BG3: 20
+  - Бонусные_действия: 2
+  - Заклинания_BG3_(1_уровень): 1
+  - Заклинания_BG3: 1
+
+Failures:
+  - Увеличение/Уменьшение: API parse error for Уменьшение: {'code': 'missingtitle', 'info': "The page you specified doesn't exist.", '*': 'See https://baldursgate.fandom.com/ru/api.php for API usage. Subscribe to the mediawiki-api-announce mailing list at &lt;https://lists.wikimedia.org/postorius/lists/mediawiki-api-announce.lists.wikimedia.org/&gt; for notice of API deprecations and breaking changes.'}
+
+Notes:
+- safe probe only, no aggressive cleanup
+- spell pages are first-class records, not junk
+- item_granted and unique_npc are preserved
+- content blocks and sections are kept raw for later parser/master stage

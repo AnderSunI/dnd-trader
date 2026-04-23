@@ -1,12 +1,26 @@
 from __future__ import annotations
 
 import json
+import random
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
-from ..models import Item, Trader, TraderItem
-
+from ..auth import get_optional_current_user
+from ..models import (
+    Item,
+    PartyMembership,
+    PartyTable,
+    PartyTraderAccess,
+    Trader,
+    TraderItem,
+    User,
+)
+from ..services.trader_progression import (
+    trader_discount_percent,
+    trader_skill_label,
+)
 
 def create_traders_router(
     *,
@@ -25,6 +39,11 @@ def create_traders_router(
     - деньги торговца наружу отдаём уже через новую money-модель
     """
     router = APIRouter(tags=["traders"])
+
+    class TraderRestockRequest(BaseModel):
+        # Если true — делаем мягкий "реролл" количества.
+        # Если false — просто дотягиваем до базового запаса.
+        reroll: bool = False
 
     # ========================================================
     # 🧰 HELPERS
@@ -301,6 +320,11 @@ def create_traders_router(
             "type": safe_str(trader.type),
             "specialization": parse_json_list(trader.specialization),
             "reputation": safe_int(trader.reputation, 0),
+            # Новые поля для фронта:
+            # - skill_label: "ранг" торговца по репутации
+            # - discount_percent: текущая скидка на покупку у торговца
+            "skill_label": trader_skill_label(trader.reputation),
+            "discount_percent": trader_discount_percent(trader.reputation),
             "region": safe_str(trader.region),
             "settlement": safe_str(trader.settlement),
             "level_min": safe_int(trader.level_min, 1),
@@ -327,6 +351,50 @@ def create_traders_router(
             "inventory_count": len(items),
         }
 
+    def get_allowed_trader_ids_for_user(
+        db: Session,
+        current_user: User | None,
+    ) -> set[int] | None:
+        if not current_user:
+            return None
+
+        role = str(current_user.role or "").strip().lower()
+        if role in {"gm", "admin"}:
+            return None
+
+        memberships = (
+            db.query(PartyMembership)
+            .join(PartyTable, PartyTable.id == PartyMembership.table_id)
+            .filter(
+                PartyMembership.user_id == current_user.id,
+                PartyMembership.status == "active",
+                PartyTable.status == "active",
+            )
+            .all()
+        )
+
+        if not memberships:
+            return None
+
+        restricted_table_ids = {
+            int(membership.table_id)
+            for membership in memberships
+            if membership.table and str(membership.table.trader_access_mode or "open") == "restricted"
+        }
+
+        if not restricted_table_ids:
+            return None
+
+        rows = (
+            db.query(PartyTraderAccess)
+            .filter(
+                PartyTraderAccess.table_id.in_(restricted_table_ids),
+                PartyTraderAccess.is_enabled.is_(True),
+            )
+            .all()
+        )
+        return {int(row.trader_id) for row in rows}
+
     # ========================================================
     # 🏪 LIST ALL TRADERS
     # ========================================================
@@ -338,6 +406,7 @@ def create_traders_router(
         region: str | None = Query(default=None),
         trader_type: str | None = Query(default=None),
         search: str | None = Query(default=None),
+        current_user: User | None = Depends(get_optional_current_user),
         db: Session = Depends(get_db),
     ):
         """
@@ -352,6 +421,7 @@ def create_traders_router(
             .order_by(Trader.id.asc())
             .all()
         )
+        allowed_trader_ids = get_allowed_trader_ids_for_user(db, current_user)
 
         normalized_category = safe_str(category).strip().lower()
         normalized_rarity = safe_str(rarity).strip().lower()
@@ -362,6 +432,9 @@ def create_traders_router(
         result: list[dict] = []
 
         for trader in traders:
+            if allowed_trader_ids is not None and trader.id not in allowed_trader_ids:
+                continue
+
             serialized = serialize_trader(trader)
 
             if normalized_region and normalized_region != "all":
@@ -417,11 +490,19 @@ def create_traders_router(
     @router.get("/traders/{trader_id}")
     def get_trader(
         trader_id: int,
+        current_user: User | None = Depends(get_optional_current_user),
         db: Session = Depends(get_db),
     ):
         """
         Получить одного торговца с актуальным составом items.
         """
+        allowed_trader_ids = get_allowed_trader_ids_for_user(db, current_user)
+        if allowed_trader_ids is not None and trader_id not in allowed_trader_ids:
+            return {
+                "status": "error",
+                "detail": "Торговец недоступен для текущей партии",
+            }
+
         trader = (
             db.query(Trader)
             .options(
@@ -504,4 +585,73 @@ def create_traders_router(
             "rarities": rarities,
         }
 
+    # ========================================================
+    # 🔄 RESTOCK (ручное обновление ассортимента)
+    # ========================================================
+
+    @router.post("/traders/{trader_id}/restock")
+    def restock_trader(
+        trader_id: int,
+        payload: TraderRestockRequest,
+        db: Session = Depends(get_db),
+    ):
+        """
+        Ручной restock торговца для кнопки на фронте.
+
+        Безопасный режим:
+        - locked-слоты не трогаем
+        - не удаляем товары
+        - обновляем только quantity
+        """
+        trader = (
+            db.query(Trader)
+            .options(
+                joinedload(Trader.trader_items).joinedload(TraderItem.item)
+            )
+            .filter(Trader.id == trader_id)
+            .first()
+        )
+
+        if not trader:
+            return {
+                "status": "error",
+                "detail": "Торговец не найден",
+            }
+
+        changed = 0
+
+        for slot in trader.trader_items or []:
+            if not slot.item:
+                continue
+            if bool(slot.restock_locked):
+                continue
+
+            base_stock = max(1, safe_int(slot.item.stock, 1))
+            current_qty = max(0, safe_int(slot.quantity, 0))
+
+            if payload.reroll:
+                # Мягкий реролл: 80%-130% от базового.
+                # Чтобы витрина менялась, но не превращалась в хаос.
+                next_qty = max(1, int(round(base_stock * random.uniform(0.8, 1.3))))
+            else:
+                # Стандартный restock: просто дотягиваем минимум до базы.
+                next_qty = max(current_qty, base_stock)
+
+            if next_qty != current_qty:
+                slot.quantity = next_qty
+                db.add(slot)
+                changed += 1
+
+        trader.last_restock = "manual"
+        db.add(trader)
+        db.commit()
+        db.refresh(trader)
+
+        return {
+            "status": "ok",
+            "trader_id": trader.id,
+            "updated_slots": changed,
+            "mode": "reroll" if payload.reroll else "refill",
+            "trader": serialize_trader(trader),
+        }
     return router

@@ -1,0 +1,4154 @@
+{
+  "family": "spells",
+  "source": "bg3_ru_wiki",
+  "round": 1,
+  "version": "ru_v1",
+  "source_page": "https://baldursgate.fandom.com/ru/wiki/%D0%97%D0%B0%D0%BA%D0%BB%D0%B8%D0%BD%D0%B0%D0%BD%D0%B8%D1%8F_(Baldur%27s_Gate_III)",
+  "total_unique_spells": 226,
+  "bucket_counts": {
+    "cantrip": 22,
+    "item_granted": 20,
+    "level_1": 54,
+    "level_2": 41,
+    "level_3": 32,
+    "level_4": 20,
+    "level_5": 16,
+    "level_6": 19,
+    "unique_npc": 2
+  },
+  "sections": [
+    {
+      "section_label": "Фокусы",
+      "source_bucket": "cantrip",
+      "item_count": 22,
+      "items": [
+        {
+          "title": "Брызги яда",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Брызги_яда",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Брызги яда Poison Spray Друид Чародей Волшебник Колдун Домен природы Потусторонний рыцарь Мистический трикстер Фокус воплощения «Venenum!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Верный удар",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Верный_удар",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Верный удар True Strike Бард Волшебник Колдун Чародей Следопыт Потусторонний рыцарь Мистический трикстер Фокус прорицания Не озвучено. Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Всплеск кислоты",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Всплеск_кислоты",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Всплеск кислоты Acid Splash Волшебник Чародей Потусторонний рыцарь Мистический трикстер Фокус воплощения «Acidum!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Дружба",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Дружба",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Дружба Friends Бард Волшебник Чародей Колдун Потусторонний рыцарь Мистический трикстер Фокус очарования Не озвучено. Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Пробирающий до костей холод",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пробирающий_до_костей_холод",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Пробирающий до костей холод Chill Touch Волшебник Чародей Колдун Друид Потусторонний рыцарь Мистический трикстер Бард Фокус некромантии Time! Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ледяной луч",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ледяной_луч",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Ледяной луч Ray of Frost Волшебник Чародей Круг спор Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Фокус эвокации «Glacies!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Магическая рука",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Магическая_рука",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Магическая рука Mage Hand Бард Волшебник Колдун Чародей Потусторонний рыцарь Мистический трикстер Фокус воплощения «Veni et iuva me!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Малая иллюзия",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Малая_иллюзия",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Малая иллюзия Minor Illusion Бард Волшебник Чародей Колдун Потусторонний рыцарь Мистический трикстер Путь тени Фокус иллюзии Не озвучено. Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Наставление",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Наставление",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Наставление Guidance Жрец Друид Колдун Фокус прорицания «Maior, fortior!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Оберег от оружия",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Оберег_от_оружия",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Оберег от оружия Blade Ward Бард Жрец Волшебник Чародей Колдун Потусторонний рыцарь Мистический трикстер Фокус преграждения «Maior, fortior!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненный снаряд",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_снаряд",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Огненный снаряд Fire Bolt Волшебник Чародей Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Фокус эвокации «Ignis!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Пляшущие огоньки",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пляшущие_огоньки",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Пляшущие огоньки Dancing Lights Бард Волшебник Чародей Потусторонний рыцарь Мистический трикстер Фокус эвокации «Fiat lux!» / «Sol Invictus!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Потусторонний разряд",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Потусторонний_разряд",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Потусторонний разряд Eldritch Blast Колдун Коллегия Знаний Бард Фокус эвокации «Dolor!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Свет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Свет",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Свет Light Бард Жрец Чародей Волшебник Потусторонний рыцарь Мистический трикстер Фокус эвокации «Fiat lux!» / «Sol Invictus!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Священное пламя",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Священное_пламя",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Священное пламя Sacred Flame Жрец Следопыт Коллегия Знаний Бард Фокус эвокации «Incende!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Создание пламени",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Создание_пламени",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Создание пламени Produce Flame Жрец Друид Фокус воплощения «Fiat lux!» / «Sol Invictus!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Тавматургия",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Тавматургия",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Тавматургия Thaumaturgy Жрец Фокус превращения «Maior, fortior!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Терновый хлыст",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Терновый_хлыст",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Терновый хлыст Thorn Whip Друид Жрец Домен природы Колдун Фокус превращения «Ververo!» / «Flagello!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Устойчивость",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Устойчивость",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Устойчивость Resistance Друид Жрец Фокус преграждения «Intactilis sum!» / «Resisto!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Шиллейла",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Шиллейла",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Шиллейла Shillelagh Друид Домен природы Фокус превращения «Canto te!» / «Para bellum!» Бонусное действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Шоковое прикосновение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Шоковое_прикосновение",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Шоковое прикосновение Shocking Grasp Волшебник Чародей Потусторонний рыцарь Мистический трикстер Фокус эвокации «Fulgur!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Язвительная насмешка",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Язвительная_насмешка",
+          "level": "C",
+          "source_bucket": "cantrip",
+          "source_section": "Фокусы",
+          "row_text": "Язвительная насмешка Vicious Mockery Бард Колдун Фокус очарования «This'll be mean.» Действие",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "1-й круг",
+      "source_bucket": "level_1",
+      "item_count": 54,
+      "items": [
+        {
+          "title": "Адское возмездие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Адское_возмездие",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Адское возмездие Hellish Rebuke Колдун Клятвопреступник Коллегия Знаний Бард Школа эвокации «Arde!» Ответное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Благословение (Baldur's Gate III)",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Благословение_(Baldur's_Gate_III)",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Благословение Bless Жрец Паладин Коллегия Знаний Бард Школа очарования «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Божественная благодать",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Божественная_благодать",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Божественная благодать Divine Favour Домен войны Паладин Школа эвокации «Fiat voluntas dei!» / «Ad maiorem dei gloriam!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Броня Агафиса",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Броня_Агафиса",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Броня Агафиса Armour of Agathys Колдун Чародей Потомок драконов Коллегия Знаний Бард Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ведьмовской разряд",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ведьмовской_разряд",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Ведьмовской разряд Witch Bolt Чародей Колдун Волшебник Потусторонний рыцарь Мистический трикстер Школа эвокации «Perure!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Вкусные ягоды",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Вкусные_ягоды",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Вкусные ягоды Goodberry Друид Следопыт Школа превращения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Волшебная стрела",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_стрела",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Волшебная стрела Magic Missile Волшебник Чародей Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Школа эвокации «Tormentum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Вызов на дуэль",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Вызов_на_дуэль",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Вызов на дуэль Compelled Duel Бард Паладин Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Героизм",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Героизм",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Героизм Heroism Паладин Школа очарования «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Град шипов",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Град_шипов",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Град шипов Hail of Thorns Следопыт Школа воплощения «Dialino!» Действие + Ячейка заклинания + Бонусное действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Громовая волна",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Громовая_волна",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Громовая волна Thunderwave Бард Друид Чародей Волшебник Домен бури Потусторонний рыцарь Мистический трикстер Школа эвокации «Detono!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Громовая кара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Громовая_кара",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Громовая кара Thunderous Smite Паладин Коллегия Знаний Бард Школа эвокации «Detono!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Диссонирующий шепот",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Диссонирующий_шепот",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Диссонирующий шепот Dissonant Whispers Бард Великий Древний Школа очарования «Dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Дружба с животным",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Дружба_с_животным",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Дружба с животным Animal Friendship Бард Друид Домен природы Следопыт Школа очарования «Amicus animalis!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Жгучая кара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Жгучая_кара",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Жгучая кара Searing Smite Паладин Школа эвокации «Arde!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Защита от зла и добра",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_зла_и_добра",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Защита от зла и добра Protection from evil and good Жрец Колдун Волшебник Паладин Следопыт Потусторонний рыцарь Мистический трикстер Школа преграждения «Tuebor!» / «Vincit qui patitur!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Изменение облика",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Изменение_облика",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Изменение облика Disguise self Бард Чародей Волшебник Домен обмана Потусторонний рыцарь Мистический трикстер Сумрачный охотник Школа иллюзии «Mutatis mutandis!» / «Omnia mutantur!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Исцеление ран",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Исцеление_ран",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Исцеление ран Cure Wounds Бард Жрец Друид Паладин Следопыт Школа эвокации «Te curo!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Исцеляющее слово",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющее_слово",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Исцеляющее слово Healing Word Бард Жрец Друид Паладин Следопыт Школа эвокации «Te curo!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ледяной нож",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ледяной_нож",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Ледяной нож Ice Knife Волшебник Чародей Друид Мистический трикстер Потусторонний рыцарь Коллегия Знаний Бард Школа воплощения Не озвучено. Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ложная жизнь",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ложная_жизнь",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Ложная жизнь False Life Волшебник Чародей Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Школа некромантии «Vita excolatur!» / «Dum vita est, spes est!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Луч болезни",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Луч_болезни",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Луч болезни Ray of Sickness Волшебник Чародей Потусторонний рыцарь Мистический трикстер Колдун Школа некромантии «Inficio!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Магический доспех",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Магический_доспех",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Магический доспех Mage Armour Чародей Волшебник Потусторонний рыцарь Мистический трикстер Колдун Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Масло",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Масло",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Масло Grease Волшебник Потомок драконов Потусторонний рыцарь Мистический трикстер Школа воплощения Voco arvina! Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Метка охотника",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Метка_охотника",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Метка охотника Hunter's Mark Следопыт Клятва возмездия Коллегия Знаний Бард Школа прорицания «Mors certa!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Нанесение ран",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Нанесение_ран",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Нанесение ран Inflict wounds Жрец Клятвопреступник Школа некромантии «Morere!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Направляющий луч",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Направляющий_луч",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Направляющий луч Guiding bolt Жрец Школа эвокации «Flagra!» Жрец Коллегия Знаний Бард",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Облако тумана",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Облако_тумана",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Облако тумана Fog Cloud Друид Чародей Волшебник Домен бури Следопыт Потусторонний рыцарь Мистический трикстер Школа воплощения «Voco nubes!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Опутывание",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Опутывание",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Опутывание Entangle Друид Коллегия Знаний Бард Школа воплощения «Voco vineae!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Опутывающий удар",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Опутывающий_удар",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Опутывающий удар Ensnaring Strike Следопыт Клятва древних Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Отвратительный смех Таши",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Отвратительный_смех_Таши",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Отвратительный смех Таши Tasha's Hideous Laughter Бард Волшебник Великий Древний Потомок драконов Потусторонний рыцарь Мистический трикстер Школа очарования «Risum teneatis?» / «Risus abund at!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Плавное падение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Плавное_падение",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Плавное падение Feather Fall Волшебник Бард Чародей Потусторонний рыцарь Мистический трикстер Школа превращения «Non fit injura!» / «Sine metu!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Порча",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Порча",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Порча Bane Жрец Бард Колдун Клятва возмездия Школа очарования «Tu es nihil!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Поспешное отступление",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Поспешное_отступление",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Поспешное отступление «Expeditious Retreat» Чародей Колдун Волшебник Потусторонний рыцарь Мистический трикстер Школа превращения «Citius!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Приворот гуманоида",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Приворот_гуманоида",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Приворот гуманоида Charm person Бард Друид Чародей Колдун Волшебник Домен обмана Потусторонний рыцарь Мистический трикстер Школа очарования «Impero te!» / «Tempora mutantur!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв фамильяра",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Призыв фамильяра Find Familiar Волшебник Следопыт Потусторонний рыцарь Мистический трикстер Колдун ( Договор цепи ) Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв фамильяра: бес",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_бес",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Призыв фамильяра: бес Find Familiar: Imp Колдун ( Договор цепи ) Школа воплощения «Ex Textura!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв фамильяра: квазит",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_квазит",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Призыв фамильяра: квазит Find Familiar: Quasit Колдун ( Договор цепи ) Школа воплощения «Ex Textura!» Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Приказ",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Приказ",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Приказ Command Жрец Бестия Паладин Коллегия Знаний Бард Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Пылающие руки",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пылающие_руки",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Пылающие руки Burning hands Чародей Волшебник Бестия Домен света Потусторонний рыцарь Мистический трикстер Школа эвокации «Arde!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Разговор с животными",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_животными",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Разговор с животными Speak with Animals Бард Друид Домен природы Следопыт Колдун Клятва древних Дикое сердце Школа прорицания «Loquere si tibi placet!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Руки Хадара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Руки_Хадара",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Руки Хадара Arms of Hadar Колдун Школа воплощения «Morere!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сглаз",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сглаз",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Сглаз Hex Колдун Коллегия Знаний Бард Школа очарования «Maledicte es!» / «Te exsecror!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Скороход",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Скороход",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Скороход Longstrider Бард Друид Волшебник Следопыт Потусторонний рыцарь Мистический трикстер Школа превращения «Ocior!» / «Propera!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Создание или уничтожение воды",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Создание_или_уничтожение_воды",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Создание воды Create or Destroy Water Жрец Друид Чары бури Школа превращения Aqua pura! / Aresce! Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сон",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сон",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Сон Sleep Бард Чародей Волшебник Домен знаний Архифея Потусторонний рыцарь Мистический трикстер Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Убежище",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Убежище",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Убежище Sanctuary Жрец Клятва верности Коллегия Знаний Бард Школа преграждения «Macte virtute!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Усиленный прыжок",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Усиленный_прыжок",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Усиленный прыжок Enhance Leap Друид Чародей Волшебник Следопыт Потусторонний рыцарь Мистический трикстер Колдун Школа превращения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Фейское сияние",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Фейское_сияние",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Фейское сияние Faerie Fire Бард Друид Домен света Архифея Школа эвокации «Ubi es?» / «Te video!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Хроматический шар",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Хроматический_шар",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Хроматический шар Chromatic Orb Чародей Волшебник Мистический трикстер Потусторонний рыцарь Коллегия Знаний Колдун Бард Школа эвокации Dissolve! / Gela! / Arde! / Perure! / Inficio! / Detono! Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Цветные брызги",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Цветные_брызги",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Цветные брызги Colour spray Волшебник Чародей Потусторонний рыцарь Мистический трикстер Школа иллюзии Te occludo oculos! / Caeco te! Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Щит",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Щит",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Щит Shield Волшебник Чародей Потусторонний рыцарь Мистический трикстер Школа преграждения Не озвучено. Ответное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Щит веры",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Щит_веры",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Щит веры Shield of Faith Жрец Паладин Школа преграждения Macte virtute! Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Яростная кара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Яростная_кара",
+          "level": "1",
+          "source_bucket": "level_1",
+          "source_section": "1-й круг",
+          "row_text": "Яростная кара Wrathful Smite Паладин Школа эвокации «Confusio!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "2-й круг",
+      "source_bucket": "level_2",
+      "item_count": 41,
+      "items": [
+        {
+          "title": "Бесследный шаг",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Бесследный_шаг",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Бесследный шаг Pass without Trace Друид Домен обмана Следопыт Коллегия Знаний Бард Школа преграждения «Invisibilis! / Evanesco!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Видение невидимого",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Видение_невидимого",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Видение невидимого See Invisibility Бард Чародей Волшебник Мистический трикстер Потусторонний рыцарь Школа прорицания «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Волшебное оружие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Волшебное_оружие",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Волшебное оружие Magic Weapon Волшебник Домен войны Паладин Мистический трикстер Потусторонний рыцарь Школа превращения «Canto te!» / «Para bellum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Волшебный замок",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Волшебный_замок",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Волшебный замок Arcane Lock Волшебник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа преграждения «Clausus!» / «Inaccessus!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Дубовая кожа",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Дубовая_кожа",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Дубовая кожа Barkskin Друид Домен природы Следопыт Школа превращения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Защита от яда",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_яда",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Защита от яда Protection from Poison Друид Жрец Паладин Следопыт Школа преграждения «Intactilis sum!» / «Resisto venenum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Защитные узы",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Защитные_узы",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Защитные узы Warding Bond Жрец Школа преграждения «Intactilis sum!» / «Resisto!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Захватывающая речь",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Захватывающая_речь",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Захватывающая речь Enthrall Колдун Бард Школа очарования «Impero te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Зеркальное отражение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Зеркальное_отражение",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Зеркальное отражение Mirror Image Чародей Волшебник Колдун Домен обмана Круг земли Мистический трикстер Потусторонний рыцарь Школа иллюзии «Fronti nulla fides!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Исцеляющий молебен",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющий_молебен",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Исцеляющий молебен Prayer of Healing Жрец Школа эвокации «Fiat voluntas dei!» / «Ad maiorem dei gloriam!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Кислотная стрела Мелфа",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Кислотная_стрела_Мелфа",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Кислотная стрела Мелфа Melf's Acid Arrow Волшебник Круг земли Потусторонний рыцарь Мистический трикстер Школа эвокации «Dissolve!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Клеймящая кара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Клеймящая_кара",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Клеймящая кара Branding Smite Паладин Школа эвокации «Flagra!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Корона безумия",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Корона_безумия",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Корона безумия Crown of Madness Бард Чародей Колдун Волшебник Клятвопреступник Мистический трикстер Потусторонний рыцарь Школа очарования «Demento te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Лунный свет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Лунный_свет",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Лунный свет Moonbeam Друид Клятва древних Школа эвокации «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Невидимость",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Невидимость",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Невидимость Invisibility Бард Чародей Волшебник Колдун Круг земли Мистический трикстер Потусторонний рыцарь Школа иллюзии «Invisibilis!» / «Evanesco!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Низшее восстановление",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Низшее_восстановление",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Низшее восстановление Lesser Restoration Бард Жрец Друид Паладин Следопыт Школа преграждения «Te absolvo! / Vincere est vivere!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ночное зрение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ночное_зрение",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Ночное зрение Darkvision Друид Чародей Волшебник Следопыт Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа превращения «Secreti umbrarum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Облако кинжалов",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Облако_кинжалов",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Облако кинжалов Cloud of Daggers Бард Волшебник Чародей Колдун Мистический трикстер Потусторонний рыцарь Школа воплощения «Caedo!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Обнаружение мыслей",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Обнаружение_мыслей",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Обнаружение мыслей Detect Thoughts Бард Чародей Волшебник Великий Древний Круг спор Мистический трикстер Потусторонний рыцарь Школа прорицания «Virtus et scientia!» / «Video veritatem!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненный клинок",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_клинок",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Огненный клинок Flame Blade Друид Школа эвокации «Canto te!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Опаляющий луч",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Опаляющий_луч",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Опаляющий луч Scorching Ray Чародей Волшебник Бестия Домен света Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа эвокации «Arde!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ослабляющий луч",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ослабляющий_луч",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Ослабляющий луч Ray of Enfeeblement Колдун Волшебник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа некромантии «Tu es nihil!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Паралич гуманоида",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Паралич_гуманоида",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Паралич гуманоида Hold Person Бард Жрец Друид Чародей Колдун Клятва возмездия Мистический трикстер Потусторонний рыцарь Школа очарования «Ad lapidem!» / «Non movere!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Паутина",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Паутина",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Паутина Web Чародей Волшебник Круг земли Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа воплощения «Voco araneae!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Помощь (заклинание)",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Помощь_(заклинание)",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Помощь Aid Жрец Паладин Школа преграждения «Vita excolatur!» / «Dum vita est, spes est!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Порыв ветра",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Порыв_ветра",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Порыв ветра Gust of Wind Друид Волшебник Чародей Домен бури Чары бури Потусторонний рыцарь Мистический трикстер Школа эвокации «Tempestas!» / «Ut ventus!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призрачное оружие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призрачное_оружие",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Призрачное оружие Spiritual Weapon Жрец Коллегия Знаний Бард Школа эвокации «Ex Textura!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Пылающая сфера",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пылающая_сфера",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Пылающая сфера Flaming Sphere Друид Волшебник Домен света Потусторонний рыцарь Мистический трикстер Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Разбивающий звук",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Разбивающий звук Shatter Бард Колдун Чародей Волшебник Домен бури Потусторонний рыцарь Мистический трикстер Школа эвокации «Detono!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Раскаленный металл",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Раскаленный_металл",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Раскаленный металл Heat Metal Друид Бард Школа превращения «Arde!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Расплывчатость",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Расплывчатость",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Расплывчатость Blur Чародей Волшебник Круг земли Коллегия Знаний Мистический трикстер Потусторонний рыцарь Бард Школа иллюзии «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сила фантазма",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сила_фантазма",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Сила фантазма Phantasmal Force Бард Чародей Волшебник Архифея Мистический трикстер Потусторонний рыцарь Школа иллюзий «Incommodum!» / «Nulla salus!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Слепота",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Слепота",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Слепота Blindness Бард Жрец Чародей Волшебник Бестия Круг спор Потусторонний рыцарь Мистический трикстер Школа некромантии «Caeco te!» / «Te occludo oculos!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Спокойствие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Спокойствие",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Спокойствие Calm Emotions Бард Жрец Архифея Школа очарования «Te absolvo!» / «Vincere est vivere!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Стук",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Стук",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Стук Knock Бард Чародей Волшебник Потусторонний рыцарь Мистический трикстер Школа превращения «Pulso!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Тишина",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Тишина",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Тишина Silence Бард Жрец Круг земли Следопыт Клятва возмездия Колдун Школа иллюзии «Te adstringo linguam!» / «Silentium!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Туманный шаг",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Туманный_шаг",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Туманный шаг Misty Step Волшебник Колдун Чародей Круг земли Клятва древних Клятва возмездия Сумрачный охотник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа воплощения «Et alibi!» / «Inveniam viam!» Бонусное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Тьма",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Тьма",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Тьма Darkness Волшебник Колдун Чародей Круг земли Клятвопреступник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа эвокации «Nocturnus!» / «Umbrae!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Увеличение/Уменьшение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Увеличение/Уменьшение",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Увеличение/Уменьшение Enlarge/Reduce Волшебник Колдун Мистический трикстер Потусторонний рыцарь Школа превращения «Gigans!» / «Diminue!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Усиление характеристики",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Усиление_характеристики",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Усиление характеристики Enhance Ability Бард Жрец Друид Чародей Школа превращения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Шипастая поросль",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Шипастая_поросль",
+          "level": "2",
+          "source_bucket": "level_2",
+          "source_section": "2-й круг",
+          "row_text": "Шипастая поросль Spike Growth Друид Домен природы Следопыт Коллегия Знаний Бард Школа превращения «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "3-й круг",
+      "source_bucket": "level_3",
+      "item_count": 32,
+      "items": [
+        {
+          "title": "Аура жизненной силы",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Аура_жизненной_силы",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Аура жизненной силы Warden of Vitality Коллегия Знаний Паладин Бард Школа эвокации «Macesce!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Возрождение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Возрождение",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Возрождение Revivify Жрец Коллегия Знаний Паладин Бард Школа некромантии «Te curo!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Вызов молний",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Вызов_молний",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Вызов молний Call Lightning Друид Домен бури Колдун Чары бури Коллегия Знаний Бард Школа воплощения «Perure!» / «Fulgur!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Газообразность",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Газообразность",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Газообразность Gaseous Form Волшебник Колдун Чародей Круг спор Круг земли Коллегия Знаний Бард Школа превращения «Mutatis mutandis!» / «Omnia mutantur!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Голод Хадара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Голод_Хадара",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Голод Хадара Hunger of Hadar Колдун Коллегия Знаний Бард Школа воплощения «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Даровать полет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Даровать_полет",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Даровать полет Grant Flight Волшебник Чародей Колдун Круг земли Коллегия Знаний Бард Школа превращения «Volo non fugia!» / «Tibi do pennas!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Дневной свет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Дневной_свет",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Дневной свет Daylight Жрец Друид Чародей Коллегия Знаний Следопыт Паладин Бард Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Завораживающий узор",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Завораживающий_узор",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Завораживающий узор Hypnotic Pattern Бард Волшебник Чародей Колдун Круг земли Школа иллюзий Не озвучено. Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Замедление",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Замедление",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Замедление Slow Чародей Волшебник Великий Древний Колдун Коллегия Знаний Бард Школа превращения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Защита от энергии",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_энергии",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Защита от энергии Protection from Energy Жрец Друид Чародей Волшебник Следопыт Клятва древних Клятва возмездия Школа преграждения «Resisto acidum!» / «Intactilis sum!» / «Resisto ignem! / «Resisto!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Касание вампира",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Касание_вампира",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Касание вампира Vampiric Touch Колдун Волшебник Круг земли Коллегия Знаний Бард Школа некромантии «Mors tua, vita mea!» / «Amo sanguinem!» / «Gustas dulcis!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Контрзаклинание",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Контрзаклинание",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Контрзаклинание Counterspell Волшебник Чародей Колдун Коллегия Знаний Бард Школа преграждения «Impero tibi!» Ответное действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Массовое исцеляющее слово",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеляющее_слово",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Массовое исцеляющее слово Mass Healing Word Жрец Коллегия Знаний Бард Школа эвокации «Vos curo!» / «Corpora sana!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Мерцание",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Мерцание",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Мерцание Blink Волшебник Чародей Архифея Школа превращения «Et alibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненный шар",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_шар",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Огненный шар Fireball Чародей Волшебник Домен света Бестия Коллегия Знаний Бард Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Оживление мертвецов",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Оживление_мертвецов",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Оживление мертвецов Animate Dead Жрец Волшебник Круг спор Колдун Клятвопреступник Школа некромантии «Surge!» / «Impero mortuos!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Плащ крестоносца",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Плащ_крестоносца",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Плащ крестоносца Crusader's Mantle Паладин Школа прорицания «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призрачные стражи",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призрачные_стражи",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Призрачные стражи Spirit Guardians Жрец Коллегия Знаний Бард Школа воплощения «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Проклятие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Проклятие",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Проклятие Bestow Curse Бард Жрец Волшебник Великий Древний Дурное знамение Клятвопреступник Школа некромантии «Maledicte es!» / «Te exsecror!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Пурга",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пурга",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Пурга Sleet Storm Друид Чародей Волшебник Домен природы Коллегия Знаний Бард Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Разговор с мертвым",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_мертвым",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Разговор с мертвым Speak with Dead Бард Жрец Колдун Школа некромантии «Cum mortuis in lingua mortua!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Рост растений",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Рост_растений",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Рост растений Plant Growth Бард Друид Архифея Домен природы Следопыт Клятва древних Школа превращения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Светоч надежды",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Светоч_надежды",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Светоч надежды Beacon of Hope Жрец Коллегия Знаний Паладин Бард Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Слепящая кара",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Слепящая_кара",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Слепящая кара Blinding Smite Паладин Школа эвокации Не озвучено. Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Смрадное облако",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Смрадное_облако",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Смрадное облако Stinking Cloud Бард Чародей Бестия Круг земли Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Снятие проклятия",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Снятие_проклятия",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Снятие проклятия Remove Curse Жрец Колдун Волшебник Коллегия Знаний Паладин Бард Школа преграждения «Vincere est vivere!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Стихийное оружие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Стихийное_оружие",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Стихийное оружие Elemental Weapon Паладин Школа превращения «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сторожевая печать",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сторожевая_печать",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Сторожевая печать Glyph of Warding Бард Жрец Волшебник Школа преграждения «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Удар молнии",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Удар_молнии",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Удар молнии Lightning Bolt Чародей Волшебник Круг земли Коллегия Знаний Бард Школа эвокации «Perure!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ужас",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ужас",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Ужас Fear Бард Чародей Волшебник Колдун Домен обмана Сумрачный охотник Школа иллюзий «Vae victis!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ускорение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ускорение",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Ускорение Haste Чародей Волшебник Круг земли Коллегия Знаний Клятва возмездия Бард Школа превращения «Propera!» / «Ocior!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Фальшивая смерть",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Фальшивая_смерть",
+          "level": "3",
+          "source_bucket": "level_3",
+          "source_section": "3-й круг",
+          "row_text": "Фальшивая смерть Feign Death Бард Жрец Друид Волшебник Школа некромантии «Resisto mortem!» / «Ad vitam aeternam!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "4-й круг",
+      "source_bucket": "level_4",
+      "item_count": 20,
+      "items": [
+        {
+          "title": "Высшая невидимость",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Высшая_невидимость",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Высшая невидимость Greater Invisibility Бард Чародей Архифея Волшебник Круг земли Школа иллюзий «Invisibilis!» / «Evanesco!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Дверь в пространстве",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Дверь_в_пространстве",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Дверь в пространстве Dimension Door Бард Чародей Колдун Волшебник Домен обмана Школа воплощения «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Замешательство",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Замешательство",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Замешательство Confusion Бард Друид Чародей Волшебник Домен знаний Колдун Школа очарования «Non compos mentis!» / «Demento te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Защита от смерти",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_смерти",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Защита от смерти Death Ward Жрец Бард Школа преграждения «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Изгнание",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Изгнание",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Изгнание Banishment Жрец Чародей Колдун Волшебник Бард Школа преграждения «Expello te!» / «Eiecto te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Каменная кожа",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Каменная_кожа",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Каменная кожа Stoneskin Друид Чародей Волшебник Домен войны Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Ледяная буря",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ледяная_буря",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Ледяная буря Ice Storm Друид Чародей Волшебник Домен бури Бард Школа эвокации «Treme!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненная стена",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненная_стена",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Огненная стена Wall of Fire Друид Чародей Волшебник Домен света Бард Школа эвокации «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненный щит",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_щит",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Огненный щит Fire Shield Волшебник Бестия Бард Школа эвокации «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Подчинение животного",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Подчинение_животного",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Подчинение животного Dominate Beast Друид Чародей Домен природы Архифея Великий Древний Бард Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Полиморф",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Полиморф",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Полиморф Polymorph Бард Друид Чародей Волшебник Домен обмана Колдун Школа превращения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призвать лесное существо",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призвать_лесное_существо",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Призвать лесное существо Conjure Woodland Being Друид Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв малого элементаля",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_малого_элементаля",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Призыв малого элементаля Conjure Minor Elemental Волшебник Друид Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Свобода движений",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Свобода_движений",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Свобода движений Freedom of Movement Жрец Бард Жрец Друид Школа преграждения «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Силовая сфера Отилюка",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Силовая_сфера_Отилюка",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Силовая сфера Отилюка Otiluke's Resilient Sphere Волшебник Домен знаний Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Страж веры",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Страж_веры",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Страж веры Guardian of Faith Жрец Бард Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Убийственный фантазм",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Убийственный_фантазм",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Убийственный фантазм Phantasmal Killer Волшебник Школа иллюзий «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Увядание",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Увядание",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Увядание Blight Друид Чародей Волшебник Колдун Бард Школа некромантии «Peri!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Цепкая лиана",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Цепкая_лиана",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Цепкая лиана Grasping Vine Друид Домен природы Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Черные щупальца Эварда",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Черные_щупальца_Эварда",
+          "level": "4",
+          "source_bucket": "level_4",
+          "source_section": "4-й круг",
+          "row_text": "Черные щупальца Эварда Evard's Black Tentacles Волшебник Великий Древний Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "5-й круг",
+      "source_bucket": "level_5",
+      "item_count": 16,
+      "items": [
+        {
+          "title": "Болезнь",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Болезнь",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Болезнь Contagion Жрец Друид Бард Школа некромантии «Tu es nihil!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Волна разрушения",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Волна_разрушения",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Волна разрушения Destructive Wave Домен света Домен бури Школа эвокации «Ira!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Высшее восстановление",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Высшее_восстановление",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Высшее восстановление Greater Restoration Бард Жрец Друид Школа преграждения «Te curo!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Каменная стена",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Каменная_стена",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Каменная стена Wall of Stone Друид Чародей Волшебник Домен природы Бард Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Конус холода",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Конус_холода",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Конус холода Cone of Cold Волшебник Чародей Бестия Круг земли Бард Школа эвокации «Treme!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Личина",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Личина",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Личина Seeming Волшебник Бард Чародей Архифея Домен обмана Школа иллюзий «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Массовое исцеление ран",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеление_ран",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Массовое исцеление ран Mass Cure Wounds Бард Жрец Друид Школа эвокации «Te curo!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненный столп",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_столп",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Огненный столп Flame Strike Жрец Бестия Школа эвокации «Torre!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Паралич чудовища",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Паралич_чудовища",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Паралич чудовища Hold Monster Бард Волшебник Колдун Чародей Домен войны Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Планарный слуга",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Планарный_слуга",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Планарный слуга Planar Binding Бард Жрец Друид Волшебник Школа преграждения «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Подчинение гуманоида",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Подчинение_гуманоида",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Подчинение гуманоида Dominate Person Бард Чародей Волшебник Архифея Великий Древний Домен обмана Домен знаний Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв элементаля",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_элементаля",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Призыв элементаля Conjure Elemental Волшебник Друид Колдун Бард Школа воплощения «Invoco te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Рассеивание добра и зла",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Рассеивание_добра_и_зла",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Рассеивание добра и зла Dispel Evil and Good Жрец Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Рой саранчи",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Рой_саранчи",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Рой саранчи Insect Plague Жрец Друид Чародей Школа воплощения «Dialino!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Смертельное облако",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Смертельное_облако",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Смертельное облако Cloudkill Чародей Волшебник Круг спор Круг земли Школа воплощения «Ira et dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Телекинез",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Телекинез",
+          "level": "5",
+          "source_bucket": "level_5",
+          "source_section": "5-й круг",
+          "row_text": "Телекинез Telekinesis Чародей Волшебник Домен знаний Великий Древний Школа превращения «Quod dico face!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "6-й круг",
+      "source_bucket": "level_6",
+      "item_count": 19,
+      "items": [
+        {
+          "title": "Безудержная пляска Отто",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Безудержная_пляска_Отто",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Безудержная пляска Отто Otto's Irresistible Dance Волшебник Бард Школа очарования «Obedi me!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Волшебные врата",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Волшебные_врата",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Волшебные врата Arcane Gate Волшебник Чародей Колдун Школа воплощения «Veni et iuva me!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Грозные очи",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Грозные_очи",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Грозные очи Eyebite Волшебник Чародей Колдун Бард Школа некромантии «Diminuo te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Дезинтеграция",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Дезинтеграция",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Дезинтеграция Disintegrate Волшебник Чародей Школа превращения «Dolor!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Излечение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Излечение",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Излечение Heal Жрец Друид Школа эвокации «Vis medicatrix!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Круг смерти",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Круг_смерти",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Круг смерти Circle of Death Волшебник Чародей Колдун Школа некромантии «Mortalis!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Морозный шар Отилюка",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Морозный_шар_Отилюка",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Морозный шар Отилюка Otiluke's Freezing Sphere Волшебник Школа эвокации «Mortem tuum sum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Пир героев",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пир_героев",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Пир героев Heroes' Feast Жрец Друид Школа воплощения «Macte virtute!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Планарный союзник",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Планарный_союзник",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Планарный союзник Planar Ally Жрец Школа воплощения «Invoco te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Плоть в камень",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Плоть_в_камень",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Плоть в камень Flesh to Stone Волшебник Колдун Школа превращения «Diminuo te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Повреждение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Повреждение",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Повреждение Harm Жрец Школа некромантии «Mortem tuum sum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Путешествие с ветром",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Путешествие_с_ветром",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Путешествие с ветром Wind Walk Друид Школа превращения «Maior, fortior!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Создание нежити",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Создание_нежити",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Создание нежити Create Undead Жрец Колдун Волшебник Школа некромантии «Invoco te!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Солнечный луч",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Солнечный_луч",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Солнечный луч Sunbeam Друид Чародей Волшебник Школа эвокации «Incende!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Стена лезвий",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Стена_лезвий",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Стена лезвий Blade Barrier Жрец Школа эвокации «Mortem tuum sum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Стена льда",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Стена_льда",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Стена льда Wall of Ice Волшебник Школа эвокации «Mortem tuum sum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сфера неуязвимости",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сфера_неуязвимости",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Сфера неуязвимости Globe of Invulnerability Волшебник Чародей Школа преграждения «Veni et iuva me!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Терновая стена",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Терновая_стена",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Терновая стена Wall of Thorns Друид Школа воплощения «Mortem tuum sum!» Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Цепь молний",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Цепь_молний",
+          "level": "6",
+          "source_bucket": "level_6",
+          "source_section": "6-й круг",
+          "row_text": "Цепь молний Chain Lightning Волшебник Чародей Школа эвокации Не озвучено. Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "Заклинания от предметов",
+      "source_bucket": "item_granted",
+      "item_count": 20,
+      "items": [
+        {
+          "title": "Благоволение Керески",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Благоволение_Керески",
+          "level": "4",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Благоволение Керески Kereska's Favour Маркохешкир 4 Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Впечатления о Благом дворе: призыв дэвы",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Впечатления_о_Благом_дворе:_призыв_дэвы",
+          "level": "5",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Впечатления о Благом дворе: призыв дэвы Sights of the Seelie: Summon Deva Впечатления о Благом дворе: дикий облик Звериного единства 5 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Вой мертвецов",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Вой_мертвецов",
+          "level": null,
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Вой мертвецов Howl of the Dead Объятья Жнеца Фокус Бонусное действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Вызвать на дуэль",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Вызвать_на_дуэль",
+          "level": "1",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Вызвать на дуэль Challenge to Duel Прерогатива дуэлянта 1 Бонусное действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Драконье стихийное оружие",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Драконье_стихийное_оружие",
+          "level": "3",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Драконье стихийное оружие Draconic Elemental Weapon Глефа драконьей глотки 3 Бонусное действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Жуткий танец",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Жуткий_танец",
+          "level": "5",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Жуткий танец Danse Macabre Некромантия Тхая 5 Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Касание упыря",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Касание_упыря",
+          "level": "1",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Касание упыря Ghoulish Touch Кольцо восхитительного костного мозга 1 Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Лозы Стража веры",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Лозы_Стража_веры",
+          "level": "1",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Лозы Стража веры Faithwarden's Vines Бледный дуб 1 Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Небесная поспешность",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Небесная_поспешность",
+          "level": "3",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Небесная поспешность Celestial Haste Гонтр Маэль 3 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Огненный снаряд?",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_снаряд?",
+          "level": null,
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Огненный снаряд? Fire Bolt? Посох косноязычного волшебника Фокус Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призвать умертвие фонаря теней",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призвать_умертвие_фонаря_теней",
+          "level": "6",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Призвать умертвие фонаря теней Conjure Shadow Lantern Wraith Фонарь теней 6 Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв фамильяра: наглый квазит",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_наглый_квазит",
+          "level": "1",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Призыв фамильяра: наглый квазит Find Familiar Cheeky Quasit Свиток \"Призыв квазита\" 1 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв фамильяра: Шкряб",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_Шкряб",
+          "level": "1",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Призыв фамильяра: Шкряб Find Familiar: Scratch Мячик Шкряба 1 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Руководство по стратегии: искусство войны",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Руководство_по_стратегии:_искусство_войны",
+          "level": "5",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Руководство по стратегии: искусство войны Curriculum of Strategy: Artistry of War Последняя стратагема Красного Рыцаря 5 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Свергнуть",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Свергнуть",
+          "level": "5",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Свергнуть Dethrone Анналы Карсуса 5 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сетан: духовный двуручный топор",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_духовный_двуручный_топор",
+          "level": "6",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Сетан: духовный двуручный топор Sethan: Spiritual Greataxe Сетан 6 Бонусное действие + Скорость 6 м",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Сетан: уменьшение",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_уменьшение",
+          "level": "2",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Сетан: уменьшение Sethan: Reduce Сетан 2 Действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Стихийная эпоха",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Стихийная_эпоха",
+          "level": "3",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Стихийная эпоха Elemental Weapon Цеп эпох 3 Бонусное действие",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Стрела-молния",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Стрела-молния",
+          "level": "3",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Стрела-молния Lightning Arrow Адский самовзводный арбалет 3 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Тьма Шар",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Тьма_Шар",
+          "level": "2",
+          "source_bucket": "item_granted",
+          "source_section": "Заклинания от предметов",
+          "row_text": "Тьма Шар Shar's Darkness Копье вечера Шар 2 Действие",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    },
+    {
+      "section_label": "Уникальные и для НПС",
+      "source_bucket": "unique_npc",
+      "item_count": 2,
+      "items": [
+        {
+          "title": "Призыв фамильяра: Бу",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_Бу",
+          "level": "1",
+          "source_bucket": "unique_npc",
+          "source_section": "Уникальные и для НПС",
+          "row_text": "Призыв фамильяра: Бу Find Familiar: Boo Только для Минска 1 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        },
+        {
+          "title": "Призыв мефита",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_мефита",
+          "level": "1",
+          "source_bucket": "unique_npc",
+          "source_section": "Уникальные и для НПС",
+          "row_text": "Призыв мефита Summon Mephit Древний грязевой мефит 1 Действие + Ячейка заклинания",
+          "source_list": "ru_main_page_table"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "title": "Брызги яда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Брызги_яда",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Брызги яда Poison Spray Друид Чародей Волшебник Колдун Домен природы Потусторонний рыцарь Мистический трикстер Фокус воплощения «Venenum!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Верный удар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Верный_удар",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Верный удар True Strike Бард Волшебник Колдун Чародей Следопыт Потусторонний рыцарь Мистический трикстер Фокус прорицания Не озвучено. Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Всплеск кислоты",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Всплеск_кислоты",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Всплеск кислоты Acid Splash Волшебник Чародей Потусторонний рыцарь Мистический трикстер Фокус воплощения «Acidum!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Дружба",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дружба",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Дружба Friends Бард Волшебник Чародей Колдун Потусторонний рыцарь Мистический трикстер Фокус очарования Не озвучено. Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Пробирающий до костей холод",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пробирающий_до_костей_холод",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Пробирающий до костей холод Chill Touch Волшебник Чародей Колдун Друид Потусторонний рыцарь Мистический трикстер Бард Фокус некромантии Time! Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ледяной луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ледяной_луч",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Ледяной луч Ray of Frost Волшебник Чародей Круг спор Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Фокус эвокации «Glacies!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Магическая рука",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Магическая_рука",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Магическая рука Mage Hand Бард Волшебник Колдун Чародей Потусторонний рыцарь Мистический трикстер Фокус воплощения «Veni et iuva me!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Малая иллюзия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Малая_иллюзия",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Малая иллюзия Minor Illusion Бард Волшебник Чародей Колдун Потусторонний рыцарь Мистический трикстер Путь тени Фокус иллюзии Не озвучено. Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Наставление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Наставление",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Наставление Guidance Жрец Друид Колдун Фокус прорицания «Maior, fortior!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Оберег от оружия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Оберег_от_оружия",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Оберег от оружия Blade Ward Бард Жрец Волшебник Чародей Колдун Потусторонний рыцарь Мистический трикстер Фокус преграждения «Maior, fortior!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненный снаряд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_снаряд",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Огненный снаряд Fire Bolt Волшебник Чародей Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Фокус эвокации «Ignis!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Пляшущие огоньки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пляшущие_огоньки",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Пляшущие огоньки Dancing Lights Бард Волшебник Чародей Потусторонний рыцарь Мистический трикстер Фокус эвокации «Fiat lux!» / «Sol Invictus!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Потусторонний разряд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Потусторонний_разряд",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Потусторонний разряд Eldritch Blast Колдун Коллегия Знаний Бард Фокус эвокации «Dolor!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Свет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Свет",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Свет Light Бард Жрец Чародей Волшебник Потусторонний рыцарь Мистический трикстер Фокус эвокации «Fiat lux!» / «Sol Invictus!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Священное пламя",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Священное_пламя",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Священное пламя Sacred Flame Жрец Следопыт Коллегия Знаний Бард Фокус эвокации «Incende!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Создание пламени",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Создание_пламени",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Создание пламени Produce Flame Жрец Друид Фокус воплощения «Fiat lux!» / «Sol Invictus!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Тавматургия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тавматургия",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Тавматургия Thaumaturgy Жрец Фокус превращения «Maior, fortior!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Терновый хлыст",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Терновый_хлыст",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Терновый хлыст Thorn Whip Друид Жрец Домен природы Колдун Фокус превращения «Ververo!» / «Flagello!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Устойчивость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Устойчивость",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Устойчивость Resistance Друид Жрец Фокус преграждения «Intactilis sum!» / «Resisto!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Шиллейла",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шиллейла",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Шиллейла Shillelagh Друид Домен природы Фокус превращения «Canto te!» / «Para bellum!» Бонусное действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Шоковое прикосновение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шоковое_прикосновение",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Шоковое прикосновение Shocking Grasp Волшебник Чародей Потусторонний рыцарь Мистический трикстер Фокус эвокации «Fulgur!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Язвительная насмешка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Язвительная_насмешка",
+      "level": "C",
+      "source_bucket": "cantrip",
+      "source_section": "Фокусы",
+      "row_text": "Язвительная насмешка Vicious Mockery Бард Колдун Фокус очарования «This'll be mean.» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Адское возмездие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адское_возмездие",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Адское возмездие Hellish Rebuke Колдун Клятвопреступник Коллегия Знаний Бард Школа эвокации «Arde!» Ответное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Благословение (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Благословение_(Baldur's_Gate_III)",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Благословение Bless Жрец Паладин Коллегия Знаний Бард Школа очарования «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Божественная благодать",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Божественная_благодать",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Божественная благодать Divine Favour Домен войны Паладин Школа эвокации «Fiat voluntas dei!» / «Ad maiorem dei gloriam!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Броня Агафиса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Броня_Агафиса",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Броня Агафиса Armour of Agathys Колдун Чародей Потомок драконов Коллегия Знаний Бард Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ведьмовской разряд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ведьмовской_разряд",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Ведьмовской разряд Witch Bolt Чародей Колдун Волшебник Потусторонний рыцарь Мистический трикстер Школа эвокации «Perure!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Вкусные ягоды",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вкусные_ягоды",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Вкусные ягоды Goodberry Друид Следопыт Школа превращения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Волшебная стрела",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_стрела",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Волшебная стрела Magic Missile Волшебник Чародей Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Школа эвокации «Tormentum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Вызов на дуэль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вызов_на_дуэль",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Вызов на дуэль Compelled Duel Бард Паладин Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Героизм",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Героизм",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Героизм Heroism Паладин Школа очарования «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Град шипов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Град_шипов",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Град шипов Hail of Thorns Следопыт Школа воплощения «Dialino!» Действие + Ячейка заклинания + Бонусное действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Громовая волна",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Громовая_волна",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Громовая волна Thunderwave Бард Друид Чародей Волшебник Домен бури Потусторонний рыцарь Мистический трикстер Школа эвокации «Detono!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Громовая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Громовая_кара",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Громовая кара Thunderous Smite Паладин Коллегия Знаний Бард Школа эвокации «Detono!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Диссонирующий шепот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Диссонирующий_шепот",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Диссонирующий шепот Dissonant Whispers Бард Великий Древний Школа очарования «Dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Дружба с животным",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дружба_с_животным",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Дружба с животным Animal Friendship Бард Друид Домен природы Следопыт Школа очарования «Amicus animalis!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Жгучая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Жгучая_кара",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Жгучая кара Searing Smite Паладин Школа эвокации «Arde!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Защита от зла и добра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_зла_и_добра",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Защита от зла и добра Protection from evil and good Жрец Колдун Волшебник Паладин Следопыт Потусторонний рыцарь Мистический трикстер Школа преграждения «Tuebor!» / «Vincit qui patitur!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Изменение облика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Изменение_облика",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Изменение облика Disguise self Бард Чародей Волшебник Домен обмана Потусторонний рыцарь Мистический трикстер Сумрачный охотник Школа иллюзии «Mutatis mutandis!» / «Omnia mutantur!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Исцеление ран",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеление_ран",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Исцеление ран Cure Wounds Бард Жрец Друид Паладин Следопыт Школа эвокации «Te curo!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Исцеляющее слово",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющее_слово",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Исцеляющее слово Healing Word Бард Жрец Друид Паладин Следопыт Школа эвокации «Te curo!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ледяной нож",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ледяной_нож",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Ледяной нож Ice Knife Волшебник Чародей Друид Мистический трикстер Потусторонний рыцарь Коллегия Знаний Бард Школа воплощения Не озвучено. Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ложная жизнь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ложная_жизнь",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Ложная жизнь False Life Волшебник Чародей Потусторонний рыцарь Мистический трикстер Коллегия Знаний Бард Школа некромантии «Vita excolatur!» / «Dum vita est, spes est!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Луч болезни",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Луч_болезни",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Луч болезни Ray of Sickness Волшебник Чародей Потусторонний рыцарь Мистический трикстер Колдун Школа некромантии «Inficio!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Магический доспех",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Магический_доспех",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Магический доспех Mage Armour Чародей Волшебник Потусторонний рыцарь Мистический трикстер Колдун Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Масло",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Масло",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Масло Grease Волшебник Потомок драконов Потусторонний рыцарь Мистический трикстер Школа воплощения Voco arvina! Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Метка охотника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Метка_охотника",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Метка охотника Hunter's Mark Следопыт Клятва возмездия Коллегия Знаний Бард Школа прорицания «Mors certa!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Нанесение ран",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Нанесение_ран",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Нанесение ран Inflict wounds Жрец Клятвопреступник Школа некромантии «Morere!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Направляющий луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Направляющий_луч",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Направляющий луч Guiding bolt Жрец Школа эвокации «Flagra!» Жрец Коллегия Знаний Бард",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Облако тумана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Облако_тумана",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Облако тумана Fog Cloud Друид Чародей Волшебник Домен бури Следопыт Потусторонний рыцарь Мистический трикстер Школа воплощения «Voco nubes!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Опутывание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опутывание",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Опутывание Entangle Друид Коллегия Знаний Бард Школа воплощения «Voco vineae!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Опутывающий удар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опутывающий_удар",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Опутывающий удар Ensnaring Strike Следопыт Клятва древних Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Отвратительный смех Таши",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Отвратительный_смех_Таши",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Отвратительный смех Таши Tasha's Hideous Laughter Бард Волшебник Великий Древний Потомок драконов Потусторонний рыцарь Мистический трикстер Школа очарования «Risum teneatis?» / «Risus abund at!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Плавное падение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Плавное_падение",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Плавное падение Feather Fall Волшебник Бард Чародей Потусторонний рыцарь Мистический трикстер Школа превращения «Non fit injura!» / «Sine metu!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Порча",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Порча",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Порча Bane Жрец Бард Колдун Клятва возмездия Школа очарования «Tu es nihil!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Поспешное отступление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Поспешное_отступление",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Поспешное отступление «Expeditious Retreat» Чародей Колдун Волшебник Потусторонний рыцарь Мистический трикстер Школа превращения «Citius!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Приворот гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Приворот_гуманоида",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Приворот гуманоида Charm person Бард Друид Чародей Колдун Волшебник Домен обмана Потусторонний рыцарь Мистический трикстер Школа очарования «Impero te!» / «Tempora mutantur!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв фамильяра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Призыв фамильяра Find Familiar Волшебник Следопыт Потусторонний рыцарь Мистический трикстер Колдун ( Договор цепи ) Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв фамильяра: бес",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_бес",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Призыв фамильяра: бес Find Familiar: Imp Колдун ( Договор цепи ) Школа воплощения «Ex Textura!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв фамильяра: квазит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_квазит",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Призыв фамильяра: квазит Find Familiar: Quasit Колдун ( Договор цепи ) Школа воплощения «Ex Textura!» Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Приказ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Приказ",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Приказ Command Жрец Бестия Паладин Коллегия Знаний Бард Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Пылающие руки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пылающие_руки",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Пылающие руки Burning hands Чародей Волшебник Бестия Домен света Потусторонний рыцарь Мистический трикстер Школа эвокации «Arde!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Разговор с животными",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_животными",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Разговор с животными Speak with Animals Бард Друид Домен природы Следопыт Колдун Клятва древних Дикое сердце Школа прорицания «Loquere si tibi placet!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Руки Хадара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Руки_Хадара",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Руки Хадара Arms of Hadar Колдун Школа воплощения «Morere!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сглаз",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сглаз",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Сглаз Hex Колдун Коллегия Знаний Бард Школа очарования «Maledicte es!» / «Te exsecror!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Скороход",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скороход",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Скороход Longstrider Бард Друид Волшебник Следопыт Потусторонний рыцарь Мистический трикстер Школа превращения «Ocior!» / «Propera!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Создание или уничтожение воды",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Создание_или_уничтожение_воды",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Создание воды Create or Destroy Water Жрец Друид Чары бури Школа превращения Aqua pura! / Aresce! Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сон",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сон",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Сон Sleep Бард Чародей Волшебник Домен знаний Архифея Потусторонний рыцарь Мистический трикстер Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Убежище",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Убежище",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Убежище Sanctuary Жрец Клятва верности Коллегия Знаний Бард Школа преграждения «Macte virtute!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Усиленный прыжок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Усиленный_прыжок",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Усиленный прыжок Enhance Leap Друид Чародей Волшебник Следопыт Потусторонний рыцарь Мистический трикстер Колдун Школа превращения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Фейское сияние",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фейское_сияние",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Фейское сияние Faerie Fire Бард Друид Домен света Архифея Школа эвокации «Ubi es?» / «Te video!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Хроматический шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Хроматический_шар",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Хроматический шар Chromatic Orb Чародей Волшебник Мистический трикстер Потусторонний рыцарь Коллегия Знаний Колдун Бард Школа эвокации Dissolve! / Gela! / Arde! / Perure! / Inficio! / Detono! Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Цветные брызги",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цветные_брызги",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Цветные брызги Colour spray Волшебник Чародей Потусторонний рыцарь Мистический трикстер Школа иллюзии Te occludo oculos! / Caeco te! Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Щит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Щит",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Щит Shield Волшебник Чародей Потусторонний рыцарь Мистический трикстер Школа преграждения Не озвучено. Ответное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Щит веры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Щит_веры",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Щит веры Shield of Faith Жрец Паладин Школа преграждения Macte virtute! Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Яростная кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Яростная_кара",
+      "level": "1",
+      "source_bucket": "level_1",
+      "source_section": "1-й круг",
+      "row_text": "Яростная кара Wrathful Smite Паладин Школа эвокации «Confusio!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Бесследный шаг",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бесследный_шаг",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Бесследный шаг Pass without Trace Друид Домен обмана Следопыт Коллегия Знаний Бард Школа преграждения «Invisibilis! / Evanesco!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Видение невидимого",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Видение_невидимого",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Видение невидимого See Invisibility Бард Чародей Волшебник Мистический трикстер Потусторонний рыцарь Школа прорицания «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Волшебное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебное_оружие",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Волшебное оружие Magic Weapon Волшебник Домен войны Паладин Мистический трикстер Потусторонний рыцарь Школа превращения «Canto te!» / «Para bellum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Волшебный замок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебный_замок",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Волшебный замок Arcane Lock Волшебник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа преграждения «Clausus!» / «Inaccessus!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Дубовая кожа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубовая_кожа",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Дубовая кожа Barkskin Друид Домен природы Следопыт Школа превращения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Защита от яда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_яда",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Защита от яда Protection from Poison Друид Жрец Паладин Следопыт Школа преграждения «Intactilis sum!» / «Resisto venenum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Защитные узы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защитные_узы",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Защитные узы Warding Bond Жрец Школа преграждения «Intactilis sum!» / «Resisto!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Захватывающая речь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Захватывающая_речь",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Захватывающая речь Enthrall Колдун Бард Школа очарования «Impero te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Зеркальное отражение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Зеркальное_отражение",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Зеркальное отражение Mirror Image Чародей Волшебник Колдун Домен обмана Круг земли Мистический трикстер Потусторонний рыцарь Школа иллюзии «Fronti nulla fides!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Исцеляющий молебен",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющий_молебен",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Исцеляющий молебен Prayer of Healing Жрец Школа эвокации «Fiat voluntas dei!» / «Ad maiorem dei gloriam!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Кислотная стрела Мелфа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кислотная_стрела_Мелфа",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Кислотная стрела Мелфа Melf's Acid Arrow Волшебник Круг земли Потусторонний рыцарь Мистический трикстер Школа эвокации «Dissolve!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Клеймящая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клеймящая_кара",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Клеймящая кара Branding Smite Паладин Школа эвокации «Flagra!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Корона безумия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Корона_безумия",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Корона безумия Crown of Madness Бард Чародей Колдун Волшебник Клятвопреступник Мистический трикстер Потусторонний рыцарь Школа очарования «Demento te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Лунный свет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лунный_свет",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Лунный свет Moonbeam Друид Клятва древних Школа эвокации «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Невидимость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Невидимость",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Невидимость Invisibility Бард Чародей Волшебник Колдун Круг земли Мистический трикстер Потусторонний рыцарь Школа иллюзии «Invisibilis!» / «Evanesco!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Низшее восстановление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Низшее_восстановление",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Низшее восстановление Lesser Restoration Бард Жрец Друид Паладин Следопыт Школа преграждения «Te absolvo! / Vincere est vivere!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ночное зрение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ночное_зрение",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Ночное зрение Darkvision Друид Чародей Волшебник Следопыт Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа превращения «Secreti umbrarum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Облако кинжалов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Облако_кинжалов",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Облако кинжалов Cloud of Daggers Бард Волшебник Чародей Колдун Мистический трикстер Потусторонний рыцарь Школа воплощения «Caedo!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Обнаружение мыслей",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Обнаружение_мыслей",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Обнаружение мыслей Detect Thoughts Бард Чародей Волшебник Великий Древний Круг спор Мистический трикстер Потусторонний рыцарь Школа прорицания «Virtus et scientia!» / «Video veritatem!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненный клинок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_клинок",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Огненный клинок Flame Blade Друид Школа эвокации «Canto te!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Опаляющий луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опаляющий_луч",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Опаляющий луч Scorching Ray Чародей Волшебник Бестия Домен света Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа эвокации «Arde!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ослабляющий луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ослабляющий_луч",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Ослабляющий луч Ray of Enfeeblement Колдун Волшебник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа некромантии «Tu es nihil!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Паралич гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Паралич_гуманоида",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Паралич гуманоида Hold Person Бард Жрец Друид Чародей Колдун Клятва возмездия Мистический трикстер Потусторонний рыцарь Школа очарования «Ad lapidem!» / «Non movere!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Паутина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Паутина",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Паутина Web Чародей Волшебник Круг земли Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа воплощения «Voco araneae!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Помощь (заклинание)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Помощь_(заклинание)",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Помощь Aid Жрец Паладин Школа преграждения «Vita excolatur!» / «Dum vita est, spes est!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Порыв ветра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Порыв_ветра",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Порыв ветра Gust of Wind Друид Волшебник Чародей Домен бури Чары бури Потусторонний рыцарь Мистический трикстер Школа эвокации «Tempestas!» / «Ut ventus!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призрачное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призрачное_оружие",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Призрачное оружие Spiritual Weapon Жрец Коллегия Знаний Бард Школа эвокации «Ex Textura!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Пылающая сфера",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пылающая_сфера",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Пылающая сфера Flaming Sphere Друид Волшебник Домен света Потусторонний рыцарь Мистический трикстер Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Разбивающий звук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Разбивающий звук Shatter Бард Колдун Чародей Волшебник Домен бури Потусторонний рыцарь Мистический трикстер Школа эвокации «Detono!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Раскаленный металл",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Раскаленный_металл",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Раскаленный металл Heat Metal Друид Бард Школа превращения «Arde!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Расплывчатость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Расплывчатость",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Расплывчатость Blur Чародей Волшебник Круг земли Коллегия Знаний Мистический трикстер Потусторонний рыцарь Бард Школа иллюзии «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сила фантазма",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сила_фантазма",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Сила фантазма Phantasmal Force Бард Чародей Волшебник Архифея Мистический трикстер Потусторонний рыцарь Школа иллюзий «Incommodum!» / «Nulla salus!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Слепота",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Слепота",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Слепота Blindness Бард Жрец Чародей Волшебник Бестия Круг спор Потусторонний рыцарь Мистический трикстер Школа некромантии «Caeco te!» / «Te occludo oculos!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Спокойствие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Спокойствие",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Спокойствие Calm Emotions Бард Жрец Архифея Школа очарования «Te absolvo!» / «Vincere est vivere!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Стук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стук",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Стук Knock Бард Чародей Волшебник Потусторонний рыцарь Мистический трикстер Школа превращения «Pulso!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Тишина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тишина",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Тишина Silence Бард Жрец Круг земли Следопыт Клятва возмездия Колдун Школа иллюзии «Te adstringo linguam!» / «Silentium!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Туманный шаг",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Туманный_шаг",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Туманный шаг Misty Step Волшебник Колдун Чародей Круг земли Клятва древних Клятва возмездия Сумрачный охотник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа воплощения «Et alibi!» / «Inveniam viam!» Бонусное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Тьма",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тьма",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Тьма Darkness Волшебник Колдун Чародей Круг земли Клятвопреступник Коллегия Знаний Потусторонний рыцарь Мистический трикстер Бард Школа эвокации «Nocturnus!» / «Umbrae!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Увеличение/Уменьшение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Увеличение/Уменьшение",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Увеличение/Уменьшение Enlarge/Reduce Волшебник Колдун Мистический трикстер Потусторонний рыцарь Школа превращения «Gigans!» / «Diminue!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Усиление характеристики",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Усиление_характеристики",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Усиление характеристики Enhance Ability Бард Жрец Друид Чародей Школа превращения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Шипастая поросль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шипастая_поросль",
+      "level": "2",
+      "source_bucket": "level_2",
+      "source_section": "2-й круг",
+      "row_text": "Шипастая поросль Spike Growth Друид Домен природы Следопыт Коллегия Знаний Бард Школа превращения «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Аура жизненной силы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Аура_жизненной_силы",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Аура жизненной силы Warden of Vitality Коллегия Знаний Паладин Бард Школа эвокации «Macesce!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Возрождение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Возрождение",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Возрождение Revivify Жрец Коллегия Знаний Паладин Бард Школа некромантии «Te curo!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Вызов молний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вызов_молний",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Вызов молний Call Lightning Друид Домен бури Колдун Чары бури Коллегия Знаний Бард Школа воплощения «Perure!» / «Fulgur!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Газообразность",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Газообразность",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Газообразность Gaseous Form Волшебник Колдун Чародей Круг спор Круг земли Коллегия Знаний Бард Школа превращения «Mutatis mutandis!» / «Omnia mutantur!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Голод Хадара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Голод_Хадара",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Голод Хадара Hunger of Hadar Колдун Коллегия Знаний Бард Школа воплощения «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Даровать полет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Даровать_полет",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Даровать полет Grant Flight Волшебник Чародей Колдун Круг земли Коллегия Знаний Бард Школа превращения «Volo non fugia!» / «Tibi do pennas!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Дневной свет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дневной_свет",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Дневной свет Daylight Жрец Друид Чародей Коллегия Знаний Следопыт Паладин Бард Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Завораживающий узор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Завораживающий_узор",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Завораживающий узор Hypnotic Pattern Бард Волшебник Чародей Колдун Круг земли Школа иллюзий Не озвучено. Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Замедление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Замедление",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Замедление Slow Чародей Волшебник Великий Древний Колдун Коллегия Знаний Бард Школа превращения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Защита от энергии",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_энергии",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Защита от энергии Protection from Energy Жрец Друид Чародей Волшебник Следопыт Клятва древних Клятва возмездия Школа преграждения «Resisto acidum!» / «Intactilis sum!» / «Resisto ignem! / «Resisto!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Касание вампира",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Касание_вампира",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Касание вампира Vampiric Touch Колдун Волшебник Круг земли Коллегия Знаний Бард Школа некромантии «Mors tua, vita mea!» / «Amo sanguinem!» / «Gustas dulcis!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Контрзаклинание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Контрзаклинание",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Контрзаклинание Counterspell Волшебник Чародей Колдун Коллегия Знаний Бард Школа преграждения «Impero tibi!» Ответное действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Массовое исцеляющее слово",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеляющее_слово",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Массовое исцеляющее слово Mass Healing Word Жрец Коллегия Знаний Бард Школа эвокации «Vos curo!» / «Corpora sana!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Мерцание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Мерцание",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Мерцание Blink Волшебник Чародей Архифея Школа превращения «Et alibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненный шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_шар",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Огненный шар Fireball Чародей Волшебник Домен света Бестия Коллегия Знаний Бард Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Оживление мертвецов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Оживление_мертвецов",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Оживление мертвецов Animate Dead Жрец Волшебник Круг спор Колдун Клятвопреступник Школа некромантии «Surge!» / «Impero mortuos!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Плащ крестоносца",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Плащ_крестоносца",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Плащ крестоносца Crusader's Mantle Паладин Школа прорицания «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призрачные стражи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призрачные_стражи",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Призрачные стражи Spirit Guardians Жрец Коллегия Знаний Бард Школа воплощения «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Проклятие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Проклятие",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Проклятие Bestow Curse Бард Жрец Волшебник Великий Древний Дурное знамение Клятвопреступник Школа некромантии «Maledicte es!» / «Te exsecror!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Пурга",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пурга",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Пурга Sleet Storm Друид Чародей Волшебник Домен природы Коллегия Знаний Бард Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Разговор с мертвым",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_мертвым",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Разговор с мертвым Speak with Dead Бард Жрец Колдун Школа некромантии «Cum mortuis in lingua mortua!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Рост растений",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рост_растений",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Рост растений Plant Growth Бард Друид Архифея Домен природы Следопыт Клятва древних Школа превращения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Светоч надежды",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Светоч_надежды",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Светоч надежды Beacon of Hope Жрец Коллегия Знаний Паладин Бард Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Слепящая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Слепящая_кара",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Слепящая кара Blinding Smite Паладин Школа эвокации Не озвучено. Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Смрадное облако",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Смрадное_облако",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Смрадное облако Stinking Cloud Бард Чародей Бестия Круг земли Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Снятие проклятия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Снятие_проклятия",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Снятие проклятия Remove Curse Жрец Колдун Волшебник Коллегия Знаний Паладин Бард Школа преграждения «Vincere est vivere!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Стихийное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стихийное_оружие",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Стихийное оружие Elemental Weapon Паладин Школа превращения «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сторожевая печать",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сторожевая_печать",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Сторожевая печать Glyph of Warding Бард Жрец Волшебник Школа преграждения «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Удар молнии",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Удар_молнии",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Удар молнии Lightning Bolt Чародей Волшебник Круг земли Коллегия Знаний Бард Школа эвокации «Perure!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ужас",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ужас",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Ужас Fear Бард Чародей Волшебник Колдун Домен обмана Сумрачный охотник Школа иллюзий «Vae victis!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ускорение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ускорение",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Ускорение Haste Чародей Волшебник Круг земли Коллегия Знаний Клятва возмездия Бард Школа превращения «Propera!» / «Ocior!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Фальшивая смерть",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фальшивая_смерть",
+      "level": "3",
+      "source_bucket": "level_3",
+      "source_section": "3-й круг",
+      "row_text": "Фальшивая смерть Feign Death Бард Жрец Друид Волшебник Школа некромантии «Resisto mortem!» / «Ad vitam aeternam!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Высшая невидимость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Высшая_невидимость",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Высшая невидимость Greater Invisibility Бард Чародей Архифея Волшебник Круг земли Школа иллюзий «Invisibilis!» / «Evanesco!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Дверь в пространстве",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дверь_в_пространстве",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Дверь в пространстве Dimension Door Бард Чародей Колдун Волшебник Домен обмана Школа воплощения «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Замешательство",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Замешательство",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Замешательство Confusion Бард Друид Чародей Волшебник Домен знаний Колдун Школа очарования «Non compos mentis!» / «Demento te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Защита от смерти",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_смерти",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Защита от смерти Death Ward Жрец Бард Школа преграждения «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Изгнание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Изгнание",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Изгнание Banishment Жрец Чародей Колдун Волшебник Бард Школа преграждения «Expello te!» / «Eiecto te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Каменная кожа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Каменная_кожа",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Каменная кожа Stoneskin Друид Чародей Волшебник Домен войны Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Ледяная буря",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ледяная_буря",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Ледяная буря Ice Storm Друид Чародей Волшебник Домен бури Бард Школа эвокации «Treme!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненная стена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненная_стена",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Огненная стена Wall of Fire Друид Чародей Волшебник Домен света Бард Школа эвокации «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненный щит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_щит",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Огненный щит Fire Shield Волшебник Бестия Бард Школа эвокации «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Подчинение животного",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Подчинение_животного",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Подчинение животного Dominate Beast Друид Чародей Домен природы Архифея Великий Древний Бард Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Полиморф",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Полиморф",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Полиморф Polymorph Бард Друид Чародей Волшебник Домен обмана Колдун Школа превращения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призвать лесное существо",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призвать_лесное_существо",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Призвать лесное существо Conjure Woodland Being Друид Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв малого элементаля",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_малого_элементаля",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Призыв малого элементаля Conjure Minor Elemental Волшебник Друид Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Свобода движений",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Свобода_движений",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Свобода движений Freedom of Movement Жрец Бард Жрец Друид Школа преграждения «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Силовая сфера Отилюка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Силовая_сфера_Отилюка",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Силовая сфера Отилюка Otiluke's Resilient Sphere Волшебник Домен знаний Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Страж веры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Страж_веры",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Страж веры Guardian of Faith Жрец Бард Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Убийственный фантазм",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Убийственный_фантазм",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Убийственный фантазм Phantasmal Killer Волшебник Школа иллюзий «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Увядание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Увядание",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Увядание Blight Друид Чародей Волшебник Колдун Бард Школа некромантии «Peri!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Цепкая лиана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цепкая_лиана",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Цепкая лиана Grasping Vine Друид Домен природы Школа воплощения «Ex Textura!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Черные щупальца Эварда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Черные_щупальца_Эварда",
+      "level": "4",
+      "source_bucket": "level_4",
+      "source_section": "4-й круг",
+      "row_text": "Черные щупальца Эварда Evard's Black Tentacles Волшебник Великий Древний Школа воплощения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Болезнь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Болезнь",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Болезнь Contagion Жрец Друид Бард Школа некромантии «Tu es nihil!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Волна разрушения",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волна_разрушения",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Волна разрушения Destructive Wave Домен света Домен бури Школа эвокации «Ira!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Высшее восстановление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Высшее_восстановление",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Высшее восстановление Greater Restoration Бард Жрец Друид Школа преграждения «Te curo!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Каменная стена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Каменная_стена",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Каменная стена Wall of Stone Друид Чародей Волшебник Домен природы Бард Школа эвокации «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Конус холода",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Конус_холода",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Конус холода Cone of Cold Волшебник Чародей Бестия Круг земли Бард Школа эвокации «Treme!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Личина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Личина",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Личина Seeming Волшебник Бард Чародей Архифея Домен обмана Школа иллюзий «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Массовое исцеление ран",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеление_ран",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Массовое исцеление ран Mass Cure Wounds Бард Жрец Друид Школа эвокации «Te curo!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненный столп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_столп",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Огненный столп Flame Strike Жрец Бестия Школа эвокации «Torre!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Паралич чудовища",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Паралич_чудовища",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Паралич чудовища Hold Monster Бард Волшебник Колдун Чародей Домен войны Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Планарный слуга",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Планарный_слуга",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Планарный слуга Planar Binding Бард Жрец Друид Волшебник Школа преграждения «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Подчинение гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Подчинение_гуманоида",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Подчинение гуманоида Dominate Person Бард Чародей Волшебник Архифея Великий Древний Домен обмана Домен знаний Школа очарования «Impero tibi!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв элементаля",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_элементаля",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Призыв элементаля Conjure Elemental Волшебник Друид Колдун Бард Школа воплощения «Invoco te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Рассеивание добра и зла",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рассеивание_добра_и_зла",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Рассеивание добра и зла Dispel Evil and Good Жрец Школа преграждения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Рой саранчи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рой_саранчи",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Рой саранчи Insect Plague Жрец Друид Чародей Школа воплощения «Dialino!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Смертельное облако",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Смертельное_облако",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Смертельное облако Cloudkill Чародей Волшебник Круг спор Круг земли Школа воплощения «Ira et dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Телекинез",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Телекинез",
+      "level": "5",
+      "source_bucket": "level_5",
+      "source_section": "5-й круг",
+      "row_text": "Телекинез Telekinesis Чародей Волшебник Домен знаний Великий Древний Школа превращения «Quod dico face!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Безудержная пляска Отто",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Безудержная_пляска_Отто",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Безудержная пляска Отто Otto's Irresistible Dance Волшебник Бард Школа очарования «Obedi me!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Волшебные врата",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебные_врата",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Волшебные врата Arcane Gate Волшебник Чародей Колдун Школа воплощения «Veni et iuva me!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Грозные очи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Грозные_очи",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Грозные очи Eyebite Волшебник Чародей Колдун Бард Школа некромантии «Diminuo te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Дезинтеграция",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дезинтеграция",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Дезинтеграция Disintegrate Волшебник Чародей Школа превращения «Dolor!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Излечение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Излечение",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Излечение Heal Жрец Друид Школа эвокации «Vis medicatrix!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Круг смерти",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Круг_смерти",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Круг смерти Circle of Death Волшебник Чародей Колдун Школа некромантии «Mortalis!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Морозный шар Отилюка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Морозный_шар_Отилюка",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Морозный шар Отилюка Otiluke's Freezing Sphere Волшебник Школа эвокации «Mortem tuum sum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Пир героев",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пир_героев",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Пир героев Heroes' Feast Жрец Друид Школа воплощения «Macte virtute!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Планарный союзник",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Планарный_союзник",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Планарный союзник Planar Ally Жрец Школа воплощения «Invoco te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Плоть в камень",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Плоть_в_камень",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Плоть в камень Flesh to Stone Волшебник Колдун Школа превращения «Diminuo te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Повреждение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Повреждение",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Повреждение Harm Жрец Школа некромантии «Mortem tuum sum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Путешествие с ветром",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Путешествие_с_ветром",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Путешествие с ветром Wind Walk Друид Школа превращения «Maior, fortior!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Создание нежити",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Создание_нежити",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Создание нежити Create Undead Жрец Колдун Волшебник Школа некромантии «Invoco te!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Солнечный луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Солнечный_луч",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Солнечный луч Sunbeam Друид Чародей Волшебник Школа эвокации «Incende!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Стена лезвий",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стена_лезвий",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Стена лезвий Blade Barrier Жрец Школа эвокации «Mortem tuum sum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Стена льда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стена_льда",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Стена льда Wall of Ice Волшебник Школа эвокации «Mortem tuum sum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сфера неуязвимости",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сфера_неуязвимости",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Сфера неуязвимости Globe of Invulnerability Волшебник Чародей Школа преграждения «Veni et iuva me!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Терновая стена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Терновая_стена",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Терновая стена Wall of Thorns Друид Школа воплощения «Mortem tuum sum!» Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Цепь молний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цепь_молний",
+      "level": "6",
+      "source_bucket": "level_6",
+      "source_section": "6-й круг",
+      "row_text": "Цепь молний Chain Lightning Волшебник Чародей Школа эвокации Не озвучено. Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Благоволение Керески",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Благоволение_Керески",
+      "level": "4",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Благоволение Керески Kereska's Favour Маркохешкир 4 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Впечатления о Благом дворе: призыв дэвы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Впечатления_о_Благом_дворе:_призыв_дэвы",
+      "level": "5",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Впечатления о Благом дворе: призыв дэвы Sights of the Seelie: Summon Deva Впечатления о Благом дворе: дикий облик Звериного единства 5 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Вой мертвецов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вой_мертвецов",
+      "level": null,
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Вой мертвецов Howl of the Dead Объятья Жнеца Фокус Бонусное действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Вызвать на дуэль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вызвать_на_дуэль",
+      "level": "1",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Вызвать на дуэль Challenge to Duel Прерогатива дуэлянта 1 Бонусное действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Драконье стихийное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Драконье_стихийное_оружие",
+      "level": "3",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Драконье стихийное оружие Draconic Elemental Weapon Глефа драконьей глотки 3 Бонусное действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Жуткий танец",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Жуткий_танец",
+      "level": "5",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Жуткий танец Danse Macabre Некромантия Тхая 5 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Касание упыря",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Касание_упыря",
+      "level": "1",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Касание упыря Ghoulish Touch Кольцо восхитительного костного мозга 1 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Лозы Стража веры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лозы_Стража_веры",
+      "level": "1",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Лозы Стража веры Faithwarden's Vines Бледный дуб 1 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Небесная поспешность",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Небесная_поспешность",
+      "level": "3",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Небесная поспешность Celestial Haste Гонтр Маэль 3 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Огненный снаряд?",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_снаряд?",
+      "level": null,
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Огненный снаряд? Fire Bolt? Посох косноязычного волшебника Фокус Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призвать умертвие фонаря теней",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призвать_умертвие_фонаря_теней",
+      "level": "6",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Призвать умертвие фонаря теней Conjure Shadow Lantern Wraith Фонарь теней 6 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв фамильяра: наглый квазит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_наглый_квазит",
+      "level": "1",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Призыв фамильяра: наглый квазит Find Familiar Cheeky Quasit Свиток \"Призыв квазита\" 1 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв фамильяра: Шкряб",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_Шкряб",
+      "level": "1",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Призыв фамильяра: Шкряб Find Familiar: Scratch Мячик Шкряба 1 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Руководство по стратегии: искусство войны",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Руководство_по_стратегии:_искусство_войны",
+      "level": "5",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Руководство по стратегии: искусство войны Curriculum of Strategy: Artistry of War Последняя стратагема Красного Рыцаря 5 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Свергнуть",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Свергнуть",
+      "level": "5",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Свергнуть Dethrone Анналы Карсуса 5 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сетан: духовный двуручный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_духовный_двуручный_топор",
+      "level": "6",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Сетан: духовный двуручный топор Sethan: Spiritual Greataxe Сетан 6 Бонусное действие + Скорость 6 м",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Сетан: уменьшение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_уменьшение",
+      "level": "2",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Сетан: уменьшение Sethan: Reduce Сетан 2 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Стихийная эпоха",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стихийная_эпоха",
+      "level": "3",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Стихийная эпоха Elemental Weapon Цеп эпох 3 Бонусное действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Стрела-молния",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стрела-молния",
+      "level": "3",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Стрела-молния Lightning Arrow Адский самовзводный арбалет 3 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Тьма Шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тьма_Шар",
+      "level": "2",
+      "source_bucket": "item_granted",
+      "source_section": "Заклинания от предметов",
+      "row_text": "Тьма Шар Shar's Darkness Копье вечера Шар 2 Действие",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв фамильяра: Бу",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_Бу",
+      "level": "1",
+      "source_bucket": "unique_npc",
+      "source_section": "Уникальные и для НПС",
+      "row_text": "Призыв фамильяра: Бу Find Familiar: Boo Только для Минска 1 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    },
+    {
+      "title": "Призыв мефита",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_мефита",
+      "level": "1",
+      "source_bucket": "unique_npc",
+      "source_section": "Уникальные и для НПС",
+      "row_text": "Призыв мефита Summon Mephit Древний грязевой мефит 1 Действие + Ячейка заклинания",
+      "source_list": "ru_main_page_table"
+    }
+  ]
+}

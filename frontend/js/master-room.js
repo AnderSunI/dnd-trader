@@ -1,19 +1,27 @@
 // ============================================================
 // frontend/js/master-room.js
-// Master Room — отдельный модуль ГМ-стола / партии
-// - только для ГМа
-// - local-first + мягкая попытка API
-// - создание нескольких столов
-// - token / код стола
-// - поиск игроков по нику / email по known-users пулу
-// - ручное добавление игрока
-// - выбор активного персонажа для участника
-// - пресеты видимости: private / basic / sheet / full
-// - shared traders
-// - выдача золота / предметов (как журнал действий стола)
-// - activity log
-// - совместим с cabinet.js через container id="cabinet-masterroom"
+// LEGACY / UNUSED RUNTIME MODULE
+// Canonical Master Room implementation now lives in frontend/js/cabinet.js.
+// Keep this file only as a reference during cleanup; do not extend it in parallel.
 // ============================================================
+
+import {
+  apiGet,
+  apiWrite,
+  buildUserScopedStorageKey,
+  escapeHtml,
+  formatDateTime,
+  getCurrentRole,
+  getCurrentUser,
+  getEl,
+  getSection,
+  normalizeRole,
+  safeArray,
+  safeText,
+  showToast,
+  trimText,
+  tryParseJson,
+} from "./shared.js";
 
 // ------------------------------------------------------------
 // 🌐 STATE
@@ -40,91 +48,6 @@ const MASTER_ROOM_STATE = {
 // ------------------------------------------------------------
 // 🧰 HELPERS
 // ------------------------------------------------------------
-function getEl(id) {
-  return document.getElementById(id);
-}
-
-function getSection(id) {
-  return document.getElementById(id);
-}
-
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
-
-function getHeaders(withJson = false) {
-  const headers = {};
-  const token = getToken();
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (withJson) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  return headers;
-}
-
-function showToast(message) {
-  if (typeof window.showToast === "function") {
-    window.showToast(message);
-    return;
-  }
-  console.log(message);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function safeText(value, fallback = "") {
-  if (value === null || value === undefined || value === "") return fallback;
-  return String(value);
-}
-
-function trimText(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
-}
-
-function safeArray(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function tryParseJson(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function normalizeRole(role) {
-  const raw = String(role || "").trim().toLowerCase();
-  if (raw === "gm" || raw === "admin") return "gm";
-  return "player";
-}
-
-function getCurrentRole() {
-  return normalizeRole(
-    window.__appUserRole ||
-      window.__userRole ||
-      window.__appUser?.role ||
-      document.body?.dataset?.role ||
-      "player"
-  );
-}
-
-function getCurrentUser() {
-  return window.__appUser || null;
-}
-
 function isGm() {
   return MASTER_ROOM_STATE.role === "gm";
 }
@@ -154,30 +77,8 @@ function normalizeDate(value, fallback = Date.now()) {
   }
 }
 
-function formatDateTime(value) {
-  try {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Без даты";
-    return date.toLocaleString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "Без даты";
-  }
-}
-
 function getStorageKey() {
-  const user = getCurrentUser();
-  const userKey =
-    user?.email ||
-    user?.id ||
-    (getToken() ? "auth-user" : "guest");
-
-  return `dnd_trader_master_room_${userKey}`;
+  return buildUserScopedStorageKey("dnd_trader_master_room_");
 }
 
 function saveLocal(payload) {
@@ -194,41 +95,6 @@ function loadLocal() {
   } catch {
     return null;
   }
-}
-
-async function apiGet(urls) {
-  const list = Array.isArray(urls) ? urls : [urls];
-
-  for (const url of list) {
-    try {
-      const res = await fetch(url, { headers: getHeaders() });
-      if (!res.ok) continue;
-      return await res.json();
-    } catch (_) {}
-  }
-
-  return null;
-}
-
-async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {
-  const list = Array.isArray(urls) ? urls : [urls];
-
-  for (const method of methods) {
-    for (const url of list) {
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: getHeaders(true),
-          body: JSON.stringify(body),
-        });
-
-        if (!res.ok) continue;
-        return await res.json().catch(() => ({}));
-      } catch (_) {}
-    }
-  }
-
-  return null;
 }
 
 function emitMasterRoomHistory(event) {

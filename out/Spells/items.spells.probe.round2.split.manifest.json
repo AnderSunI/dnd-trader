@@ -1,0 +1,1817 @@
+{
+  "family": "spells",
+  "source": "bg3_ru_wiki",
+  "round": 2,
+  "version": "ru_v1_split",
+  "stage": "probe_split_per_item",
+  "input_path": "out/Spells/items.spells.index.round1.ru.v1.json",
+  "generated_at_utc": "2026-04-21T14:06:55Z",
+  "total_seeds": 225,
+  "fetched_ok": 225,
+  "failed_count": 0,
+  "thin_page_count": 0,
+  "probe_items_dir": "out/Spells/probe_items",
+  "manifest_path": "out/Spells/items.spells.probe.round2.split.manifest.json",
+  "items": [
+    {
+      "id": "bg3_spell_брызги_яда",
+      "page_title": "Брызги яда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Брызги_яда",
+      "file": "out/Spells/probe_items/bg3_spell_брызги_яда.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_верный_удар",
+      "page_title": "Верный удар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Верный_удар",
+      "file": "out/Spells/probe_items/bg3_spell_верный_удар.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_всплеск_кислоты",
+      "page_title": "Всплеск кислоты",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Всплеск_кислоты",
+      "file": "out/Spells/probe_items/bg3_spell_всплеск_кислоты.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_дружба",
+      "page_title": "Дружба",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дружба",
+      "file": "out/Spells/probe_items/bg3_spell_дружба.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_пробирающий_до_костей_холод",
+      "page_title": "Пробирающий до костей холод",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пробирающий_до_костей_холод",
+      "file": "out/Spells/probe_items/bg3_spell_пробирающий_до_костей_холод.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ледяной_луч",
+      "page_title": "Ледяной луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ледяной_луч",
+      "file": "out/Spells/probe_items/bg3_spell_ледяной_луч.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_магическая_рука",
+      "page_title": "Магическая рука",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Магическая_рука",
+      "file": "out/Spells/probe_items/bg3_spell_магическая_рука.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_малая_иллюзия",
+      "page_title": "Малая иллюзия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Малая_иллюзия",
+      "file": "out/Spells/probe_items/bg3_spell_малая_иллюзия.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_наставление",
+      "page_title": "Наставление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Наставление",
+      "file": "out/Spells/probe_items/bg3_spell_наставление.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_оберег_от_оружия",
+      "page_title": "Оберег от оружия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Оберег_от_оружия",
+      "file": "out/Spells/probe_items/bg3_spell_оберег_от_оружия.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_огненный_снаряд",
+      "page_title": "Огненный снаряд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_снаряд",
+      "file": "out/Spells/probe_items/bg3_spell_огненный_снаряд.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_пляшущие_огоньки",
+      "page_title": "Пляшущие огоньки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пляшущие_огоньки",
+      "file": "out/Spells/probe_items/bg3_spell_пляшущие_огоньки.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_потусторонний_разряд",
+      "page_title": "Потусторонний разряд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Потусторонний_разряд",
+      "file": "out/Spells/probe_items/bg3_spell_потусторонний_разряд.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_свет",
+      "page_title": "Свет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Свет",
+      "file": "out/Spells/probe_items/bg3_spell_свет.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_священное_пламя",
+      "page_title": "Священное пламя",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Священное_пламя",
+      "file": "out/Spells/probe_items/bg3_spell_священное_пламя.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_создание_пламени",
+      "page_title": "Создание пламени",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Создание_пламени",
+      "file": "out/Spells/probe_items/bg3_spell_создание_пламени.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_тавматургия",
+      "page_title": "Тавматургия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тавматургия",
+      "file": "out/Spells/probe_items/bg3_spell_тавматургия.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_терновый_хлыст",
+      "page_title": "Терновый хлыст",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Терновый_хлыст",
+      "file": "out/Spells/probe_items/bg3_spell_терновый_хлыст.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_устойчивость",
+      "page_title": "Устойчивость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Устойчивость",
+      "file": "out/Spells/probe_items/bg3_spell_устойчивость.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_шиллейла",
+      "page_title": "Шиллейла",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шиллейла",
+      "file": "out/Spells/probe_items/bg3_spell_шиллейла.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_шоковое_прикосновение",
+      "page_title": "Шоковое прикосновение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шоковое_прикосновение",
+      "file": "out/Spells/probe_items/bg3_spell_шоковое_прикосновение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_язвительная_насмешка",
+      "page_title": "Язвительная насмешка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Язвительная_насмешка",
+      "file": "out/Spells/probe_items/bg3_spell_язвительная_насмешка.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_адское_возмездие",
+      "page_title": "Адское возмездие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Адское_возмездие",
+      "file": "out/Spells/probe_items/bg3_spell_адское_возмездие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_благословение_baldur_s_gate_iii",
+      "page_title": "Благословение (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Благословение_(Baldur's_Gate_III)",
+      "file": "out/Spells/probe_items/bg3_spell_благословение_baldur_s_gate_iii.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_божественная_благодать",
+      "page_title": "Божественная благодать",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Божественная_благодать",
+      "file": "out/Spells/probe_items/bg3_spell_божественная_благодать.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_броня_агафиса",
+      "page_title": "Броня Агафиса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Броня_Агафиса",
+      "file": "out/Spells/probe_items/bg3_spell_броня_агафиса.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ведьмовской_разряд",
+      "page_title": "Ведьмовской разряд",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ведьмовской_разряд",
+      "file": "out/Spells/probe_items/bg3_spell_ведьмовской_разряд.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_вкусные_ягоды",
+      "page_title": "Вкусные ягоды",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вкусные_ягоды",
+      "file": "out/Spells/probe_items/bg3_spell_вкусные_ягоды.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_волшебная_стрела",
+      "page_title": "Волшебная стрела",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_стрела",
+      "file": "out/Spells/probe_items/bg3_spell_волшебная_стрела.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_вызов_на_дуэль",
+      "page_title": "Вызов на дуэль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вызов_на_дуэль",
+      "file": "out/Spells/probe_items/bg3_spell_вызов_на_дуэль.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_героизм",
+      "page_title": "Героизм",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Героизм",
+      "file": "out/Spells/probe_items/bg3_spell_героизм.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_град_шипов",
+      "page_title": "Град шипов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Град_шипов",
+      "file": "out/Spells/probe_items/bg3_spell_град_шипов.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_громовая_волна",
+      "page_title": "Громовая волна",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Громовая_волна",
+      "file": "out/Spells/probe_items/bg3_spell_громовая_волна.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_громовая_кара",
+      "page_title": "Громовая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Громовая_кара",
+      "file": "out/Spells/probe_items/bg3_spell_громовая_кара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_диссонирующий_шепот",
+      "page_title": "Диссонирующий шепот",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Диссонирующий_шепот",
+      "file": "out/Spells/probe_items/bg3_spell_диссонирующий_шепот.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_дружба_с_животным",
+      "page_title": "Дружба с животным",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дружба_с_животным",
+      "file": "out/Spells/probe_items/bg3_spell_дружба_с_животным.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_жгучая_кара",
+      "page_title": "Жгучая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Жгучая_кара",
+      "file": "out/Spells/probe_items/bg3_spell_жгучая_кара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_защита_от_зла_и_добра",
+      "page_title": "Защита от зла и добра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_зла_и_добра",
+      "file": "out/Spells/probe_items/bg3_spell_защита_от_зла_и_добра.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_изменение_облика",
+      "page_title": "Изменение облика",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Изменение_облика",
+      "file": "out/Spells/probe_items/bg3_spell_изменение_облика.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_исцеление_ран",
+      "page_title": "Исцеление ран",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеление_ран",
+      "file": "out/Spells/probe_items/bg3_spell_исцеление_ран.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_исцеляющее_слово",
+      "page_title": "Исцеляющее слово",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющее_слово",
+      "file": "out/Spells/probe_items/bg3_spell_исцеляющее_слово.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ледяной_нож",
+      "page_title": "Ледяной нож",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ледяной_нож",
+      "file": "out/Spells/probe_items/bg3_spell_ледяной_нож.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ложная_жизнь",
+      "page_title": "Ложная жизнь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ложная_жизнь",
+      "file": "out/Spells/probe_items/bg3_spell_ложная_жизнь.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_луч_болезни",
+      "page_title": "Луч болезни",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Луч_болезни",
+      "file": "out/Spells/probe_items/bg3_spell_луч_болезни.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_магический_доспех",
+      "page_title": "Магический доспех",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Магический_доспех",
+      "file": "out/Spells/probe_items/bg3_spell_магический_доспех.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_масло",
+      "page_title": "Масло",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Масло",
+      "file": "out/Spells/probe_items/bg3_spell_масло.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_метка_охотника",
+      "page_title": "Метка охотника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Метка_охотника",
+      "file": "out/Spells/probe_items/bg3_spell_метка_охотника.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_нанесение_ран",
+      "page_title": "Нанесение ран",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Нанесение_ран",
+      "file": "out/Spells/probe_items/bg3_spell_нанесение_ран.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_направляющий_луч",
+      "page_title": "Направляющий луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Направляющий_луч",
+      "file": "out/Spells/probe_items/bg3_spell_направляющий_луч.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_облако_тумана",
+      "page_title": "Облако тумана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Облако_тумана",
+      "file": "out/Spells/probe_items/bg3_spell_облако_тумана.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_опутывание",
+      "page_title": "Опутывание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опутывание",
+      "file": "out/Spells/probe_items/bg3_spell_опутывание.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_опутывающий_удар",
+      "page_title": "Опутывающий удар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опутывающий_удар",
+      "file": "out/Spells/probe_items/bg3_spell_опутывающий_удар.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_отвратительный_смех_таши",
+      "page_title": "Отвратительный смех Таши",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Отвратительный_смех_Таши",
+      "file": "out/Spells/probe_items/bg3_spell_отвратительный_смех_таши.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_плавное_падение",
+      "page_title": "Плавное падение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Плавное_падение",
+      "file": "out/Spells/probe_items/bg3_spell_плавное_падение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_порча",
+      "page_title": "Порча",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Порча",
+      "file": "out/Spells/probe_items/bg3_spell_порча.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_поспешное_отступление",
+      "page_title": "Поспешное отступление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Поспешное_отступление",
+      "file": "out/Spells/probe_items/bg3_spell_поспешное_отступление.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_приворот_гуманоида",
+      "page_title": "Приворот гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Приворот_гуманоида",
+      "file": "out/Spells/probe_items/bg3_spell_приворот_гуманоида.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_фамильяра",
+      "page_title": "Призыв фамильяра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_фамильяра.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_фамильяра_бес",
+      "page_title": "Призыв фамильяра: бес",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_бес",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_фамильяра_бес.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_фамильяра_квазит",
+      "page_title": "Призыв фамильяра: квазит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_квазит",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_фамильяра_квазит.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_приказ",
+      "page_title": "Приказ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Приказ",
+      "file": "out/Spells/probe_items/bg3_spell_приказ.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_пылающие_руки",
+      "page_title": "Пылающие руки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пылающие_руки",
+      "file": "out/Spells/probe_items/bg3_spell_пылающие_руки.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_разговор_с_животными",
+      "page_title": "Разговор с животными",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_животными",
+      "file": "out/Spells/probe_items/bg3_spell_разговор_с_животными.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_руки_хадара",
+      "page_title": "Руки Хадара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Руки_Хадара",
+      "file": "out/Spells/probe_items/bg3_spell_руки_хадара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сглаз",
+      "page_title": "Сглаз",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сглаз",
+      "file": "out/Spells/probe_items/bg3_spell_сглаз.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_скороход",
+      "page_title": "Скороход",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Скороход",
+      "file": "out/Spells/probe_items/bg3_spell_скороход.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_создание_или_уничтожение_воды",
+      "page_title": "Создание или уничтожение воды",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Создание_или_уничтожение_воды",
+      "file": "out/Spells/probe_items/bg3_spell_создание_или_уничтожение_воды.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сон",
+      "page_title": "Сон",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сон",
+      "file": "out/Spells/probe_items/bg3_spell_сон.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_убежище",
+      "page_title": "Убежище",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Убежище",
+      "file": "out/Spells/probe_items/bg3_spell_убежище.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_усиленный_прыжок",
+      "page_title": "Усиленный прыжок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Усиленный_прыжок",
+      "file": "out/Spells/probe_items/bg3_spell_усиленный_прыжок.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_фейское_сияние",
+      "page_title": "Фейское сияние",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фейское_сияние",
+      "file": "out/Spells/probe_items/bg3_spell_фейское_сияние.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_хроматический_шар",
+      "page_title": "Хроматический шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Хроматический_шар",
+      "file": "out/Spells/probe_items/bg3_spell_хроматический_шар.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_цветные_брызги",
+      "page_title": "Цветные брызги",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цветные_брызги",
+      "file": "out/Spells/probe_items/bg3_spell_цветные_брызги.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_щит",
+      "page_title": "Щит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Щит",
+      "file": "out/Spells/probe_items/bg3_spell_щит.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_щит_веры",
+      "page_title": "Щит веры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Щит_веры",
+      "file": "out/Spells/probe_items/bg3_spell_щит_веры.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_яростная_кара",
+      "page_title": "Яростная кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Яростная_кара",
+      "file": "out/Spells/probe_items/bg3_spell_яростная_кара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_бесследный_шаг",
+      "page_title": "Бесследный шаг",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бесследный_шаг",
+      "file": "out/Spells/probe_items/bg3_spell_бесследный_шаг.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_видение_невидимого",
+      "page_title": "Видение невидимого",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Видение_невидимого",
+      "file": "out/Spells/probe_items/bg3_spell_видение_невидимого.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_волшебное_оружие",
+      "page_title": "Волшебное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебное_оружие",
+      "file": "out/Spells/probe_items/bg3_spell_волшебное_оружие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_волшебный_замок",
+      "page_title": "Волшебный замок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебный_замок",
+      "file": "out/Spells/probe_items/bg3_spell_волшебный_замок.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_дубовая_кожа",
+      "page_title": "Дубовая кожа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дубовая_кожа",
+      "file": "out/Spells/probe_items/bg3_spell_дубовая_кожа.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_защита_от_яда",
+      "page_title": "Защита от яда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_яда",
+      "file": "out/Spells/probe_items/bg3_spell_защита_от_яда.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_защитные_узы",
+      "page_title": "Защитные узы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защитные_узы",
+      "file": "out/Spells/probe_items/bg3_spell_защитные_узы.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_захватывающая_речь",
+      "page_title": "Захватывающая речь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Захватывающая_речь",
+      "file": "out/Spells/probe_items/bg3_spell_захватывающая_речь.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_зеркальное_отражение",
+      "page_title": "Зеркальное отражение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Зеркальное_отражение",
+      "file": "out/Spells/probe_items/bg3_spell_зеркальное_отражение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_исцеляющий_молебен",
+      "page_title": "Исцеляющий молебен",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющий_молебен",
+      "file": "out/Spells/probe_items/bg3_spell_исцеляющий_молебен.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_кислотная_стрела_мелфа",
+      "page_title": "Кислотная стрела Мелфа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кислотная_стрела_Мелфа",
+      "file": "out/Spells/probe_items/bg3_spell_кислотная_стрела_мелфа.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_клеймящая_кара",
+      "page_title": "Клеймящая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Клеймящая_кара",
+      "file": "out/Spells/probe_items/bg3_spell_клеймящая_кара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_корона_безумия",
+      "page_title": "Корона безумия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Корона_безумия",
+      "file": "out/Spells/probe_items/bg3_spell_корона_безумия.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_лунный_свет",
+      "page_title": "Лунный свет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лунный_свет",
+      "file": "out/Spells/probe_items/bg3_spell_лунный_свет.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_невидимость",
+      "page_title": "Невидимость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Невидимость",
+      "file": "out/Spells/probe_items/bg3_spell_невидимость.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_низшее_восстановление",
+      "page_title": "Низшее восстановление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Низшее_восстановление",
+      "file": "out/Spells/probe_items/bg3_spell_низшее_восстановление.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ночное_зрение",
+      "page_title": "Ночное зрение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ночное_зрение",
+      "file": "out/Spells/probe_items/bg3_spell_ночное_зрение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_облако_кинжалов",
+      "page_title": "Облако кинжалов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Облако_кинжалов",
+      "file": "out/Spells/probe_items/bg3_spell_облако_кинжалов.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_обнаружение_мыслей",
+      "page_title": "Обнаружение мыслей",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Обнаружение_мыслей",
+      "file": "out/Spells/probe_items/bg3_spell_обнаружение_мыслей.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_огненный_клинок",
+      "page_title": "Огненный клинок",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_клинок",
+      "file": "out/Spells/probe_items/bg3_spell_огненный_клинок.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_опаляющий_луч",
+      "page_title": "Опаляющий луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опаляющий_луч",
+      "file": "out/Spells/probe_items/bg3_spell_опаляющий_луч.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ослабляющий_луч",
+      "page_title": "Ослабляющий луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ослабляющий_луч",
+      "file": "out/Spells/probe_items/bg3_spell_ослабляющий_луч.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_паралич_гуманоида",
+      "page_title": "Паралич гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Паралич_гуманоида",
+      "file": "out/Spells/probe_items/bg3_spell_паралич_гуманоида.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_паутина",
+      "page_title": "Паутина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Паутина",
+      "file": "out/Spells/probe_items/bg3_spell_паутина.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_помощь_заклинание",
+      "page_title": "Помощь (заклинание)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Помощь_(заклинание)",
+      "file": "out/Spells/probe_items/bg3_spell_помощь_заклинание.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_порыв_ветра",
+      "page_title": "Порыв ветра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Порыв_ветра",
+      "file": "out/Spells/probe_items/bg3_spell_порыв_ветра.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призрачное_оружие",
+      "page_title": "Призрачное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призрачное_оружие",
+      "file": "out/Spells/probe_items/bg3_spell_призрачное_оружие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_пылающая_сфера",
+      "page_title": "Пылающая сфера",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пылающая_сфера",
+      "file": "out/Spells/probe_items/bg3_spell_пылающая_сфера.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_разбивающий_звук",
+      "page_title": "Разбивающий звук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук",
+      "file": "out/Spells/probe_items/bg3_spell_разбивающий_звук.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_раскаленный_металл",
+      "page_title": "Раскаленный металл",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Раскаленный_металл",
+      "file": "out/Spells/probe_items/bg3_spell_раскаленный_металл.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_расплывчатость",
+      "page_title": "Расплывчатость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Расплывчатость",
+      "file": "out/Spells/probe_items/bg3_spell_расплывчатость.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сила_фантазма",
+      "page_title": "Сила фантазма",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сила_фантазма",
+      "file": "out/Spells/probe_items/bg3_spell_сила_фантазма.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_слепота",
+      "page_title": "Слепота",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Слепота",
+      "file": "out/Spells/probe_items/bg3_spell_слепота.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_спокойствие",
+      "page_title": "Спокойствие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Спокойствие",
+      "file": "out/Spells/probe_items/bg3_spell_спокойствие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_стук",
+      "page_title": "Стук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стук",
+      "file": "out/Spells/probe_items/bg3_spell_стук.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_тишина",
+      "page_title": "Тишина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тишина",
+      "file": "out/Spells/probe_items/bg3_spell_тишина.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_туманный_шаг",
+      "page_title": "Туманный шаг",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Туманный_шаг",
+      "file": "out/Spells/probe_items/bg3_spell_туманный_шаг.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_тьма",
+      "page_title": "Тьма",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тьма",
+      "file": "out/Spells/probe_items/bg3_spell_тьма.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_увеличение_уменьшение",
+      "page_title": "Увеличение/Уменьшение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Увеличение/Уменьшение",
+      "file": "out/Spells/probe_items/bg3_spell_увеличение_уменьшение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_усиление_характеристики",
+      "page_title": "Усиление характеристики",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Усиление_характеристики",
+      "file": "out/Spells/probe_items/bg3_spell_усиление_характеристики.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_шипастая_поросль",
+      "page_title": "Шипастая поросль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шипастая_поросль",
+      "file": "out/Spells/probe_items/bg3_spell_шипастая_поросль.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_аура_жизненной_силы",
+      "page_title": "Аура жизненной силы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Аура_жизненной_силы",
+      "file": "out/Spells/probe_items/bg3_spell_аура_жизненной_силы.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_возрождение",
+      "page_title": "Возрождение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Возрождение",
+      "file": "out/Spells/probe_items/bg3_spell_возрождение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_вызов_молний",
+      "page_title": "Вызов молний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вызов_молний",
+      "file": "out/Spells/probe_items/bg3_spell_вызов_молний.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_газообразность",
+      "page_title": "Газообразность",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Газообразность",
+      "file": "out/Spells/probe_items/bg3_spell_газообразность.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_голод_хадара",
+      "page_title": "Голод Хадара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Голод_Хадара",
+      "file": "out/Spells/probe_items/bg3_spell_голод_хадара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_даровать_полет",
+      "page_title": "Даровать полет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Даровать_полет",
+      "file": "out/Spells/probe_items/bg3_spell_даровать_полет.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_дневной_свет",
+      "page_title": "Дневной свет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дневной_свет",
+      "file": "out/Spells/probe_items/bg3_spell_дневной_свет.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_завораживающий_узор",
+      "page_title": "Завораживающий узор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Завораживающий_узор",
+      "file": "out/Spells/probe_items/bg3_spell_завораживающий_узор.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_замедление",
+      "page_title": "Замедление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Замедление",
+      "file": "out/Spells/probe_items/bg3_spell_замедление.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_защита_от_энергии",
+      "page_title": "Защита от энергии",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_энергии",
+      "file": "out/Spells/probe_items/bg3_spell_защита_от_энергии.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_касание_вампира",
+      "page_title": "Касание вампира",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Касание_вампира",
+      "file": "out/Spells/probe_items/bg3_spell_касание_вампира.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_контрзаклинание",
+      "page_title": "Контрзаклинание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Контрзаклинание",
+      "file": "out/Spells/probe_items/bg3_spell_контрзаклинание.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_массовое_исцеляющее_слово",
+      "page_title": "Массовое исцеляющее слово",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеляющее_слово",
+      "file": "out/Spells/probe_items/bg3_spell_массовое_исцеляющее_слово.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_мерцание",
+      "page_title": "Мерцание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Мерцание",
+      "file": "out/Spells/probe_items/bg3_spell_мерцание.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_огненный_шар",
+      "page_title": "Огненный шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_шар",
+      "file": "out/Spells/probe_items/bg3_spell_огненный_шар.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_оживление_мертвецов",
+      "page_title": "Оживление мертвецов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Оживление_мертвецов",
+      "file": "out/Spells/probe_items/bg3_spell_оживление_мертвецов.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_плащ_крестоносца",
+      "page_title": "Плащ крестоносца",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Плащ_крестоносца",
+      "file": "out/Spells/probe_items/bg3_spell_плащ_крестоносца.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призрачные_стражи",
+      "page_title": "Призрачные стражи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призрачные_стражи",
+      "file": "out/Spells/probe_items/bg3_spell_призрачные_стражи.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_проклятие",
+      "page_title": "Проклятие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Проклятие",
+      "file": "out/Spells/probe_items/bg3_spell_проклятие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_пурга",
+      "page_title": "Пурга",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пурга",
+      "file": "out/Spells/probe_items/bg3_spell_пурга.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_разговор_с_мертвым",
+      "page_title": "Разговор с мертвым",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_мертвым",
+      "file": "out/Spells/probe_items/bg3_spell_разговор_с_мертвым.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_рост_растений",
+      "page_title": "Рост растений",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рост_растений",
+      "file": "out/Spells/probe_items/bg3_spell_рост_растений.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_светоч_надежды",
+      "page_title": "Светоч надежды",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Светоч_надежды",
+      "file": "out/Spells/probe_items/bg3_spell_светоч_надежды.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_слепящая_кара",
+      "page_title": "Слепящая кара",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Слепящая_кара",
+      "file": "out/Spells/probe_items/bg3_spell_слепящая_кара.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_смрадное_облако",
+      "page_title": "Смрадное облако",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Смрадное_облако",
+      "file": "out/Spells/probe_items/bg3_spell_смрадное_облако.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_снятие_проклятия",
+      "page_title": "Снятие проклятия",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Снятие_проклятия",
+      "file": "out/Spells/probe_items/bg3_spell_снятие_проклятия.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_стихийное_оружие",
+      "page_title": "Стихийное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стихийное_оружие",
+      "file": "out/Spells/probe_items/bg3_spell_стихийное_оружие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сторожевая_печать",
+      "page_title": "Сторожевая печать",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сторожевая_печать",
+      "file": "out/Spells/probe_items/bg3_spell_сторожевая_печать.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_удар_молнии",
+      "page_title": "Удар молнии",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Удар_молнии",
+      "file": "out/Spells/probe_items/bg3_spell_удар_молнии.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ужас",
+      "page_title": "Ужас",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ужас",
+      "file": "out/Spells/probe_items/bg3_spell_ужас.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ускорение",
+      "page_title": "Ускорение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ускорение",
+      "file": "out/Spells/probe_items/bg3_spell_ускорение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_фальшивая_смерть",
+      "page_title": "Фальшивая смерть",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Фальшивая_смерть",
+      "file": "out/Spells/probe_items/bg3_spell_фальшивая_смерть.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_высшая_невидимость",
+      "page_title": "Высшая невидимость",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Высшая_невидимость",
+      "file": "out/Spells/probe_items/bg3_spell_высшая_невидимость.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_дверь_в_пространстве",
+      "page_title": "Дверь в пространстве",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дверь_в_пространстве",
+      "file": "out/Spells/probe_items/bg3_spell_дверь_в_пространстве.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_замешательство",
+      "page_title": "Замешательство",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Замешательство",
+      "file": "out/Spells/probe_items/bg3_spell_замешательство.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_защита_от_смерти",
+      "page_title": "Защита от смерти",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Защита_от_смерти",
+      "file": "out/Spells/probe_items/bg3_spell_защита_от_смерти.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_изгнание",
+      "page_title": "Изгнание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Изгнание",
+      "file": "out/Spells/probe_items/bg3_spell_изгнание.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_каменная_кожа",
+      "page_title": "Каменная кожа",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Каменная_кожа",
+      "file": "out/Spells/probe_items/bg3_spell_каменная_кожа.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_ледяная_буря",
+      "page_title": "Ледяная буря",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ледяная_буря",
+      "file": "out/Spells/probe_items/bg3_spell_ледяная_буря.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_огненная_стена",
+      "page_title": "Огненная стена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненная_стена",
+      "file": "out/Spells/probe_items/bg3_spell_огненная_стена.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_огненный_щит",
+      "page_title": "Огненный щит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_щит",
+      "file": "out/Spells/probe_items/bg3_spell_огненный_щит.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_подчинение_животного",
+      "page_title": "Подчинение животного",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Подчинение_животного",
+      "file": "out/Spells/probe_items/bg3_spell_подчинение_животного.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_полиморф",
+      "page_title": "Полиморф",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Полиморф",
+      "file": "out/Spells/probe_items/bg3_spell_полиморф.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призвать_лесное_существо",
+      "page_title": "Призвать лесное существо",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призвать_лесное_существо",
+      "file": "out/Spells/probe_items/bg3_spell_призвать_лесное_существо.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_малого_элементаля",
+      "page_title": "Призыв малого элементаля",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_малого_элементаля",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_малого_элементаля.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_свобода_движений",
+      "page_title": "Свобода движений",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Свобода_движений",
+      "file": "out/Spells/probe_items/bg3_spell_свобода_движений.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_силовая_сфера_отилюка",
+      "page_title": "Силовая сфера Отилюка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Силовая_сфера_Отилюка",
+      "file": "out/Spells/probe_items/bg3_spell_силовая_сфера_отилюка.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_страж_веры",
+      "page_title": "Страж веры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Страж_веры",
+      "file": "out/Spells/probe_items/bg3_spell_страж_веры.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_убийственный_фантазм",
+      "page_title": "Убийственный фантазм",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Убийственный_фантазм",
+      "file": "out/Spells/probe_items/bg3_spell_убийственный_фантазм.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_увядание",
+      "page_title": "Увядание",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Увядание",
+      "file": "out/Spells/probe_items/bg3_spell_увядание.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_цепкая_лиана",
+      "page_title": "Цепкая лиана",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цепкая_лиана",
+      "file": "out/Spells/probe_items/bg3_spell_цепкая_лиана.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_черные_щупальца_эварда",
+      "page_title": "Черные щупальца Эварда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Черные_щупальца_Эварда",
+      "file": "out/Spells/probe_items/bg3_spell_черные_щупальца_эварда.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_болезнь",
+      "page_title": "Болезнь",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Болезнь",
+      "file": "out/Spells/probe_items/bg3_spell_болезнь.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_волна_разрушения",
+      "page_title": "Волна разрушения",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волна_разрушения",
+      "file": "out/Spells/probe_items/bg3_spell_волна_разрушения.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_высшее_восстановление",
+      "page_title": "Высшее восстановление",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Высшее_восстановление",
+      "file": "out/Spells/probe_items/bg3_spell_высшее_восстановление.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_каменная_стена",
+      "page_title": "Каменная стена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Каменная_стена",
+      "file": "out/Spells/probe_items/bg3_spell_каменная_стена.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_конус_холода",
+      "page_title": "Конус холода",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Конус_холода",
+      "file": "out/Spells/probe_items/bg3_spell_конус_холода.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_личина",
+      "page_title": "Личина",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Личина",
+      "file": "out/Spells/probe_items/bg3_spell_личина.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_массовое_исцеление_ран",
+      "page_title": "Массовое исцеление ран",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеление_ран",
+      "file": "out/Spells/probe_items/bg3_spell_массовое_исцеление_ран.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_огненный_столп",
+      "page_title": "Огненный столп",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Огненный_столп",
+      "file": "out/Spells/probe_items/bg3_spell_огненный_столп.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_паралич_чудовища",
+      "page_title": "Паралич чудовища",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Паралич_чудовища",
+      "file": "out/Spells/probe_items/bg3_spell_паралич_чудовища.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_планарный_слуга",
+      "page_title": "Планарный слуга",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Планарный_слуга",
+      "file": "out/Spells/probe_items/bg3_spell_планарный_слуга.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_подчинение_гуманоида",
+      "page_title": "Подчинение гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Подчинение_гуманоида",
+      "file": "out/Spells/probe_items/bg3_spell_подчинение_гуманоида.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_элементаля",
+      "page_title": "Призыв элементаля",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_элементаля",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_элементаля.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_рассеивание_добра_и_зла",
+      "page_title": "Рассеивание добра и зла",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рассеивание_добра_и_зла",
+      "file": "out/Spells/probe_items/bg3_spell_рассеивание_добра_и_зла.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_рой_саранчи",
+      "page_title": "Рой саранчи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Рой_саранчи",
+      "file": "out/Spells/probe_items/bg3_spell_рой_саранчи.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_смертельное_облако",
+      "page_title": "Смертельное облако",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Смертельное_облако",
+      "file": "out/Spells/probe_items/bg3_spell_смертельное_облако.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_телекинез",
+      "page_title": "Телекинез",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Телекинез",
+      "file": "out/Spells/probe_items/bg3_spell_телекинез.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_безудержная_пляска_отто",
+      "page_title": "Безудержная пляска Отто",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Безудержная_пляска_Отто",
+      "file": "out/Spells/probe_items/bg3_spell_безудержная_пляска_отто.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_волшебные_врата",
+      "page_title": "Волшебные врата",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебные_врата",
+      "file": "out/Spells/probe_items/bg3_spell_волшебные_врата.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_грозные_очи",
+      "page_title": "Грозные очи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Грозные_очи",
+      "file": "out/Spells/probe_items/bg3_spell_грозные_очи.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_дезинтеграция",
+      "page_title": "Дезинтеграция",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Дезинтеграция",
+      "file": "out/Spells/probe_items/bg3_spell_дезинтеграция.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_излечение",
+      "page_title": "Излечение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Излечение",
+      "file": "out/Spells/probe_items/bg3_spell_излечение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_круг_смерти",
+      "page_title": "Круг смерти",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Круг_смерти",
+      "file": "out/Spells/probe_items/bg3_spell_круг_смерти.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_морозный_шар_отилюка",
+      "page_title": "Морозный шар Отилюка",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Морозный_шар_Отилюка",
+      "file": "out/Spells/probe_items/bg3_spell_морозный_шар_отилюка.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_пир_героев",
+      "page_title": "Пир героев",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пир_героев",
+      "file": "out/Spells/probe_items/bg3_spell_пир_героев.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_планарный_союзник",
+      "page_title": "Планарный союзник",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Планарный_союзник",
+      "file": "out/Spells/probe_items/bg3_spell_планарный_союзник.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_плоть_в_камень",
+      "page_title": "Плоть в камень",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Плоть_в_камень",
+      "file": "out/Spells/probe_items/bg3_spell_плоть_в_камень.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_повреждение",
+      "page_title": "Повреждение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Повреждение",
+      "file": "out/Spells/probe_items/bg3_spell_повреждение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_путешествие_с_ветром",
+      "page_title": "Путешествие с ветром",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Путешествие_с_ветром",
+      "file": "out/Spells/probe_items/bg3_spell_путешествие_с_ветром.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_создание_нежити",
+      "page_title": "Создание нежити",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Создание_нежити",
+      "file": "out/Spells/probe_items/bg3_spell_создание_нежити.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_солнечный_луч",
+      "page_title": "Солнечный луч",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Солнечный_луч",
+      "file": "out/Spells/probe_items/bg3_spell_солнечный_луч.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_стена_лезвий",
+      "page_title": "Стена лезвий",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стена_лезвий",
+      "file": "out/Spells/probe_items/bg3_spell_стена_лезвий.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_стена_льда",
+      "page_title": "Стена льда",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стена_льда",
+      "file": "out/Spells/probe_items/bg3_spell_стена_льда.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сфера_неуязвимости",
+      "page_title": "Сфера неуязвимости",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сфера_неуязвимости",
+      "file": "out/Spells/probe_items/bg3_spell_сфера_неуязвимости.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_терновая_стена",
+      "page_title": "Терновая стена",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Терновая_стена",
+      "file": "out/Spells/probe_items/bg3_spell_терновая_стена.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_цепь_молний",
+      "page_title": "Цепь молний",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цепь_молний",
+      "file": "out/Spells/probe_items/bg3_spell_цепь_молний.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_благоволение_керески",
+      "page_title": "Благоволение Керески",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Благоволение_Керески",
+      "file": "out/Spells/probe_items/bg3_spell_благоволение_керески.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_впечатления_о_благом_дворе_призыв_дэвы",
+      "page_title": "Впечатления о Благом дворе: призыв дэвы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Впечатления_о_Благом_дворе:_призыв_дэвы",
+      "file": "out/Spells/probe_items/bg3_spell_впечатления_о_благом_дворе_призыв_дэвы.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_вой_мертвецов",
+      "page_title": "Вой мертвецов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вой_мертвецов",
+      "file": "out/Spells/probe_items/bg3_spell_вой_мертвецов.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_вызвать_на_дуэль",
+      "page_title": "Вызвать на дуэль",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вызвать_на_дуэль",
+      "file": "out/Spells/probe_items/bg3_spell_вызвать_на_дуэль.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_драконье_стихийное_оружие",
+      "page_title": "Драконье стихийное оружие",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Драконье_стихийное_оружие",
+      "file": "out/Spells/probe_items/bg3_spell_драконье_стихийное_оружие.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_жуткий_танец",
+      "page_title": "Жуткий танец",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Жуткий_танец",
+      "file": "out/Spells/probe_items/bg3_spell_жуткий_танец.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_касание_упыря",
+      "page_title": "Касание упыря",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Касание_упыря",
+      "file": "out/Spells/probe_items/bg3_spell_касание_упыря.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_лозы_стража_веры",
+      "page_title": "Лозы Стража веры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Лозы_Стража_веры",
+      "file": "out/Spells/probe_items/bg3_spell_лозы_стража_веры.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_небесная_поспешность",
+      "page_title": "Небесная поспешность",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Небесная_поспешность",
+      "file": "out/Spells/probe_items/bg3_spell_небесная_поспешность.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призвать_умертвие_фонаря_теней",
+      "page_title": "Призвать умертвие фонаря теней",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призвать_умертвие_фонаря_теней",
+      "file": "out/Spells/probe_items/bg3_spell_призвать_умертвие_фонаря_теней.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_фамильяра_наглый_квазит",
+      "page_title": "Призыв фамильяра: наглый квазит",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_наглый_квазит",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_фамильяра_наглый_квазит.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_фамильяра_шкряб",
+      "page_title": "Призыв фамильяра: Шкряб",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_Шкряб",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_фамильяра_шкряб.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_руководство_по_стратегии_искусство_войны",
+      "page_title": "Руководство по стратегии: искусство войны",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Руководство_по_стратегии:_искусство_войны",
+      "file": "out/Spells/probe_items/bg3_spell_руководство_по_стратегии_искусство_войны.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_свергнуть",
+      "page_title": "Свергнуть",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Свергнуть",
+      "file": "out/Spells/probe_items/bg3_spell_свергнуть.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сетан_духовный_двуручный_топор",
+      "page_title": "Сетан: духовный двуручный топор",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_духовный_двуручный_топор",
+      "file": "out/Spells/probe_items/bg3_spell_сетан_духовный_двуручный_топор.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_сетан_уменьшение",
+      "page_title": "Сетан: уменьшение",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Сетан:_уменьшение",
+      "file": "out/Spells/probe_items/bg3_spell_сетан_уменьшение.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_стихийная_эпоха",
+      "page_title": "Стихийная эпоха",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стихийная_эпоха",
+      "file": "out/Spells/probe_items/bg3_spell_стихийная_эпоха.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_стрела_молния",
+      "page_title": "Стрела-молния",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Стрела-молния",
+      "file": "out/Spells/probe_items/bg3_spell_стрела_молния.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_тьма_шар",
+      "page_title": "Тьма Шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Тьма_Шар",
+      "file": "out/Spells/probe_items/bg3_spell_тьма_шар.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_фамильяра_бу",
+      "page_title": "Призыв фамильяра: Бу",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_фамильяра:_Бу",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_фамильяра_бу.json",
+      "fetched_ok": true,
+      "thin_page": false
+    },
+    {
+      "id": "bg3_spell_призыв_мефита",
+      "page_title": "Призыв мефита",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Призыв_мефита",
+      "file": "out/Spells/probe_items/bg3_spell_призыв_мефита.json",
+      "fetched_ok": true,
+      "thin_page": false
+    }
+  ]
+}

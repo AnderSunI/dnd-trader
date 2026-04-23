@@ -9,6 +9,21 @@
 // - готов под buy/sell/quests/map/files/notes/gm
 // ============================================================
 
+import {
+  buildUserScopedStorageKey,
+  escapeHtml,
+  getEl,
+  getSection,
+  getHeaders,
+  getToken,
+  showToast,
+  safeText,
+  trimText,
+  tryParseJson,
+  normalizeDateInput,
+  toIsoStringSafe,
+} from "./shared.js";
+
 // ------------------------------------------------------------
 // 🌐 STATE
 // ------------------------------------------------------------
@@ -26,114 +41,12 @@ const HISTORY_STATE = {
 // ------------------------------------------------------------
 // 🧰 HELPERS
 // ------------------------------------------------------------
-function getEl(id) {
-  return document.getElementById(id);
-}
-
-function getSection(id) {
-  return document.getElementById(id);
-}
-
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
-
-function getHeaders() {
-  const token = getToken();
-  const headers = {};
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  return headers;
-}
-
-function showToast(message) {
-  if (typeof window.showToast === "function") {
-    window.showToast(message);
-    return;
-  }
-  console.log(message);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function safeText(value, fallback = "") {
-  if (value === null || value === undefined || value === "") return fallback;
-  return String(value);
-}
-
-function trimText(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
-}
-
-function tryParseJson(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
 function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function getCurrentUser() {
-  return window.__appUser || null;
-}
-
 function getHistoryStorageKey() {
-  const user = getCurrentUser();
-  const userKey =
-    user?.email ||
-    user?.id ||
-    (getToken() ? "auth-user" : "guest");
-
-  return `dnd_trader_history_${userKey}`;
-}
-
-function normalizeDateInput(value) {
-  if (!value && value !== 0) return null;
-
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  const str = String(value).trim();
-  if (!str) return null;
-
-  const parsed = new Date(str);
-  if (!Number.isNaN(parsed.getTime())) return parsed;
-
-  const asNumber = Number(str);
-  if (Number.isFinite(asNumber)) {
-    const date = new Date(asNumber);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
-}
-
-function toIsoStringSafe(value, fallback = Date.now()) {
-  const normalized = normalizeDateInput(value);
-  if (normalized) return normalized.toISOString();
-
-  const fb = normalizeDateInput(fallback);
-  return fb ? fb.toISOString() : new Date().toISOString();
+  return buildUserScopedStorageKey("dnd_trader_history_");
 }
 
 function formatDate(value) {

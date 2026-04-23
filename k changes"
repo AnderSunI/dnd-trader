@@ -1,0 +1,2872 @@
+[1mdiff --git a/app/auth.py b/app/auth.py[m
+[1mindex 2d3c278..297a0f0 100644[m
+[1m--- a/app/auth.py[m
+[1m+++ b/app/auth.py[m
+[36m@@ -24,6 +24,10 @@[m [mfrom .models import User[m
+ # Даже если фронт логинится через /login,[m
+ # этот endpoint нужен для Swagger/OAuth2 совместимости.[m
+ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")[m
+[32m+[m[32moptional_oauth2_scheme = OAuth2PasswordBearer([m
+[32m+[m[32m    tokenUrl="/auth/token",[m
+[32m+[m[32m    auto_error=False,[m
+[32m+[m[32m)[m
+ [m
+ # ============================================================[m
+ # 🧱 USER CRUD[m
+[36m@@ -36,6 +40,17 @@[m [mdef get_user_by_email(db: Session, email: str) -> User | None:[m
+     return db.query(User).filter(User.email == email).first()[m
+ [m
+ [m
+[32m+[m[32mdef get_user_by_nickname(db: Session, nickname: str) -> User | None:[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Найти пользователя по nickname.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    normalized = str(nickname or "").strip().lower()[m
+[32m+[m[32m    if not normalized:[m
+[32m+[m[32m        return None[m
+[32m+[m
+[32m+[m[32m    return db.query(User).filter(User.nickname == normalized).first()[m
+[32m+[m
+[32m+[m
+ def get_user_by_id(db: Session, user_id: int) -> User | None:[m
+     """[m
+     Найти пользователя по id.[m
+[36m@@ -43,6 +58,40 @@[m [mdef get_user_by_id(db: Session, user_id: int) -> User | None:[m
+     return db.query(User).filter(User.id == user_id).first()[m
+ [m
+ [m
+[32m+[m[32mdef normalize_nickname_candidate(value: str) -> str:[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Базовая нормализация ника для invite/search.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    normalized = "".join([m
+[32m+[m[32m        ch if ch.isalnum() or ch in {"_", "-", "."} else "_"[m
+[32m+[m[32m        for ch in str(value or "").strip().lower()[m
+[32m+[m[32m    )[m
+[32m+[m[32m    normalized = normalized.strip("._-")[m
+[32m+[m[32m    while "__" in normalized:[m
+[32m+[m[32m        normalized = normalized.replace("__", "_")[m
+[32m+[m[32m    return normalized[:40][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef build_unique_nickname(db: Session, email: str, preferred: str | None = None) -> str:[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Построить уникальный nickname, совместимый с текущей БД без отдельного индекса.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    base = normalize_nickname_candidate(preferred or "")[m
+[32m+[m[32m    if not base:[m
+[32m+[m[32m        base = normalize_nickname_candidate(str(email or "").split("@", 1)[0])[m
+[32m+[m[32m    if not base:[m
+[32m+[m[32m        base = "player"[m
+[32m+[m
+[32m+[m[32m    candidate = base[m
+[32m+[m[32m    suffix = 1[m
+[32m+[m
+[32m+[m[32m    while get_user_by_nickname(db, candidate):[m
+[32m+[m[32m        suffix += 1[m
+[32m+[m[32m        candidate = f"{base}_{suffix}"[:40][m
+[32m+[m
+[32m+[m[32m    return candidate[m
+[32m+[m
+[32m+[m
+ def create_user(db: Session, email: str, password: str) -> User:[m
+     """[m
+     Создать нового пользователя.[m
+[36m@@ -54,6 +103,9 @@[m [mdef create_user(db: Session, email: str, password: str) -> User:[m
+     user = User([m
+         email=email,[m
+         hashed_password="",[m
+[32m+[m[32m        nickname=build_unique_nickname(db, email=email),[m
+[32m+[m[32m        display_name="",[m
+[32m+[m[32m        bio="",[m
+         is_active=True,[m
+         role="player",[m
+         money_cp_total=1000000,  # стартовый капитал по умолчанию[m
+[36m@@ -172,6 +224,28 @@[m [mdef get_current_active_user([m
+     return current_user[m
+ [m
+ [m
+[32m+[m[32mdef get_optional_current_user([m
+[32m+[m[32m    token: str | None = Depends(optional_oauth2_scheme),[m
+[32m+[m[32m    db: Session = Depends(get_db),[m
+[32m+[m[32m) -> User | None:[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Опционально получить пользователя из Bearer token.[m
+[32m+[m[32m    Для mixed guest/auth endpoint'ов.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    if not token:[m
+[32m+[m[32m        return None[m
+[32m+[m
+[32m+[m[32m    payload = decode_access_token(token)[m
+[32m+[m[32m    sub = payload.get("sub")[m
+[32m+[m
+[32m+[m[32m    try:[m
+[32m+[m[32m        user_id = int(sub)[m
+[32m+[m[32m    except (TypeError, ValueError):[m
+[32m+[m[32m        return None[m
+[32m+[m
+[32m+[m[32m    return get_user_by_id(db, user_id)[m
+[32m+[m
+[32m+[m
+ def get_current_gm_user([m
+     current_user: User = Depends(get_current_active_user),[m
+ ) -> User:[m
+[36m@@ -186,4 +260,4 @@[m [mdef get_current_gm_user([m
+             detail="Требуется роль GM или admin",[m
+         )[m
+ [m
+[31m-    return current_user[m
+\ No newline at end of file[m
+[32m+[m[32m    return current_user[m
+[1mdiff --git a/app/main.py b/app/main.py[m
+[1mindex bf3d614..369415a 100644[m
+[1m--- a/app/main.py[m
+[1m+++ b/app/main.py[m
+[36m@@ -22,6 +22,7 @@[m [mfrom .database import get_db[m
+ from .models import Base, Character, User, engine[m
+ from .routers.admin import create_admin_router[m
+ from .routers.auth import create_auth_router[m
+[32m+[m[32mfrom .routers.gm import create_gm_router[m
+ from .routers.inventory import create_inventory_router[m
+ from .routers.traders import create_traders_router[m
+ from .services.inventory import buy_item, get_player_inventory, sell_item[m
+[36m@@ -50,6 +51,9 @@[m [mLEGACY_SCHEMA_PATCHES: dict[str, list[tuple[str, str]]] = {[m
+     "users": [[m
+         ("is_active", "BOOLEAN DEFAULT TRUE"),[m
+         ("role", "VARCHAR DEFAULT 'player'"),[m
+[32m+[m[32m        ("nickname", "VARCHAR DEFAULT ''"),[m
+[32m+[m[32m        ("display_name", "VARCHAR DEFAULT ''"),[m
+[32m+[m[32m        ("bio", "VARCHAR DEFAULT ''"),[m
+         ("money_cp_total", "INTEGER DEFAULT 1000000"),[m
+         ("created_at", "TIMESTAMP"),[m
+         ("updated_at", "TIMESTAMP"),[m
+[36m@@ -283,6 +287,9 @@[m [mdef serialize_user(user: User) -> dict[str, Any]:[m
+     return {[m
+         "id": user.id,[m
+         "email": user.email,[m
+[32m+[m[32m        "nickname": user.nickname or "",[m
+[32m+[m[32m        "display_name": user.display_name or "",[m
+[32m+[m[32m        "bio": user.bio or "",[m
+         "is_active": user.is_active,[m
+         "role": user.role,[m
+         "money_cp_total": int(user.money_cp_total or 0),[m
+[36m@@ -323,6 +330,7 @@[m [mapp.include_router([m
+         cleaned_items_path=CLEANED_ITEMS_PATH,[m
+     )[m
+ )[m
+[32m+[m[32mapp.include_router(create_gm_router(get_db=get_db))[m
+ [m
+ [m
+ @app.post("/register")[m
+[36m@@ -563,4 +571,4 @@[m [mdef index():[m
+     if not INDEX_HTML_PATH.exists():[m
+         raise HTTPException(status_code=404, detail="frontend/index.html не найден")[m
+ [m
+[31m-    return FileResponse(INDEX_HTML_PATH)[m
+\ No newline at end of file[m
+[32m+[m[32m    return FileResponse(INDEX_HTML_PATH)[m
+[1mdiff --git a/app/models.py b/app/models.py[m
+[1mindex cae2665..d04b537 100644[m
+[1m--- a/app/models.py[m
+[1m+++ b/app/models.py[m
+[36m@@ -358,6 +358,9 @@[m [mclass User(Base):[m
+ [m
+     email = Column(String, unique=True, nullable=False, index=True)[m
+     hashed_password = Column(String, nullable=False)[m
+[32m+[m[32m    nickname = Column(String, default="", index=True)[m
+[32m+[m[32m    display_name = Column(String, default="")[m
+[32m+[m[32m    bio = Column(String, default="")[m
+ [m
+     is_active = Column(Boolean, default=True)[m
+     role = Column(String, default="player")[m
+[36m@@ -380,6 +383,26 @@[m [mclass User(Base):[m
+         cascade="all, delete-orphan",[m
+     )[m
+ [m
+[32m+[m[32m    owned_party_tables = relationship([m
+[32m+[m[32m        "PartyTable",[m
+[32m+[m[32m        back_populates="owner",[m
+[32m+[m[32m        cascade="all, delete-orphan",[m
+[32m+[m[32m        foreign_keys="PartyTable.owner_user_id",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    party_memberships = relationship([m
+[32m+[m[32m        "PartyMembership",[m
+[32m+[m[32m        back_populates="user",[m
+[32m+[m[32m        cascade="all, delete-orphan",[m
+[32m+[m[32m        foreign_keys="PartyMembership.user_id",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    party_grants_created = relationship([m
+[32m+[m[32m        "PartyGrant",[m
+[32m+[m[32m        back_populates="granted_by",[m
+[32m+[m[32m        foreign_keys="PartyGrant.created_by_user_id",[m
+[32m+[m[32m    )[m
+[32m+[m
+     def set_password(self, password: str) -> None:[m
+         self.hashed_password = bcrypt.hashpw([m
+             password.encode("utf-8"),[m
+[36m@@ -432,6 +455,139 @@[m [mclass Character(Base):[m
+     user = relationship("User", back_populates="characters")[m
+ [m
+ [m
+[32m+[m[32mclass PartyTable(Base):[m
+[32m+[m[32m    __tablename__ = "party_tables"[m
+[32m+[m
+[32m+[m[32m    id = Column(Integer, primary_key=True, index=True)[m
+[32m+[m[32m    owner_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)[m
+[32m+[m
+[32m+[m[32m    title = Column(String, nullable=False, default="Новый стол")[m
+[32m+[m[32m    token = Column(String, nullable=False, index=True)[m
+[32m+[m[32m    status = Column(String, default="active")[m
+[32m+[m[32m    trader_access_mode = Column(String, default="open")[m
+[32m+[m[32m    notes = Column(String, default="")[m
+[32m+[m[32m    settings = Column(JSON, default=_default_dict)[m
+[32m+[m
+[32m+[m[32m    created_at = Column(DateTime, default=datetime.utcnow)[m
+[32m+[m[32m    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)[m
+[32m+[m
+[32m+[m[32m    owner = relationship([m
+[32m+[m[32m        "User",[m
+[32m+[m[32m        back_populates="owned_party_tables",[m
+[32m+[m[32m        foreign_keys=[owner_user_id],[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    memberships = relationship([m
+[32m+[m[32m        "PartyMembership",[m
+[32m+[m[32m        back_populates="table",[m
+[32m+[m[32m        cascade="all, delete-orphan",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    trader_accesses = relationship([m
+[32m+[m[32m        "PartyTraderAccess",[m
+[32m+[m[32m        back_populates="table",[m
+[32m+[m[32m        cascade="all, delete-orphan",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    grants = relationship([m
+[32m+[m[32m        "PartyGrant",[m
+[32m+[m[32m        back_populates="table",[m
+[32m+[m[32m        cascade="all, delete-orphan",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass PartyMembership(Base):[m
+[32m+[m[32m    __tablename__ = "party_memberships"[m
+[32m+[m[32m    __table_args__ = ([m
+[32m+[m[32m        UniqueConstraint("table_id", "user_id", name="uq_party_memberships_table_user"),[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    id = Column(Integer, primary_key=True, index=True)[m
+[32m+[m[32m    table_id = Column(Integer, ForeignKey("party_tables.id"), nullable=False, index=True)[m
+[32m+[m[32m    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)[m
+[32m+[m[32m    selected_character_id = Column(Integer, ForeignKey("characters.id"), nullable=True, index=True)[m
+[32m+[m
+[32m+[m[32m    role_in_table = Column(String, default="player")[m
+[32m+[m[32m    visibility_preset = Column(String, default="basic")[m
+[32m+[m[32m    selected_character_name = Column(String, default="")[m
+[32m+[m[32m    hidden_sections = Column(JSON, default=_default_dict)[m
+[32m+[m[32m    notes = Column(String, default="")[m
+[32m+[m[32m    status = Column(String, default="active")[m
+[32m+[m
+[32m+[m[32m    joined_at = Column(DateTime, default=datetime.utcnow)[m
+[32m+[m[32m    created_at = Column(DateTime, default=datetime.utcnow)[m
+[32m+[m[32m    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)[m
+[32m+[m
+[32m+[m[32m    table = relationship("PartyTable", back_populates="memberships")[m
+[32m+[m[32m    user = relationship([m
+[32m+[m[32m        "User",[m
+[32m+[m[32m        back_populates="party_memberships",[m
+[32m+[m[32m        foreign_keys=[user_id],[m
+[32m+[m[32m    )[m
+[32m+[m[32m    selected_character = relationship("Character")[m
+[32m+[m[32m    grants = relationship([m
+[32m+[m[32m        "PartyGrant",[m
+[32m+[m[32m        back_populates="membership",[m
+[32m+[m[32m        foreign_keys="PartyGrant.membership_id",[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass PartyTraderAccess(Base):[m
+[32m+[m[32m    __tablename__ = "party_trader_accesses"[m
+[32m+[m[32m    __table_args__ = ([m
+[32m+[m[32m        UniqueConstraint("table_id", "trader_id", name="uq_party_trader_accesses_table_trader"),[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    id = Column(Integer, primary_key=True, index=True)[m
+[32m+[m[32m    table_id = Column(Integer, ForeignKey("party_tables.id"), nullable=False, index=True)[m
+[32m+[m[32m    trader_id = Column(Integer, ForeignKey("traders.id"), nullable=False, index=True)[m
+[32m+[m[32m    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)[m
+[32m+[m
+[32m+[m[32m    is_enabled = Column(Boolean, default=True, nullable=False)[m
+[32m+[m[32m    notes = Column(String, default="")[m
+[32m+[m
+[32m+[m[32m    created_at = Column(DateTime, default=datetime.utcnow)[m
+[32m+[m[32m    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)[m
+[32m+[m
+[32m+[m[32m    table = relationship("PartyTable", back_populates="trader_accesses")[m
+[32m+[m[32m    trader = relationship("Trader")[m
+[32m+[m[32m    created_by = relationship("User", foreign_keys=[created_by_user_id])[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass PartyGrant(Base):[m
+[32m+[m[32m    __tablename__ = "party_grants"[m
+[32m+[m
+[32m+[m[32m    id = Column(Integer, primary_key=True, index=True)[m
+[32m+[m[32m    table_id = Column(Integer, ForeignKey("party_tables.id"), nullable=False, index=True)[m
+[32m+[m[32m    membership_id = Column(Integer, ForeignKey("party_memberships.id"), nullable=True, index=True)[m
+[32m+[m[32m    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)[m
+[32m+[m[32m    item_id = Column(Integer, ForeignKey("items.id"), nullable=True, index=True)[m
+[32m+[m[32m    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)[m
+[32m+[m
+[32m+[m[32m    grant_type = Column(String, default="item")[m
+[32m+[m[32m    quantity = Column(Integer, default=1, nullable=False)[m
+[32m+[m[32m    custom_name = Column(String, default="")[m
+[32m+[m[32m    notes = Column(String, default="")[m
+[32m+[m[32m    meta = Column(JSON, default=_default_dict)[m
+[32m+[m
+[32m+[m[32m    created_at = Column(DateTime, default=datetime.utcnow)[m
+[32m+[m[32m    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)[m
+[32m+[m
+[32m+[m[32m    table = relationship("PartyTable", back_populates="grants")[m
+[32m+[m[32m    membership = relationship([m
+[32m+[m[32m        "PartyMembership",[m
+[32m+[m[32m        back_populates="grants",[m
+[32m+[m[32m        foreign_keys=[membership_id],[m
+[32m+[m[32m    )[m
+[32m+[m[32m    item = relationship("Item")[m
+[32m+[m[32m    target_user = relationship("User", foreign_keys=[target_user_id])[m
+[32m+[m[32m    granted_by = relationship([m
+[32m+[m[32m        "User",[m
+[32m+[m[32m        back_populates="party_grants_created",[m
+[32m+[m[32m        foreign_keys=[created_by_user_id],[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+ __all__ = [[m
+     "Base",[m
+     "SessionLocal",[m
+[36m@@ -442,4 +598,8 @@[m [m__all__ = [[m
+     "Item",[m
+     "User",[m
+     "Character",[m
+[31m-][m
+\ No newline at end of file[m
+[32m+[m[32m    "PartyTable",[m
+[32m+[m[32m    "PartyMembership",[m
+[32m+[m[32m    "PartyTraderAccess",[m
+[32m+[m[32m    "PartyGrant",[m
+[32m+[m[32m][m
+[1mdiff --git a/app/routers/auth.py b/app/routers/auth.py[m
+[1mindex cb61c88..f1c05a8 100644[m
+[1m--- a/app/routers/auth.py[m
+[1m+++ b/app/routers/auth.py[m
+[36m@@ -44,6 +44,9 @@[m [mdef serialize_user(user: User) -> dict:[m
+     return {[m
+         "id": user.id,[m
+         "email": user.email,[m
+[32m+[m[32m        "nickname": user.nickname or "",[m
+[32m+[m[32m        "display_name": user.display_name or "",[m
+[32m+[m[32m        "bio": user.bio or "",[m
+         "is_active": user.is_active,[m
+         "role": user.role,[m
+         "money_cp_total": int(user.money_cp_total or 0),[m
+[36m@@ -186,4 +189,4 @@[m [mdef create_auth_router() -> APIRouter:[m
+             "user": serialize_user(current_user),[m
+         }[m
+ [m
+[31m-    return router[m
+\ No newline at end of file[m
+[32m+[m[32m    return router[m
+[1mdiff --git a/app/routers/traders.py b/app/routers/traders.py[m
+[1mindex c43938b..849c21d 100644[m
+[1m--- a/app/routers/traders.py[m
+[1m+++ b/app/routers/traders.py[m
+[36m@@ -5,7 +5,16 @@[m [mimport json[m
+ from fastapi import APIRouter, Depends, Query[m
+ from sqlalchemy.orm import Session, joinedload[m
+ [m
+[31m-from ..models import Item, Trader, TraderItem[m
+[32m+[m[32mfrom ..auth import get_optional_current_user[m
+[32m+[m[32mfrom ..models import ([m
+[32m+[m[32m    Item,[m
+[32m+[m[32m    PartyMembership,[m
+[32m+[m[32m    PartyTable,[m
+[32m+[m[32m    PartyTraderAccess,[m
+[32m+[m[32m    Trader,[m
+[32m+[m[32m    TraderItem,[m
+[32m+[m[32m    User,[m
+[32m+[m[32m)[m
+ [m
+ [m
+ def create_traders_router([m
+[36m@@ -327,6 +336,50 @@[m [mdef create_traders_router([m
+             "inventory_count": len(items),[m
+         }[m
+ [m
+[32m+[m[32m    def get_allowed_trader_ids_for_user([m
+[32m+[m[32m        db: Session,[m
+[32m+[m[32m        current_user: User | None,[m
+[32m+[m[32m    ) -> set[int] | None:[m
+[32m+[m[32m        if not current_user:[m
+[32m+[m[32m            return None[m
+[32m+[m
+[32m+[m[32m        role = str(current_user.role or "").strip().lower()[m
+[32m+[m[32m        if role in {"gm", "admin"}:[m
+[32m+[m[32m            return None[m
+[32m+[m
+[32m+[m[32m        memberships = ([m
+[32m+[m[32m            db.query(PartyMembership)[m
+[32m+[m[32m            .join(PartyTable, PartyTable.id == PartyMembership.table_id)[m
+[32m+[m[32m            .filter([m
+[32m+[m[32m                PartyMembership.user_id == current_user.id,[m
+[32m+[m[32m                PartyMembership.status == "active",[m
+[32m+[m[32m                PartyTable.status == "active",[m
+[32m+[m[32m            )[m
+[32m+[m[32m            .all()[m
+[32m+[m[32m        )[m
+[32m+[m
+[32m+[m[32m        if not memberships:[m
+[32m+[m[32m            return None[m
+[32m+[m
+[32m+[m[32m        restricted_table_ids = {[m
+[32m+[m[32m            int(membership.table_id)[m
+[32m+[m[32m            for membership in memberships[m
+[32m+[m[32m            if membership.table and str(membership.table.trader_access_mode or "open") == "restricted"[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        if not restricted_table_ids:[m
+[32m+[m[32m            return None[m
+[32m+[m
+[32m+[m[32m        rows = ([m
+[32m+[m[32m            db.query(PartyTraderAccess)[m
+[32m+[m[32m            .filter([m
+[32m+[m[32m                PartyTraderAccess.table_id.in_(restricted_table_ids),[m
+[32m+[m[32m                PartyTraderAccess.is_enabled.is_(True),[m
+[32m+[m[32m            )[m
+[32m+[m[32m            .all()[m
+[32m+[m[32m        )[m
+[32m+[m[32m        return {int(row.trader_id) for row in rows}[m
+[32m+[m
+     # ========================================================[m
+     # 🏪 LIST ALL TRADERS[m
+     # ========================================================[m
+[36m@@ -338,6 +391,7 @@[m [mdef create_traders_router([m
+         region: str | None = Query(default=None),[m
+         trader_type: str | None = Query(default=None),[m
+         search: str | None = Query(default=None),[m
+[32m+[m[32m        current_user: User | None = Depends(get_optional_current_user),[m
+         db: Session = Depends(get_db),[m
+     ):[m
+         """[m
+[36m@@ -352,6 +406,7 @@[m [mdef create_traders_router([m
+             .order_by(Trader.id.asc())[m
+             .all()[m
+         )[m
+[32m+[m[32m        allowed_trader_ids = get_allowed_trader_ids_for_user(db, current_user)[m
+ [m
+         normalized_category = safe_str(category).strip().lower()[m
+         normalized_rarity = safe_str(rarity).strip().lower()[m
+[36m@@ -362,6 +417,9 @@[m [mdef create_traders_router([m
+         result: list[dict] = [][m
+ [m
+         for trader in traders:[m
+[32m+[m[32m            if allowed_trader_ids is not None and trader.id not in allowed_trader_ids:[m
+[32m+[m[32m                continue[m
+[32m+[m
+             serialized = serialize_trader(trader)[m
+ [m
+             if normalized_region and normalized_region != "all":[m
+[36m@@ -417,11 +475,19 @@[m [mdef create_traders_router([m
+     @router.get("/traders/{trader_id}")[m
+     def get_trader([m
+         trader_id: int,[m
+[32m+[m[32m        current_user: User | None = Depends(get_optional_current_user),[m
+         db: Session = Depends(get_db),[m
+     ):[m
+         """[m
+         Получить одного торговца с актуальным составом items.[m
+         """[m
+[32m+[m[32m        allowed_trader_ids = get_allowed_trader_ids_for_user(db, current_user)[m
+[32m+[m[32m        if allowed_trader_ids is not None and trader_id not in allowed_trader_ids:[m
+[32m+[m[32m            return {[m
+[32m+[m[32m                "status": "error",[m
+[32m+[m[32m                "detail": "Торговец недоступен для текущей партии",[m
+[32m+[m[32m            }[m
+[32m+[m
+         trader = ([m
+             db.query(Trader)[m
+             .options([m
+[36m@@ -504,4 +570,4 @@[m [mdef create_traders_router([m
+             "rarities": rarities,[m
+         }[m
+ [m
+[31m-    return router[m
+\ No newline at end of file[m
+[32m+[m[32m    return router[m
+[1mdiff --git a/frontend/js/api.js b/frontend/js/api.js[m
+[1mindex c2caceb..afaa414 100644[m
+[1m--- a/frontend/js/api.js[m
+[1m+++ b/frontend/js/api.js[m
+[36m@@ -287,13 +287,41 @@[m [mexport async function fetchMe() {[m
+ [m
+   for (const url of attempts) {[m
+     try {[m
+[31m-      return await apiGet(url);[m
+[32m+[m[32m      const payload = await apiGet(url);[m
+[32m+[m[32m      if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {[m
+[32m+[m[32m        return payload.user;[m
+[32m+[m[32m      }[m
+[32m+[m[32m      return payload;[m
+     } catch (_) {}[m
+   }[m
+ [m
+   throw new Error("Не удалось получить профиль пользователя");[m
+ }[m
+ [m
+[32m+[m[32mexport async function fetchProfile() {[m
+[32m+[m[32m  const payload = await apiGet("/profile/me");[m
+[32m+[m[32m  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {[m
+[32m+[m[32m    return payload.user;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return payload;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport async function updateProfile(data) {[m
+[32m+[m[32m  const payload = await apiPatch("/profile/me", data ?? {});[m
+[32m+[m[32m  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {[m
+[32m+[m[32m    return payload.user;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return payload;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport async function activateGmMode() {[m
+[32m+[m[32m  const payload = await apiPost("/gm/activate", {});[m
+[32m+[m[32m  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {[m
+[32m+[m[32m    return payload.user;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return payload;[m
+[32m+[m[32m}[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🏪 TRADERS[m
+ // ------------------------------------------------------------[m
+[36m@@ -461,6 +489,9 @@[m [mwindow.apiModule = {[m
+   loginUser,[m
+   registerUser,[m
+   fetchMe,[m
+[32m+[m[32m  fetchProfile,[m
+[32m+[m[32m  updateProfile,[m
+[32m+[m[32m  activateGmMode,[m
+   fetchTraders,[m
+   fetchTraderById,[m
+   fetchPlayerInventory,[m
+[36m@@ -471,4 +502,4 @@[m [mwindow.apiModule = {[m
+   fetchPlayerNotes,[m
+   savePlayerNotes,[m
+   fetchWorldMap,[m
+[31m-};[m
+\ No newline at end of file[m
+[32m+[m[32m};[m
+[1mdiff --git a/frontend/js/app.js b/frontend/js/app.js[m
+[1mindex 4235328..dde6ad5 100644[m
+[1m--- a/frontend/js/app.js[m
+[1m+++ b/frontend/js/app.js[m
+[36m@@ -394,7 +394,11 @@[m [mfunction restoreUserFromLocalStorage() {[m
+     const raw = localStorage.getItem("user");[m
+     if (!raw) return null;[m
+     const parsed = JSON.parse(raw);[m
+[31m-    return parsed && typeof parsed === "object" ? parsed : null;[m
+[32m+[m[32m    if (!parsed || typeof parsed !== "object") return null;[m
+[32m+[m[32m    if (parsed.user && typeof parsed.user === "object") {[m
+[32m+[m[32m      return parsed.user;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return parsed;[m
+   } catch {[m
+     return null;[m
+   }[m
+[36m@@ -1067,6 +1071,17 @@[m [mfunction renderAllLocalState() {[m
+   updateUserUI();[m
+ }[m
+ [m
+[32m+[m[32mfunction applyExternalUserUpdate(user) {[m
+[32m+[m[32m  if (!user || typeof user !== "object") return;[m
+[32m+[m[32m  STATE.user = {[m
+[32m+[m[32m    ...(STATE.user && typeof STATE.user === "object" ? STATE.user : {}),[m
+[32m+[m[32m    ...user,[m
+[32m+[m[32m  };[m
+[32m+[m[32m  persistUser();[m
+[32m+[m[32m  syncGlobalStateBridges();[m
+[32m+[m[32m  updateUserUI();[m
+[32m+[m[32m}[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🔎 FILTERS[m
+ // ------------------------------------------------------------[m
+[36m@@ -2096,6 +2111,10 @@[m [masync function initApp() {[m
+     bindRoleSwitchButton();[m
+     bindTraderModalUiPersistence();[m
+ [m
+[32m+[m[32m    window.addEventListener("dnd:user:updated", (event) => {[m
+[32m+[m[32m      applyExternalUserUpdate(event?.detail?.user);[m
+[32m+[m[32m    });[m
+[32m+[m
+     if (STATE.token && !STATE.user) {[m
+       setAppLoadingStatus("Проверяем профиль...");[m
+       const me = await fetchMeSafe();[m
+[36m@@ -2133,4 +2152,4 @@[m [mif (document.readyState === "loading") {[m
+   document.addEventListener("DOMContentLoaded", initApp, { once: true });[m
+ } else {[m
+   initApp();[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m
+[1mdiff --git a/frontend/js/cabinet.js b/frontend/js/cabinet.js[m
+[1mindex ee5a781..f2e13d2 100644[m
+[1m--- a/frontend/js/cabinet.js[m
+[1m+++ b/frontend/js/cabinet.js[m
+[36m@@ -17,6 +17,12 @@[m [mimport {[m
+   renderLSS,[m
+ } from "./longstoryshort.js";[m
+ [m
+[32m+[m[32mimport {[m
+[32m+[m[32m  activateGmMode,[m
+[32m+[m[32m  fetchProfile,[m
+[32m+[m[32m  updateProfile,[m
+[32m+[m[32m} from "./api.js";[m
+[32m+[m
+ import {[m
+   loadHistory,[m
+   renderHistory,[m
+[36m@@ -42,6 +48,24 @@[m [mimport {[m
+   renderCodex as renderBestiari,[m
+ } from "./bestiari.js";[m
+ [m
+[32m+[m[32mimport {[m
+[32m+[m[32m  apiGet,[m
+[32m+[m[32m  apiWrite as sharedApiWrite,[m
+[32m+[m[32m  escapeHtml,[m
+[32m+[m[32m  formatDateTime,[m
+[32m+[m[32m  formatTime,[m
+[32m+[m[32m  getCurrentRole,[m
+[32m+[m[32m  getCurrentUser,[m
+[32m+[m[32m  getEl,[m
+[32m+[m[32m  getHeaders,[m
+[32m+[m[32m  getToken,[m
+[32m+[m[32m  normalizeRole,[m
+[32m+[m[32m  safeNumber,[m
+[32m+[m[32m  safeText as sharedSafeText,[m
+[32m+[m[32m  showToast,[m
+[32m+[m[32m  tryParseJson,[m
+[32m+[m[32m} from "./shared.js";[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🌐 STATE[m
+ // ------------------------------------------------------------[m
+[36m@@ -81,6 +105,14 @@[m [mconst MASTER_ROOM_STATE = {[m
+   activeTableId: "",[m
+   createOpen: false,[m
+   inviteQuery: "",[m
+[32m+[m[32m  userSearchResults: [],[m
+[32m+[m[32m  traderSearchQuery: "",[m
+[32m+[m[32m  traderSearchResults: [],[m
+[32m+[m[32m  itemSearchQuery: "",[m
+[32m+[m[32m  itemSearchResults: [],[m
+[32m+[m[32m  selectedTraderId: "",[m
+[32m+[m[32m  selectedItemId: "",[m
+[32m+[m[32m  grantQuantity: 1,[m
+ };[m
+ [m
+ const CODEX_STATE = {[m
+[36m@@ -97,30 +129,16 @@[m [mconst CABINET_RUNTIME = {[m
+ // ------------------------------------------------------------[m
+ // 🧰 HELPERS[m
+ // ------------------------------------------------------------[m
+[31m-function getEl(id) {[m
+[31m-  return document.getElementById(id);[m
+[32m+[m[32mfunction safeText(value, fallback = "—") {[m
+[32m+[m[32m  return sharedSafeText(value, fallback);[m
+ }[m
+ [m
+[31m-function showToast(message) {[m
+[31m-  if (typeof window.showToast === "function") {[m
+[31m-    window.showToast(message);[m
+[31m-    return;[m
+[32m+[m[32masync function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {[m
+[32m+[m[32m  const result = await sharedApiWrite(urls, body, methods);[m
+[32m+[m[32m  if (result === null) {[m
+[32m+[m[32m    throw new Error("Failed to save");[m
+   }[m
+[31m-  console.log(message);[m
+[31m-}[m
+[31m-[m
+[31m-function escapeHtml(value) {[m
+[31m-  return String(value ?? "")[m
+[31m-    .replaceAll("&", "&amp;")[m
+[31m-    .replaceAll("<", "&lt;")[m
+[31m-    .replaceAll(">", "&gt;")[m
+[31m-    .replaceAll('"', "&quot;")[m
+[31m-    .replaceAll("'", "&#039;");[m
+[31m-}[m
+[31m-[m
+[31m-function safeText(value, fallback = "—") {[m
+[31m-  if (value === null || value === undefined || value === "") return fallback;[m
+[31m-  return String(value);[m
+[32m+[m[32m  return result;[m
+ }[m
+ [m
+ function clampText(value, maxLength = 120) {[m
+[36m@@ -129,39 +147,6 @@[m [mfunction clampText(value, maxLength = 120) {[m
+   return text.length > maxLength ? `${text.slice(0, maxLength).trim()}…` : text;[m
+ }[m
+ [m
+[31m-function safeNumber(value, fallback = 0) {[m
+[31m-  const n = Number(value);[m
+[31m-  return Number.isFinite(n) ? n : fallback;[m
+[31m-}[m
+[31m-[m
+[31m-function tryParseJson(raw) {[m
+[31m-  try {[m
+[31m-    return JSON.parse(raw);[m
+[31m-  } catch {[m
+[31m-    return null;[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-function normalizeRole(role) {[m
+[31m-  const raw = String(role || "").trim().toLowerCase();[m
+[31m-  if (raw === "gm" || raw === "admin") return "gm";[m
+[31m-  return "player";[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentRole() {[m
+[31m-  return normalizeRole([m
+[31m-    window.__appUserRole ||[m
+[31m-      window.__userRole ||[m
+[31m-      window.__appUser?.role ||[m
+[31m-      document.body?.dataset?.role ||[m
+[31m-      "player"[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentUser() {[m
+[31m-  return window.__appUser || null;[m
+[31m-}[m
+[31m-[m
+ function getInventoryState() {[m
+   if (Array.isArray(window.__appStateInventory)) {[m
+     return window.__appStateInventory;[m
+[36m@@ -188,95 +173,6 @@[m [mfunction closeModal(modal) {[m
+   if (modal) modal.style.display = "none";[m
+ }[m
+ [m
+[31m-function formatTime(value) {[m
+[31m-  if (!value) return "—";[m
+[31m-[m
+[31m-  try {[m
+[31m-    const date = new Date(value);[m
+[31m-    if (Number.isNaN(date.getTime())) return "—";[m
+[31m-[m
+[31m-    return date.toLocaleTimeString("ru-RU", {[m
+[31m-      hour: "2-digit",[m
+[31m-      minute: "2-digit",[m
+[31m-    });[m
+[31m-  } catch {[m
+[31m-    return "—";[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-function formatDateTime(value) {[m
+[31m-  if (!value) return "—";[m
+[31m-[m
+[31m-  try {[m
+[31m-    const date = new Date(value);[m
+[31m-    if (Number.isNaN(date.getTime())) return "—";[m
+[31m-[m
+[31m-    return date.toLocaleString("ru-RU", {[m
+[31m-      day: "2-digit",[m
+[31m-      month: "2-digit",[m
+[31m-      year: "numeric",[m
+[31m-      hour: "2-digit",[m
+[31m-      minute: "2-digit",[m
+[31m-    });[m
+[31m-  } catch {[m
+[31m-    return "—";[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-function getToken() {[m
+[31m-  return localStorage.getItem("token") || "";[m
+[31m-}[m
+[31m-[m
+[31m-function getHeaders(withJson = false) {[m
+[31m-  const headers = {};[m
+[31m-  const token = getToken();[m
+[31m-[m
+[31m-  if (token) {[m
+[31m-    headers.Authorization = `Bearer ${token}`;[m
+[31m-  }[m
+[31m-[m
+[31m-  if (withJson) {[m
+[31m-    headers["Content-Type"] = "application/json";[m
+[31m-  }[m
+[31m-[m
+[31m-  return headers;[m
+[31m-}[m
+[31m-[m
+[31m-async function apiGet(urls) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const url of list) {[m
+[31m-    try {[m
+[31m-      const res = await fetch(url, { headers: getHeaders() });[m
+[31m-      if (!res.ok) continue;[m
+[31m-      return await res.json();[m
+[31m-    } catch (_) {}[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+[31m-async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const method of methods) {[m
+[31m-    for (const url of list) {[m
+[31m-      try {[m
+[31m-        const res = await fetch(url, {[m
+[31m-          method,[m
+[31m-          headers: getHeaders(true),[m
+[31m-          body: JSON.stringify(body),[m
+[31m-        });[m
+[31m-[m
+[31m-        if (!res.ok) continue;[m
+[31m-        return await res.json().catch(() => ({}));[m
+[31m-      } catch (_) {}[m
+[31m-    }[m
+[31m-  }[m
+[31m-[m
+[31m-  throw new Error("Failed to save");[m
+[31m-}[m
+[31m-[m
+ function emitCabinetHistory(detail) {[m
+   const payload = {[m
+     created_at: new Date().toISOString(),[m
+[36m@@ -302,6 +198,39 @@[m [mfunction emitCabinetHistory(detail) {[m
+   } catch (_) {}[m
+ }[m
+ [m
+[32m+[m[32mfunction syncCurrentUserProfile(userPatch = {}) {[m
+[32m+[m[32m  const currentUser = getCurrentUser() || {};[m
+[32m+[m[32m  const nextUser = {[m
+[32m+[m[32m    ...currentUser,[m
+[32m+[m[32m    ...(userPatch && typeof userPatch === "object" ? userPatch : {}),[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  window.__appUser = nextUser;[m
+[32m+[m[32m  window.__appUserRole = normalizeRole(nextUser.role || currentUser.role || "player");[m
+[32m+[m[32m  window.__userRole = window.__appUserRole;[m
+[32m+[m[32m  document.body.dataset.role = window.__appUserRole;[m
+[32m+[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    localStorage.setItem("user", JSON.stringify(nextUser));[m
+[32m+[m[32m  } catch (_) {}[m
+[32m+[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    window.dispatchEvent([m
+[32m+[m[32m      new CustomEvent("dnd:role:changed", {[m
+[32m+[m[32m        detail: { role: window.__appUserRole, user: nextUser },[m
+[32m+[m[32m      })[m
+[32m+[m[32m    );[m
+[32m+[m[32m  } catch (_) {}[m
+[32m+[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    window.dispatchEvent([m
+[32m+[m[32m      new CustomEvent("dnd:user:updated", {[m
+[32m+[m[32m        detail: { user: nextUser },[m
+[32m+[m[32m      })[m
+[32m+[m[32m    );[m
+[32m+[m[32m  } catch (_) {}[m
+[32m+[m[32m}[m
+[32m+[m
+ function getUserScopedKey(base) {[m
+   const user = getCurrentUser();[m
+   const userKey =[m
+[36m@@ -680,10 +609,13 @@[m [mfunction renderCabinetHeader() {[m
+   const user = getCurrentUser();[m
+   const role = CABINET_STATE.role === "gm" ? "ГМ" : "Игрок";[m
+   const activeLabel = getCabinetActiveTabLabel();[m
+[32m+[m[32m  const nickname = safeText(user?.nickname || user?.email?.split?.("@")?.[0] || "", "");[m
+[32m+[m[32m  const displayName = safeText(user?.display_name || "", "");[m
+[32m+[m[32m  const bio = safeText(user?.bio || "", "");[m
+ [m
+   header.innerHTML = `[m
+     <div class="cabinet-header-inner" style="padding-right:34px;">[m
+[31m-      <div class="flex-between" style="align-items:flex-start; gap:8px; flex-wrap:wrap;">[m
+[32m+[m[32m      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">[m
+         <div>[m
+           <div class="muted" style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px;">Личный кабинет</div>[m
+           <h2 style="margin:0 0 3px 0; font-size:1.16rem;">Кабинет персонажа</h2>[m
+[36m@@ -697,8 +629,32 @@[m [mfunction renderCabinetHeader() {[m
+           <span class="meta-item">Раздел: ${escapeHtml(activeLabel)}</span>[m
+         </div>[m
+       </div>[m
+[32m+[m
+[32m+[m[32m      ${user ? `[m
+[32m+[m[32m        <div class="profile-grid" style="margin-top:12px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">[m
+[32m+[m[32m          <div class="filter-group">[m
+[32m+[m[32m            <label>Ник</label>[m
+[32m+[m[32m            <input id="cabinetProfileNickname" type="text" value="${escapeHtml(nickname)}" placeholder="nickname">[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div class="filter-group">[m
+[32m+[m[32m            <label>Отображаемое имя</label>[m
+[32m+[m[32m            <input id="cabinetProfileDisplayName" type="text" value="${escapeHtml(displayName)}" placeholder="Как тебя видят в столах">[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div class="filter-group" style="grid-column:1 / -1;">[m
+[32m+[m[32m            <label>О себе</label>[m
+[32m+[m[32m            <textarea id="cabinetProfileBio" rows="2" placeholder="Короткое описание профиля">${escapeHtml(bio)}</textarea>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </div>[m
+[32m+[m
+[32m+[m[32m        <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">[m
+[32m+[m[32m          <button class="btn btn-primary" type="button" id="cabinetProfileSaveBtn">Сохранить профиль</button>[m
+[32m+[m[32m          ${CABINET_STATE.role !== "gm" ? `<button class="btn btn-warning" type="button" id="cabinetActivateGmBtn">Включить GM-режим</button>` : ""}[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      ` : ""}[m
+     </div>[m
+   `;[m
+[32m+[m
+[32m+[m[32m  bindCabinetHeaderActions();[m
+ }[m
+ [m
+ function renderCabinetTabs() {[m
+[36m@@ -738,6 +694,48 @@[m [mfunction renderCabinetTabs() {[m
+     .join("");[m
+ }[m
+ [m
+[32m+[m[32mfunction bindCabinetHeaderActions() {[m
+[32m+[m[32m  const saveBtn = getEl("cabinetProfileSaveBtn");[m
+[32m+[m[32m  if (saveBtn && saveBtn.dataset.boundCabinetProfileSave !== "1") {[m
+[32m+[m[32m    saveBtn.dataset.boundCabinetProfileSave = "1";[m
+[32m+[m[32m    saveBtn.addEventListener("click", async () => {[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        const profile = await updateProfile({[m
+[32m+[m[32m          nickname: String(getEl("cabinetProfileNickname")?.value || "").trim(),[m
+[32m+[m[32m          display_name: String(getEl("cabinetProfileDisplayName")?.value || "").trim(),[m
+[32m+[m[32m          bio: String(getEl("cabinetProfileBio")?.value || "").trim(),[m
+[32m+[m[32m        });[m
+[32m+[m[32m        syncCurrentUserProfile(profile);[m
+[32m+[m[32m        renderCabinetHeader();[m
+[32m+[m[32m        bindCabinetHeaderActions();[m
+[32m+[m[32m        showToast("Профиль обновлён");[m
+[32m+[m[32m      } catch (error) {[m
+[32m+[m[32m        showToast(error.message || "Не удалось сохранить профиль");[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const activateBtn = getEl("cabinetActivateGmBtn");[m
+[32m+[m[32m  if (activateBtn && activateBtn.dataset.boundCabinetActivateGm !== "1") {[m
+[32m+[m[32m    activateBtn.dataset.boundCabinetActivateGm = "1";[m
+[32m+[m[32m    activateBtn.addEventListener("click", async () => {[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        const profile = await activateGmMode();[m
+[32m+[m[32m        syncCurrentUserProfile(profile);[m
+[32m+[m[32m        CABINET_STATE.role = getCurrentRole();[m
+[32m+[m[32m        renderCabinetHeader();[m
+[32m+[m[32m        renderCabinetTabs();[m
+[32m+[m[32m        bindCabinetHeaderActions();[m
+[32m+[m[32m        bindCabinetTabs();[m
+[32m+[m[32m        await refreshCurrentCabinetTab();[m
+[32m+[m[32m        showToast("GM-режим включён");[m
+[32m+[m[32m      } catch (error) {[m
+[32m+[m[32m        showToast(error.message || "Не удалось включить GM-режим");[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 📚 CODEX / ENCYCLOPEDIA[m
+ // ------------------------------------------------------------[m
+[36m@@ -2990,66 +2988,68 @@[m [mfunction getMasterRoomStorageKey() {[m
+ [m
+ function normalizeMasterRoomVisibility(value) {[m
+   const raw = String(value || "").trim().toLowerCase();[m
+[31m-  if (["private", "basic", "sheet", "full"].includes(raw)) return raw;[m
+[31m-  return "basic";[m
+[32m+[m[32m  return ["private", "basic", "sheet", "full"].includes(raw) ? raw : "basic";[m
+ }[m
+ [m
+[31m-function normalizeMasterRoomMember(member, index = 0) {[m
+[31m-  const raw = member && typeof member === "object" ? member : {};[m
+[31m-  const nickname = String([m
+[31m-    raw.nickname ||[m
+[31m-    raw.display_name ||[m
+[31m-    raw.username ||[m
+[31m-    raw.email ||[m
+[31m-    `Игрок ${index + 1}`[m
+[31m-  ).trim();[m
+[31m-[m
+[31m-  return {[m
+[31m-    id: String(raw.id || raw.user_id || raw.member_id || `member_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 7)}`),[m
+[31m-    user_id: String(raw.user_id || raw.id || ""),[m
+[31m-    nickname,[m
+[31m-    email: String(raw.email || "").trim(),[m
+[31m-    character_name: String(raw.character_name || raw.characterName || "").trim(),[m
+[31m-    visibility: normalizeMasterRoomVisibility(raw.visibility),[m
+[31m-    is_gm: Boolean(raw.is_gm),[m
+[31m-    joined_at: raw.joined_at || new Date().toISOString(),[m
+[31m-  };[m
+[32m+[m[32mfunction normalizeMasterRoomRole(value) {[m
+[32m+[m[32m  const raw = String(value || "").trim().toLowerCase();[m
+[32m+[m[32m  return raw === "gm" ? "gm" : "player";[m
+ }[m
+ [m
+ function normalizeMasterRoomTable(table, index = 0) {[m
+   const raw = table && typeof table === "object" ? table : {};[m
+[31m-  const title = String(raw.title || raw.name || `Стол ${index + 1}`).trim() || `Стол ${index + 1}`;[m
+[31m-  const tokenBase = String(raw.token || raw.code || title)[m
+[31m-    .trim()[m
+[31m-    .toLowerCase()[m
+[31m-    .replace(/[^a-zа-я0-9_-]+/gi, "-")[m
+[31m-    .replace(/-+/g, "-")[m
+[31m-    .replace(/^-|-$/g, "") || `table-${index + 1}`;[m
+[31m-[m
+[31m-  const members = Array.isArray(raw.members)[m
+[31m-    ? raw.members.map((member, memberIndex) => normalizeMasterRoomMember(member, memberIndex))[m
+[31m-    : [];[m
+[31m-[m
+   return {[m
+[31m-    id: String(raw.id || raw.table_id || `table_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 7)}`),[m
+[31m-    title,[m
+[31m-    token: tokenBase,[m
+[31m-    gm_user_id: String(raw.gm_user_id || raw.owner_id || getCurrentUser()?.id || ""),[m
+[31m-    members,[m
+[32m+[m[32m    id: String(raw.id || raw.table_id || `table_${index}`),[m
+[32m+[m[32m    title: String(raw.title || raw.name || `Стол ${index + 1}`).trim() || `Стол ${index + 1}`,[m
+[32m+[m[32m    token: String(raw.token || raw.code || "").trim(),[m
+[32m+[m[32m    status: String(raw.status || "active").trim() || "active",[m
+[32m+[m[32m    notes: String(raw.notes || "").trim(),[m
+[32m+[m[32m    trader_access_mode: String(raw.trader_access_mode || "open").trim() || "open",[m
+     created_at: raw.created_at || new Date().toISOString(),[m
+     updated_at: raw.updated_at || new Date().toISOString(),[m
+[32m+[m[32m    members: safeArray(raw.members).map((member, memberIndex) => ({[m
+[32m+[m[32m      id: String(member?.id || `member_${memberIndex}`),[m
+[32m+[m[32m      user_id: String(member?.user_id || ""),[m
+[32m+[m[32m      nickname: String(member?.nickname || member?.email || `Игрок ${memberIndex + 1}`).trim(),[m
+[32m+[m[32m      email: String(member?.email || "").trim(),[m
+[32m+[m[32m      display_name: String(member?.display_name || "").trim(),[m
+[32m+[m[32m      role_in_table: normalizeMasterRoomRole(member?.role_in_table),[m
+[32m+[m[32m      visibility_preset: normalizeMasterRoomVisibility(member?.visibility_preset),[m
+[32m+[m[32m      selected_character_id: String(member?.selected_character_id || ""),[m
+[32m+[m[32m      selected_character_name: String(member?.selected_character_name || "").trim(),[m
+[32m+[m[32m      notes: String(member?.notes || "").trim(),[m
+[32m+[m[32m      hidden_sections: member?.hidden_sections && typeof member.hidden_sections === "object"[m
+[32m+[m[32m        ? member.hidden_sections[m
+[32m+[m[32m        : {},[m
+[32m+[m[32m      joined_at: member?.joined_at || new Date().toISOString(),[m
+[32m+[m[32m    })),[m
+[32m+[m[32m    trader_accesses: safeArray(raw.trader_accesses).map((entry, traderIndex) => ({[m
+[32m+[m[32m      id: String(entry?.id || `access_${traderIndex}`),[m
+[32m+[m[32m      trader_id: Number(entry?.trader_id || entry?.id || 0),[m
+[32m+[m[32m      name: String(entry?.name || `Trader #${entry?.trader_id || traderIndex + 1}`).trim(),[m
+[32m+[m[32m      notes: String(entry?.notes || "").trim(),[m
+[32m+[m[32m      is_enabled: Boolean(entry?.is_enabled ?? true),[m
+[32m+[m[32m    })),[m
+[32m+[m[32m    grants: safeArray(raw.grants).map((entry, grantIndex) => ({[m
+[32m+[m[32m      id: String(entry?.id || `grant_${grantIndex}`),[m
+[32m+[m[32m      membership_id: String(entry?.membership_id || ""),[m
+[32m+[m[32m      target_user_id: String(entry?.target_user_id || ""),[m
+[32m+[m[32m      item_id: Number(entry?.item_id || 0),[m
+[32m+[m[32m      item_name: String(entry?.item_name || entry?.custom_name || "").trim(),[m
+[32m+[m[32m      quantity: Math.max(1, safeNumber(entry?.quantity, 1)),[m
+[32m+[m[32m      notes: String(entry?.notes || "").trim(),[m
+[32m+[m[32m      created_by_nickname: String(entry?.created_by_nickname || "").trim(),[m
+[32m+[m[32m      created_at: entry?.created_at || new Date().toISOString(),[m
+[32m+[m[32m    })),[m
+   };[m
+ }[m
+ [m
+ function ensureMasterRoomDefaults() {[m
+[31m-  MASTER_ROOM_STATE.tables = Array.isArray(MASTER_ROOM_STATE.tables)[m
+[31m-    ? MASTER_ROOM_STATE.tables.map((table, index) => normalizeMasterRoomTable(table, index))[m
+[31m-    : [];[m
+[32m+[m[32m  MASTER_ROOM_STATE.tables = safeArray(MASTER_ROOM_STATE.tables).map((table, index) =>[m
+[32m+[m[32m    normalizeMasterRoomTable(table, index)[m
+[32m+[m[32m  );[m
+ [m
+[31m-  if ([m
+[31m-    MASTER_ROOM_STATE.activeTableId &&[m
+[31m-    MASTER_ROOM_STATE.tables.some((table) => table.id === MASTER_ROOM_STATE.activeTableId)[m
+[31m-  ) {[m
+[32m+[m[32m  if (MASTER_ROOM_STATE.activeTableId && MASTER_ROOM_STATE.tables.some((table) => table.id === MASTER_ROOM_STATE.activeTableId)) {[m
+     return;[m
+   }[m
+ [m
+[36m@@ -3064,183 +3064,109 @@[m [mfunction getMasterRoomActiveTable() {[m
+ function getCurrentLssCharacterName() {[m
+   const shared = window.__sharedState?.lss?.profile || window.__sharedState?.lss?.raw || {};[m
+   const direct = window.__LSS_EXPORT__ || window.__lssExport || {};[m
+[31m-  return String([m
+[31m-    shared?.name ||[m
+[31m-    shared?.info?.name ||[m
+[31m-    direct?.name ||[m
+[31m-    direct?.info?.name ||[m
+[31m-    ""[m
+[31m-  ).trim();[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentProfileNickname() {[m
+[31m-  const user = getCurrentUser() || {};[m
+[31m-  return String([m
+[31m-    user.nickname ||[m
+[31m-    user.display_name ||[m
+[31m-    user.username ||[m
+[31m-    user.email ||[m
+[31m-    "Игрок"[m
+[31m-  ).trim();[m
+[31m-}[m
+[31m-[m
+[31m-function tryLoadMasterRoomFromWindow() {[m
+[31m-  const candidates = [[m
+[31m-    window.__MASTER_ROOM__,[m
+[31m-    window.__masterRoom,[m
+[31m-    window.__MASTER_ROOM_DATA__,[m
+[31m-    window.__masterRoomData,[m
+[31m-  ];[m
+[31m-[m
+[31m-  for (const candidate of candidates) {[m
+[31m-    if (candidate && typeof candidate === "object") return candidate;[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[32m+[m[32m  return String(shared?.name || shared?.info?.name || direct?.name || direct?.info?.name || "").trim();[m
+ }[m
+ [m
+[31m-function loadMasterRoomLocal() {[m
+[31m-  try {[m
+[31m-    const raw = localStorage.getItem(getMasterRoomStorageKey());[m
+[31m-    const parsed = tryParseJson(raw);[m
+[31m-    return parsed && typeof parsed === "object" ? parsed : null;[m
+[31m-  } catch (_) {[m
+[31m-    return null;[m
+[31m-  }[m
+[31m-}[m
+[32m+[m[32masync function apiDeleteJson(url) {[m
+[32m+[m[32m  const res = await fetch(url, {[m
+[32m+[m[32m    method: "DELETE",[m
+[32m+[m[32m    headers: getHeaders(true),[m
+[32m+[m[32m  });[m
+ [m
+[31m-function saveMasterRoomLocal() {[m
+[31m-  try {[m
+[31m-    localStorage.setItem([m
+[31m-      getMasterRoomStorageKey(),[m
+[31m-      JSON.stringify({[m
+[31m-        tables: MASTER_ROOM_STATE.tables,[m
+[31m-        activeTableId: MASTER_ROOM_STATE.activeTableId,[m
+[31m-      })[m
+[31m-    );[m
+[31m-  } catch (_) {}[m
+[32m+[m[32m  const payload = await res.json().catch(() => ({}));[m
+[32m+[m[32m  if (!res.ok) {[m
+[32m+[m[32m    throw new Error(payload?.detail || payload?.message || `Ошибка удаления: ${res.status}`);[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return payload;[m
+ }[m
+ [m
+[31m-async function loadMasterRoom() {[m
+[31m-  let data = await apiGet([[m
+[31m-    "/master-room",[m
+[31m-    "/master-room/me",[m
+[31m-    "/party/tables",[m
+[31m-  ]);[m
+[31m-  let source = "api";[m
+[32m+[m[32mfunction applyMasterRoomTableResponse(payload) {[m
+[32m+[m[32m  const table = payload?.table ? normalizeMasterRoomTable(payload.table, 0) : null;[m
+[32m+[m[32m  if (!table) return;[m
+ [m
+[31m-  if (!data) {[m
+[31m-    data = tryLoadMasterRoomFromWindow();[m
+[31m-    source = "window";[m
+[32m+[m[32m  const index = MASTER_ROOM_STATE.tables.findIndex((entry) => entry.id === table.id);[m
+[32m+[m[32m  if (index >= 0) {[m
+[32m+[m[32m    MASTER_ROOM_STATE.tables[index] = table;[m
+[32m+[m[32m  } else {[m
+[32m+[m[32m    MASTER_ROOM_STATE.tables = [table, ...MASTER_ROOM_STATE.tables];[m
+   }[m
+[32m+[m[32m  MASTER_ROOM_STATE.activeTableId = table.id;[m
+[32m+[m[32m  MASTER_ROOM_STATE.source = "api";[m
+[32m+[m[32m  ensureMasterRoomDefaults();[m
+[32m+[m[32m}[m
+ [m
+[31m-  if (!data) {[m
+[31m-    data = loadMasterRoomLocal();[m
+[31m-    source = "local";[m
+[32m+[m[32masync function loadMasterRoomUsers(query) {[m
+[32m+[m[32m  const needle = String(query || "").trim();[m
+[32m+[m[32m  if (!needle) {[m
+[32m+[m[32m    MASTER_ROOM_STATE.userSearchResults = [];[m
+[32m+[m[32m    return [];[m
+   }[m
+ [m
+[31m-  const tables = Array.isArray(data)[m
+[31m-    ? data[m
+[31m-    : Array.isArray(data?.tables)[m
+[31m-      ? data.tables[m
+[31m-      : [];[m
+[32m+[m[32m  const data = await apiGet(`/gm/users/search?q=${encodeURIComponent(needle)}`);[m
+[32m+[m[32m  MASTER_ROOM_STATE.userSearchResults = safeArray(data?.users);[m
+[32m+[m[32m  return MASTER_ROOM_STATE.userSearchResults;[m
+[32m+[m[32m}[m
+ [m
+[31m-  MASTER_ROOM_STATE.tables = tables.map((table, index) => normalizeMasterRoomTable(table, index));[m
+[31m-  MASTER_ROOM_STATE.activeTableId = String(data?.activeTableId || data?.active_table_id || MASTER_ROOM_STATE.activeTableId || "");[m
+[31m-  MASTER_ROOM_STATE.loaded = true;[m
+[31m-  MASTER_ROOM_STATE.source = MASTER_ROOM_STATE.tables.length ? source : "empty";[m
+[31m-  ensureMasterRoomDefaults();[m
+[31m-  saveMasterRoomLocal();[m
+[31m-  renderMasterRoom();[m
+[31m-  return MASTER_ROOM_STATE.tables;[m
+[32m+[m[32masync function loadMasterRoomTraders(query) {[m
+[32m+[m[32m  const needle = String(query || "").trim();[m
+[32m+[m[32m  const data = await apiGet(`/gm/traders/search?q=${encodeURIComponent(needle)}`);[m
+[32m+[m[32m  MASTER_ROOM_STATE.traderSearchResults = safeArray(data?.traders);[m
+[32m+[m[32m  return MASTER_ROOM_STATE.traderSearchResults;[m
+ }[m
+ [m
+[31m-async function saveMasterRoom() {[m
+[31m-  saveMasterRoomLocal();[m
+[32m+[m[32masync function loadMasterRoomItems(query) {[m
+[32m+[m[32m  const needle = String(query || "").trim();[m
+[32m+[m[32m  const data = await apiGet(`/gm/items/search?q=${encodeURIComponent(needle)}`);[m
+[32m+[m[32m  MASTER_ROOM_STATE.itemSearchResults = safeArray(data?.items);[m
+[32m+[m[32m  return MASTER_ROOM_STATE.itemSearchResults;[m
+[32m+[m[32m}[m
+ [m
+[32m+[m[32masync function loadMasterRoom() {[m
+[32m+[m[32m  MASTER_ROOM_STATE.loaded = true;[m
+   try {[m
+[31m-    await apiWrite([m
+[31m-      ["/master-room", "/master-room/me", "/party/tables"],[m
+[31m-      {[m
+[31m-        tables: MASTER_ROOM_STATE.tables,[m
+[31m-        activeTableId: MASTER_ROOM_STATE.activeTableId,[m
+[31m-      },[m
+[31m-      ["POST", "PUT", "PATCH"][m
+[31m-    );[m
+[32m+[m[32m    const data = await apiGet("/gm/master-room");[m
+[32m+[m[32m    MASTER_ROOM_STATE.tables = safeArray(data?.tables).map((table, index) => normalizeMasterRoomTable(table, index));[m
+     MASTER_ROOM_STATE.source = "api";[m
+[31m-  } catch (_) {[m
+[31m-    MASTER_ROOM_STATE.source = "local";[m
+[32m+[m[32m    ensureMasterRoomDefaults();[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    MASTER_ROOM_STATE.tables = [];[m
+[32m+[m[32m    MASTER_ROOM_STATE.source = "error";[m
+[32m+[m[32m    if (CABINET_STATE.role === "gm") {[m
+[32m+[m[32m      showToast(error.message || "Не удалось загрузить Master Room");[m
+[32m+[m[32m    }[m
+   }[m
+[32m+[m[32m  renderMasterRoom();[m
+[32m+[m[32m  return MASTER_ROOM_STATE.tables;[m
+ }[m
+ [m
+[31m-function collectKnownPlayers() {[m
+[31m-  const user = getCurrentUser() || {};[m
+[31m-  const known = new Map();[m
+[31m-[m
+[31m-  const pushPlayer = (player) => {[m
+[31m-    if (!player) return;[m
+[31m-    const nickname = String(player.nickname || player.display_name || player.username || player.email || "").trim();[m
+[31m-    if (!nickname) return;[m
+[31m-    const email = String(player.email || "").trim();[m
+[31m-    const key = `${nickname.toLowerCase()}|${email.toLowerCase()}`;[m
+[31m-    if (known.has(key)) return;[m
+[31m-    known.set(key, {[m
+[31m-      nickname,[m
+[31m-      email,[m
+[31m-    });[m
+[31m-  };[m
+[31m-[m
+[31m-  pushPlayer(user);[m
+[31m-[m
+[31m-  MASTER_ROOM_STATE.tables.forEach((table) => {[m
+[31m-    (table.members || []).forEach((member) => pushPlayer(member));[m
+[31m-  });[m
+[31m-[m
+[31m-  return [...known.values()].sort((a, b) => a.nickname.localeCompare(b.nickname, "ru"));[m
+[31m-}[m
+[31m-[m
+[31m-function renderMasterRoomKnownPlayers(query) {[m
+[31m-  const needle = String(query || "").trim().toLowerCase();[m
+[31m-  if (!needle) return "";[m
+[32m+[m[32mfunction renderMasterRoomUserSearchResults(table) {[m
+[32m+[m[32m  if (!MASTER_ROOM_STATE.inviteQuery.trim()) return "";[m
+ [m
+[31m-  const active = getMasterRoomActiveTable();[m
+[31m-  const existingKeys = new Set((active?.members || []).map((member) => String(member.nickname || "").trim().toLowerCase()));[m
+[31m-  const players = collectKnownPlayers()[m
+[31m-    .filter((player) => player.nickname.toLowerCase().includes(needle) || player.email.toLowerCase().includes(needle))[m
+[31m-    .filter((player) => !existingKeys.has(player.nickname.toLowerCase()))[m
+[31m-    .slice(0, 8);[m
+[32m+[m[32m  const existing = new Set(safeArray(table?.members).map((member) => String(member.user_id || "").trim()));[m
+[32m+[m[32m  const users = MASTER_ROOM_STATE.userSearchResults.filter((user) => !existing.has(String(user.id || "")));[m
+ [m
+[31m-  if (!players.length) {[m
+[31m-    return `<div class="muted" style="font-size:0.8rem;">Совпадений по известным никам пока нет. Можно добавить игрока вручную ниже.</div>`;[m
+[32m+[m[32m  if (!users.length) {[m
+[32m+[m[32m    return `<div class="muted" style="font-size:0.8rem;">Совпадений не найдено.</div>`;[m
+   }[m
+ [m
+[31m-  return `[m
+[31m-    <div style="display:flex; flex-direction:column; gap:8px;">[m
+[31m-      ${players.map((player) => `[m
+[31m-        <div class="cabinet-block" style="padding:10px 12px;">[m
+[31m-          <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[31m-            <div>[m
+[31m-              <div style="font-weight:800;">${escapeHtml(player.nickname)}</div>[m
+[31m-              <div class="muted" style="font-size:0.8rem;">${escapeHtml(player.email || "email не задан")}</div>[m
+[31m-            </div>[m
+[31m-            <button[m
+[31m-              class="btn btn-primary"[m
+[31m-              type="button"[m
+[31m-              data-master-room-add-known="${escapeHtml(player.nickname)}"[m
+[31m-              data-master-room-add-known-email="${escapeHtml(player.email || "")}"[m
+[31m-            >[m
+[31m-              Добавить в стол[m
+[31m-            </button>[m
+[31m-          </div>[m
+[32m+[m[32m  return users.map((user) => `[m
+[32m+[m[32m    <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">[m
+[32m+[m[32m      <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <div style="font-weight:800;">${escapeHtml(user.nickname || user.email || "Игрок")}</div>[m
+[32m+[m[32m          <div class="muted" style="font-size:0.8rem;">${escapeHtml(user.email || "")}</div>[m
+         </div>[m
+[31m-      `).join("")}[m
+[32m+[m[32m        <button class="btn btn-primary" type="button" data-master-room-add-user-id="${escapeHtml(String(user.id || ""))}">[m
+[32m+[m[32m          Добавить[m
+[32m+[m[32m        </button>[m
+[32m+[m[32m      </div>[m
+     </div>[m
+[31m-  `;[m
+[32m+[m[32m  `).join("");[m
+ }[m
+ [m
+ function renderMasterRoomParticipants(table) {[m
+   if (!table?.members?.length) {[m
+[31m-    return `<div class="cabinet-block"><p>Участников пока нет. Добавь игрока по нику или вручную.</p></div>`;[m
+[32m+[m[32m    return `<div class="cabinet-block"><p>Участников пока нет.</p></div>`;[m
+   }[m
+ [m
+   return table.members.map((member) => `[m
+[36m@@ -3249,54 +3175,165 @@[m [mfunction renderMasterRoomParticipants(table) {[m
+         <div>[m
+           <div style="font-weight:800;">${escapeHtml(member.nickname)}</div>[m
+           <div class="muted" style="font-size:0.8rem;">[m
+[31m-            ${member.email ? escapeHtml(member.email) : "Без email"}[m
+[31m-            ${member.is_gm ? " • ГМ" : " • Игрок"}[m
+[32m+[m[32m            ${escapeHtml(member.email || "email не задан")}[m
+[32m+[m[32m            • ${member.role_in_table === "gm" ? "ГМ" : "Игрок"}[m
+           </div>[m
+         </div>[m
+[31m-[m
+[31m-        <div class="cart-buttons" style="gap:6px;">[m
+[31m-          <button[m
+[31m-            class="btn"[m
+[31m-            type="button"[m
+[31m-            data-master-room-use-lss="${escapeHtml(member.id)}"[m
+[31m-          >[m
+[31m-            Взять из LSS[m
+[31m-          </button>[m
+[31m-          <button[m
+[31m-            class="btn btn-danger"[m
+[31m-            type="button"[m
+[31m-            data-master-room-remove-member="${escapeHtml(member.id)}"[m
+[31m-          >[m
+[31m-            Убрать[m
+[31m-          </button>[m
+[31m-        </div>[m
+[32m+[m[32m        <button class="btn btn-danger" type="button" data-master-room-remove-member="${escapeHtml(member.id)}">[m
+[32m+[m[32m          Убрать[m
+[32m+[m[32m        </button>[m
+       </div>[m
+ [m
+       <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">[m
+         <div class="filter-group">[m
+[31m-          <label>Персонаж</label>[m
+[31m-          <input[m
+[31m-            type="text"[m
+[31m-            value="${escapeHtml(member.character_name || "")}"[m
+[31m-            placeholder="Имя персонажа / LSS"[m
+[31m-            data-master-room-member-character="${escapeHtml(member.id)}"[m
+[31m-          />[m
+[32m+[m[32m          <label>Роль в столе</label>[m
+[32m+[m[32m          <select data-master-room-member-role="${escapeHtml(member.id)}">[m
+[32m+[m[32m            <option value="player" ${member.role_in_table === "player" ? "selected" : ""}>player</option>[m
+[32m+[m[32m            <option value="gm" ${member.role_in_table === "gm" ? "selected" : ""}>gm</option>[m
+[32m+[m[32m          </select>[m
+         </div>[m
+[31m-[m
+         <div class="filter-group">[m
+[31m-          <label>Видимость</label>[m
+[32m+[m[32m          <label>Видимость персонажа</label>[m
+           <select data-master-room-member-visibility="${escapeHtml(member.id)}">[m
+[31m-            <option value="private" ${member.visibility === "private" ? "selected" : ""}>private</option>[m
+[31m-            <option value="basic" ${member.visibility === "basic" ? "selected" : ""}>basic</option>[m
+[31m-            <option value="sheet" ${member.visibility === "sheet" ? "selected" : ""}>sheet</option>[m
+[31m-            <option value="full" ${member.visibility === "full" ? "selected" : ""}>full</option>[m
+[32m+[m[32m            <option value="private" ${member.visibility_preset === "private" ? "selected" : ""}>private</option>[m
+[32m+[m[32m            <option value="basic" ${member.visibility_preset === "basic" ? "selected" : ""}>basic</option>[m
+[32m+[m[32m            <option value="sheet" ${member.visibility_preset === "sheet" ? "selected" : ""}>sheet</option>[m
+[32m+[m[32m            <option value="full" ${member.visibility_preset === "full" ? "selected" : ""}>full</option>[m
+           </select>[m
+         </div>[m
+[32m+[m[32m        <div class="filter-group">[m
+[32m+[m[32m          <label>Персонаж</label>[m
+[32m+[m[32m          <input type="text" value="${escapeHtml(member.selected_character_name || "")}" data-master-room-member-character="${escapeHtml(member.id)}" placeholder="Имя персонажа">[m
+[32m+[m[32m        </div>[m
+       </div>[m
+     </div>[m
+   `).join("");[m
+ }[m
+ [m
+[32m+[m[32mfunction renderMasterRoomTraderAccesses(table) {[m
+[32m+[m[32m  const accesses = safeArray(table?.trader_accesses);[m
+[32m+[m[32m  const currentLabel = table?.trader_access_mode === "restricted" ? "restricted" : "open";[m
+[32m+[m
+[32m+[m[32m  return `[m
+[32m+[m[32m    <div class="cabinet-block" style="margin-top:12px;">[m
+[32m+[m[32m      <div class="flex-between" style="gap:12px; flex-wrap:wrap;">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <h4 style="margin:0 0 6px 0;">Доступ к торговцам</h4>[m
+[32m+[m[32m          <div class="muted" style="font-size:0.82rem;">В режиме <strong>${escapeHtml(currentLabel)}</strong> игроки видят либо всех торговцев, либо только разрешённых ГМом.</div>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div class="filter-group" style="min-width:180px;">[m
+[32m+[m[32m          <label>Режим доступа</label>[m
+[32m+[m[32m          <select id="masterRoomTraderAccessMode">[m
+[32m+[m[32m            <option value="open" ${table?.trader_access_mode !== "restricted" ? "selected" : ""}>open</option>[m
+[32m+[m[32m            <option value="restricted" ${table?.trader_access_mode === "restricted" ? "selected" : ""}>restricted</option>[m
+[32m+[m[32m          </select>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <div class="collection-toolbar compact-collection-toolbar" style="margin-top:10px;">[m
+[32m+[m[32m        <div class="filter-group" style="min-width:240px; flex:1 1 240px;">[m
+[32m+[m[32m          <label>Найти торговца</label>[m
+[32m+[m[32m          <input id="masterRoomTraderSearchInput" type="text" value="${escapeHtml(MASTER_ROOM_STATE.traderSearchQuery || "")}" placeholder="Имя торговца">[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <div style="margin-top:8px;">[m
+[32m+[m[32m        ${safeArray(MASTER_ROOM_STATE.traderSearchResults).map((trader) => `[m
+[32m+[m[32m          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">[m
+[32m+[m[32m            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[32m+[m[32m              <div>[m
+[32m+[m[32m                <div style="font-weight:800;">${escapeHtml(trader.name || "Торговец")}</div>[m
+[32m+[m[32m                <div class="muted" style="font-size:0.8rem;">${escapeHtml(trader.type || "")} ${trader.region ? `• ${escapeHtml(trader.region)}` : ""}</div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <button class="btn btn-primary" type="button" data-master-room-add-trader-id="${escapeHtml(String(trader.id || ""))}">[m
+[32m+[m[32m                Открыть доступ[m
+[32m+[m[32m              </button>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        `).join("")}[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <div style="margin-top:10px;">[m
+[32m+[m[32m        ${accesses.length ? accesses.map((entry) => `[m
+[32m+[m[32m          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">[m
+[32m+[m[32m            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[32m+[m[32m              <div>[m
+[32m+[m[32m                <div style="font-weight:800;">${escapeHtml(entry.name || "Торговец")}</div>[m
+[32m+[m[32m                <div class="muted" style="font-size:0.8rem;">ID: ${escapeHtml(String(entry.trader_id || ""))}</div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <button class="btn btn-danger" type="button" data-master-room-remove-trader-id="${escapeHtml(String(entry.trader_id || ""))}">[m
+[32m+[m[32m                Закрыть доступ[m
+[32m+[m[32m              </button>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        `).join("") : `<div class="muted" style="margin-top:8px;">Разрешённых торговцев пока нет.</div>`}[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  `;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction renderMasterRoomGrantPanel(table) {[m
+[32m+[m[32m  const playerOptions = safeArray(table?.members)[m
+[32m+[m[32m    .filter((member) => member.role_in_table !== "gm")[m
+[32m+[m[32m    .map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(member.nickname)}</option>`)[m
+[32m+[m[32m    .join("");[m
+[32m+[m
+[32m+[m[32m  return `[m
+[32m+[m[32m    <div class="cabinet-block" style="margin-top:12px;">[m
+[32m+[m[32m      <h4 style="margin:0 0 8px 0;">Ручная выдача предметов</h4>[m
+[32m+[m
+[32m+[m[32m      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">[m
+[32m+[m[32m        <div class="filter-group">[m
+[32m+[m[32m          <label>Игрок</label>[m
+[32m+[m[32m          <select id="masterRoomGrantMemberId">[m
+[32m+[m[32m            <option value="">Выбери игрока</option>[m
+[32m+[m[32m            ${playerOptions}[m
+[32m+[m[32m          </select>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div class="filter-group">[m
+[32m+[m[32m          <label>Количество</label>[m
+[32m+[m[32m          <input id="masterRoomGrantQuantity" type="number" min="1" step="1" value="${escapeHtml(String(MASTER_ROOM_STATE.grantQuantity || 1))}">[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div class="filter-group" style="grid-column:1 / -1;">[m
+[32m+[m[32m          <label>Найти предмет</label>[m
+[32m+[m[32m          <input id="masterRoomItemSearchInput" type="text" value="${escapeHtml(MASTER_ROOM_STATE.itemSearchQuery || "")}" placeholder="Название предмета">[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <div style="margin-top:8px;">[m
+[32m+[m[32m        ${safeArray(MASTER_ROOM_STATE.itemSearchResults).map((item) => `[m
+[32m+[m[32m          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">[m
+[32m+[m[32m            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[32m+[m[32m              <div>[m
+[32m+[m[32m                <div style="font-weight:800;">${escapeHtml(item.name || "Предмет")}</div>[m
+[32m+[m[32m                <div class="muted" style="font-size:0.8rem;">${escapeHtml(item.category || "")} ${item.rarity ? `• ${escapeHtml(item.rarity)}` : ""}</div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <button class="btn btn-primary" type="button" data-master-room-grant-item-id="${escapeHtml(String(item.id || ""))}">[m
+[32m+[m[32m                Выдать[m
+[32m+[m[32m              </button>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        `).join("")}[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <div style="margin-top:10px;">[m
+[32m+[m[32m        <h5 style="margin:0 0 8px 0;">Последние выдачи</h5>[m
+[32m+[m[32m        ${safeArray(table?.grants).length ? safeArray(table.grants).map((grant) => `[m
+[32m+[m[32m          <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">[m
+[32m+[m[32m            <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[32m+[m[32m              <div>[m
+[32m+[m[32m                <div style="font-weight:800;">${escapeHtml(grant.item_name || "Предмет")}</div>[m
+[32m+[m[32m                <div class="muted" style="font-size:0.8rem;">×${escapeHtml(String(grant.quantity || 1))} • ${escapeHtml(formatDateTime(grant.created_at))}</div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <div class="muted" style="font-size:0.8rem;">${escapeHtml(grant.created_by_nickname || "ГМ")}</div>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        `).join("") : `<div class="muted">Выдач пока нет.</div>`}[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  `;[m
+[32m+[m[32m}[m
+[32m+[m
+ function renderMasterRoom() {[m
+   const container = getEl("cabinet-masterroom");[m
+   if (!container) return;[m
+[36m@@ -3306,105 +3343,41 @@[m [mfunction renderMasterRoom() {[m
+   if (CABINET_STATE.role !== "gm") {[m
+     container.innerHTML = `[m
+       <div class="cabinet-block">[m
+[31m-        <p>Master Room доступен только ГМу.</p>[m
+[32m+[m[32m        <p>Master Room доступен только в GM-режиме аккаунта.</p>[m
+       </div>[m
+     `;[m
+     return;[m
+   }[m
+ [m
+   const active = getMasterRoomActiveTable();[m
+[31m-  const currentLssName = getCurrentLssCharacterName();[m
+   const createOpen = Boolean(MASTER_ROOM_STATE.createOpen);[m
+ [m
+   const tablesHtml = MASTER_ROOM_STATE.tables.length[m
+     ? MASTER_ROOM_STATE.tables.map((table) => `[m
+[31m-        <div class="cabinet-block" style="padding:10px 12px;">[m
+[31m-          <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[31m-            <div>[m
+[31m-              <div style="font-weight:800;">${escapeHtml(table.title)}</div>[m
+[31m-              <div class="muted" style="font-size:0.8rem;">token: ${escapeHtml(table.token)} • участников: ${(table.members || []).length}</div>[m
+[31m-            </div>[m
+[31m-            <div class="cart-buttons" style="gap:6px;">[m
+[31m-              <button class="btn ${table.id === MASTER_ROOM_STATE.activeTableId ? "active" : ""}" type="button" data-master-room-open="${escapeHtml(table.id)}">[m
+[31m-                Открыть[m
+[31m-              </button>[m
+[31m-              <button class="btn btn-danger" type="button" data-master-room-delete="${escapeHtml(table.id)}">[m
+[31m-                Удалить[m
+[31m-              </button>[m
+[31m-            </div>[m
+[32m+[m[32m      <div class="cabinet-block" style="padding:10px 12px; margin-bottom:8px;">[m
+[32m+[m[32m        <div class="flex-between" style="gap:10px; flex-wrap:wrap;">[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <div style="font-weight:800;">${escapeHtml(table.title)}</div>[m
+[32m+[m[32m            <div class="muted" style="font-size:0.8rem;">token: ${escapeHtml(table.token)} • участников: ${safeArray(table.members).length}</div>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div class="cart-buttons" style="gap:6px;">[m
+[32m+[m[32m            <button class="btn ${table.id === MASTER_ROOM_STATE.activeTableId ? "active" : ""}" type="button" data-master-room-open="${escapeHtml(table.id)}">Открыть</button>[m
+[32m+[m[32m            <button class="btn btn-danger" type="button" data-master-room-delete="${escapeHtml(table.id)}">Удалить</button>[m
+           </div>[m
+[31m-        </div>[m
+[31m-      `).join("")[m
+[31m-    : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол ГМа.</p></div>`;[m
+[31m-[m
+[31m-  const activeHtml = active ? `[m
+[31m-    <div class="cabinet-block" style="margin-bottom:12px;">[m
+[31m-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">[m
+[31m-        <div>[m
+[31m-          <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>[m
+[31m-          <div class="muted" style="font-size:0.82rem;">Код / token: <strong>${escapeHtml(active.token)}</strong></div>[m
+[31m-        </div>[m
+[31m-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">[m
+[31m-          <span class="meta-item">Участников: ${(active.members || []).length}</span>[m
+[31m-          <span class="meta-item">Источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</span>[m
+[31m-        </div>[m
+[31m-      </div>[m
+[31m-[m
+[31m-      <div class="collection-toolbar compact-collection-toolbar" style="margin-top:0;">[m
+[31m-        <div class="filter-group" style="min-width:240px; flex:1 1 240px;">[m
+[31m-          <label>Поиск игрока по нику / email</label>[m
+[31m-          <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: AnderSunI">[m
+[31m-        </div>[m
+[31m-[m
+[31m-        <div class="filter-group" style="min-width:180px;">[m
+[31m-          <label>Добавить вручную</label>[m
+[31m-          <input id="masterRoomManualNickname" type="text" placeholder="Ник игрока">[m
+[31m-        </div>[m
+[31m-[m
+[31m-        <div class="filter-group" style="min-width:180px;">[m
+[31m-          <label>Email игрока</label>[m
+[31m-          <input id="masterRoomManualEmail" type="text" placeholder="Опционально">[m
+[31m-        </div>[m
+[31m-[m
+[31m-        <div class="cart-buttons" style="align-items:flex-end; gap:8px;">[m
+[31m-          <button class="btn btn-primary" type="button" id="masterRoomAddManualBtn">Добавить в стол</button>[m
+[31m-        </div>[m
+[31m-      </div>[m
+[31m-[m
+[31m-      <div style="margin-top:10px;">[m
+[31m-        ${renderMasterRoomKnownPlayers(MASTER_ROOM_STATE.inviteQuery)}[m
+[31m-      </div>[m
+[31m-[m
+[31m-      <div class="cabinet-block" style="margin-top:12px; padding:10px 12px;">[m
+[31m-        <div class="muted" style="font-size:0.82rem; line-height:1.45;">[m
+[31m-          Текущий активный LSS у ГМа: <strong>${escapeHtml(currentLssName || "не выбран")}</strong>. Кнопка "Взять из LSS" подставляет это имя в поле персонажа выбранного участника.[m
+         </div>[m
+       </div>[m
+[31m-    </div>[m
+[31m-[m
+[31m-    <div>[m
+[31m-      ${renderMasterRoomParticipants(active)}[m
+[31m-    </div>[m
+[31m-  ` : `[m
+[31m-    <div class="cabinet-block">[m
+[31m-      <p>Выбери стол слева или создай новый.</p>[m
+[31m-    </div>[m
+[31m-  `;[m
+[32m+[m[32m    `).join("")[m
+[32m+[m[32m    : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол.</p></div>`;[m
+ [m
+   container.innerHTML = `[m
+     <div class="cabinet-block" style="margin-bottom:12px;">[m
+       <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">[m
+         <div>[m
+           <h3 style="margin:0 0 6px 0;">🛡️ Master Room</h3>[m
+[31m-          <div class="muted">[m
+[31m-            Заготовка под стол ГМа: столы, участники, поиск по никам, выбор персонажа и базовые права видимости.[m
+[31m-          </div>[m
+[32m+[m[32m          <div class="muted">Реальный серверный слой ГМа: столы, игроки, доступы к торговцам и ручная выдача.</div>[m
+         </div>[m
+[31m-[m
+         <div class="cart-buttons" style="gap:8px;">[m
+[31m-          <button class="btn" type="button" id="masterRoomToggleCreateBtn">[m
+[31m-            ${createOpen ? "Скрыть создание" : "Создать стол"}[m
+[31m-          </button>[m
+[32m+[m[32m          <button class="btn" type="button" id="masterRoomToggleCreateBtn">${createOpen ? "Скрыть создание" : "Создать стол"}</button>[m
+           <button class="btn" type="button" id="masterRoomReloadBtn">Обновить</button>[m
+         </div>[m
+       </div>[m
+[36m@@ -3417,13 +3390,11 @@[m [mfunction renderMasterRoom() {[m
+             <label>Название стола</label>[m
+             <input id="masterRoomCreateTitle" type="text" placeholder="Например: Подземелье Арканума">[m
+           </div>[m
+[31m-[m
+           <div class="filter-group">[m
+             <label>Token / код</label>[m
+             <input id="masterRoomCreateToken" type="text" placeholder="arcanum-party">[m
+           </div>[m
+         </div>[m
+[31m-[m
+         <div class="cart-buttons" style="margin-top:10px; gap:8px;">[m
+           <button class="btn btn-primary" type="button" id="masterRoomCreateBtn">Создать стол</button>[m
+         </div>[m
+[36m@@ -3431,11 +3402,54 @@[m [mfunction renderMasterRoom() {[m
+     ` : ""}[m
+ [m
+     <div class="profile-grid" style="grid-template-columns:minmax(280px,0.95fr) minmax(0,1.45fr); align-items:start;">[m
+[32m+[m[32m      <div>${tablesHtml}</div>[m
+       <div>[m
+[31m-        ${tablesHtml}[m
+[31m-      </div>[m
+[31m-      <div>[m
+[31m-        ${activeHtml}[m
+[32m+[m[32m        ${active ? `[m
+[32m+[m[32m          <div class="cabinet-block">[m
+[32m+[m[32m            <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">[m
+[32m+[m[32m              <div>[m
+[32m+[m[32m                <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>[m
+[32m+[m[32m                <div class="muted" style="font-size:0.82rem;">Token: <strong>${escapeHtml(active.token)}</strong> • источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">[m
+[32m+[m[32m                <span class="meta-item">Участников: ${safeArray(active.members).length}</span>[m
+[32m+[m[32m                <span class="meta-item">LSS ГМа: ${escapeHtml(getCurrentLssCharacterName() || "не выбран")}</span>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m            </div>[m
+[32m+[m
+[32m+[m[32m            <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">[m
+[32m+[m[32m              <div class="filter-group">[m
+[32m+[m[32m                <label>Название стола</label>[m
+[32m+[m[32m                <input id="masterRoomTableTitle" type="text" value="${escapeHtml(active.title)}">[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <div class="filter-group">[m
+[32m+[m[32m                <label>Статус</label>[m
+[32m+[m[32m                <input id="masterRoomTableStatus" type="text" value="${escapeHtml(active.status)}">[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m              <div class="filter-group" style="grid-column:1 / -1;">[m
+[32m+[m[32m                <label>Заметки ГМа по столу</label>[m
+[32m+[m[32m                <textarea id="masterRoomTableNotes" rows="3" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(active.notes || "")}</textarea>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <div class="cart-buttons" style="margin-top:10px; gap:8px;">[m
+[32m+[m[32m              <button class="btn btn-primary" type="button" id="masterRoomSaveTableBtn">Сохранить стол</button>[m
+[32m+[m[32m            </div>[m
+[32m+[m
+[32m+[m[32m            <div class="collection-toolbar compact-collection-toolbar" style="margin-top:12px;">[m
+[32m+[m[32m              <div class="filter-group" style="min-width:240px; flex:1 1 240px;">[m
+[32m+[m[32m                <label>Поиск игрока по нику / email</label>[m
+[32m+[m[32m                <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: andersun">[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <div style="margin-top:8px;">[m
+[32m+[m[32m              ${renderMasterRoomUserSearchResults(active)}[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <div style="margin-top:12px;">${renderMasterRoomParticipants(active)}</div>[m
+[32m+[m[32m          ${renderMasterRoomTraderAccesses(active)}[m
+[32m+[m[32m          ${renderMasterRoomGrantPanel(active)}[m
+[32m+[m[32m        ` : `<div class="cabinet-block"><p>Выбери стол слева или создай новый.</p></div>`}[m
+       </div>[m
+     </div>[m
+   `;[m
+[36m@@ -3444,56 +3458,29 @@[m [mfunction renderMasterRoom() {[m
+ }[m
+ [m
+ async function createMasterRoomTable(title, token) {[m
+[31m-  const normalized = normalizeMasterRoomTable({[m
+[31m-    title,[m
+[31m-    token,[m
+[31m-    gm_user_id: getCurrentUser()?.id || "",[m
+[31m-    members: [[m
+[31m-      {[m
+[31m-        nickname: getCurrentProfileNickname(),[m
+[31m-        email: getCurrentUser()?.email || "",[m
+[31m-        character_name: getCurrentLssCharacterName(),[m
+[31m-        visibility: "full",[m
+[31m-        is_gm: true,[m
+[31m-      },[m
+[31m-    ],[m
+[31m-  }, MASTER_ROOM_STATE.tables.length);[m
+[32m+[m[32m  const payload = await apiWrite(["/gm/tables"], {[m
+[32m+[m[32m    title: String(title || "").trim(),[m
+[32m+[m[32m    token: String(token || "").trim(),[m
+[32m+[m[32m  }, ["POST"]);[m
+ [m
+[31m-  MASTER_ROOM_STATE.tables = [normalized, ...MASTER_ROOM_STATE.tables];[m
+[31m-  MASTER_ROOM_STATE.activeTableId = normalized.id;[m
+[32m+[m[32m  applyMasterRoomTableResponse(payload);[m
+   MASTER_ROOM_STATE.createOpen = false;[m
+[31m-  await saveMasterRoom();[m
+   renderMasterRoom();[m
+ [m
+   emitCabinetHistory({[m
+     scope: "gm",[m
+     type: "master_room_create",[m
+     action: "master_room_create",[m
+[31m-    title: `Создан стол: ${normalized.title}`,[m
+[31m-    message: `Token: ${normalized.token}`,[m
+[32m+[m[32m    title: `Создан стол: ${payload?.table?.title || title}`,[m
+[32m+[m[32m    message: `Token: ${payload?.table?.token || token}`,[m
+   });[m
+[31m-[m
+[31m-  showToast(`Создан стол: ${normalized.title}`);[m
+ }[m
+ [m
+ async function deleteMasterRoomTable(tableId) {[m
+[31m-  const table = MASTER_ROOM_STATE.tables.find((entry) => entry.id === tableId);[m
+[31m-  MASTER_ROOM_STATE.tables = MASTER_ROOM_STATE.tables.filter((entry) => entry.id !== tableId);[m
+[31m-  if (MASTER_ROOM_STATE.activeTableId === tableId) {[m
+[31m-    MASTER_ROOM_STATE.activeTableId = MASTER_ROOM_STATE.tables[0]?.id || "";[m
+[31m-  }[m
+[31m-  await saveMasterRoom();[m
+[32m+[m[32m  await apiDeleteJson(`/gm/tables/${encodeURIComponent(String(tableId || ""))}`);[m
+[32m+[m[32m  MASTER_ROOM_STATE.tables = MASTER_ROOM_STATE.tables.filter((entry) => entry.id !== String(tableId || ""));[m
+[32m+[m[32m  MASTER_ROOM_STATE.activeTableId = MASTER_ROOM_STATE.tables[0]?.id || "";[m
+   renderMasterRoom();[m
+[31m-[m
+[31m-  emitCabinetHistory({[m
+[31m-    scope: "gm",[m
+[31m-    type: "master_room_delete",[m
+[31m-    action: "master_room_delete",[m
+[31m-    title: `Удалён стол: ${table?.title || "Стол"}`,[m
+[31m-    message: table?.token ? `Token: ${table.token}` : "",[m
+[31m-  });[m
+[31m-[m
+[31m-  showToast("Стол удалён");[m
+ }[m
+ [m
+ async function addMemberToMasterRoom(payload) {[m
+[36m@@ -3503,78 +3490,88 @@[m [masync function addMemberToMasterRoom(payload) {[m
+     return;[m
+   }[m
+ [m
+[31m-  const nickname = String(payload?.nickname || "").trim();[m
+[31m-  const email = String(payload?.email || "").trim();[m
+[32m+[m[32m  const body = {};[m
+[32m+[m[32m  if (payload?.user_id) body.user_id = Number(payload.user_id);[m
+[32m+[m[32m  if (payload?.nickname) body.nickname = String(payload.nickname).trim();[m
+[32m+[m[32m  if (payload?.email) body.email = String(payload.email).trim();[m
+ [m
+[31m-  if (!nickname) {[m
+[31m-    showToast("Укажи ник игрока");[m
+[31m-    return;[m
+[31m-  }[m
+[32m+[m[32m  const result = await apiWrite([`/gm/tables/${active.id}/members`], body, ["POST"]);[m
+[32m+[m[32m  applyMasterRoomTableResponse(result);[m
+[32m+[m[32m  renderMasterRoom();[m
+[32m+[m[32m}[m
+ [m
+[31m-  const exists = (active.members || []).some((member) => String(member.nickname || "").trim().toLowerCase() === nickname.toLowerCase());[m
+[31m-  if (exists) {[m
+[31m-    showToast("Игрок уже в этом столе");[m
+[31m-    return;[m
+[31m-  }[m
+[32m+[m[32masync function removeMemberFromMasterRoom(memberId) {[m
+[32m+[m[32m  const active = getMasterRoomActiveTable();[m
+[32m+[m[32m  if (!active) return;[m
+[32m+[m
+[32m+[m[32m  await apiDeleteJson(`/gm/tables/${encodeURIComponent(active.id)}/members/${encodeURIComponent(String(memberId || ""))}`);[m
+[32m+[m[32m  await loadMasterRoom();[m
+[32m+[m[32m}[m
+ [m
+[31m-  active.members.push(normalizeMasterRoomMember({[m
+[31m-    nickname,[m
+[31m-    email,[m
+[31m-    visibility: "basic",[m
+[31m-    is_gm: false,[m
+[31m-  }, active.members.length));[m
+[32m+[m[32masync function patchMasterRoomMember(memberId, patch) {[m
+[32m+[m[32m  const active = getMasterRoomActiveTable();[m
+[32m+[m[32m  if (!active) return;[m
+ [m
+[31m-  active.updated_at = new Date().toISOString();[m
+[31m-  await saveMasterRoom();[m
+[32m+[m[32m  const result = await apiWrite([m
+[32m+[m[32m    [`/gm/tables/${active.id}/members/${encodeURIComponent(String(memberId || ""))}`],[m
+[32m+[m[32m    patch,[m
+[32m+[m[32m    ["PATCH"][m
+[32m+[m[32m  );[m
+[32m+[m[32m  applyMasterRoomTableResponse(result);[m
+   renderMasterRoom();[m
+[32m+[m[32m}[m
+ [m
+[31m-  emitCabinetHistory({[m
+[31m-    scope: "gm",[m
+[31m-    type: "master_room_add_member",[m
+[31m-    action: "master_room_add_member",[m
+[31m-    title: `Игрок добавлен в стол: ${nickname}`,[m
+[31m-    message: `Стол: ${active.title}`,[m
+[31m-  });[m
+[32m+[m[32masync function patchMasterRoomTable(patch) {[m
+[32m+[m[32m  const active = getMasterRoomActiveTable();[m
+[32m+[m[32m  if (!active) return;[m
+ [m
+[31m-  showToast(`Добавлен игрок: ${nickname}`);[m
+[32m+[m[32m  const result = await apiWrite([`/gm/tables/${active.id}`], patch, ["PATCH"]);[m
+[32m+[m[32m  applyMasterRoomTableResponse(result);[m
+[32m+[m[32m  renderMasterRoom();[m
+ }[m
+ [m
+[31m-async function removeMemberFromMasterRoom(memberId) {[m
+[32m+[m[32masync function addTraderAccessToMasterRoom(traderId) {[m
+   const active = getMasterRoomActiveTable();[m
+   if (!active) return;[m
+ [m
+[31m-  const target = active.members.find((member) => member.id === memberId);[m
+[31m-  active.members = active.members.filter((member) => member.id !== memberId);[m
+[31m-  active.updated_at = new Date().toISOString();[m
+[31m-[m
+[31m-  await saveMasterRoom();[m
+[32m+[m[32m  const result = await apiWrite([m
+[32m+[m[32m    [`/gm/tables/${active.id}/trader-accesses`],[m
+[32m+[m[32m    { trader_id: Number(traderId) },[m
+[32m+[m[32m    ["POST"][m
+[32m+[m[32m  );[m
+[32m+[m[32m  applyMasterRoomTableResponse(result);[m
+   renderMasterRoom();[m
+[32m+[m[32m}[m
+ [m
+[31m-  emitCabinetHistory({[m
+[31m-    scope: "gm",[m
+[31m-    type: "master_room_remove_member",[m
+[31m-    action: "master_room_remove_member",[m
+[31m-    title: `Игрок убран из стола: ${target?.nickname || "игрок"}`,[m
+[31m-    message: `Стол: ${active.title}`,[m
+[31m-  });[m
+[32m+[m[32masync function removeTraderAccessFromMasterRoom(traderId) {[m
+[32m+[m[32m  const active = getMasterRoomActiveTable();[m
+[32m+[m[32m  if (!active) return;[m
+ [m
+[31m-  showToast(`Убран игрок: ${target?.nickname || "игрок"}`);[m
+[32m+[m[32m  await apiDeleteJson(`/gm/tables/${encodeURIComponent(active.id)}/trader-accesses/${encodeURIComponent(String(traderId || ""))}`);[m
+[32m+[m[32m  await loadMasterRoom();[m
+ }[m
+ [m
+[31m-async function patchMasterRoomMember(memberId, patch) {[m
+[32m+[m[32masync function grantItemToMasterRoomMember(itemId) {[m
+   const active = getMasterRoomActiveTable();[m
+[31m-  if (!active) return;[m
+[32m+[m[32m  const membershipId = String(getEl("masterRoomGrantMemberId")?.value || "").trim();[m
+[32m+[m[32m  const quantity = Math.max(1, safeNumber(getEl("masterRoomGrantQuantity")?.value, 1));[m
+ [m
+[31m-  active.members = active.members.map((member) => {[m
+[31m-    if (member.id !== memberId) return member;[m
+[31m-    return normalizeMasterRoomMember({[m
+[31m-      ...member,[m
+[31m-      ...patch,[m
+[31m-    });[m
+[31m-  });[m
+[31m-  active.updated_at = new Date().toISOString();[m
+[32m+[m[32m  if (!active) return;[m
+[32m+[m[32m  if (!membershipId) {[m
+[32m+[m[32m    showToast("Сначала выбери игрока");[m
+[32m+[m[32m    return;[m
+[32m+[m[32m  }[m
+ [m
+[31m-  await saveMasterRoom();[m
+[32m+[m[32m  const result = await apiWrite([m
+[32m+[m[32m    [`/gm/tables/${active.id}/grants/item`],[m
+[32m+[m[32m    {[m
+[32m+[m[32m      membership_id: Number(membershipId),[m
+[32m+[m[32m      item_id: Number(itemId),[m
+[32m+[m[32m      quantity,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    ["POST"][m
+[32m+[m[32m  );[m
+[32m+[m[32m  applyMasterRoomTableResponse(result);[m
+   renderMasterRoom();[m
+ }[m
+ [m
+[36m@@ -3614,19 +3611,55 @@[m [mfunction bindMasterRoomActions() {[m
+   const inviteInput = getEl("masterRoomInviteQuery");[m
+   if (inviteInput && inviteInput.dataset.boundMasterRoomInviteQuery !== "1") {[m
+     inviteInput.dataset.boundMasterRoomInviteQuery = "1";[m
+[31m-    inviteInput.addEventListener("input", () => {[m
+[32m+[m[32m    inviteInput.addEventListener("input", async () => {[m
+       MASTER_ROOM_STATE.inviteQuery = inviteInput.value || "";[m
+[32m+[m[32m      await loadMasterRoomUsers(MASTER_ROOM_STATE.inviteQuery);[m
+[32m+[m[32m      renderMasterRoom();[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const saveTableBtn = getEl("masterRoomSaveTableBtn");[m
+[32m+[m[32m  if (saveTableBtn && saveTableBtn.dataset.boundMasterRoomSaveTable !== "1") {[m
+[32m+[m[32m    saveTableBtn.dataset.boundMasterRoomSaveTable = "1";[m
+[32m+[m[32m    saveTableBtn.addEventListener("click", async () => {[m
+[32m+[m[32m      await patchMasterRoomTable({[m
+[32m+[m[32m        title: String(getEl("masterRoomTableTitle")?.value || "").trim(),[m
+[32m+[m[32m        status: String(getEl("masterRoomTableStatus")?.value || "").trim(),[m
+[32m+[m[32m        notes: String(getEl("masterRoomTableNotes")?.value || "").trim(),[m
+[32m+[m[32m        trader_access_mode: String(getEl("masterRoomTraderAccessMode")?.value || "open").trim(),[m
+[32m+[m[32m      });[m
+[32m+[m[32m      showToast("Стол обновлён");[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const traderAccessMode = getEl("masterRoomTraderAccessMode");[m
+[32m+[m[32m  if (traderAccessMode && traderAccessMode.dataset.boundMasterRoomTraderMode !== "1") {[m
+[32m+[m[32m    traderAccessMode.dataset.boundMasterRoomTraderMode = "1";[m
+[32m+[m[32m    traderAccessMode.addEventListener("change", async () => {[m
+[32m+[m[32m      await patchMasterRoomTable({[m
+[32m+[m[32m        trader_access_mode: String(traderAccessMode.value || "open").trim(),[m
+[32m+[m[32m      });[m
+[32m+[m[32m      showToast("Режим доступа к торговцам обновлён");[m
+[32m+[m[32m    });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const traderSearchInput = getEl("masterRoomTraderSearchInput");[m
+[32m+[m[32m  if (traderSearchInput && traderSearchInput.dataset.boundMasterRoomTraderSearch !== "1") {[m
+[32m+[m[32m    traderSearchInput.dataset.boundMasterRoomTraderSearch = "1";[m
+[32m+[m[32m    traderSearchInput.addEventListener("input", async () => {[m
+[32m+[m[32m      MASTER_ROOM_STATE.traderSearchQuery = traderSearchInput.value || "";[m
+[32m+[m[32m      await loadMasterRoomTraders(MASTER_ROOM_STATE.traderSearchQuery);[m
+       renderMasterRoom();[m
+     });[m
+   }[m
+ [m
+[31m-  const addManualBtn = getEl("masterRoomAddManualBtn");[m
+[31m-  if (addManualBtn && addManualBtn.dataset.boundMasterRoomAddManual !== "1") {[m
+[31m-    addManualBtn.dataset.boundMasterRoomAddManual = "1";[m
+[31m-    addManualBtn.addEventListener("click", async () => {[m
+[31m-      const nickname = String(getEl("masterRoomManualNickname")?.value || "").trim();[m
+[31m-      const email = String(getEl("masterRoomManualEmail")?.value || "").trim();[m
+[31m-      await addMemberToMasterRoom({ nickname, email });[m
+[32m+[m[32m  const itemSearchInput = getEl("masterRoomItemSearchInput");[m
+[32m+[m[32m  if (itemSearchInput && itemSearchInput.dataset.boundMasterRoomItemSearch !== "1") {[m
+[32m+[m[32m    itemSearchInput.dataset.boundMasterRoomItemSearch = "1";[m
+[32m+[m[32m    itemSearchInput.addEventListener("input", async () => {[m
+[32m+[m[32m      MASTER_ROOM_STATE.itemSearchQuery = itemSearchInput.value || "";[m
+[32m+[m[32m      await loadMasterRoomItems(MASTER_ROOM_STATE.itemSearchQuery);[m
+[32m+[m[32m      renderMasterRoom();[m
+     });[m
+   }[m
+ [m
+[36m@@ -3651,14 +3684,12 @@[m [mfunction bindMasterRoomActions() {[m
+     });[m
+   });[m
+ [m
+[31m-  document.querySelectorAll("[data-master-room-add-known]").forEach((btn) => {[m
+[31m-    if (btn.dataset.boundMasterRoomAddKnown === "1") return;[m
+[31m-    btn.dataset.boundMasterRoomAddKnown = "1";[m
+[32m+[m[32m  document.querySelectorAll("[data-master-room-add-user-id]").forEach((btn) => {[m
+[32m+[m[32m    if (btn.dataset.boundMasterRoomAddUserId === "1") return;[m
+[32m+[m[32m    btn.dataset.boundMasterRoomAddUserId = "1";[m
+     btn.addEventListener("click", async () => {[m
+[31m-      await addMemberToMasterRoom({[m
+[31m-        nickname: btn.dataset.masterRoomAddKnown || "",[m
+[31m-        email: btn.dataset.masterRoomAddKnownEmail || "",[m
+[31m-      });[m
+[32m+[m[32m      await addMemberToMasterRoom({ user_id: btn.dataset.masterRoomAddUserId || "" });[m
+[32m+[m[32m      showToast("Игрок добавлен в стол");[m
+     });[m
+   });[m
+ [m
+[36m@@ -3681,38 +3712,60 @@[m [mfunction bindMasterRoomActions() {[m
+     select.addEventListener("change", async () => {[m
+       await patchMasterRoomMember([m
+         select.dataset.masterRoomMemberVisibility || "",[m
+[31m-        { visibility: normalizeMasterRoomVisibility(select.value) }[m
+[32m+[m[32m        { visibility_preset: normalizeMasterRoomVisibility(select.value) }[m
+       );[m
+       showToast("Видимость участника обновлена");[m
+     });[m
+   });[m
+ [m
+[32m+[m[32m  document.querySelectorAll("[data-master-room-member-role]").forEach((select) => {[m
+[32m+[m[32m    if (select.dataset.boundMasterRoomMemberRole === "1") return;[m
+[32m+[m[32m    select.dataset.boundMasterRoomMemberRole = "1";[m
+[32m+[m[32m    select.addEventListener("change", async () => {[m
+[32m+[m[32m      await patchMasterRoomMember([m
+[32m+[m[32m        select.dataset.masterRoomMemberRole || "",[m
+[32m+[m[32m        { role_in_table: normalizeMasterRoomRole(select.value) }[m
+[32m+[m[32m      );[m
+[32m+[m[32m      showToast("Роль участника обновлена");[m
+[32m+[m[32m    });[m
+[32m+[m[32m  });[m
+[32m+[m
+   document.querySelectorAll("[data-master-room-member-character]").forEach((input) => {[m
+     if (input.dataset.boundMasterRoomCharacter === "1") return;[m
+     input.dataset.boundMasterRoomCharacter = "1";[m
+     input.addEventListener("change", async () => {[m
+       await patchMasterRoomMember([m
+         input.dataset.masterRoomMemberCharacter || "",[m
+[31m-        { character_name: String(input.value || "").trim() }[m
+[32m+[m[32m        { selected_character_name: String(input.value || "").trim() }[m
+       );[m
+       showToast("Персонаж участника обновлён");[m
+     });[m
+   });[m
+ [m
+[31m-  document.querySelectorAll("[data-master-room-use-lss]").forEach((btn) => {[m
+[31m-    if (btn.dataset.boundMasterRoomUseLss === "1") return;[m
+[31m-    btn.dataset.boundMasterRoomUseLss = "1";[m
+[32m+[m[32m  document.querySelectorAll("[data-master-room-add-trader-id]").forEach((btn) => {[m
+[32m+[m[32m    if (btn.dataset.boundMasterRoomAddTraderId === "1") return;[m
+[32m+[m[32m    btn.dataset.boundMasterRoomAddTraderId = "1";[m
+     btn.addEventListener("click", async () => {[m
+[31m-      const characterName = getCurrentLssCharacterName();[m
+[31m-      if (!characterName) {[m
+[31m-        showToast("Сначала открой или загрузи LSS персонажа");[m
+[31m-        return;[m
+[31m-      }[m
+[31m-      await patchMasterRoomMember([m
+[31m-        btn.dataset.masterRoomUseLss || "",[m
+[31m-        { character_name: characterName }[m
+[31m-      );[m
+[31m-      showToast("Имя персонажа подтянуто из LSS");[m
+[32m+[m[32m      await addTraderAccessToMasterRoom(btn.dataset.masterRoomAddTraderId || "");[m
+[32m+[m[32m      showToast("Доступ к торговцу открыт");[m
+[32m+[m[32m    });[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  document.querySelectorAll("[data-master-room-remove-trader-id]").forEach((btn) => {[m
+[32m+[m[32m    if (btn.dataset.boundMasterRoomRemoveTraderId === "1") return;[m
+[32m+[m[32m    btn.dataset.boundMasterRoomRemoveTraderId = "1";[m
+[32m+[m[32m    btn.addEventListener("click", async () => {[m
+[32m+[m[32m      await removeTraderAccessFromMasterRoom(btn.dataset.masterRoomRemoveTraderId || "");[m
+[32m+[m[32m      showToast("Доступ к торговцу закрыт");[m
+[32m+[m[32m    });[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  document.querySelectorAll("[data-master-room-grant-item-id]").forEach((btn) => {[m
+[32m+[m[32m    if (btn.dataset.boundMasterRoomGrantItemId === "1") return;[m
+[32m+[m[32m    btn.dataset.boundMasterRoomGrantItemId = "1";[m
+[32m+[m[32m    btn.addEventListener("click", async () => {[m
+[32m+[m[32m      await grantItemToMasterRoomMember(btn.dataset.masterRoomGrantItemId || "");[m
+[32m+[m[32m      showToast("Предмет выдан игроку");[m
+     });[m
+   });[m
+ }[m
+[36m@@ -3725,6 +3778,13 @@[m [mexport async function openCabinet() {[m
+   const modal = ensureCabinetStructure();[m
+   if (!modal) return;[m
+ [m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const profile = await fetchProfile();[m
+[32m+[m[32m    if (profile && typeof profile === "object") {[m
+[32m+[m[32m      syncCurrentUserProfile(profile);[m
+[32m+[m[32m    }[m
+[32m+[m[32m  } catch (_) {}[m
+[32m+[m
+   CABINET_STATE.role = getCurrentRole();[m
+   normalizeActiveTabForRole();[m
+   renderCabinetHeader();[m
+[36m@@ -4005,4 +4065,4 @@[m [mwindow.cabinetModule = {[m
+   switchCabinetTab,[m
+   loadCabinetAll,[m
+   initCabinet,[m
+[31m-};[m
+\ No newline at end of file[m
+[32m+[m[32m};[m
+[1mdiff --git a/frontend/js/history.js b/frontend/js/history.js[m
+[1mindex c8bea11..ea4743d 100644[m
+[1m--- a/frontend/js/history.js[m
+[1m+++ b/frontend/js/history.js[m
+[36m@@ -9,6 +9,21 @@[m
+ // - готов под buy/sell/quests/map/files/notes/gm[m
+ // ============================================================[m
+ [m
+[32m+[m[32mimport {[m
+[32m+[m[32m  buildUserScopedStorageKey,[m
+[32m+[m[32m  escapeHtml,[m
+[32m+[m[32m  getEl,[m
+[32m+[m[32m  getSection,[m
+[32m+[m[32m  getHeaders,[m
+[32m+[m[32m  getToken,[m
+[32m+[m[32m  showToast,[m
+[32m+[m[32m  safeText,[m
+[32m+[m[32m  trimText,[m
+[32m+[m[32m  tryParseJson,[m
+[32m+[m[32m  normalizeDateInput,[m
+[32m+[m[32m  toIsoStringSafe,[m
+[32m+[m[32m} from "./shared.js";[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🌐 STATE[m
+ // ------------------------------------------------------------[m
+[36m@@ -26,114 +41,12 @@[m [mconst HISTORY_STATE = {[m
+ // ------------------------------------------------------------[m
+ // 🧰 HELPERS[m
+ // ------------------------------------------------------------[m
+[31m-function getEl(id) {[m
+[31m-  return document.getElementById(id);[m
+[31m-}[m
+[31m-[m
+[31m-function getSection(id) {[m
+[31m-  return document.getElementById(id);[m
+[31m-}[m
+[31m-[m
+[31m-function getToken() {[m
+[31m-  return localStorage.getItem("token") || "";[m
+[31m-}[m
+[31m-[m
+[31m-function getHeaders() {[m
+[31m-  const token = getToken();[m
+[31m-  const headers = {};[m
+[31m-[m
+[31m-  if (token) {[m
+[31m-    headers.Authorization = `Bearer ${token}`;[m
+[31m-  }[m
+[31m-[m
+[31m-  return headers;[m
+[31m-}[m
+[31m-[m
+[31m-function showToast(message) {[m
+[31m-  if (typeof window.showToast === "function") {[m
+[31m-    window.showToast(message);[m
+[31m-    return;[m
+[31m-  }[m
+[31m-  console.log(message);[m
+[31m-}[m
+[31m-[m
+[31m-function escapeHtml(value) {[m
+[31m-  return String(value ?? "")[m
+[31m-    .replaceAll("&", "&amp;")[m
+[31m-    .replaceAll("<", "&lt;")[m
+[31m-    .replaceAll(">", "&gt;")[m
+[31m-    .replaceAll('"', "&quot;")[m
+[31m-    .replaceAll("'", "&#039;");[m
+[31m-}[m
+[31m-[m
+[31m-function safeText(value, fallback = "") {[m
+[31m-  if (value === null || value === undefined || value === "") return fallback;[m
+[31m-  return String(value);[m
+[31m-}[m
+[31m-[m
+[31m-function trimText(value) {[m
+[31m-  return String(value ?? "").replace(/\s+/g, " ").trim();[m
+[31m-}[m
+[31m-[m
+[31m-function tryParseJson(raw) {[m
+[31m-  try {[m
+[31m-    return JSON.parse(raw);[m
+[31m-  } catch {[m
+[31m-    return null;[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+ function normalizeArray(value) {[m
+   return Array.isArray(value) ? value : [];[m
+ }[m
+ [m
+[31m-function getCurrentUser() {[m
+[31m-  return window.__appUser || null;[m
+[31m-}[m
+[31m-[m
+ function getHistoryStorageKey() {[m
+[31m-  const user = getCurrentUser();[m
+[31m-  const userKey =[m
+[31m-    user?.email ||[m
+[31m-    user?.id ||[m
+[31m-    (getToken() ? "auth-user" : "guest");[m
+[31m-[m
+[31m-  return `dnd_trader_history_${userKey}`;[m
+[31m-}[m
+[31m-[m
+[31m-function normalizeDateInput(value) {[m
+[31m-  if (!value && value !== 0) return null;[m
+[31m-[m
+[31m-  if (value instanceof Date && !Number.isNaN(value.getTime())) {[m
+[31m-    return value;[m
+[31m-  }[m
+[31m-[m
+[31m-  if (typeof value === "number") {[m
+[31m-    const date = new Date(value);[m
+[31m-    return Number.isNaN(date.getTime()) ? null : date;[m
+[31m-  }[m
+[31m-[m
+[31m-  const str = String(value).trim();[m
+[31m-  if (!str) return null;[m
+[31m-[m
+[31m-  const parsed = new Date(str);[m
+[31m-  if (!Number.isNaN(parsed.getTime())) return parsed;[m
+[31m-[m
+[31m-  const asNumber = Number(str);[m
+[31m-  if (Number.isFinite(asNumber)) {[m
+[31m-    const date = new Date(asNumber);[m
+[31m-    return Number.isNaN(date.getTime()) ? null : date;[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+[31m-function toIsoStringSafe(value, fallback = Date.now()) {[m
+[31m-  const normalized = normalizeDateInput(value);[m
+[31m-  if (normalized) return normalized.toISOString();[m
+[31m-[m
+[31m-  const fb = normalizeDateInput(fallback);[m
+[31m-  return fb ? fb.toISOString() : new Date().toISOString();[m
+[32m+[m[32m  return buildUserScopedStorageKey("dnd_trader_history_");[m
+ }[m
+ [m
+ function formatDate(value) {[m
+[36m@@ -1132,4 +1045,4 @@[m [mwindow.historyModule = {[m
+   clearHistoryData,[m
+   getHistoryData,[m
+   appendHistoryEntry,[m
+[31m-};[m
+\ No newline at end of file[m
+[32m+[m[32m};[m
+[1mdiff --git a/frontend/js/master-room.js b/frontend/js/master-room.js[m
+[1mindex c5a93ad..4c0835c 100644[m
+[1m--- a/frontend/js/master-room.js[m
+[1m+++ b/frontend/js/master-room.js[m
+[36m@@ -15,6 +15,24 @@[m
+ // - совместим с cabinet.js через container id="cabinet-masterroom"[m
+ // ============================================================[m
+ [m
+[32m+[m[32mimport {[m
+[32m+[m[32m  apiGet,[m
+[32m+[m[32m  apiWrite,[m
+[32m+[m[32m  buildUserScopedStorageKey,[m
+[32m+[m[32m  escapeHtml,[m
+[32m+[m[32m  formatDateTime,[m
+[32m+[m[32m  getCurrentRole,[m
+[32m+[m[32m  getCurrentUser,[m
+[32m+[m[32m  getEl,[m
+[32m+[m[32m  getSection,[m
+[32m+[m[32m  normalizeRole,[m
+[32m+[m[32m  safeArray,[m
+[32m+[m[32m  safeText,[m
+[32m+[m[32m  showToast,[m
+[32m+[m[32m  trimText,[m
+[32m+[m[32m  tryParseJson,[m
+[32m+[m[32m} from "./shared.js";[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🌐 STATE[m
+ // ------------------------------------------------------------[m
+[36m@@ -40,91 +58,6 @@[m [mconst MASTER_ROOM_STATE = {[m
+ // ------------------------------------------------------------[m
+ // 🧰 HELPERS[m
+ // ------------------------------------------------------------[m
+[31m-function getEl(id) {[m
+[31m-  return document.getElementById(id);[m
+[31m-}[m
+[31m-[m
+[31m-function getSection(id) {[m
+[31m-  return document.getElementById(id);[m
+[31m-}[m
+[31m-[m
+[31m-function getToken() {[m
+[31m-  return localStorage.getItem("token") || "";[m
+[31m-}[m
+[31m-[m
+[31m-function getHeaders(withJson = false) {[m
+[31m-  const headers = {};[m
+[31m-  const token = getToken();[m
+[31m-[m
+[31m-  if (token) {[m
+[31m-    headers.Authorization = `Bearer ${token}`;[m
+[31m-  }[m
+[31m-[m
+[31m-  if (withJson) {[m
+[31m-    headers["Content-Type"] = "application/json";[m
+[31m-  }[m
+[31m-[m
+[31m-  return headers;[m
+[31m-}[m
+[31m-[m
+[31m-function showToast(message) {[m
+[31m-  if (typeof window.showToast === "function") {[m
+[31m-    window.showToast(message);[m
+[31m-    return;[m
+[31m-  }[m
+[31m-  console.log(message);[m
+[31m-}[m
+[31m-[m
+[31m-function escapeHtml(value) {[m
+[31m-  return String(value ?? "")[m
+[31m-    .replaceAll("&", "&amp;")[m
+[31m-    .replaceAll("<", "&lt;")[m
+[31m-    .replaceAll(">", "&gt;")[m
+[31m-    .replaceAll('"', "&quot;")[m
+[31m-    .replaceAll("'", "&#039;");[m
+[31m-}[m
+[31m-[m
+[31m-function safeText(value, fallback = "") {[m
+[31m-  if (value === null || value === undefined || value === "") return fallback;[m
+[31m-  return String(value);[m
+[31m-}[m
+[31m-[m
+[31m-function trimText(value) {[m
+[31m-  return String(value ?? "").replace(/\s+/g, " ").trim();[m
+[31m-}[m
+[31m-[m
+[31m-function safeArray(value) {[m
+[31m-  return Array.isArray(value) ? value : [];[m
+[31m-}[m
+[31m-[m
+[31m-function tryParseJson(raw) {[m
+[31m-  try {[m
+[31m-    return JSON.parse(raw);[m
+[31m-  } catch {[m
+[31m-    return null;[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-function normalizeRole(role) {[m
+[31m-  const raw = String(role || "").trim().toLowerCase();[m
+[31m-  if (raw === "gm" || raw === "admin") return "gm";[m
+[31m-  return "player";[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentRole() {[m
+[31m-  return normalizeRole([m
+[31m-    window.__appUserRole ||[m
+[31m-      window.__userRole ||[m
+[31m-      window.__appUser?.role ||[m
+[31m-      document.body?.dataset?.role ||[m
+[31m-      "player"[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentUser() {[m
+[31m-  return window.__appUser || null;[m
+[31m-}[m
+[31m-[m
+ function isGm() {[m
+   return MASTER_ROOM_STATE.role === "gm";[m
+ }[m
+[36m@@ -154,30 +87,8 @@[m [mfunction normalizeDate(value, fallback = Date.now()) {[m
+   }[m
+ }[m
+ [m
+[31m-function formatDateTime(value) {[m
+[31m-  try {[m
+[31m-    const date = new Date(value);[m
+[31m-    if (Number.isNaN(date.getTime())) return "Без даты";[m
+[31m-    return date.toLocaleString("ru-RU", {[m
+[31m-      day: "2-digit",[m
+[31m-      month: "2-digit",[m
+[31m-      year: "numeric",[m
+[31m-      hour: "2-digit",[m
+[31m-      minute: "2-digit",[m
+[31m-    });[m
+[31m-  } catch {[m
+[31m-    return "Без даты";[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+ function getStorageKey() {[m
+[31m-  const user = getCurrentUser();[m
+[31m-  const userKey =[m
+[31m-    user?.email ||[m
+[31m-    user?.id ||[m
+[31m-    (getToken() ? "auth-user" : "guest");[m
+[31m-[m
+[31m-  return `dnd_trader_master_room_${userKey}`;[m
+[32m+[m[32m  return buildUserScopedStorageKey("dnd_trader_master_room_");[m
+ }[m
+ [m
+ function saveLocal(payload) {[m
+[36m@@ -196,41 +107,6 @@[m [mfunction loadLocal() {[m
+   }[m
+ }[m
+ [m
+[31m-async function apiGet(urls) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const url of list) {[m
+[31m-    try {[m
+[31m-      const res = await fetch(url, { headers: getHeaders() });[m
+[31m-      if (!res.ok) continue;[m
+[31m-      return await res.json();[m
+[31m-    } catch (_) {}[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+[31m-async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const method of methods) {[m
+[31m-    for (const url of list) {[m
+[31m-      try {[m
+[31m-        const res = await fetch(url, {[m
+[31m-          method,[m
+[31m-          headers: getHeaders(true),[m
+[31m-          body: JSON.stringify(body),[m
+[31m-        });[m
+[31m-[m
+[31m-        if (!res.ok) continue;[m
+[31m-        return await res.json().catch(() => ({}));[m
+[31m-      } catch (_) {}[m
+[31m-    }[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+ function emitMasterRoomHistory(event) {[m
+   const detail = {[m
+     scope: "gm",[m
+[1mdiff --git a/frontend/js/playerNotes.js b/frontend/js/playerNotes.js[m
+[1mindex ce94c09..ad5fb0c 100644[m
+[1m--- a/frontend/js/playerNotes.js[m
+[1m+++ b/frontend/js/playerNotes.js[m
+[36m@@ -12,6 +12,21 @@[m
+ // - пишет события в history.js[m
+ // ============================================================[m
+ [m
+[32m+[m[32mimport {[m
+[32m+[m[32m  apiGet,[m
+[32m+[m[32m  apiWrite as sharedApiWrite,[m
+[32m+[m[32m  buildUserScopedStorageKey,[m
+[32m+[m[32m  escapeHtml,[m
+[32m+[m[32m  formatTime,[m
+[32m+[m[32m  getCurrentRole,[m
+[32m+[m[32m  getEl,[m
+[32m+[m[32m  normalizeRole,[m
+[32m+[m[32m  safeText,[m
+[32m+[m[32m  showToast,[m
+[32m+[m[32m  trimText,[m
+[32m+[m[32m  tryParseJson,[m
+[32m+[m[32m} from "./shared.js";[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🌐 STATE[m
+ // ------------------------------------------------------------[m
+[36m@@ -34,122 +49,16 @@[m [mconst PLAYER_NOTES_STATE = {[m
+ // ------------------------------------------------------------[m
+ // 🧰 HELPERS[m
+ // ------------------------------------------------------------[m
+[31m-function getToken() {[m
+[31m-  return localStorage.getItem("token") || "";[m
+[31m-}[m
+[31m-[m
+[31m-function getHeaders(withJson = false) {[m
+[31m-  const headers = {};[m
+[31m-  const token = getToken();[m
+[31m-[m
+[31m-  if (token) {[m
+[31m-    headers.Authorization = `Bearer ${token}`;[m
+[31m-  }[m
+[31m-[m
+[31m-  if (withJson) {[m
+[31m-    headers["Content-Type"] = "application/json";[m
+[31m-  }[m
+[31m-[m
+[31m-  return headers;[m
+[31m-}[m
+[31m-[m
+[31m-function getEl(id) {[m
+[31m-  return document.getElementById(id);[m
+[31m-}[m
+[31m-[m
+[31m-function showToast(message) {[m
+[31m-  if (typeof window.showToast === "function") {[m
+[31m-    window.showToast(message);[m
+[31m-    return;[m
+[31m-  }[m
+[31m-  console.log(message);[m
+[31m-}[m
+[31m-[m
+[31m-function escapeHtml(value) {[m
+[31m-  return String(value ?? "")[m
+[31m-    .replaceAll("&", "&amp;")[m
+[31m-    .replaceAll("<", "&lt;")[m
+[31m-    .replaceAll(">", "&gt;")[m
+[31m-    .replaceAll('"', "&quot;")[m
+[31m-    .replaceAll("'", "&#039;");[m
+[31m-}[m
+[31m-[m
+[31m-function safeText(value, fallback = "") {[m
+[31m-  if (value === null || value === undefined || value === "") return fallback;[m
+[31m-  return String(value);[m
+[31m-}[m
+[31m-[m
+[31m-function trimText(value) {[m
+[31m-  return String(value ?? "").trim();[m
+[31m-}[m
+[31m-[m
+[31m-function normalizeRole(role) {[m
+[31m-  const raw = String(role || "").trim().toLowerCase();[m
+[31m-  if (raw === "gm" || raw === "admin") return "gm";[m
+[31m-  return "player";[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentRole() {[m
+[31m-  return normalizeRole([m
+[31m-    window.__appUserRole ||[m
+[31m-      window.__userRole ||[m
+[31m-      window.__appUser?.role ||[m
+[31m-      document.body?.dataset?.role ||[m
+[31m-      "player"[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+[31m-function tryParseJson(raw) {[m
+[31m-  try {[m
+[31m-    return JSON.parse(raw);[m
+[31m-  } catch {[m
+[31m-    return null;[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-async function apiGet(urls) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const url of list) {[m
+[31m-    try {[m
+[31m-      const res = await fetch(url, { headers: getHeaders() });[m
+[31m-      if (!res.ok) continue;[m
+[31m-      return await res.json();[m
+[31m-    } catch (_) {}[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+ async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const method of methods) {[m
+[31m-    for (const url of list) {[m
+[31m-      try {[m
+[31m-        const res = await fetch(url, {[m
+[31m-          method,[m
+[31m-          headers: getHeaders(true),[m
+[31m-          body: JSON.stringify(body),[m
+[31m-        });[m
+[31m-[m
+[31m-        if (!res.ok) continue;[m
+[31m-        return await res.json().catch(() => ({}));[m
+[31m-      } catch (_) {}[m
+[31m-    }[m
+[32m+[m[32m  const result = await sharedApiWrite(urls, body, methods);[m
+[32m+[m[32m  if (result === null) {[m
+[32m+[m[32m    throw new Error("Failed to save notes");[m
+   }[m
+[31m-[m
+[31m-  throw new Error("Failed to save notes");[m
+[32m+[m[32m  return result;[m
+ }[m
+ [m
+ function getLocalStorageKey() {[m
+[31m-  const user = window.__appUser;[m
+[31m-  const userKey =[m
+[31m-    user?.email ||[m
+[31m-    user?.id ||[m
+[31m-    (getToken() ? "auth-user" : "guest");[m
+[31m-[m
+[31m-  return `playerNotes:${userKey}`;[m
+[32m+[m[32m  return buildUserScopedStorageKey("playerNotes:");[m
+ }[m
+ [m
+ function saveLocalState(payload) {[m
+[36m@@ -346,20 +255,6 @@[m [mfunction getPlainTextLength(value) {[m
+   return docToPlainText(value).trim().length;[m
+ }[m
+ [m
+[31m-function formatTime(value) {[m
+[31m-  if (!value) return "—";[m
+[31m-  try {[m
+[31m-    const date = new Date(value);[m
+[31m-    if (Number.isNaN(date.getTime())) return "—";[m
+[31m-    return date.toLocaleTimeString("ru-RU", {[m
+[31m-      hour: "2-digit",[m
+[31m-      minute: "2-digit",[m
+[31m-    });[m
+[31m-  } catch {[m
+[31m-    return "—";[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+ // ------------------------------------------------------------[m
+ // 📥 LOAD[m
+ // ------------------------------------------------------------[m
+[36m@@ -841,4 +736,4 @@[m [mwindow.playerNotesModule = {[m
+   renderNotes,[m
+   savePlayerNotes,[m
+   initPlayerNotes,[m
+[31m-};[m
+\ No newline at end of file[m
+[32m+[m[32m};[m
+[1mdiff --git a/frontend/js/quests.js b/frontend/js/quests.js[m
+[1mindex 6f1d9b8..9e1710c 100644[m
+[1m--- a/frontend/js/quests.js[m
+[1m+++ b/frontend/js/quests.js[m
+[36m@@ -11,6 +11,22 @@[m
+ // - GM/player режим[m
+ // ============================================================[m
+ [m
+[32m+[m[32mimport {[m
+[32m+[m[32m  apiGet,[m
+[32m+[m[32m  apiWrite,[m
+[32m+[m[32m  buildUserScopedStorageKey,[m
+[32m+[m[32m  escapeHtml,[m
+[32m+[m[32m  formatDateTime,[m
+[32m+[m[32m  getCurrentRole,[m
+[32m+[m[32m  getCurrentUser,[m
+[32m+[m[32m  getEl,[m
+[32m+[m[32m  normalizeRole,[m
+[32m+[m[32m  safeText,[m
+[32m+[m[32m  showToast,[m
+[32m+[m[32m  trimText,[m
+[32m+[m[32m  tryParseJson,[m
+[32m+[m[32m} from "./shared.js";[m
+[32m+[m
+ // ------------------------------------------------------------[m
+ // 🌐 STATE[m
+ // ------------------------------------------------------------[m
+[36m@@ -33,83 +49,6 @@[m [mconst QUESTS_STATE = {[m
+ // ------------------------------------------------------------[m
+ // 🧰 HELPERS[m
+ // ------------------------------------------------------------[m
+[31m-function getEl(id) {[m
+[31m-  return document.getElementById(id);[m
+[31m-}[m
+[31m-[m
+[31m-function getToken() {[m
+[31m-  return localStorage.getItem("token") || "";[m
+[31m-}[m
+[31m-[m
+[31m-function getHeaders(withJson = false) {[m
+[31m-  const headers = {};[m
+[31m-  const token = getToken();[m
+[31m-[m
+[31m-  if (token) {[m
+[31m-    headers.Authorization = `Bearer ${token}`;[m
+[31m-  }[m
+[31m-[m
+[31m-  if (withJson) {[m
+[31m-    headers["Content-Type"] = "application/json";[m
+[31m-  }[m
+[31m-[m
+[31m-  return headers;[m
+[31m-}[m
+[31m-[m
+[31m-function showToast(message) {[m
+[31m-  if (typeof window.showToast === "function") {[m
+[31m-    window.showToast(message);[m
+[31m-    return;[m
+[31m-  }[m
+[31m-  console.log(message);[m
+[31m-}[m
+[31m-[m
+[31m-function escapeHtml(value) {[m
+[31m-  return String(value ?? "")[m
+[31m-    .replaceAll("&", "&amp;")[m
+[31m-    .replaceAll("<", "&lt;")[m
+[31m-    .replaceAll(">", "&gt;")[m
+[31m-    .replaceAll('"', "&quot;")[m
+[31m-    .replaceAll("'", "&#039;");[m
+[31m-}[m
+[31m-[m
+[31m-function safeText(value, fallback = "") {[m
+[31m-  if (value === null || value === undefined || value === "") return fallback;[m
+[31m-  return String(value);[m
+[31m-}[m
+[31m-[m
+[31m-function trimText(value) {[m
+[31m-  return String(value ?? "").trim();[m
+[31m-}[m
+[31m-[m
+[31m-function tryParseJson(raw) {[m
+[31m-  try {[m
+[31m-    return JSON.parse(raw);[m
+[31m-  } catch {[m
+[31m-    return null;[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-function normalizeRole(role) {[m
+[31m-  const raw = String(role || "").trim().toLowerCase();[m
+[31m-  if (raw === "gm" || raw === "admin") return "gm";[m
+[31m-  return "player";[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentRole() {[m
+[31m-  return normalizeRole([m
+[31m-    window.__appUserRole ||[m
+[31m-      window.__userRole ||[m
+[31m-      window.__appUser?.role ||[m
+[31m-      document.body?.dataset?.role ||[m
+[31m-      "player"[m
+[31m-  );[m
+[31m-}[m
+[31m-[m
+[31m-function getCurrentUser() {[m
+[31m-  return window.__appUser || null;[m
+[31m-}[m
+[31m-[m
+ function isGm() {[m
+   return QUESTS_STATE.role === "gm";[m
+ }[m
+[36m@@ -141,23 +80,6 @@[m [mfunction normalizeDate(value, fallback = Date.now()) {[m
+   return new Date(fallback).toISOString();[m
+ }[m
+ [m
+[31m-function formatDateTime(value) {[m
+[31m-  try {[m
+[31m-    const date = new Date(value);[m
+[31m-    if (Number.isNaN(date.getTime())) return "Без даты";[m
+[31m-[m
+[31m-    return date.toLocaleString("ru-RU", {[m
+[31m-      day: "2-digit",[m
+[31m-      month: "2-digit",[m
+[31m-      year: "numeric",[m
+[31m-      hour: "2-digit",[m
+[31m-      minute: "2-digit",[m
+[31m-    });[m
+[31m-  } catch {[m
+[31m-    return "Без даты";[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+ function parseTags(raw) {[m
+   if (!raw) return [];[m
+ [m
+[36m@@ -270,13 +192,7 @@[m [mfunction typeIcon(type) {[m
+ }[m
+ [m
+ function getStorageKey() {[m
+[31m-  const user = getCurrentUser();[m
+[31m-  const userKey =[m
+[31m-    user?.email ||[m
+[31m-    user?.id ||[m
+[31m-    (getToken() ? "auth-user" : "guest");[m
+[31m-[m
+[31m-  return `dnd_trader_quests_${userKey}`;[m
+[32m+[m[32m  return buildUserScopedStorageKey("dnd_trader_quests_");[m
+ }[m
+ [m
+ function saveLocal(items) {[m
+[36m@@ -441,44 +357,6 @@[m [mfunction patchQuest(questId, patchFn) {[m
+   return changed;[m
+ }[m
+ [m
+[31m-// ------------------------------------------------------------[m
+[31m-// 📡 API[m
+[31m-// ------------------------------------------------------------[m
+[31m-async function apiGet(urls) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const url of list) {[m
+[31m-    try {[m
+[31m-      const res = await fetch(url, { headers: getHeaders() });[m
+[31m-      if (!res.ok) continue;[m
+[31m-      return await res.json();[m
+[31m-    } catch (_) {}[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+[31m-async function apiWrite(urls, body, methods = ["POST", "PUT", "PATCH"]) {[m
+[31m-  const list = Array.isArray(urls) ? urls : [urls];[m
+[31m-[m
+[31m-  for (const method of methods) {[m
+[31m-    for (const url of list) {[m
+[31m-      try {[m
+[31m-        const res = await fetch(url, {[m
+[31m-          method,[m
+[31m-          headers: getHeaders(true),[m
+[31m-          body: JSON.stringify(body),[m
+[31m-        });[m
+[31m-[m
+[31m-        if (!res.ok) continue;[m
+[31m-        return await res.json().catch(() => ({}));[m
+[31m-      } catch (_) {}[m
+[31m-    }[m
+[31m-  }[m
+[31m-[m
+[31m-  return null;[m
+[31m-}[m
+[31m-[m
+ // ------------------------------------------------------------[m
+ // 📥 LOAD[m
+ // ------------------------------------------------------------[m
+[36m@@ -1221,4 +1099,4 @@[m [mwindow.questsModule = {[m
+   updateQuestStatus,[m
+   toggleCheckpoint,[m
+   markQuestAsCompleted,[m
+[31m-};[m
+\ No newline at end of file[m
+[32m+[m[32m};[m

@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..models import Item, Trader, TraderItem
+from ..models import Item, PartyGrant, PartyTraderAccess, Trader, TraderItem, UserItem
 from ..seed_db import traders_data
 
 
@@ -339,6 +339,9 @@ def create_admin_router(*, get_db, cleaned_items_path) -> APIRouter:
     @router.post("/reset")
     def reset_db(db: Session = Depends(get_db)):
         try:
+            db.query(PartyGrant).delete()
+            db.query(PartyTraderAccess).delete()
+            db.query(UserItem).delete()
             db.query(TraderItem).delete()
             db.query(Trader).delete()
             db.query(Item).delete()

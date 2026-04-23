@@ -73,6 +73,29 @@ function showToast(message) {
   console.log(message);
 }
 
+function normalizeTraderIdForMarkup(traderId) {
+  const id = Number(traderId);
+  return Number.isFinite(id) ? id : 0;
+}
+
+function buildRestockButtonsMarkup(traderId) {
+  const normalizedId = normalizeTraderIdForMarkup(traderId);
+  return `
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      <button
+        class="btn btn-primary js-restock-trader"
+        data-trader-id="${normalizedId}"
+        data-reroll="0"
+      >🔄 Обновить ассортимент</button>
+      <button
+        class="btn btn-warning js-restock-trader"
+        data-trader-id="${normalizedId}"
+        data-reroll="1"
+      >🎲 Реролл ассортимента</button>
+    </div>
+  `;
+}
+
 // ------------------------------------------------------------
 // 🌐 STATE BRIDGES
 // ------------------------------------------------------------
@@ -878,7 +901,7 @@ function renderItemsTable(items, context, contextId) {
                   <td>
                     <div class="item-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:700;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
                   </td>
-                  <td>${escapeHtml(priceText)}</td>
+                  <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(priceText)}</span></td>
                   <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
                   )}</span></td>
@@ -922,7 +945,7 @@ function renderItemsGrid(items, context, contextId) {
             )}" data-item-id-row="${itemId}">
               <div class="trader-info">
                 <div class="trader-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
-                <div class="trader-type">💰 ${escapeHtml(priceText)}</div>
+                <div class="trader-type"><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>💰 ${escapeHtml(priceText)}</span></div>
                 <div class="trader-meta">
                   <span class="meta-item ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
@@ -982,7 +1005,7 @@ function renderItemsInventoryList(items, context, contextId) {
                 <strong class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(
                   itemEmoji
                 )} ${escapeHtml(item?.name || "Без названия")}</strong>
-                <div>💰 ${escapeHtml(priceText)}</div>
+                <div><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>💰 ${escapeHtml(priceText)}</span></div>
                 <div class="inv-item-details">
                   <span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
@@ -1073,9 +1096,12 @@ function buildTraderHeader(trader) {
   const hasImage = Boolean(imageUrl);
 
   const repStars = getReputationStars(trader?.reputation);
-  const repTitle = getTraderQuality(trader?.reputation);
-  const currentDiscount = getTraderDiscountPercent(trader?.reputation);
+  const repTitle = trader?.skill_label || getTraderQuality(trader?.reputation);
+  const currentDiscount = Number.isFinite(Number(trader?.discount_percent))
+    ? Number(trader?.discount_percent)
+    : getTraderDiscountPercent(trader?.reputation);
   const traderEmoji = getTraderEmoji(trader?.type);
+  const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
 
   return `
     <div class="trader-modal-header">
@@ -1104,12 +1130,14 @@ function buildTraderHeader(trader) {
         </div>
 
         <div class="trader-detail-section trader-reputation-box">
-          <p><strong>⭐ Репутация:</strong> ${escapeHtml(repTitle)}</p>
+          <p><strong>⭐ Репутация:</strong> ${escapeHtml(String(trader?.reputation ?? 0))}</p>
+          <p><strong>🏷 Скилл торговца:</strong> ${escapeHtml(repTitle)}</p>
           <p><strong>💸 Текущая скидка:</strong> ${escapeHtml(String(currentDiscount))}%</p>
           <p><strong>🎯 Специализация:</strong> ${escapeHtml(specialization)}</p>
           <p><strong>💰 Золото торговца:</strong> ${escapeHtml(
             String(trader?.money_label || trader?.gold_label || trader?.gold || "—")
           )}</p>
+          ${restockButtonsMarkup}
         </div>
 
         <div class="trader-detail-section">

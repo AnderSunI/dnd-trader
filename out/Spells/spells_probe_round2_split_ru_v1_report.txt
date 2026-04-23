@@ -1,0 +1,16 @@
+BG3 Spells Probe Round2 Split RU v1
+================================
+Input: out/Spells/items.spells.index.round1.ru.v1.json
+Total seeds: 225
+Fetched ok: 225
+Failed: 0
+Thin pages: 0
+Per-item dir: out/Spells/probe_items
+Manifest JSON: out/Spells/items.spells.probe.round2.split.manifest.json
+
+Notes:
+- Это page-by-page preserved probe.
+- Каждый спелл сохраняется отдельным JSON-файлом.
+- Если parse API бедный, скрипт пробует обычный HTML страницы.
+- Hidden bg-nav таблицы сохраняются в raw_preserved.hidden_nav_tables_raw.
+- thin_page=true означает, что страницу стоит проверить руками отдельно.

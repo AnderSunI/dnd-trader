@@ -1,0 +1,1010 @@
+{
+  "family": "jewelry",
+  "source": "bg3_ru_wiki",
+  "round": 1,
+  "version": "v2",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_label": "jewelry",
+      "page_title": "Украшения (Baldur's Gate III)",
+      "resolved_title": "Украшения (Baldur's Gate III)",
+      "display_title": "<span class=\"mw-page-title-main\">Украшения (Baldur&#039;s Gate III)</span>",
+      "page_url": "https://baldursgate.fandom.com/ru/wiki/%D0%A3%D0%BA%D1%80%D0%B0%D1%88%D0%B5%D0%BD%D0%B8%D1%8F_(Baldur%27s_Gate_III)",
+      "item_count": 64,
+      "sections": [
+        {
+          "section_label": "Амулеты",
+          "section_slug": "амулеты",
+          "status": "empty",
+          "item_count": 0,
+          "items": []
+        },
+        {
+          "section_label": "Обычные амулеты",
+          "section_slug": "обычные_амулеты",
+          "status": "ok",
+          "item_count": 22,
+          "items": [
+            {
+              "title": "Амулет Селунэ",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Селунэ",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Бронзовое ожерелье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Бронзовое_ожерелье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Бронзовая подвеска",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Бронзовая_подвеска",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Жемчужное ожерелье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Жемчужное_ожерелье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Золотая подвеска",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Золотая_подвеска",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Золотое ожерелье (Baldur's Gate III)",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Золотое_ожерелье_(Baldur's_Gate_III)",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Начищенное ожерелье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Начищенное_ожерелье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Собачий ошейник",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Собачий_ошейник",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Подземье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Подземье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Волшебная башня",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_башня",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Отполированное ожерелье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Отполированное_ожерелье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Ошейник Барнабуса",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Барнабуса",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Ошейник Гордиса",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Гордиса",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Ошейник Зины",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Зины",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Ошейник Роки",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Роки",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Потемневшая подвеска",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Потемневшая_подвеска",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Потускневший медальон",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Потускневший_медальон",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Селунитское ожерелье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Селунитское_ожерелье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Шэдоухарт",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Шэдоухарт",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Серебряный амулет",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_амулет",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Серебряный медальон",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_медальон",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Серебряное ожерелье",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Серебряное_ожерелье",
+              "subcategory": "Обычные амулеты",
+              "parent_page": "jewelry"
+            }
+          ]
+        },
+        {
+          "section_label": "Необычные амулеты",
+          "section_slug": "необычные_амулеты",
+          "status": "ok",
+          "item_count": 15,
+          "items": [
+            {
+              "title": "Амулет жемчужины силы",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_жемчужины_силы",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет избранных Селунэ",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_избранных_Селунэ",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет мучения стихий",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_мучения_стихий",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет недостойных",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_недостойных",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет охотников на аберрации",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_охотников_на_аберрации",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет позвоночной дрожи",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_позвоночной_дрожи",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет Сильвануса",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Сильвануса",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет уверенности в Абсолют",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_уверенности_в_Абсолют",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Искушение Шар",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Искушение_Шар",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Приворот гуманоида",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Приворот_гуманоида",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Медальон Комиры",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Медальон_Комиры",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Пляшущие огоньки",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Пляшущие_огоньки",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Ожерелье стихийного усиления",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Ожерелье_стихийного_усиления",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Подвеска разрядов",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Подвеска_разрядов",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Серебряная подвеска",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Серебряная_подвеска",
+              "subcategory": "Необычные амулеты",
+              "parent_page": "jewelry"
+            }
+          ]
+        },
+        {
+          "section_label": "Редкие амулеты",
+          "section_slug": "редкие_амулеты",
+          "status": "ok",
+          "item_count": 17,
+          "items": [
+            {
+              "title": "Амулет восстановления",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_восстановления",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Исцеляющее слово",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющее_слово",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Массовое исцеляющее слово",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеляющее_слово",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет заблудших голосов",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_заблудших_голосов",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разговор с мертвым",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_мертвым",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет посланника",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_посланника",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет пьяницы",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_пьяницы",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Пункты здоровья",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Пункты_здоровья",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Опьянение (Состояние)",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Опьянение_(Состояние)",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Амулет хирургического покорения",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_хирургического_покорения",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Нераскрытые тайны",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Нераскрытые_тайны",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Обнаружение мыслей",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Обнаружение_мыслей",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разумный амулет",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разбивающий звук",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Восстановление ци",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Восстановление_ци",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разумный амулет (очень редкий)",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет_(очень_редкий)",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Цепь чемпиона",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Цепь_чемпиона",
+              "subcategory": "Редкие амулеты",
+              "parent_page": "jewelry"
+            }
+          ]
+        },
+        {
+          "section_label": "Очень редкие амулеты",
+          "section_slug": "очень_редкие_амулеты",
+          "status": "ok",
+          "item_count": 9,
+          "items": [
+            {
+              "title": "Амулет всадника ветра",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_всадника_ветра",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Порыв ветра",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Порыв_ветра",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Ошейник трессума",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_трессума",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Телекинез",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Телекинез",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разумный амулет (очень редкий)",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет_(очень_редкий)",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разбивающий звук",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Восстановление ци",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Восстановление_ци",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Помочь проклятому монаху",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Помочь_проклятому_монаху",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Разумный амулет",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет",
+              "subcategory": "Очень редкие амулеты",
+              "parent_page": "jewelry"
+            }
+          ]
+        },
+        {
+          "section_label": "Сюжетные амулеты",
+          "section_slug": "сюжетные_амулеты",
+          "status": "ok",
+          "item_count": 5,
+          "items": [
+            {
+              "title": "Амулет Баала",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Баала",
+              "subcategory": "Сюжетные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Кровавый амулет",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Кровавый_амулет",
+              "subcategory": "Сюжетные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Латунный медальон",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Латунный_медальон",
+              "subcategory": "Сюжетные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Вернуть медальон",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Вернуть_медальон",
+              "subcategory": "Сюжетные амулеты",
+              "parent_page": "jewelry"
+            },
+            {
+              "title": "Медальон Майрины",
+              "url": "https://baldursgate.fandom.com/ru/wiki/Медальон_Майрины",
+              "subcategory": "Сюжетные амулеты",
+              "parent_page": "jewelry"
+            }
+          ]
+        }
+      ],
+      "items": [
+        {
+          "title": "Амулет Селунэ",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Селунэ"
+        },
+        {
+          "title": "Бронзовое ожерелье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Бронзовое_ожерелье"
+        },
+        {
+          "title": "Бронзовая подвеска",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Бронзовая_подвеска"
+        },
+        {
+          "title": "Жемчужное ожерелье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Жемчужное_ожерелье"
+        },
+        {
+          "title": "Золотая подвеска",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Золотая_подвеска"
+        },
+        {
+          "title": "Золотое ожерелье (Baldur's Gate III)",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Золотое_ожерелье_(Baldur's_Gate_III)"
+        },
+        {
+          "title": "Начищенное ожерелье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Начищенное_ожерелье"
+        },
+        {
+          "title": "Собачий ошейник",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Собачий_ошейник"
+        },
+        {
+          "title": "Подземье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Подземье"
+        },
+        {
+          "title": "Волшебная башня",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_башня"
+        },
+        {
+          "title": "Отполированное ожерелье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Отполированное_ожерелье"
+        },
+        {
+          "title": "Ошейник Барнабуса",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Барнабуса"
+        },
+        {
+          "title": "Ошейник Гордиса",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Гордиса"
+        },
+        {
+          "title": "Ошейник Зины",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Зины"
+        },
+        {
+          "title": "Ошейник Роки",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Роки"
+        },
+        {
+          "title": "Потемневшая подвеска",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Потемневшая_подвеска"
+        },
+        {
+          "title": "Потускневший медальон",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Потускневший_медальон"
+        },
+        {
+          "title": "Селунитское ожерелье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Селунитское_ожерелье"
+        },
+        {
+          "title": "Шэдоухарт",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Шэдоухарт"
+        },
+        {
+          "title": "Серебряный амулет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_амулет"
+        },
+        {
+          "title": "Серебряный медальон",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_медальон"
+        },
+        {
+          "title": "Серебряное ожерелье",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Серебряное_ожерелье"
+        },
+        {
+          "title": "Амулет жемчужины силы",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_жемчужины_силы"
+        },
+        {
+          "title": "Амулет избранных Селунэ",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_избранных_Селунэ"
+        },
+        {
+          "title": "Амулет мучения стихий",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_мучения_стихий"
+        },
+        {
+          "title": "Амулет недостойных",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_недостойных"
+        },
+        {
+          "title": "Амулет охотников на аберрации",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_охотников_на_аберрации"
+        },
+        {
+          "title": "Амулет позвоночной дрожи",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_позвоночной_дрожи"
+        },
+        {
+          "title": "Амулет Сильвануса",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Сильвануса"
+        },
+        {
+          "title": "Амулет уверенности в Абсолют",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_уверенности_в_Абсолют"
+        },
+        {
+          "title": "Искушение Шар",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Искушение_Шар"
+        },
+        {
+          "title": "Приворот гуманоида",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Приворот_гуманоида"
+        },
+        {
+          "title": "Медальон Комиры",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Медальон_Комиры"
+        },
+        {
+          "title": "Пляшущие огоньки",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пляшущие_огоньки"
+        },
+        {
+          "title": "Ожерелье стихийного усиления",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ожерелье_стихийного_усиления"
+        },
+        {
+          "title": "Подвеска разрядов",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Подвеска_разрядов"
+        },
+        {
+          "title": "Серебряная подвеска",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Серебряная_подвеска"
+        },
+        {
+          "title": "Амулет восстановления",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_восстановления"
+        },
+        {
+          "title": "Исцеляющее слово",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющее_слово"
+        },
+        {
+          "title": "Массовое исцеляющее слово",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеляющее_слово"
+        },
+        {
+          "title": "Амулет заблудших голосов",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_заблудших_голосов"
+        },
+        {
+          "title": "Разговор с мертвым",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_мертвым"
+        },
+        {
+          "title": "Амулет посланника",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_посланника"
+        },
+        {
+          "title": "Амулет пьяницы",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_пьяницы"
+        },
+        {
+          "title": "Пункты здоровья",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Пункты_здоровья"
+        },
+        {
+          "title": "Опьянение (Состояние)",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Опьянение_(Состояние)"
+        },
+        {
+          "title": "Амулет хирургического покорения",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_хирургического_покорения"
+        },
+        {
+          "title": "Нераскрытые тайны",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Нераскрытые_тайны"
+        },
+        {
+          "title": "Обнаружение мыслей",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Обнаружение_мыслей"
+        },
+        {
+          "title": "Разумный амулет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет"
+        },
+        {
+          "title": "Разбивающий звук",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук"
+        },
+        {
+          "title": "Восстановление ци",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Восстановление_ци"
+        },
+        {
+          "title": "Разумный амулет (очень редкий)",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет_(очень_редкий)"
+        },
+        {
+          "title": "Цепь чемпиона",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Цепь_чемпиона"
+        },
+        {
+          "title": "Амулет всадника ветра",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_всадника_ветра"
+        },
+        {
+          "title": "Порыв ветра",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Порыв_ветра"
+        },
+        {
+          "title": "Ошейник трессума",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_трессума"
+        },
+        {
+          "title": "Телекинез",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Телекинез"
+        },
+        {
+          "title": "Помочь проклятому монаху",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Помочь_проклятому_монаху"
+        },
+        {
+          "title": "Амулет Баала",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Баала"
+        },
+        {
+          "title": "Кровавый амулет",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Кровавый_амулет"
+        },
+        {
+          "title": "Латунный медальон",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Латунный_медальон"
+        },
+        {
+          "title": "Вернуть медальон",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Вернуть_медальон"
+        },
+        {
+          "title": "Медальон Майрины",
+          "url": "https://baldursgate.fandom.com/ru/wiki/Медальон_Майрины"
+        }
+      ],
+      "collapsed_duplicate_titles": [
+        [
+          "Восстановление ци",
+          2
+        ],
+        [
+          "Разбивающий звук",
+          2
+        ],
+        [
+          "Разумный амулет",
+          2
+        ],
+        [
+          "Разумный амулет (очень редкий)",
+          2
+        ]
+      ]
+    }
+  ],
+  "total_unique_items": 64,
+  "items": [
+    {
+      "title": "Амулет Селунэ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Селунэ"
+    },
+    {
+      "title": "Бронзовое ожерелье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бронзовое_ожерелье"
+    },
+    {
+      "title": "Бронзовая подвеска",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Бронзовая_подвеска"
+    },
+    {
+      "title": "Жемчужное ожерелье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Жемчужное_ожерелье"
+    },
+    {
+      "title": "Золотая подвеска",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Золотая_подвеска"
+    },
+    {
+      "title": "Золотое ожерелье (Baldur's Gate III)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Золотое_ожерелье_(Baldur's_Gate_III)"
+    },
+    {
+      "title": "Начищенное ожерелье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Начищенное_ожерелье"
+    },
+    {
+      "title": "Собачий ошейник",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Собачий_ошейник"
+    },
+    {
+      "title": "Подземье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Подземье"
+    },
+    {
+      "title": "Волшебная башня",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Волшебная_башня"
+    },
+    {
+      "title": "Отполированное ожерелье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Отполированное_ожерелье"
+    },
+    {
+      "title": "Ошейник Барнабуса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Барнабуса"
+    },
+    {
+      "title": "Ошейник Гордиса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Гордиса"
+    },
+    {
+      "title": "Ошейник Зины",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Зины"
+    },
+    {
+      "title": "Ошейник Роки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_Роки"
+    },
+    {
+      "title": "Потемневшая подвеска",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Потемневшая_подвеска"
+    },
+    {
+      "title": "Потускневший медальон",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Потускневший_медальон"
+    },
+    {
+      "title": "Селунитское ожерелье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Селунитское_ожерелье"
+    },
+    {
+      "title": "Шэдоухарт",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Шэдоухарт"
+    },
+    {
+      "title": "Серебряный амулет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_амулет"
+    },
+    {
+      "title": "Серебряный медальон",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серебряный_медальон"
+    },
+    {
+      "title": "Серебряное ожерелье",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серебряное_ожерелье"
+    },
+    {
+      "title": "Амулет жемчужины силы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_жемчужины_силы"
+    },
+    {
+      "title": "Амулет избранных Селунэ",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_избранных_Селунэ"
+    },
+    {
+      "title": "Амулет мучения стихий",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_мучения_стихий"
+    },
+    {
+      "title": "Амулет недостойных",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_недостойных"
+    },
+    {
+      "title": "Амулет охотников на аберрации",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_охотников_на_аберрации"
+    },
+    {
+      "title": "Амулет позвоночной дрожи",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_позвоночной_дрожи"
+    },
+    {
+      "title": "Амулет Сильвануса",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Сильвануса"
+    },
+    {
+      "title": "Амулет уверенности в Абсолют",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_уверенности_в_Абсолют"
+    },
+    {
+      "title": "Искушение Шар",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Искушение_Шар"
+    },
+    {
+      "title": "Приворот гуманоида",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Приворот_гуманоида"
+    },
+    {
+      "title": "Медальон Комиры",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Медальон_Комиры"
+    },
+    {
+      "title": "Пляшущие огоньки",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пляшущие_огоньки"
+    },
+    {
+      "title": "Ожерелье стихийного усиления",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ожерелье_стихийного_усиления"
+    },
+    {
+      "title": "Подвеска разрядов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Подвеска_разрядов"
+    },
+    {
+      "title": "Серебряная подвеска",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Серебряная_подвеска"
+    },
+    {
+      "title": "Амулет восстановления",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_восстановления"
+    },
+    {
+      "title": "Исцеляющее слово",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Исцеляющее_слово"
+    },
+    {
+      "title": "Массовое исцеляющее слово",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Массовое_исцеляющее_слово"
+    },
+    {
+      "title": "Амулет заблудших голосов",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_заблудших_голосов"
+    },
+    {
+      "title": "Разговор с мертвым",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разговор_с_мертвым"
+    },
+    {
+      "title": "Амулет посланника",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_посланника"
+    },
+    {
+      "title": "Амулет пьяницы",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_пьяницы"
+    },
+    {
+      "title": "Пункты здоровья",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Пункты_здоровья"
+    },
+    {
+      "title": "Опьянение (Состояние)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Опьянение_(Состояние)"
+    },
+    {
+      "title": "Амулет хирургического покорения",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_хирургического_покорения"
+    },
+    {
+      "title": "Нераскрытые тайны",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Нераскрытые_тайны"
+    },
+    {
+      "title": "Обнаружение мыслей",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Обнаружение_мыслей"
+    },
+    {
+      "title": "Разумный амулет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет"
+    },
+    {
+      "title": "Разбивающий звук",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разбивающий_звук"
+    },
+    {
+      "title": "Восстановление ци",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Восстановление_ци"
+    },
+    {
+      "title": "Разумный амулет (очень редкий)",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Разумный_амулет_(очень_редкий)"
+    },
+    {
+      "title": "Цепь чемпиона",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Цепь_чемпиона"
+    },
+    {
+      "title": "Амулет всадника ветра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_всадника_ветра"
+    },
+    {
+      "title": "Порыв ветра",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Порыв_ветра"
+    },
+    {
+      "title": "Ошейник трессума",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Ошейник_трессума"
+    },
+    {
+      "title": "Телекинез",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Телекинез"
+    },
+    {
+      "title": "Помочь проклятому монаху",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Помочь_проклятому_монаху"
+    },
+    {
+      "title": "Амулет Баала",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Амулет_Баала"
+    },
+    {
+      "title": "Кровавый амулет",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Кровавый_амулет"
+    },
+    {
+      "title": "Латунный медальон",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Латунный_медальон"
+    },
+    {
+      "title": "Вернуть медальон",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Вернуть_медальон"
+    },
+    {
+      "title": "Медальон Майрины",
+      "url": "https://baldursgate.fandom.com/ru/wiki/Медальон_Майрины"
+    }
+  ],
+  "collapsed_duplicate_titles_global": []
+}
