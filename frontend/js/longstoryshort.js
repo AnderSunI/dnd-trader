@@ -9,6 +9,11 @@
 // - история отделена и больше не смешивается с LSS
 // ============================================================
 
+import {
+  fetchAccount,
+  updateAccount,
+} from "./api.js";
+
 // ------------------------------------------------------------
 // 🌐 STATE
 // ------------------------------------------------------------
@@ -16,6 +21,8 @@ const LSS_STATE = {
   raw: null,
   profile: null,
   source: "empty",
+  characterPool: [],
+  selectedCharacterId: "",
   importPanelOpen: false,
   editPanelOpen: false,
   activeTab: "overview",
@@ -259,17 +266,31 @@ function getLocalStorageKey() {
   return `lssData:${userKey}`;
 }
 
+function getLocalStorageKeys() {
+  const keys = [getLocalStorageKey(), "lssData:last"];
+  if (getToken()) keys.push("lssData:auth-user");
+  else keys.push("lssData:guest");
+  return [...new Set(keys)];
+}
+
 function saveLocalLssRaw(raw) {
   try {
-    localStorage.setItem(getLocalStorageKey(), JSON.stringify(raw));
+    const serialized = JSON.stringify(raw);
+    getLocalStorageKeys().forEach((key) => {
+      localStorage.setItem(key, serialized);
+    });
   } catch (_) {}
 }
 
 function loadLocalLssRaw() {
   try {
-    const raw = localStorage.getItem(getLocalStorageKey());
-    if (!raw) return null;
-    return tryParseJson(raw);
+    for (const key of getLocalStorageKeys()) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = tryParseJson(raw);
+      if (parsed) return parsed;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -277,8 +298,98 @@ function loadLocalLssRaw() {
 
 function clearLocalLssRaw() {
   try {
-    localStorage.removeItem(getLocalStorageKey());
+    getLocalStorageKeys().forEach((key) => localStorage.removeItem(key));
   } catch (_) {}
+}
+
+function getLssCharacterPool() {
+  return Array.isArray(LSS_STATE.characterPool) ? LSS_STATE.characterPool : [];
+}
+
+function buildBlankProfileFromCharacter(character = {}) {
+  const name = String(character?.name || "Персонаж").trim() || "Персонаж";
+  const className = String(character?.class_name || "").trim();
+  const level = Math.max(1, toNumber(character?.level, 1));
+  const race = String(character?.race || "").trim();
+  const alignment = String(character?.alignment || "").trim();
+
+  return {
+    name,
+    info: {
+      charClass: { name: "charClass", value: className },
+      charSubclass: { name: "charSubclass", value: "" },
+      level: { name: "level", value: level },
+      background: { name: "background", value: "" },
+      playerName: { name: "playerName", value: "" },
+      race: { name: "race", value: race },
+      alignment: { name: "alignment", value: alignment },
+      experience: { name: "experience", value: 0 },
+      size: { value: "medium" },
+    },
+    subInfo: {
+      age: { name: "age", value: "" },
+      height: { name: "height", value: "" },
+      weight: { name: "weight", value: "" },
+      eyes: { name: "eyes", value: "" },
+      skin: { name: "skin", value: "" },
+      hair: { name: "hair", value: "" },
+    },
+    proficiency: 2,
+    stats: {
+      str: { name: "str", score: 10, modifier: 0, check: 0 },
+      dex: { name: "dex", score: 10, modifier: 0, check: 0 },
+      con: { name: "con", score: 10, modifier: 0, check: 0 },
+      int: { name: "int", score: 10, modifier: 0, check: 0 },
+      wis: { name: "wis", score: 10, modifier: 0, check: 0 },
+      cha: { name: "cha", score: 10, modifier: 0, check: 0 },
+    },
+    saves: {},
+    skills: {},
+    vitality: {
+      "hp-current": { value: 10 },
+      "hp-max": { value: 10 },
+      "hp-temp": { value: 0 },
+      speed: { value: 30 },
+      initiative: { value: 0 },
+      ac: { value: 10 },
+    },
+    appearance: "",
+    background: "",
+    personality: "",
+    ideals: "",
+    bonds: "",
+    flaws: "",
+    equipment: "",
+    allies: "",
+    quests: "",
+    attacks: "",
+    prof: "",
+    "notes-1": "",
+    "notes-2": "",
+  };
+}
+
+async function loadLssCharacterPool() {
+  if (!getToken()) {
+    LSS_STATE.characterPool = [];
+    LSS_STATE.selectedCharacterId = "";
+    return [];
+  }
+
+  try {
+    const payload = await fetchAccount();
+    LSS_STATE.characterPool = Array.isArray(payload?.characters) ? payload.characters : [];
+    LSS_STATE.selectedCharacterId = String(
+      payload?.user?.active_character_id ||
+      LSS_STATE.selectedCharacterId ||
+      LSS_STATE.characterPool[0]?.id ||
+      ""
+    ).trim();
+  } catch (_) {
+    LSS_STATE.characterPool = [];
+  }
+
+  return getLssCharacterPool();
 }
 
 // ------------------------------------------------------------
@@ -935,17 +1046,19 @@ function tryLoadFromLocal() {
 }
 
 export async function loadLSS() {
-  let raw = await tryLoadFromApi();
-  let source = "api";
+  await loadLssCharacterPool();
+
+  let raw = tryLoadFromLocal();
+  let source = raw ? "local" : "empty";
+
+  if (!raw) {
+    raw = await tryLoadFromApi();
+    source = "api";
+  }
 
   if (!raw) {
     raw = tryLoadFromWindow();
     source = "window";
-  }
-
-  if (!raw) {
-    raw = tryLoadFromLocal();
-    source = "local";
   }
 
   if (!raw) {
@@ -1002,6 +1115,14 @@ function applyBasicFormToProfile(formData) {
   setNested(profile, "vitality.speed", safeText(formData.speed, getNested(profile, "vitality.speed", "")));
   setNested(profile, "vitality.initiative", safeText(formData.initiative, getNested(profile, "vitality.initiative", "")));
 
+  ["str", "dex", "con", "int", "wis", "cha"].forEach((key) => {
+    setNested(
+      profile,
+      `stats.${key}.score`,
+      toNumber(formData[`stat_${key}`], getNested(profile, `stats.${key}.score`, 10))
+    );
+  });
+
   profile.portrait = safeText(formData.portrait, profile.portrait || "");
   profile.appearance = safeText(formData.appearance, profile.appearance || "");
   profile.background = safeText(formData.backgroundText, profile.background || "");
@@ -1043,6 +1164,12 @@ function collectEditFormData() {
     "ac",
     "speed",
     "initiative",
+    "stat_str",
+    "stat_dex",
+    "stat_con",
+    "stat_int",
+    "stat_wis",
+    "stat_cha",
     "portrait",
     "appearance",
     "backgroundText",
@@ -1123,6 +1250,8 @@ function renderTopToolbar() {
     file: "файл",
   }[String(LSS_STATE.source || "empty").toLowerCase()] || String(LSS_STATE.source || "нет данных");
 
+  const characterPool = getLssCharacterPool();
+
   return `
     <div class="cabinet-block" style="margin-bottom:12px; padding:12px 14px;">
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -1137,6 +1266,27 @@ function renderTopToolbar() {
         </div>
 
         <div class="cart-buttons" style="gap:6px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-start;">
+          ${
+            characterPool.length
+              ? `
+                <div class="filter-group" style="min-width:260px; margin:0;">
+                  <label style="margin-bottom:4px;">Пул персонажей</label>
+                  <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    <select id="lssCharacterPoolSelect" style="min-width:220px;">
+                      ${characterPool.map((entry) => `
+                        <option value="${escapeHtml(String(entry.id))}" ${String(LSS_STATE.selectedCharacterId || "") === String(entry.id) ? "selected" : ""}>
+                          ${escapeHtml(entry.name || "Персонаж")}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}${entry.level ? ` • lvl ${escapeHtml(String(entry.level))}` : ""}
+                        </option>
+                      `).join("")}
+                    </select>
+                    <button class="btn btn-secondary" type="button" id="lssApplyCharacterPoolBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">
+                      Взять в LSS
+                    </button>
+                  </div>
+                </div>
+              `
+              : ""
+          }
           <button class="btn btn-primary" type="button" id="lssToggleImportBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">
             ${LSS_STATE.importPanelOpen ? "Скрыть импорт" : "Загрузить"}
           </button>
@@ -1153,6 +1303,19 @@ function renderTopToolbar() {
           }
         </div>
       </div>
+      ${
+        LSS_STATE.profile
+          ? `
+            <div class="lss-jump-rail" style="margin-top:10px;">
+              <button class="btn btn-secondary" type="button" data-lss-jump="lssHeroSection">Портрет</button>
+              <button class="btn btn-secondary" type="button" data-lss-jump="lssTabsSection">Вкладки</button>
+              <button class="btn btn-secondary" type="button" data-lss-jump="lssActivePanel">Текущий блок</button>
+              <button class="btn btn-secondary" type="button" data-lss-jump="lssEditPanel">Конструктор</button>
+              <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх</button>
+            </div>
+          `
+          : ""
+      }
     </div>
   `;
 }
@@ -1197,216 +1360,170 @@ function renderEditPanel(profile) {
   const portraitUrl = getPortraitUrl(p);
 
   return `
-    <div class="cabinet-block" id="lssEditPanel" style="${LSS_STATE.editPanelOpen ? "" : "display:none;"} margin-bottom:12px;">
-      <h4 style="margin-bottom:10px;">Редактор базовых полей LSS</h4>
-
-      <div class="profile-grid">
-        <div class="filter-group">
-          <label>Имя</label>
-          <input id="lssEdit_name" type="text" value="${escapeHtml(safeText(unwrapValue(p.name, ""), ""))}" />
+    <div class="cabinet-block lss-editor-shell" id="lssEditPanel" style="${LSS_STATE.editPanelOpen ? "" : "display:none;"} margin-bottom:12px;">
+      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+        <div>
+          <h4 style="margin:0 0 6px 0;">Конструктор LSS</h4>
+          <div class="muted" style="font-size:0.82rem;">Редактирование в sheet-режиме: читаемо, секционно и без огромной стены полей.</div>
         </div>
-        <div class="filter-group">
-          <label>Класс</label>
-          <input id="lssEdit_charClass" type="text" value="${escapeHtml(safeText(unwrapValue(info.charClass, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Подкласс</label>
-          <input id="lssEdit_charSubclass" type="text" value="${escapeHtml(safeText(unwrapValue(info.charSubclass, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Уровень</label>
-          <input id="lssEdit_level" type="number" min="1" value="${escapeHtml(safeText(unwrapValue(info.level, "1"), "1"))}" />
-        </div>
-        <div class="filter-group">
-          <label>Раса</label>
-          <input id="lssEdit_race" type="text" value="${escapeHtml(safeText(unwrapValue(info.race, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Предыстория</label>
-          <input id="lssEdit_background" type="text" value="${escapeHtml(safeText(unwrapValue(info.background, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Мировоззрение</label>
-          <input id="lssEdit_alignment" type="text" value="${escapeHtml(safeText(unwrapValue(info.alignment, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Размер</label>
-          <input id="lssEdit_size" type="text" value="${escapeHtml(safeText(unwrapValue(info.size, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Опыт</label>
-          <input id="lssEdit_experience" type="text" value="${escapeHtml(safeText(unwrapValue(info.experience, ""), ""))}" />
-        </div>
-
-        <div class="filter-group">
-          <label>Возраст</label>
-          <input id="lssEdit_age" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.age, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Рост</label>
-          <input id="lssEdit_height" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.height, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Вес</label>
-          <input id="lssEdit_weight" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.weight, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Глаза</label>
-          <input id="lssEdit_eyes" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.eyes, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Кожа</label>
-          <input id="lssEdit_skin" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.skin, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Волосы</label>
-          <input id="lssEdit_hair" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.hair, ""), ""))}" />
-        </div>
-
-        <div class="filter-group">
-          <label>HP текущие</label>
-          <input id="lssEdit_hpCurrent" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-current"], ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>HP максимум</label>
-          <input id="lssEdit_hpMax" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-max"], ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>HP временные</label>
-          <input id="lssEdit_hpTemp" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>КБ</label>
-          <input id="lssEdit_ac" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.ac, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Скорость</label>
-          <input id="lssEdit_speed" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.speed, ""), ""))}" />
-        </div>
-        <div class="filter-group">
-          <label>Инициатива</label>
-          <input id="lssEdit_initiative" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.initiative, ""), ""))}" />
+        <div class="lss-jump-rail">
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditIdentity">Основа</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditVitals">Бой</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditPortrait">Портрет</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditStory">Лор</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditNotes">Заметки</button>
         </div>
       </div>
 
-      <div class="cabinet-block" style="margin-top:12px;">
-        <h4 style="margin-bottom:10px;">Фото персонажа</h4>
-
-        <div class="profile-grid" style="align-items:start;">
-          <div>
-            ${
-              portraitUrl
-                ? `
-                  <div class="trader-modal-image-wrap" style="max-width:220px;">
-                    <img
-                      class="trader-modal-image"
-                      src="${escapeHtml(portraitUrl)}"
-                      alt="Фото персонажа"
-                      loading="lazy"
-                      referrerpolicy="no-referrer"
-                      onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:220px;display:flex;align-items:center;justify-content:center;font-size:48px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
-                    />
-                  </div>
-                `
-                : `
-                  <div class="stat-box" style="min-height:220px;display:flex;align-items:center;justify-content:center;font-size:48px;">
-                    🧙
-                  </div>
-                `
-            }
+      <div class="lss-editor-grid">
+        <section class="lss-editor-section" id="lssEditIdentity">
+          <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Паспорт</div>
+              <div style="font-weight:800; margin-top:4px;">Основа персонажа</div>
+            </div>
+            <span class="meta-item">ядро листа</span>
           </div>
+          <div class="profile-grid">
+            <div class="filter-group"><label>Имя</label><input id="lssEdit_name" type="text" value="${escapeHtml(safeText(unwrapValue(p.name, ""), ""))}" /></div>
+            <div class="filter-group"><label>Класс</label><input id="lssEdit_charClass" type="text" value="${escapeHtml(safeText(unwrapValue(info.charClass, ""), ""))}" /></div>
+            <div class="filter-group"><label>Подкласс</label><input id="lssEdit_charSubclass" type="text" value="${escapeHtml(safeText(unwrapValue(info.charSubclass, ""), ""))}" /></div>
+            <div class="filter-group"><label>Уровень</label><input id="lssEdit_level" type="number" min="1" value="${escapeHtml(safeText(unwrapValue(info.level, "1"), "1"))}" /></div>
+            <div class="filter-group"><label>Раса</label><input id="lssEdit_race" type="text" value="${escapeHtml(safeText(unwrapValue(info.race, ""), ""))}" /></div>
+            <div class="filter-group"><label>Предыстория</label><input id="lssEdit_background" type="text" value="${escapeHtml(safeText(unwrapValue(info.background, ""), ""))}" /></div>
+            <div class="filter-group"><label>Мировоззрение</label><input id="lssEdit_alignment" type="text" value="${escapeHtml(safeText(unwrapValue(info.alignment, ""), ""))}" /></div>
+            <div class="filter-group"><label>Размер</label><input id="lssEdit_size" type="text" value="${escapeHtml(safeText(unwrapValue(info.size, ""), ""))}" /></div>
+            <div class="filter-group"><label>Опыт</label><input id="lssEdit_experience" type="text" value="${escapeHtml(safeText(unwrapValue(info.experience, ""), ""))}" /></div>
+          </div>
+          <div class="profile-grid" style="margin-top:12px;">
+            <div class="filter-group"><label>Возраст</label><input id="lssEdit_age" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.age, ""), ""))}" /></div>
+            <div class="filter-group"><label>Рост</label><input id="lssEdit_height" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.height, ""), ""))}" /></div>
+            <div class="filter-group"><label>Вес</label><input id="lssEdit_weight" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.weight, ""), ""))}" /></div>
+            <div class="filter-group"><label>Глаза</label><input id="lssEdit_eyes" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.eyes, ""), ""))}" /></div>
+            <div class="filter-group"><label>Кожа</label><input id="lssEdit_skin" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.skin, ""), ""))}" /></div>
+            <div class="filter-group"><label>Волосы</label><input id="lssEdit_hair" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.hair, ""), ""))}" /></div>
+          </div>
+        </section>
 
-          <div>
-            <div class="filter-group">
-              <label>Ссылка на фото / data:image</label>
-              <input
-                id="lssEdit_portrait"
-                type="text"
-                value="${escapeHtml(safeText(portraitUrl, ""))}"
-                placeholder="https://... или data:image/..."
-              />
+        <section class="lss-editor-section" id="lssEditVitals">
+          <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Бой</div>
+              <div style="font-weight:800; margin-top:4px;">Живучесть и темп</div>
             </div>
+            <span class="meta-item">HP / AC / Init</span>
+          </div>
+          <div class="profile-grid">
+            <div class="filter-group"><label>HP текущие</label><input id="lssEdit_hpCurrent" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-current"], ""), ""))}" /></div>
+            <div class="filter-group"><label>HP максимум</label><input id="lssEdit_hpMax" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-max"], ""), ""))}" /></div>
+            <div class="filter-group"><label>HP временные</label><input id="lssEdit_hpTemp" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], ""), ""))}" /></div>
+            <div class="filter-group"><label>КБ</label><input id="lssEdit_ac" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.ac, ""), ""))}" /></div>
+            <div class="filter-group"><label>Скорость</label><input id="lssEdit_speed" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.speed, ""), ""))}" /></div>
+            <div class="filter-group"><label>Инициатива</label><input id="lssEdit_initiative" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.initiative, ""), ""))}" /></div>
+          </div>
+          <div class="profile-grid" style="margin-top:12px;">
+            <div class="filter-group"><label>STR</label><input id="lssEdit_stat_str" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.str?.score, 10)))}" /></div>
+            <div class="filter-group"><label>DEX</label><input id="lssEdit_stat_dex" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.dex?.score, 10)))}" /></div>
+            <div class="filter-group"><label>CON</label><input id="lssEdit_stat_con" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.con?.score, 10)))}" /></div>
+            <div class="filter-group"><label>INT</label><input id="lssEdit_stat_int" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.int?.score, 10)))}" /></div>
+            <div class="filter-group"><label>WIS</label><input id="lssEdit_stat_wis" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.wis?.score, 10)))}" /></div>
+            <div class="filter-group"><label>CHA</label><input id="lssEdit_stat_cha" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.cha?.score, 10)))}" /></div>
+          </div>
+        </section>
 
-            <div class="modal-actions" style="margin-top:10px;">
-              <button class="btn btn-primary" type="button" id="lssPickImageBtn">Выбрать фото</button>
-              <button class="btn" type="button" id="lssApplyPortraitBtn">Применить ссылку</button>
-              <button class="btn btn-danger" type="button" id="lssClearImageBtn">Убрать фото</button>
-              <input id="lssImageFileInput" type="file" accept="image/*" style="display:none;" />
-            </div>
-
-            <div class="muted" style="margin-top:10px;">
-              Можно вставить ссылку на картинку или выбрать локальный файл. Локальное фото сохранится в браузере.
+        <section class="lss-editor-section" id="lssEditPortrait">
+          <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Портрет</div>
+              <div style="font-weight:800; margin-top:4px;">Внешний вид персонажа</div>
             </div>
           </div>
-        </div>
-      </div>
+          <div class="profile-grid" style="align-items:start;">
+            <div>
+              ${
+                portraitUrl
+                  ? `
+                    <div class="trader-modal-image-wrap" style="max-width:220px;">
+                      <img
+                        class="trader-modal-image"
+                        src="${escapeHtml(portraitUrl)}"
+                        alt="Фото персонажа"
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                        onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:220px;display:flex;align-items:center;justify-content:center;font-size:48px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
+                      />
+                    </div>
+                  `
+                  : `<div class="stat-box" style="min-height:220px;display:flex;align-items:center;justify-content:center;font-size:48px;">🧙</div>`
+              }
+            </div>
+            <div>
+              <div class="filter-group">
+                <label>Ссылка на фото / data:image</label>
+                <input id="lssEdit_portrait" type="text" value="${escapeHtml(safeText(portraitUrl, ""))}" placeholder="https://... или data:image/..." />
+              </div>
+              <div class="modal-actions" style="margin-top:10px;">
+                <button class="btn btn-primary" type="button" id="lssPickImageBtn">Выбрать фото</button>
+                <button class="btn" type="button" id="lssApplyPortraitBtn">Применить ссылку</button>
+                <button class="btn btn-danger" type="button" id="lssClearImageBtn">Убрать фото</button>
+                <input id="lssImageFileInput" type="file" accept="image/*" style="display:none;" />
+              </div>
+              <div class="muted" style="margin-top:10px;">Можно вставить ссылку на картинку или выбрать локальный файл. Локальное фото сохранится в браузере.</div>
+            </div>
+          </div>
+        </section>
 
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Внешность</label>
-        <textarea id="lssEdit_appearance" rows="4">${escapeHtml(safeText(p.appearance, ""))}</textarea>
-      </div>
+        <section class="lss-editor-section" id="lssEditStory">
+          <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Лор</div>
+              <div style="font-weight:800; margin-top:4px;">История и личность</div>
+            </div>
+            <span class="meta-item">RP слой</span>
+          </div>
+          <div class="filter-group"><label>Внешность</label><textarea id="lssEdit_appearance" rows="4">${escapeHtml(safeText(p.appearance, ""))}</textarea></div>
+          <div class="filter-group" style="margin-top:12px;"><label>Предыстория / лор</label><textarea id="lssEdit_backgroundText" rows="4">${escapeHtml(safeText(p.background, ""))}</textarea></div>
+          <div class="profile-grid" style="margin-top:12px;">
+            <div class="filter-group"><label>Личность</label><textarea id="lssEdit_personality" rows="4">${escapeHtml(safeText(p.personality, ""))}</textarea></div>
+            <div class="filter-group"><label>Идеалы</label><textarea id="lssEdit_ideals" rows="4">${escapeHtml(safeText(p.ideals, ""))}</textarea></div>
+            <div class="filter-group"><label>Привязанности</label><textarea id="lssEdit_bonds" rows="4">${escapeHtml(safeText(p.bonds, ""))}</textarea></div>
+            <div class="filter-group"><label>Изъяны</label><textarea id="lssEdit_flaws" rows="4">${escapeHtml(safeText(p.flaws, ""))}</textarea></div>
+          </div>
+        </section>
 
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Предыстория / лор</label>
-        <textarea id="lssEdit_backgroundText" rows="4">${escapeHtml(safeText(p.background, ""))}</textarea>
-      </div>
+        <section class="lss-editor-section" id="lssEditLoadout">
+          <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Лист</div>
+              <div style="font-weight:800; margin-top:4px;">Снаряжение и особенности</div>
+            </div>
+          </div>
+          <div class="profile-grid">
+            <div class="filter-group"><label>Снаряжение</label><textarea id="lssEdit_equipment" rows="4">${escapeHtml(safeText(p.equipment, ""))}</textarea></div>
+            <div class="filter-group"><label>Владения / языки</label><textarea id="lssEdit_proficiencies" rows="4">${escapeHtml(safeText(p.prof, ""))}</textarea></div>
+            <div class="filter-group"><label>Союзники</label><textarea id="lssEdit_allies" rows="4">${escapeHtml(safeText(p.allies, ""))}</textarea></div>
+            <div class="filter-group"><label>Цели / задачи</label><textarea id="lssEdit_goals" rows="4">${escapeHtml(safeText(p.quests, ""))}</textarea></div>
+          </div>
+          <div class="filter-group" style="margin-top:12px;"><label>Особенности / классовые черты</label><textarea id="lssEdit_features" rows="4">${escapeHtml(safeText(p.attacks, ""))}</textarea></div>
+        </section>
 
-      <div class="profile-grid" style="margin-top:12px;">
-        <div class="filter-group">
-          <label>Личность</label>
-          <textarea id="lssEdit_personality" rows="4">${escapeHtml(safeText(p.personality, ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Идеалы</label>
-          <textarea id="lssEdit_ideals" rows="4">${escapeHtml(safeText(p.ideals, ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Привязанности</label>
-          <textarea id="lssEdit_bonds" rows="4">${escapeHtml(safeText(p.bonds, ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Изъяны</label>
-          <textarea id="lssEdit_flaws" rows="4">${escapeHtml(safeText(p.flaws, ""))}</textarea>
-        </div>
-      </div>
-
-      <div class="profile-grid" style="margin-top:12px;">
-        <div class="filter-group">
-          <label>Снаряжение</label>
-          <textarea id="lssEdit_equipment" rows="4">${escapeHtml(safeText(p.equipment, ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Владения / языки</label>
-          <textarea id="lssEdit_proficiencies" rows="4">${escapeHtml(safeText(p.prof, ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Союзники</label>
-          <textarea id="lssEdit_allies" rows="4">${escapeHtml(safeText(p.allies, ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Цели / задачи</label>
-          <textarea id="lssEdit_goals" rows="4">${escapeHtml(safeText(p.quests, ""))}</textarea>
-        </div>
-      </div>
-
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Особенности / классовые черты</label>
-        <textarea id="lssEdit_features" rows="4">${escapeHtml(safeText(p.attacks, ""))}</textarea>
-      </div>
-
-      <div class="profile-grid" style="margin-top:12px;">
-        <div class="filter-group">
-          <label>Заметка 1</label>
-          <textarea id="lssEdit_notes1" rows="4">${escapeHtml(safeText(p["notes-1"], ""))}</textarea>
-        </div>
-        <div class="filter-group">
-          <label>Заметка 2</label>
-          <textarea id="lssEdit_notes2" rows="4">${escapeHtml(safeText(p["notes-2"], ""))}</textarea>
-        </div>
+        <section class="lss-editor-section" id="lssEditNotes">
+          <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Заметки</div>
+              <div style="font-weight:800; margin-top:4px;">Свободные поля</div>
+            </div>
+          </div>
+          <div class="profile-grid">
+            <div class="filter-group"><label>Заметка 1</label><textarea id="lssEdit_notes1" rows="4">${escapeHtml(safeText(p["notes-1"], ""))}</textarea></div>
+            <div class="filter-group"><label>Заметка 2</label><textarea id="lssEdit_notes2" rows="4">${escapeHtml(safeText(p["notes-2"], ""))}</textarea></div>
+          </div>
+        </section>
       </div>
 
       <div class="modal-actions" style="margin-top:12px;">
         <button class="btn btn-success" type="button" id="lssSaveEditBtn">Сохранить поля</button>
+        <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх</button>
       </div>
 
       <div class="muted" style="margin-top:10px;">
@@ -1434,11 +1551,49 @@ function bindLssActions() {
   const fileInput = getSection("lssFileInput");
   const jsonTextarea = getSection("lssJsonTextarea");
   const saveEditBtn = getSection("lssSaveEditBtn");
+  const characterPoolSelect = getSection("lssCharacterPoolSelect");
+  const applyCharacterPoolBtn = getSection("lssApplyCharacterPoolBtn");
 
   const pickImageBtn = getSection("lssPickImageBtn");
   const applyPortraitBtn = getSection("lssApplyPortraitBtn");
   const clearImageBtn = getSection("lssClearImageBtn");
   const imageFileInput = getSection("lssImageFileInput");
+
+  if (characterPoolSelect && characterPoolSelect.dataset.bound !== "1") {
+    characterPoolSelect.dataset.bound = "1";
+    characterPoolSelect.addEventListener("change", () => {
+      LSS_STATE.selectedCharacterId = String(characterPoolSelect.value || "").trim();
+    });
+  }
+
+  if (applyCharacterPoolBtn && applyCharacterPoolBtn.dataset.bound !== "1") {
+    applyCharacterPoolBtn.dataset.bound = "1";
+    applyCharacterPoolBtn.addEventListener("click", async () => {
+      const character = getLssCharacterPool().find((entry) => String(entry?.id || "") === String(LSS_STATE.selectedCharacterId || ""));
+      if (!character) {
+        showToast("Сначала выбери персонажа из пула");
+        return;
+      }
+
+      const nextProfile = LSS_STATE.profile
+        ? cloneData(LSS_STATE.profile)
+        : buildBlankProfileFromCharacter(character);
+
+      nextProfile.name = character.name || nextProfile.name || "Персонаж";
+      nextProfile.info = nextProfile.info || {};
+      nextProfile.info.charClass = { ...(nextProfile.info.charClass || {}), name: "charClass", value: character.class_name || "" };
+      nextProfile.info.level = { ...(nextProfile.info.level || {}), name: "level", value: Math.max(1, toNumber(character.level, 1)) };
+      nextProfile.info.race = { ...(nextProfile.info.race || {}), name: "race", value: character.race || "" };
+      nextProfile.info.alignment = { ...(nextProfile.info.alignment || {}), name: "alignment", value: character.alignment || "" };
+
+      setLssData(nextProfile, { persistLocal: true, source: "manual" });
+      try {
+        await updateAccount({ active_character_id: Number(character.id) });
+      } catch (_) {}
+      renderLSS();
+      showToast("Персонаж из пула подставлен в LSS");
+    });
+  }
 
   if (toggleImportBtn && toggleImportBtn.dataset.bound !== "1") {
     toggleImportBtn.dataset.bound = "1";
@@ -1598,6 +1753,29 @@ function bindLssActions() {
     btn.addEventListener("click", () => {
       LSS_STATE.activeTab = btn.dataset.lssTab || "overview";
       renderLSS();
+    });
+  });
+
+  document.querySelectorAll("[data-lss-jump]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const targetId = btn.dataset.lssJump || "";
+      getSection(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  document.querySelectorAll("[data-lss-jump-top]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const section = getSection("cabinet-lss");
+      const container = section?.closest?.(".modal-content");
+      if (container && "scrollTo" in container) {
+        container.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        section?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 
@@ -2535,9 +2713,9 @@ export function renderLSS() {
         ? `
           <div class="lss-root">
             ${renderDiceDock()}
-            ${renderHero(profile)}
-            ${renderLssTabs()}
-            ${renderActiveLssTab(profile)}
+            <div id="lssHeroSection">${renderHero(profile)}</div>
+            <div id="lssTabsSection">${renderLssTabs()}</div>
+            <div id="lssActivePanel">${renderActiveLssTab(profile)}</div>
           </div>
         `
         : renderEmptyState()

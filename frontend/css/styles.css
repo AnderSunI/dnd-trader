@@ -1288,6 +1288,23 @@ button.warning,
   gap: 7px;
 }
 
+.cabinet-tab-buttons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cabinet-sidebar-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cabinet-sidebar-footer .btn {
+  width: 100%;
+  justify-content: center;
+}
+
 .cabinet-tab-buttons .btn {
   width: 100%;
   justify-content: flex-start;
@@ -1332,6 +1349,327 @@ button.warning,
 .cabinet-block h3 {
   font-size: 0.98rem;
   margin-bottom: 7px;
+}
+
+.master-room-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.master-room-sidebar,
+.master-room-stage {
+  min-width: 0;
+}
+
+.master-room-rail-panel {
+  padding: 12px;
+}
+
+.master-room-table-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.master-room-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.master-room-top-strip,
+.master-room-ops-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.master-room-top-strip > .master-room-command-panel {
+  grid-column: span 8;
+}
+
+.master-room-top-strip > .master-room-dice-dock {
+  grid-column: span 4;
+}
+
+.master-room-ops-grid > .master-room-stage-panel {
+  grid-column: span 4;
+}
+
+.master-room-stage-grid > .master-room-stage-panel,
+.master-room-stage-grid > .master-room-dice-dock,
+.master-room-stage-grid > .master-room-battle-stage {
+  grid-column: span 6;
+}
+
+.master-room-stage-grid > .master-room-battle-stage {
+  grid-column: 1 / -1;
+}
+
+.master-room-hero {
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.10), transparent 24%),
+    radial-gradient(circle at top right, rgba(134, 203, 211, 0.10), transparent 28%),
+    linear-gradient(145deg, rgba(18, 28, 35, 0.97), rgba(9, 15, 20, 0.99));
+  border-color: rgba(214, 181, 122, 0.16);
+}
+
+.master-room-mode-note {
+  border-color: rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.master-room-sidebar-panel,
+.master-room-stage-panel,
+#cabinet-masterroom .cabinet-block {
+  border-color: rgba(185, 199, 207, 0.14);
+}
+
+.master-room-table-card {
+  transition:
+    transform var(--speed-fast),
+    border-color var(--speed-fast),
+    box-shadow var(--speed-fast),
+    background var(--speed-fast);
+}
+
+.master-room-table-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(134, 203, 211, 0.18);
+}
+
+.master-room-table-card-active {
+  background:
+    radial-gradient(circle at top left, rgba(134, 203, 211, 0.07), transparent 24%),
+    linear-gradient(180deg, rgba(22, 34, 42, 0.96), rgba(11, 18, 24, 0.99));
+  border-color: rgba(134, 203, 211, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(134, 203, 211, 0.08),
+    0 10px 24px rgba(0,0,0,0.22);
+}
+
+.master-room-sidebar-panel {
+  padding: 12px;
+}
+
+.master-room-combat-toolbar {
+  align-items: end;
+}
+
+.master-room-dice-dock {
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  align-self: start;
+}
+
+.master-room-dice-panel {
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.11), transparent 28%),
+    radial-gradient(circle at top right, rgba(134, 203, 211, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(18, 29, 36, 0.97), rgba(9, 15, 20, 0.995));
+  border-color: rgba(185, 199, 207, 0.18);
+}
+
+.master-room-battle-stage {
+  background:
+    radial-gradient(circle at top, rgba(120, 184, 193, 0.06), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(214, 181, 122, 0.05), transparent 24%),
+    linear-gradient(180deg, rgba(14, 24, 31, 0.98), rgba(8, 13, 18, 0.995));
+}
+
+.master-room-ops-card {
+  margin-top: 0;
+}
+
+.master-room-initiative-track {
+  padding: 12px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(214, 181, 122, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(18, 29, 36, 0.96), rgba(9, 15, 20, 0.99));
+  border: 1px solid rgba(185, 199, 207, 0.14);
+}
+
+.master-room-initiative-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.master-room-initiative-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(185, 199, 207, 0.14);
+  background:
+    linear-gradient(180deg, rgba(17, 26, 33, 0.96), rgba(10, 16, 22, 0.99));
+  color: var(--title-soft);
+  cursor: pointer;
+  transition: transform var(--speed-fast), border-color var(--speed-fast), box-shadow var(--speed-fast);
+}
+
+.master-room-initiative-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(214, 181, 122, 0.18);
+}
+
+.master-room-initiative-chip-active {
+  border-color: rgba(214, 181, 122, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(214, 181, 122, 0.12), 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.master-room-initiative-chip-enemy {
+  border-color: rgba(149, 85, 101, 0.22);
+}
+
+.master-room-initiative-chip-order {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 900;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+
+.master-room-initiative-chip-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.master-room-initiative-chip-body strong,
+.master-room-initiative-chip-body small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.master-room-initiative-chip-body small {
+  color: var(--text-dim);
+}
+
+.master-room-battle-grid {
+  align-items: start;
+}
+
+.master-room-battle-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.master-room-combatant-card {
+  background:
+    linear-gradient(180deg, rgba(17, 26, 33, 0.96), rgba(10, 16, 22, 0.99));
+  border-color: rgba(214, 181, 122, 0.14);
+}
+
+.master-room-combatant-card-enemy {
+  background:
+    radial-gradient(circle at top left, rgba(149, 85, 101, 0.11), transparent 24%),
+    linear-gradient(180deg, rgba(26, 20, 26, 0.96), rgba(14, 12, 18, 0.995));
+  border-color: rgba(149, 85, 101, 0.2);
+}
+
+.master-room-combatant-card-active {
+  box-shadow:
+    inset 0 0 0 1px rgba(214, 181, 122, 0.10),
+    0 12px 28px rgba(0, 0, 0, 0.24);
+  border-color: rgba(214, 181, 122, 0.22);
+}
+
+.master-room-combat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.master-room-combat-log-entry {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#masterRoomUserSearchResults,
+#masterRoomItemSearchResults {
+  min-height: 12px;
+}
+
+#cabinet-masterroom .stat-box,
+#cabinet-masterroom .lss-rich-block {
+  background:
+    radial-gradient(circle at top right, rgba(185, 199, 207, 0.04), transparent 28%),
+    linear-gradient(180deg, rgba(16, 27, 34, 0.96), rgba(8, 14, 19, 0.99));
+  border: 1px solid rgba(185, 199, 207, 0.13);
+}
+
+#cabinet-masterroom .meta-item {
+  background: rgba(185, 199, 207, 0.06);
+  border-color: rgba(185, 199, 207, 0.14);
+  color: #dbe5ea;
+}
+
+#cabinet-masterroom .filter-group label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10.5px;
+}
+
+.lss-jump-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+#cabinet-lss .lss-jump-rail .btn {
+  min-height: 31px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.lss-editor-shell {
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.07), transparent 22%),
+    radial-gradient(circle at top right, rgba(185, 199, 207, 0.05), transparent 26%),
+    linear-gradient(180deg, rgba(15, 25, 32, 0.98), rgba(8, 14, 19, 0.995));
+}
+
+.lss-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.lss-editor-section {
+  padding: 12px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(18, 29, 36, 0.96), rgba(9, 15, 20, 0.99));
+  border: 1px solid rgba(185, 199, 207, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 10px 24px rgba(0,0,0,0.16);
 }
 
 .quest-list {
@@ -2057,6 +2395,30 @@ td .item-description-short,
 }
 
 @media (max-width: 980px) {
+  .master-room-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .master-room-top-strip,
+  .master-room-ops-grid,
+  .master-room-table-rail,
+  .master-room-stage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .master-room-top-strip > .master-room-command-panel,
+  .master-room-top-strip > .master-room-dice-dock,
+  .master-room-ops-grid > .master-room-stage-panel,
+  .master-room-stage-grid > .master-room-stage-panel,
+  .master-room-stage-grid > .master-room-dice-dock,
+  .master-room-stage-grid > .master-room-battle-stage {
+    grid-column: auto;
+  }
+
+  .cabinet-sidebar-footer {
+    margin-top: 10px;
+  }
+
   #cabinet-bestiari .profile-grid,
   #cabinet-codex .profile-grid {
     grid-template-columns: 1fr !important;

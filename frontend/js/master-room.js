@@ -1,18 +1,8 @@
 // ============================================================
 // frontend/js/master-room.js
-// Master Room — отдельный модуль ГМ-стола / партии
-// - только для ГМа
-// - local-first + мягкая попытка API
-// - создание нескольких столов
-// - token / код стола
-// - поиск игроков по нику / email по known-users пулу
-// - ручное добавление игрока
-// - выбор активного персонажа для участника
-// - пресеты видимости: private / basic / sheet / full
-// - shared traders
-// - выдача золота / предметов (как журнал действий стола)
-// - activity log
-// - совместим с cabinet.js через container id="cabinet-masterroom"
+// LEGACY / UNUSED RUNTIME MODULE
+// Canonical Master Room implementation now lives in frontend/js/cabinet.js.
+// Keep this file only as a reference during cleanup; do not extend it in parallel.
 // ============================================================
 
 import {
