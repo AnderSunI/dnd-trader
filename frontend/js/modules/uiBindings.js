@@ -49,8 +49,13 @@ export function bindToolbarButtons({
   });
 
   getEl("cabinetBtn")?.addEventListener("click", async () => {
-    await initCabinetModulesIfNeeded();
-    openCabinet();
+    try {
+      await initCabinetModulesIfNeeded();
+      await openCabinet();
+    } catch (error) {
+      console.error(error);
+      showToast(error?.message || "Не удалось открыть личный кабинет");
+    }
   });
 
   getEl("refreshDataBtn")?.addEventListener("click", async () => {

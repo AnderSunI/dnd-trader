@@ -1,6 +1,8 @@
 // ============================================================
 // frontend/js/modules/authActions.js
-// Auth actions (login/register/logout + safe fetch me).
+// LEGACY REFERENCE
+// Auth orchestration now lives in app.js next to the main app state.
+// Keep this file only until the next cleanup pass removes it.
 // ============================================================
 
 export function createAuthActions({

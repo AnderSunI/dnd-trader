@@ -1,6 +1,8 @@
 // ============================================================
 // frontend/js/modules/restockHelpers.js
-// Чистые helper-функции для restock-расчётов.
+// LEGACY REFERENCE
+// Restock helpers were inlined into traderRestockFlow.js.
+// Keep this file only until the next cleanup pass removes it.
 // ============================================================
 
 export function normalizeStockValue(value, fallback = 1) {

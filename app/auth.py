@@ -235,7 +235,10 @@ def get_optional_current_user(
     if not token:
         return None
 
-    payload = decode_access_token(token)
+    try:
+        payload = decode_access_token(token)
+    except HTTPException:
+        return None
     sub = payload.get("sub")
 
     try:

@@ -1,6 +1,8 @@
 // ============================================================
 // frontend/js/modules/traderUiHelpers.js
-// UI helper-ы торговца для шаблонов модалки.
+// LEGACY REFERENCE
+// Restock button markup now lives in render.js next to the modal template.
+// Keep this file only until the next cleanup pass removes it.
 // ============================================================
 
 export function normalizeTraderIdForMarkup(traderId) {

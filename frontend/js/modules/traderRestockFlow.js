@@ -3,11 +3,31 @@
 // Flow/helper-функции restock торговца.
 // ============================================================
 
+function normalizeStockValue(value, fallback = 1) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(0, Math.trunc(num));
+}
+
+function getNextRestockStock({
+  baseStock,
+  currentStock,
+  reroll = false,
+} = {}) {
+  const base = Math.max(1, normalizeStockValue(baseStock, 1));
+  const current = normalizeStockValue(currentStock, 0);
+
+  if (reroll) {
+    return Math.max(1, Math.round(base * (0.8 + Math.random() * 0.5)));
+  }
+
+  return Math.max(current, base);
+}
+
 export function applyLocalGuestRestockToTrader({
   trader,
   reroll = false,
   safeNumber,
-  getNextRestockStock,
 } = {}) {
   if (!trader || !Array.isArray(trader.items)) return false;
 
@@ -34,7 +54,6 @@ export async function handleGuestRestockFlow({
   getEffectiveRole,
   getTraderById,
   safeNumber,
-  getNextRestockStock,
   showToast,
   activeTraderId,
   openTraderModal,
@@ -50,7 +69,6 @@ export async function handleGuestRestockFlow({
     trader,
     reroll: Boolean(reroll),
     safeNumber,
-    getNextRestockStock,
   });
 
   if (!updated) {

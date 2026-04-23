@@ -10,8 +10,6 @@
 // - совместим со старым index.html и текущим app.js
 // ============================================================
 
-import { buildRestockButtonsMarkup } from "./modules/traderUiHelpers.js";
-
 function safe(value, fallback = "") {
   return value === null || value === undefined ? fallback : value;
 }
@@ -73,6 +71,29 @@ function showToast(message) {
     return;
   }
   console.log(message);
+}
+
+function normalizeTraderIdForMarkup(traderId) {
+  const id = Number(traderId);
+  return Number.isFinite(id) ? id : 0;
+}
+
+function buildRestockButtonsMarkup(traderId) {
+  const normalizedId = normalizeTraderIdForMarkup(traderId);
+  return `
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      <button
+        class="btn btn-primary js-restock-trader"
+        data-trader-id="${normalizedId}"
+        data-reroll="0"
+      >🔄 Обновить ассортимент</button>
+      <button
+        class="btn btn-warning js-restock-trader"
+        data-trader-id="${normalizedId}"
+        data-reroll="1"
+      >🎲 Реролл ассортимента</button>
+    </div>
+  `;
 }
 
 // ------------------------------------------------------------
@@ -880,7 +901,7 @@ function renderItemsTable(items, context, contextId) {
                   <td>
                     <div class="item-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:700;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
                   </td>
-                  <td>${escapeHtml(priceText)}</td>
+                  <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(priceText)}</span></td>
                   <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
                   )}</span></td>
@@ -924,7 +945,7 @@ function renderItemsGrid(items, context, contextId) {
             )}" data-item-id-row="${itemId}">
               <div class="trader-info">
                 <div class="trader-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
-                <div class="trader-type">💰 ${escapeHtml(priceText)}</div>
+                <div class="trader-type"><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>💰 ${escapeHtml(priceText)}</span></div>
                 <div class="trader-meta">
                   <span class="meta-item ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)
@@ -984,7 +1005,7 @@ function renderItemsInventoryList(items, context, contextId) {
                 <strong class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(
                   itemEmoji
                 )} ${escapeHtml(item?.name || "Без названия")}</strong>
-                <div>💰 ${escapeHtml(priceText)}</div>
+                <div><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>💰 ${escapeHtml(priceText)}</span></div>
                 <div class="inv-item-details">
                   <span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
                     normalizeRarity(item?.rarity)

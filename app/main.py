@@ -17,9 +17,15 @@ from .auth import (
     get_current_active_user,
 )
 from .config import APP_TITLE, CLEANED_ITEMS_PATH, FRONTEND_DIR
-from .database import get_db
-from .models import Base, User, engine
-from .routers.admin import create_admin_router
+from .database import SessionLocal, get_db
+from .models import Base, Item, Trader, TraderItem, User, engine
+from .routers.admin import (
+    create_admin_router,
+    import_items_from_json,
+    import_traders_from_seed,
+    relink_all_items,
+)
+from .routers.account import create_account_router
 from .routers.auth import create_auth_router
 from .routers.gm import create_gm_router
 from .routers.inventory import create_inventory_router
@@ -54,6 +60,30 @@ Base.metadata.create_all(bind=engine)
 # ============================================================
 
 run_legacy_schema_patch(engine)
+
+
+def ensure_seed_data() -> None:
+    db = SessionLocal()
+    try:
+        traders_count = db.query(Trader).count()
+        items_count = db.query(Item).count()
+        trader_items_count = db.query(TraderItem).count()
+
+        if traders_count == 0:
+            import_traders_from_seed(db)
+            traders_count = db.query(Trader).count()
+
+        if items_count == 0:
+            import_items_from_json(db, CLEANED_ITEMS_PATH)
+            items_count = db.query(Item).count()
+
+        if traders_count > 0 and items_count > 0 and trader_items_count == 0:
+            relink_all_items(db)
+    finally:
+        db.close()
+
+
+ensure_seed_data()
 
 # ============================================================
 # 🚀 APP
@@ -119,6 +149,7 @@ app.include_router(
         cleaned_items_path=CLEANED_ITEMS_PATH,
     )
 )
+app.include_router(create_account_router(get_db=get_db))
 app.include_router(create_gm_router(get_db=get_db))
 
 

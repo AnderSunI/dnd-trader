@@ -47,9 +47,7 @@ import {
   getCartExistingQuantity,
   removeCollectionItem,
 } from "./modules/inventoryActions.js";
-import { getNextRestockStock } from "./modules/restockHelpers.js";
 import { createTradeActions } from "./modules/tradeActions.js";
-import { createAuthActions } from "./modules/authActions.js";
 import {
   bindAuthButtons,
   bindModalButtons,
@@ -421,6 +419,11 @@ function isGuestMode() {
   return !(STATE.token && STATE.user);
 }
 
+function canEditTestMoney() {
+  if (isGuestMode()) return true;
+  return getEffectiveRole() === "gm";
+}
+
 function persistUser() {
   try {
     localStorage.setItem("user", JSON.stringify(STATE.user || null));
@@ -530,6 +533,22 @@ function setGuestMoneyFromGold(goldValue) {
   persistGuestMoney();
 }
 
+function setTestMoneyFromGold(goldValue) {
+  const normalizedGold = Math.max(0, Math.floor(safeNumber(goldValue, GUEST_START_GOLD)));
+  const cp = moneyPartsToCp(normalizedGold, 0, 0);
+
+  if (isGuestMode()) {
+    setGuestMoneyFromGold(normalizedGold);
+    return;
+  }
+
+  if (!STATE.user) return;
+  STATE.user.money_cp_total = cp;
+  STATE.user.money_label = formatMoneyCp(cp);
+  persistUser();
+  syncGlobalStateBridges();
+}
+
 function getTraderMoneyCp(trader) {
   if (!trader) return 0;
 
@@ -636,20 +655,20 @@ function syncMoneyControls() {
 
   const goldValue = getCurrentMoneyGoldValue();
   const moneyLabel = getCurrentMoneyLabel();
-  const guestMode = isGuestMode();
+  const testMoneyMode = canEditTestMoney();
 
   if (playerGoldInput) {
     playerGoldInput.value = String(goldValue);
-    playerGoldInput.disabled = !guestMode || STATE.isBusy;
-    playerGoldInput.title = guestMode ? "Текущее золото в гостевом режиме" : moneyLabel;
+    playerGoldInput.disabled = !testMoneyMode || STATE.isBusy;
+    playerGoldInput.title = testMoneyMode ? "Тестовое золото для текущего режима" : moneyLabel;
   }
 
   if (updateGoldBtn) {
-    updateGoldBtn.disabled = !guestMode || STATE.isBusy;
+    updateGoldBtn.disabled = !testMoneyMode || STATE.isBusy;
   }
 
   if (resetGoldBtn) {
-    resetGoldBtn.disabled = !guestMode || STATE.isBusy;
+    resetGoldBtn.disabled = !testMoneyMode || STATE.isBusy;
   }
 
   if (userMoney) {
@@ -659,8 +678,8 @@ function syncMoneyControls() {
 }
 
 function applyGuestMoneyUpdateFromInput() {
-  if (!isGuestMode()) {
-    showToast("Тестовое золото доступно только в гостевом режиме");
+  if (!canEditTestMoney()) {
+    showToast("Тестовое золото доступно только гостю или авторизованному GM");
     syncMoneyControls();
     return;
   }
@@ -669,7 +688,7 @@ function applyGuestMoneyUpdateFromInput() {
   if (!playerGoldInput) return;
 
   const inputGold = Math.max(0, Math.floor(safeNumber(playerGoldInput.value, GUEST_START_GOLD)));
-  setGuestMoneyFromGold(inputGold);
+  setTestMoneyFromGold(inputGold);
   renderAllLocalState();
   syncMoneyControls();
 
@@ -683,13 +702,13 @@ function applyGuestMoneyUpdateFromInput() {
 }
 
 function resetGuestMoney() {
-  if (!isGuestMode()) {
-    showToast("Сброс тестового золота доступен только в гостевом режиме");
+  if (!canEditTestMoney()) {
+    showToast("Сброс тестового золота доступен только гостю или авторизованному GM");
     syncMoneyControls();
     return;
   }
 
-  setGuestMoneyFromGold(GUEST_START_GOLD);
+  setTestMoneyFromGold(GUEST_START_GOLD);
   renderAllLocalState();
   syncMoneyControls();
 
@@ -718,7 +737,7 @@ function setBusy(flag) {
     if (!el) return;
 
     if (id === "updateGoldBtn" || id === "resetGoldBtn") {
-      el.disabled = STATE.isBusy || !isGuestMode();
+      el.disabled = STATE.isBusy || !canEditTestMoney();
       return;
     }
 
@@ -727,8 +746,13 @@ function setBusy(flag) {
 
   const playerGoldInput = getEl("playerGoldInput");
   if (playerGoldInput) {
-    playerGoldInput.disabled = STATE.isBusy || !isGuestMode();
+    playerGoldInput.disabled = STATE.isBusy || !canEditTestMoney();
   }
+}
+
+function syncBusyUiState() {
+  setBusy(STATE.isBusy);
+  syncMoneyControls();
 }
 
 // ------------------------------------------------------------
@@ -1141,30 +1165,94 @@ async function loadInventoryFromServer() {
 // ------------------------------------------------------------
 // 🔐 AUTH
 // ------------------------------------------------------------
-const {
-  fetchMeSafe,
-  handleLogin,
-  handleRegister,
-  handleLogout,
-} = createAuthActions({
-  state: STATE,
-  getEl,
-  showToast,
-  setBusy,
-  loginUser,
-  registerUser,
-  fetchMe,
-  logoutUser,
-  clearPersistedUser,
-  persistUser,
-  normalizeMoneyFromPayload,
-  syncGlobalStateBridges,
-  updateUserUI,
-  loadTraders,
-  loadInventoryFromServer,
-  renderAllLocalState,
-  initCabinetModulesIfNeeded,
-});
+async function fetchMeSafe() {
+  try {
+    return await fetchMe();
+  } catch {
+    return null;
+  }
+}
+
+async function handleLogin() {
+  const email = String(getEl("loginEmail")?.value || "").trim();
+  const password = String(getEl("loginPassword")?.value || "");
+
+  if (!email || !password) {
+    showToast("Введите email и пароль");
+    return;
+  }
+
+  try {
+    setBusy(true);
+
+    const payload = await loginUser(email, password);
+    STATE.token = localStorage.getItem("token") || "";
+
+    const me = (await fetchMeSafe()) || payload?.user || payload?.me || null;
+    STATE.user = me && typeof me === "object" ? me : { email };
+
+    if (STATE.user.money_cp_total === undefined && STATE.user.money_label === undefined) {
+      const fallbackMoney = normalizeMoneyFromPayload(payload);
+      if (fallbackMoney) {
+        STATE.user.money_cp_total = fallbackMoney.cp;
+        STATE.user.money_label = fallbackMoney.label;
+      }
+    }
+
+    persistUser();
+    syncGlobalStateBridges();
+    updateUserUI();
+
+    await loadTraders();
+    await loadInventoryFromServer();
+    renderAllLocalState();
+    await initCabinetModulesIfNeeded();
+
+    showToast("Вход выполнен");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Ошибка входа");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function handleRegister() {
+  const email = String(getEl("loginEmail")?.value || "").trim();
+  const password = String(getEl("loginPassword")?.value || "");
+
+  if (!email || !password) {
+    showToast("Введите email и пароль");
+    return;
+  }
+
+  try {
+    setBusy(true);
+    await registerUser(email, password);
+    showToast("Регистрация успешна. Теперь войдите.");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Ошибка регистрации");
+  } finally {
+    setBusy(false);
+  }
+}
+
+function handleLogout() {
+  STATE.token = "";
+  STATE.user = null;
+  STATE.inventory = [];
+  STATE.cart = [];
+  STATE.reserved = [];
+
+  logoutUser();
+  clearPersistedUser();
+
+  syncGlobalStateBridges();
+  updateUserUI();
+  renderAllLocalState();
+  showToast("Вы вышли");
+}
 
 // ------------------------------------------------------------
 // 🧾 CABINET
@@ -1258,7 +1346,6 @@ window.restockTrader = createRestockTraderAction({
   getEffectiveRole,
   getTraderById,
   safeNumber,
-  getNextRestockStock,
   handleGuestRestockFlow,
   handleServerRestockFlow,
   apiRestockTrader,
@@ -1332,8 +1419,13 @@ async function initApp() {
   setAppLoadingStatus("Поднимаем интерфейс...");
 
   try {
-    STATE.user = restoreUserFromLocalStorage();
     STATE.token = localStorage.getItem("token") || "";
+    STATE.user = STATE.token ? restoreUserFromLocalStorage() : null;
+
+    if (!STATE.token && STATE.user) {
+      STATE.user = null;
+      clearPersistedUser();
+    }
 
     syncGlobalStateBridges();
     updateUserUI();
@@ -1375,12 +1467,19 @@ async function initApp() {
       applyExternalUserUpdate(event?.detail?.user);
     });
 
-    if (STATE.token && !STATE.user) {
+    if (STATE.token) {
       setAppLoadingStatus("Проверяем профиль...");
       const me = await fetchMeSafe();
       if (me && typeof me === "object") {
         STATE.user = me;
         persistUser();
+        syncGlobalStateBridges();
+        updateUserUI();
+      } else {
+        STATE.token = "";
+        STATE.user = null;
+        logoutUser();
+        clearPersistedUser();
         syncGlobalStateBridges();
         updateUserUI();
       }
