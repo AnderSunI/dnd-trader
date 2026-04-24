@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
+import re
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -66,8 +72,25 @@ class PlayerTransferRequest(BaseModel):
     gold_cp: int = Field(default=0, ge=0, le=10_000_000)
 
 
-def create_account_router(*, get_db) -> APIRouter:
+class AccountMediaUploadRequest(BaseModel):
+    kind: str = Field(pattern="^(avatar|banner|showcase)$")
+    data_url: str = Field(min_length=32, max_length=12_000_000)
+    file_name: str | None = Field(default=None, max_length=180)
+    caption: str | None = Field(default=None, max_length=160)
+    make_primary: bool = False
+
+
+def create_account_router(*, get_db, uploads_root: Path | None = None) -> APIRouter:
     router = APIRouter(prefix="/account", tags=["account"])
+    uploads_dir = Path(uploads_root or "frontend/static/uploads/account")
+    media_url_prefix = "/static/uploads/account"
+    allowed_image_types = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+    }
+    data_url_pattern = re.compile(r"^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$")
 
     def now_utc() -> datetime:
         return datetime.utcnow()
@@ -110,6 +133,103 @@ def create_account_router(*, get_db) -> APIRouter:
                 break
         return result
 
+    def normalize_profile_media(value: Any) -> dict[str, Any]:
+        payload = value if isinstance(value, dict) else {}
+        avatar = payload.get("avatar") if isinstance(payload.get("avatar"), dict) else None
+        banner = payload.get("banner") if isinstance(payload.get("banner"), dict) else None
+        showcase = payload.get("showcase") if isinstance(payload.get("showcase"), list) else []
+        normalized_showcase: list[dict[str, Any]] = []
+        for entry in showcase:
+            if not isinstance(entry, dict):
+                continue
+            media_id = str(entry.get("id") or "").strip()
+            url = str(entry.get("url") or "").strip()
+            if not media_id or not url:
+                continue
+            normalized_showcase.append(
+                {
+                    "id": media_id,
+                    "kind": "showcase",
+                    "url": url,
+                    "path": str(entry.get("path") or "").strip(),
+                    "caption": str(entry.get("caption") or "").strip()[:160],
+                    "file_name": str(entry.get("file_name") or "").strip()[:180],
+                    "mime_type": str(entry.get("mime_type") or "").strip(),
+                    "size_bytes": int(entry.get("size_bytes") or 0),
+                    "is_primary": bool(entry.get("is_primary")),
+                    "created_at": entry.get("created_at") or now_utc().isoformat(),
+                }
+            )
+        if normalized_showcase and not any(entry.get("is_primary") for entry in normalized_showcase):
+            normalized_showcase[0]["is_primary"] = True
+        return {
+            "avatar": avatar if avatar and avatar.get("url") else None,
+            "banner": banner if banner and banner.get("url") else None,
+            "showcase": normalized_showcase[:24],
+        }
+
+    def save_profile_media(user: User, media: dict[str, Any]) -> None:
+        user.profile_media = normalize_profile_media(media)
+
+    def get_profile_media(user: User) -> dict[str, Any]:
+        return normalize_profile_media(user.profile_media)
+
+    def get_user_upload_dir(user: User) -> Path:
+        path = uploads_dir / str(user.id)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def build_media_url(user: User, stored_name: str) -> str:
+        return f"{media_url_prefix}/{user.id}/{stored_name}"
+
+    def ensure_safe_media_path(raw_path: str | None) -> Path | None:
+        if not raw_path:
+            return None
+        try:
+            path = Path(raw_path).resolve()
+            root = uploads_dir.resolve()
+            if root in path.parents:
+                return path
+        except Exception:
+            return None
+        return None
+
+    def remove_media_file(raw_path: str | None) -> None:
+        path = ensure_safe_media_path(raw_path)
+        if not path or not path.exists():
+            return
+        try:
+            path.unlink()
+        except OSError:
+            return
+
+    def decode_image_data_url(data_url: str, *, max_bytes: int) -> tuple[str, bytes, str]:
+        match = data_url_pattern.match(str(data_url or "").strip())
+        if not match:
+            raise HTTPException(status_code=400, detail="Нужен корректный data:image/*;base64 payload")
+        mime_type = match.group(1).lower()
+        if mime_type not in allowed_image_types:
+            raise HTTPException(status_code=400, detail="Поддерживаются PNG, JPG, WEBP и GIF")
+        try:
+            binary = base64.b64decode(match.group(2), validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(status_code=400, detail="Не удалось прочитать изображение") from exc
+        if not binary:
+            raise HTTPException(status_code=400, detail="Файл пустой")
+        if len(binary) > max_bytes:
+            raise HTTPException(status_code=400, detail=f"Файл слишком большой: максимум {max_bytes // (1024 * 1024)} МБ")
+        return mime_type, binary, allowed_image_types[mime_type]
+
+    def store_media_file(user: User, *, binary: bytes, file_ext: str, kind: str, file_name: str | None) -> tuple[str, str]:
+        sanitized_name = re.sub(r"[^a-zA-Z0-9._-]+", "-", str(file_name or "").strip()).strip("-._")
+        stem = sanitized_name.rsplit(".", 1)[0] if "." in sanitized_name else sanitized_name
+        if not stem:
+            stem = kind
+        stored_name = f"{kind}_{stem[:40]}_{uuid4().hex[:10]}{file_ext}"
+        target = get_user_upload_dir(user) / stored_name
+        target.write_bytes(binary)
+        return str(target), build_media_url(user, stored_name)
+
     def normalize_friend_pair(first_user_id: int, second_user_id: int) -> tuple[int, int]:
         left = int(first_user_id)
         right = int(second_user_id)
@@ -136,10 +256,56 @@ def create_account_router(*, get_db) -> APIRouter:
             "last_seen_at": last_seen_at,
         }
 
+    def unwrap_lss_value(node: Any, fallback: Any = "") -> Any:
+        if node is None:
+            return fallback
+        if isinstance(node, (str, int, float, bool)):
+            return node
+        if isinstance(node, dict):
+            if "value" in node:
+                return unwrap_lss_value(node.get("value"), fallback)
+            if "score" in node:
+                return unwrap_lss_value(node.get("score"), fallback)
+            if "filled" in node and len(node) == 1:
+                return unwrap_lss_value(node.get("filled"), fallback)
+        return fallback
+
+    def get_character_lss_root(character: Character) -> dict[str, Any]:
+        data = character.data if isinstance(character.data, dict) else {}
+        root = data.get("lss") if isinstance(data.get("lss"), dict) else data
+        if isinstance(root.get("data"), str):
+            try:
+                parsed = json.loads(root["data"])
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                return root
+        if isinstance(root.get("data"), dict):
+            return root["data"]
+        return root if isinstance(root, dict) else {}
+
+    def resolve_character_name(character: Character) -> tuple[str, str, str]:
+        manual_name = str(character.name or "").strip()
+        root = get_character_lss_root(character)
+        info = root.get("info") if isinstance(root.get("info"), dict) else {}
+        lss_name = str(
+            unwrap_lss_value(root.get("name"))
+            or unwrap_lss_value(info.get("name"))
+            or ""
+        ).strip()
+        manual_is_generic = manual_name.lower() in {"", "персонаж", "character"}
+        resolved = manual_name if manual_name and not manual_is_generic else lss_name or manual_name or "Персонаж"
+        source = "manual" if manual_name and not manual_is_generic else "lss" if lss_name else "fallback"
+        return resolved, source, lss_name
+
     def serialize_character_brief(character: Character) -> dict[str, Any]:
+        resolved_name, source, lss_name = resolve_character_name(character)
         return {
             "id": character.id,
-            "name": character.name,
+            "name": resolved_name,
+            "manual_name": character.name,
+            "lss_name": lss_name,
+            "name_source": source,
             "class_name": character.class_name or "",
             "level": int(character.level or 1),
             "race": character.race or "",
@@ -386,6 +552,9 @@ def create_account_router(*, get_db) -> APIRouter:
             .all()
         )
 
+        media = get_profile_media(current_user)
+        primary_showcase = next((entry for entry in media["showcase"] if entry.get("is_primary")), None)
+
         return {
             "user": {
                 **serialize_user_brief(current_user),
@@ -405,6 +574,7 @@ def create_account_router(*, get_db) -> APIRouter:
                 "allow_direct_messages": current_user.allow_direct_messages or "friends",
                 "profile_tags": current_user.profile_tags or [],
                 "preferred_systems": current_user.preferred_systems or [],
+                "profile_media": media,
                 "featured_item_ids": current_user.featured_item_ids or [],
                 "active_character_id": current_user.active_character_id,
                 "active_party_id": current_user.active_party_id,
@@ -420,6 +590,8 @@ def create_account_router(*, get_db) -> APIRouter:
                 "active_party": serialize_party_brief(active_party) if active_party else None,
                 "featured_items": [serialize_featured_item(entry) for entry in featured_items],
                 "friends_count": len(friends),
+                "media_items": media["showcase"],
+                "cover_image": primary_showcase or media.get("banner") or media.get("avatar"),
             },
         }
 
@@ -456,8 +628,20 @@ def create_account_router(*, get_db) -> APIRouter:
             current_user.bio = str(payload.bio or "").strip()[:2000]
         if payload.avatar_url is not None:
             current_user.avatar_url = str(payload.avatar_url or "").strip()[:500]
+            media = get_profile_media(current_user)
+            if not current_user.avatar_url:
+                if media.get("avatar"):
+                    remove_media_file(media["avatar"].get("path"))
+                media["avatar"] = None
+                save_profile_media(current_user, media)
         if payload.banner_url is not None:
             current_user.banner_url = str(payload.banner_url or "").strip()[:500]
+            media = get_profile_media(current_user)
+            if not current_user.banner_url:
+                if media.get("banner"):
+                    remove_media_file(media["banner"].get("path"))
+                media["banner"] = None
+                save_profile_media(current_user, media)
         if payload.short_status is not None:
             current_user.short_status = str(payload.short_status or "").strip()[:140]
         if payload.showcase_text is not None:
@@ -522,6 +706,142 @@ def create_account_router(*, get_db) -> APIRouter:
         db.commit()
         db.refresh(current_user)
 
+        return {
+            "status": "ok",
+            **build_account_payload(db, current_user),
+        }
+
+    @router.get("/media")
+    def get_account_media(
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ):
+        touch_user_presence(db, current_user)
+        return {
+            "status": "ok",
+            "media": get_profile_media(current_user),
+        }
+
+    @router.post("/media/upload")
+    def upload_account_media(
+        payload: AccountMediaUploadRequest,
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ):
+        touch_user_presence(db, current_user)
+        max_bytes = 4 * 1024 * 1024 if payload.kind in {"avatar", "banner"} else 8 * 1024 * 1024
+        mime_type, binary, file_ext = decode_image_data_url(payload.data_url, max_bytes=max_bytes)
+        stored_path, url = store_media_file(
+            current_user,
+            binary=binary,
+            file_ext=file_ext,
+            kind=payload.kind,
+            file_name=payload.file_name,
+        )
+
+        media = get_profile_media(current_user)
+        entry = {
+            "id": payload.kind if payload.kind in {"avatar", "banner"} else f"showcase_{uuid4().hex[:12]}",
+            "kind": payload.kind,
+            "url": url,
+            "path": stored_path,
+            "caption": str(payload.caption or "").strip()[:160],
+            "file_name": str(payload.file_name or "").strip()[:180],
+            "mime_type": mime_type,
+            "size_bytes": len(binary),
+            "created_at": now_utc().isoformat(),
+        }
+
+        if payload.kind in {"avatar", "banner"}:
+            previous = media.get(payload.kind)
+            if previous:
+                remove_media_file(previous.get("path"))
+            media[payload.kind] = entry
+            if payload.kind == "avatar":
+                current_user.avatar_url = url
+            else:
+                current_user.banner_url = url
+        else:
+            showcase = media["showcase"]
+            if len(showcase) >= 24:
+                oldest = showcase.pop(0)
+                remove_media_file(oldest.get("path"))
+            showcase.append(
+                {
+                    **entry,
+                    "is_primary": bool(payload.make_primary) or not showcase,
+                }
+            )
+            if payload.make_primary:
+                for row in showcase:
+                    row["is_primary"] = row["id"] == entry["id"]
+
+        save_profile_media(current_user, media)
+        current_user.last_seen_at = now_utc()
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+        return {
+            "status": "ok",
+            **build_account_payload(db, current_user),
+        }
+
+    @router.post("/media/{media_id}/primary")
+    def set_account_media_primary(
+        media_id: str,
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ):
+        touch_user_presence(db, current_user)
+        media = get_profile_media(current_user)
+        showcase = media["showcase"]
+        target = next((entry for entry in showcase if entry["id"] == media_id), None)
+        if not target:
+            raise HTTPException(status_code=404, detail="Изображение не найдено")
+        for entry in showcase:
+            entry["is_primary"] = entry["id"] == media_id
+        save_profile_media(current_user, media)
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+        return {
+            "status": "ok",
+            **build_account_payload(db, current_user),
+        }
+
+    @router.delete("/media/{media_id}")
+    def delete_account_media(
+        media_id: str,
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ):
+        touch_user_presence(db, current_user)
+        media = get_profile_media(current_user)
+
+        if media_id in {"avatar", "banner"}:
+            entry = media.get(media_id)
+            if not entry:
+                raise HTTPException(status_code=404, detail="Изображение не найдено")
+            remove_media_file(entry.get("path"))
+            media[media_id] = None
+            if media_id == "avatar":
+                current_user.avatar_url = ""
+            else:
+                current_user.banner_url = ""
+        else:
+            showcase = media["showcase"]
+            index = next((idx for idx, entry in enumerate(showcase) if entry["id"] == media_id), -1)
+            if index < 0:
+                raise HTTPException(status_code=404, detail="Изображение не найдено")
+            removed = showcase.pop(index)
+            remove_media_file(removed.get("path"))
+            if removed.get("is_primary") and showcase:
+                showcase[0]["is_primary"] = True
+
+        save_profile_media(current_user, media)
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
         return {
             "status": "ok",
             **build_account_payload(db, current_user),

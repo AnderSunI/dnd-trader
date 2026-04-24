@@ -1301,10 +1301,6 @@ async function toggleGuestRole() {
     openCabinet();
   }
 
-  if (STATE.activeTraderId != null) {
-    await window.openTraderModal(STATE.activeTraderId);
-  }
-
   showToast(STATE.guestRole === "gm" ? "Режим ГМа включён" : "Режим игрока включён");
 }
 

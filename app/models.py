@@ -376,6 +376,7 @@ class User(Base):
     show_gm_badge = Column(Boolean, default=True)
     profile_tags = Column(JSON, default=_default_list)
     preferred_systems = Column(JSON, default=_default_list)
+    profile_media = Column(JSON, default=_default_dict)
     featured_item_ids = Column(JSON, default=_default_list)
     active_character_id = Column(Integer, ForeignKey("characters.id"), nullable=True, index=True)
     active_party_id = Column(Integer, ForeignKey("party_tables.id"), nullable=True, index=True)

@@ -134,6 +134,12 @@ const MASTER_ROOM_STATE = {
   characterPool: [],
   selectedCharacterPoolValue: "lss-current",
   combatDiceOpen: true,
+  combatLogOpen: true,
+  combatLogFilter: "all",
+  combatHideSecondary: false,
+  combatEventType: "roll",
+  activeSheetMemberId: "",
+  pollTimer: null,
   combatDiceType: "d20",
   combatLastRoll: null,
 };
@@ -699,12 +705,12 @@ function renderCabinetTabs() {
 
       return `
         <button
-          class="btn ${active ? "active" : ""}"
+          class="btn cabinet-rail-btn ${active ? "active" : ""}"
           data-cabinet-tab="${escapeHtml(tab.key)}"
           style="
             width:100%;
-            min-height:40px;
-            padding:8px 10px;
+            min-height:42px;
+            padding:9px 12px;
             justify-content:flex-start;
             text-align:left;
             border-radius:15px;
@@ -3055,9 +3061,186 @@ function normalizeMasterRoomVisibility(value) {
   return ["private", "basic", "sheet", "full"].includes(raw) ? raw : "basic";
 }
 
+function normalizeMasterRoomScope(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return ["public", "gm_only", "owner_only", "revealed"].includes(raw) ? raw : "owner_only";
+}
+
 function normalizeMasterRoomRole(value) {
   const raw = String(value || "").trim().toLowerCase();
   return raw === "gm" ? "gm" : "player";
+}
+
+function masterRoomVisibilityLabel(value) {
+  const preset = normalizeMasterRoomVisibility(value);
+  if (preset === "private") return "owner only";
+  if (preset === "sheet") return "sheet";
+  if (preset === "full") return "full";
+  return "public/basic";
+}
+
+function masterRoomScopeLabel(value) {
+  const scope = normalizeMasterRoomScope(value);
+  if (scope === "public") return "public";
+  if (scope === "gm_only") return "GM only";
+  if (scope === "revealed") return "revealed";
+  return "owner only";
+}
+
+function getDefaultMasterRoomVisibilityMatrix(preset = "basic") {
+  const normalized = normalizeMasterRoomVisibility(preset);
+  if (normalized === "private") {
+    return {
+      identity: "owner_only",
+      combat: "owner_only",
+      stats: "owner_only",
+      spells: "owner_only",
+      inventory: "gm_only",
+      equipment: "owner_only",
+      notes: "gm_only",
+      story: "owner_only",
+    };
+  }
+  if (normalized === "sheet") {
+    return {
+      identity: "public",
+      combat: "public",
+      stats: "public",
+      spells: "owner_only",
+      inventory: "owner_only",
+      equipment: "owner_only",
+      notes: "gm_only",
+      story: "owner_only",
+    };
+  }
+  if (normalized === "full") {
+    return {
+      identity: "public",
+      combat: "public",
+      stats: "public",
+      spells: "revealed",
+      inventory: "revealed",
+      equipment: "revealed",
+      notes: "owner_only",
+      story: "revealed",
+    };
+  }
+  return {
+    identity: "public",
+    combat: "public",
+    stats: "owner_only",
+    spells: "owner_only",
+    inventory: "gm_only",
+    equipment: "owner_only",
+    notes: "gm_only",
+    story: "owner_only",
+  };
+}
+
+function normalizeMasterRoomVisibilityMatrix(raw, preset = "basic") {
+  const base = getDefaultMasterRoomVisibilityMatrix(preset);
+  const source = raw && typeof raw === "object" ? raw : {};
+  Object.keys(base).forEach((key) => {
+    if (key in source) {
+      base[key] = normalizeMasterRoomScope(source[key]);
+    }
+  });
+  return base;
+}
+
+function getMasterRoomMemberVisibilityMatrix(member) {
+  return normalizeMasterRoomVisibilityMatrix(member?.visibility_matrix, member?.visibility_preset);
+}
+
+function getMasterRoomVisibilitySections() {
+  return [
+    { key: "identity", label: "Identity" },
+    { key: "combat", label: "Combat" },
+    { key: "stats", label: "Stats" },
+    { key: "spells", label: "Spells" },
+    { key: "inventory", label: "Inventory" },
+    { key: "equipment", label: "Equipment" },
+    { key: "story", label: "Story" },
+    { key: "notes", label: "Notes" },
+  ];
+}
+
+function resolveMasterRoomCharacterName(member, fallback = "") {
+  const manual = String(member?.selected_character_name || "").trim();
+  const lssName = String(member?.selected_character_lss_name || "").trim();
+  const fallbackName = String(fallback || "").trim();
+  return {
+    value: manual || fallbackName || lssName || "Персонаж",
+    source: manual ? "manual" : fallbackName ? "linked" : lssName ? "lss" : "fallback",
+  };
+}
+
+function getMasterRoomEntityKindLabel(kind) {
+  const normalized = String(kind || "").trim().toLowerCase();
+  if (normalized === "enemy") return "Враг";
+  if (normalized === "npc") return "NPC";
+  if (normalized === "ally") return "Союзник";
+  if (normalized === "gm") return "GM";
+  return "Игрок";
+}
+
+function getMasterRoomCombatStatusMeta(status) {
+  const raw = String(status || "ready").trim().toLowerCase();
+  if (["dead", "killed"].includes(raw)) return { label: "Мёртв", className: "status-dead" };
+  if (["down", "unconscious", "dying"].includes(raw)) return { label: "Без сознания", className: "status-down" };
+  if (["hidden", "stealthed"].includes(raw)) return { label: "Скрыт", className: "status-hidden" };
+  if (["hostile"].includes(raw)) return { label: "Hostile", className: "status-hostile" };
+  return { label: raw || "Ready", className: "status-ready" };
+}
+
+function getMasterRoomCombatLogTone(entry) {
+  const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
+  if (["damage", "attack"].includes(type)) return "combat";
+  if (type === "heal") return "heal";
+  if (type === "effect") return "effect";
+  if (["save", "roll"].includes(type)) return "dice";
+  if (["turn", "round", "sync", "spawn"].includes(type)) return "system";
+  return "note";
+}
+
+function getMasterRoomCombatLogFilterBucket(entry) {
+  const tone = getMasterRoomCombatLogTone(entry);
+  if (tone === "dice") return "dice";
+  if (tone === "effect") return "effect";
+  if (tone === "system" || tone === "note") return "system";
+  return "combat";
+}
+
+function isMasterRoomCombatLogEntryVisible(entry, filter = "all", hideSecondary = false) {
+  const bucket = getMasterRoomCombatLogFilterBucket(entry);
+  if (hideSecondary && ["system", "note"].includes(bucket)) {
+    return filter === "system" ? false : filter === "all" ? false : bucket === filter;
+  }
+  if (filter === "all") return true;
+  return bucket === filter;
+}
+
+function getMasterRoomCombatLogAvatarMarkup(entry, combat) {
+  const actorEntryId = String(entry?.entry_id || "").trim();
+  const actorName = String(entry?.actor_name || "Система").trim();
+  const sourceEntry = safeArray(combat?.entries).find((item) => String(item.entry_id || "") === actorEntryId);
+  if (sourceEntry?.portrait_url) {
+    return `<img src="${escapeHtml(sourceEntry.portrait_url)}" alt="${escapeHtml(actorName)}" class="master-room-combat-log-avatar-img">`;
+  }
+  return `<span class="master-room-combat-log-avatar-fallback">${escapeHtml((actorName || "?").slice(0, 1).toUpperCase())}</span>`;
+}
+
+function getMasterRoomCombatLogHeadline(entry) {
+  const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
+  if (type === "turn") return entry?.text || `Ход: ${entry?.actor_name || "Участник"}`;
+  if (type === "round") return entry?.text || `Раунд ${entry?.round || 1}`;
+  if (type === "save") return entry?.text || `${entry?.actor_name || "Участник"} делает спасбросок`;
+  if (type === "attack") return entry?.text || `${entry?.actor_name || "Участник"} атакует ${entry?.target_name || "цель"}`;
+  if (type === "damage") return entry?.text || `${entry?.target_name || entry?.actor_name || "Цель"} получает урон`;
+  if (type === "heal") return entry?.text || `${entry?.actor_name || "Участник"} лечит ${entry?.target_name || "цель"}`;
+  if (type === "effect") return entry?.text || `${entry?.target_name || entry?.actor_name || "Цель"} получает эффект`;
+  if (type === "roll") return entry?.text || `${entry?.actor_name || "Участник"} бросает ${entry?.dice || "куб"}`;
+  return entry?.text || entry?.reason || "Системное событие";
 }
 
 function normalizeMasterRoomCombat(raw) {
@@ -3083,6 +3266,13 @@ function normalizeMasterRoomCombat(raw) {
       notes: String(entry?.notes || "").trim(),
       source: String(entry?.source || "table").trim(),
       enemy_ref: String(entry?.enemy_ref || "").trim(),
+      portrait_url: String(entry?.portrait_url || "").trim(),
+      level: Math.max(0, safeNumber(entry?.level, 0)),
+      class_name: String(entry?.class_name || "").trim(),
+      race: String(entry?.race || "").trim(),
+      entity_kind: String(entry?.entity_kind || (entry?.entry_type === "enemy" ? "enemy" : "player")).trim(),
+      visibility_preset: normalizeMasterRoomVisibility(entry?.visibility_preset),
+      visibility_matrix: normalizeMasterRoomVisibilityMatrix(entry?.visibility_matrix, entry?.visibility_preset),
       abilities: entry?.abilities && typeof entry.abilities === "object" ? entry.abilities : {},
       attacks: safeArray(entry?.attacks),
       spells: safeArray(entry?.spells),
@@ -3090,12 +3280,20 @@ function normalizeMasterRoomCombat(raw) {
     log: safeArray(source.log).map((entry, index) => ({
       id: String(entry?.id || `combat_log_${index}`),
       membership_id: String(entry?.membership_id || ""),
+      entry_id: String(entry?.entry_id || "").trim(),
+      target_entry_id: String(entry?.target_entry_id || "").trim(),
+      target_name: String(entry?.target_name || "").trim(),
       actor_name: String(entry?.actor_name || "Система").trim(),
       type: String(entry?.type || "note").trim(),
+      event_type: String(entry?.event_type || entry?.type || "note").trim(),
       dice: String(entry?.dice || "").trim(),
       modifier: safeNumber(entry?.modifier, 0),
       roll_total: safeNumber(entry?.roll_total, 0),
       damage: safeNumber(entry?.damage, 0),
+      damage_type: String(entry?.damage_type || "").trim(),
+      outcome: String(entry?.outcome || "").trim(),
+      visibility: normalizeMasterRoomScope(entry?.visibility),
+      round: Math.max(1, safeNumber(entry?.round, 1)),
       reason: String(entry?.reason || "").trim(),
       text: String(entry?.text || "").trim(),
       created_at: entry?.created_at || new Date().toISOString(),
@@ -3125,9 +3323,15 @@ function normalizeMasterRoomTable(table, index = 0) {
       visibility_preset: normalizeMasterRoomVisibility(member?.visibility_preset),
       selected_character_id: String(member?.selected_character_id || ""),
       selected_character_name: String(member?.selected_character_name || "").trim(),
+      selected_character_name_source: String(member?.selected_character_name_source || "").trim(),
+      selected_character_lss_name: String(member?.selected_character_lss_name || "").trim(),
       notes: String(member?.notes || "").trim(),
       hidden_sections: member?.hidden_sections && typeof member.hidden_sections === "object"
         ? member.hidden_sections
+        : {},
+      visibility_matrix: normalizeMasterRoomVisibilityMatrix(member?.visibility_matrix, member?.visibility_preset),
+      character_sheet: member?.character_sheet && typeof member.character_sheet === "object"
+        ? member.character_sheet
         : {},
       joined_at: member?.joined_at || new Date().toISOString(),
     })),
@@ -3149,6 +3353,7 @@ function normalizeMasterRoomTable(table, index = 0) {
       created_by_nickname: String(entry?.created_by_nickname || "").trim(),
       created_at: entry?.created_at || new Date().toISOString(),
     })),
+    viewer_can_manage: Boolean(raw.viewer_can_manage),
     combat: normalizeMasterRoomCombat(raw.combat),
   };
 }
@@ -3196,6 +3401,16 @@ function getCurrentLssCharacterName() {
   ).trim();
 }
 
+function unwrapLssValue(node, fallback = "") {
+  if (node == null) return fallback;
+  if (["string", "number", "boolean"].includes(typeof node)) return node;
+  if (typeof node === "object") {
+    if ("value" in node) return unwrapLssValue(node.value, fallback);
+    if ("score" in node) return unwrapLssValue(node.score, fallback);
+  }
+  return fallback;
+}
+
 function getCurrentLssCharacterSnapshot() {
   const profile = getLssProfile?.() || null;
   const raw = getLssRaw?.() || null;
@@ -3221,18 +3436,18 @@ function getCurrentLssCharacterSnapshot() {
   const info = source?.info && typeof source.info === "object" ? source.info : {};
   const vitality = source?.vitality && typeof source.vitality === "object" ? source.vitality : {};
 
-  const hpMax = Math.max(1, safeNumber(vitality["hp-max"] ?? vitality.hp_max ?? vitality.hpMax, 10));
-  const hpCurrent = Math.max(0, safeNumber(vitality["hp-current"] ?? vitality.hp_current ?? vitality.hpCurrent, hpMax));
+  const hpMax = Math.max(1, safeNumber(unwrapLssValue(vitality["hp-max"] ?? vitality.hp_max ?? vitality.hpMax), 10));
+  const hpCurrent = Math.max(0, safeNumber(unwrapLssValue(vitality["hp-current"] ?? vitality.hp_current ?? vitality.hpCurrent), hpMax));
 
   return {
-    name: String(source?.name || info?.name || "").trim(),
-    level: Math.max(1, safeNumber(info?.level, 1)),
-    class_name: String(info?.charClass || info?.class || "").trim(),
-    race: String(info?.race || "").trim(),
+    name: String(unwrapLssValue(source?.name) || unwrapLssValue(info?.name) || "").trim(),
+    level: Math.max(1, safeNumber(unwrapLssValue(info?.level), 1)),
+    class_name: String(unwrapLssValue(info?.charClass) || unwrapLssValue(info?.class) || "").trim(),
+    race: String(unwrapLssValue(info?.race) || "").trim(),
     hp_current: hpCurrent,
     hp_max: hpMax,
-    ac: Math.max(0, safeNumber(vitality?.ac, 10)),
-    initiative: safeNumber(vitality?.initiative, 0),
+    ac: Math.max(0, safeNumber(unwrapLssValue(vitality?.ac), 10)),
+    initiative: safeNumber(unwrapLssValue(vitality?.initiative), 0),
   };
 }
 
@@ -3313,6 +3528,7 @@ function getMasterRoomCurrentMembership(table) {
 
 function canManageMasterRoomTable(table) {
   if (!table) return false;
+  if (table.viewer_can_manage) return true;
   const currentUserId = getCurrentUserId();
   if (!currentUserId) return false;
   if (String(table.owner_user_id || "") === currentUserId) return true;
@@ -3343,6 +3559,29 @@ function applyAndRenderMasterRoom(payload) {
   renderMasterRoom();
 }
 
+function stopMasterRoomPolling() {
+  if (MASTER_ROOM_STATE.pollTimer) {
+    clearInterval(MASTER_ROOM_STATE.pollTimer);
+    MASTER_ROOM_STATE.pollTimer = null;
+  }
+}
+
+function ensureMasterRoomPolling() {
+  stopMasterRoomPolling();
+  if (CABINET_STATE.activeTab !== "masterroom" || !isCabinetOpen()) return;
+  MASTER_ROOM_STATE.pollTimer = window.setInterval(async () => {
+    try {
+      const activeBefore = MASTER_ROOM_STATE.activeTableId;
+      await loadMasterRoom({ silent: true });
+      if (activeBefore) {
+        MASTER_ROOM_STATE.activeTableId = activeBefore;
+        ensureMasterRoomDefaults();
+      }
+      renderMasterRoom();
+    } catch (_) {}
+  }, 7000);
+}
+
 async function loadMasterRoomUsers(query) {
   const needle = String(query || "").trim();
   if (!needle) {
@@ -3369,7 +3608,8 @@ async function loadMasterRoomItems(query) {
   return MASTER_ROOM_STATE.itemSearchResults;
 }
 
-async function loadMasterRoom() {
+async function loadMasterRoom(options = {}) {
+  const silent = Boolean(options?.silent);
   MASTER_ROOM_STATE.loaded = true;
   try {
     const data = await apiClientGet("/gm/master-room");
@@ -3400,8 +3640,11 @@ async function loadMasterRoom() {
     MASTER_ROOM_STATE.tables = [];
     MASTER_ROOM_STATE.source = "error";
     MASTER_ROOM_STATE.createOpen = true;
-    showToast(error.message || "Не удалось загрузить Master Room");
+    if (!silent) {
+      showToast(error.message || "Не удалось загрузить Master Room");
+    }
   }
+  ensureMasterRoomPolling();
   renderMasterRoom();
   try {
     window.dispatchEvent(new CustomEvent("dnd:party:changed", { detail: { tables: MASTER_ROOM_STATE.tables } }));
@@ -3478,6 +3721,105 @@ function getMasterRoomCombatEntryById(table, entryId) {
   return safeArray(table?.combat?.entries).find((entry) => String(entry.entry_id || "") === String(entryId || ""));
 }
 
+function renderMasterRoomVisibilityMatrix(member) {
+  const matrix = getMasterRoomMemberVisibilityMatrix(member);
+  return `
+    <div class="master-room-visibility-matrix">
+      ${getMasterRoomVisibilitySections().map((section) => `
+        <label class="master-room-visibility-cell">
+          <span>${escapeHtml(section.label)}</span>
+          <select data-master-room-visibility-scope="${escapeHtml(member.id)}" data-master-room-visibility-key="${escapeHtml(section.key)}">
+            ${["public", "gm_only", "owner_only", "revealed"].map((scope) => `
+              <option value="${escapeHtml(scope)}" ${matrix[section.key] === scope ? "selected" : ""}>${escapeHtml(masterRoomScopeLabel(scope))}</option>
+            `).join("")}
+          </select>
+        </label>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderMasterRoomCharacterSheet(member) {
+  const sheet = member?.character_sheet && typeof member.character_sheet === "object" ? member.character_sheet : {};
+  const identity = sheet.identity && typeof sheet.identity === "object" ? sheet.identity : {};
+  const combat = sheet.combat && typeof sheet.combat === "object" ? sheet.combat : {};
+  const stats = sheet.stats && typeof sheet.stats === "object" ? sheet.stats : {};
+  const story = sheet.story && typeof sheet.story === "object" ? sheet.story : {};
+  const spells = sheet.spells && typeof sheet.spells === "object" ? sheet.spells : {};
+  const inventory = sheet.inventory && typeof sheet.inventory === "object" ? sheet.inventory : {};
+  const equipment = sheet.equipment && typeof sheet.equipment === "object" ? sheet.equipment : {};
+  const notes = sheet.notes && typeof sheet.notes === "object" ? sheet.notes : {};
+
+  const statEntries = Object.entries(stats).slice(0, 6);
+  const inventoryEntries = safeArray(inventory.items).slice(0, 4);
+  const equipmentEntries = safeArray(equipment.weapons || equipment.items).slice(0, 4);
+  const spellSlots = Object.entries(spells.slots || {}).slice(0, 4);
+  const noteEntries = safeArray(notes.entries).slice(0, 3);
+
+  return `
+    <div class="cabinet-block master-room-sheet-card">
+      <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">LSS-like sheet view</div>
+          <h4 style="margin:4px 0 6px;">${escapeHtml(identity.name || member?.selected_character_name || member?.nickname || "Персонаж")}</h4>
+          <div class="muted" style="font-size:0.82rem;">${escapeHtml(identity.class_name || "class")} ${identity.subclass ? `• ${escapeHtml(identity.subclass)}` : ""} ${identity.race ? `• ${escapeHtml(identity.race)}` : ""}</div>
+        </div>
+        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+          ${sheet.portrait_url ? `<img src="${escapeHtml(sheet.portrait_url)}" alt="${escapeHtml(identity.name || "portrait")}" class="master-room-sheet-avatar">` : ""}
+          ${combat.hp_max ? `<span class="meta-item">HP ${escapeHtml(String(combat.hp_current || 0))}/${escapeHtml(String(combat.hp_max || 0))}</span>` : ""}
+          ${combat.ac ? `<span class="meta-item">AC ${escapeHtml(String(combat.ac || 0))}</span>` : ""}
+          ${combat.initiative || combat.initiative === 0 ? `<span class="meta-item">Init ${escapeHtml(String(combat.initiative || 0))}</span>` : ""}
+        </div>
+      </div>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+        <div class="stat-box" style="min-height:auto; padding:12px;">
+          <div class="muted">Identity</div>
+          <div style="margin-top:8px; font-size:0.86rem; line-height:1.55;">
+            ${identity.background ? `${escapeHtml(identity.background)}<br>` : ""}
+            ${identity.alignment ? `${escapeHtml(identity.alignment)}<br>` : ""}
+            lvl ${escapeHtml(String(identity.level || 1))}
+          </div>
+        </div>
+        ${statEntries.length ? `
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Stats</div>
+            <div class="master-room-mini-grid" style="margin-top:8px;">
+              ${statEntries.map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key).toUpperCase())}: ${escapeHtml(String(value))}</span>`).join("")}
+            </div>
+          </div>
+        ` : ""}
+        ${spellSlots.length ? `
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Spells</div>
+            <div class="master-room-mini-grid" style="margin-top:8px;">
+              ${spellSlots.map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key))}: ${escapeHtml(String(value))}</span>`).join("")}
+            </div>
+          </div>
+        ` : ""}
+        ${inventoryEntries.length ? `
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Inventory</div>
+            <div style="margin-top:8px; font-size:0.84rem; line-height:1.5;">${inventoryEntries.map((item) => escapeHtml(item)).join("<br>")}</div>
+          </div>
+        ` : ""}
+        ${equipmentEntries.length ? `
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Equipment</div>
+            <div style="margin-top:8px; font-size:0.84rem; line-height:1.5;">${equipmentEntries.map((item) => escapeHtml(item)).join("<br>")}</div>
+          </div>
+        ` : ""}
+      </div>
+      ${story.background || story.personality || noteEntries.length ? `
+        <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:10px;">
+          ${story.background ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Background</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${escapeHtml(clampText(story.background, 420))}</div></div>` : ""}
+          ${story.personality ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Personality</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${escapeHtml(clampText(story.personality, 320))}</div></div>` : ""}
+          ${noteEntries.length ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Notes</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${noteEntries.map((item) => escapeHtml(clampText(item, 160))).join("<br>")}</div></div>` : ""}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
 function renderMasterRoomParticipants(table) {
   if (!table?.members?.length) {
     return `<div class="cabinet-block"><p>Участников пока нет.</p></div>`;
@@ -3485,6 +3827,7 @@ function renderMasterRoomParticipants(table) {
 
   const currentUserId = getCurrentUserId();
   const lss = getCurrentLssCharacterSnapshot();
+  const canManage = canManageMasterRoomTable(table);
   const characterPoolOptions = getMasterRoomCharacterPool()
     .map((entry) => `<option value="${escapeHtml(String(entry.id))}">${escapeHtml(entry.name)}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}${entry.level ? ` • lvl ${escapeHtml(String(entry.level))}` : ""}</option>`)
     .join("");
@@ -3525,6 +3868,11 @@ function renderMasterRoomParticipants(table) {
         <div class="filter-group">
           <label>Персонаж</label>
           <input type="text" value="${escapeHtml(member.selected_character_name || "")}" data-master-room-member-character="${escapeHtml(member.id)}" placeholder="Имя персонажа">
+          <div class="muted" style="font-size:0.76rem; margin-top:6px;">Приоритет имени: ручное имя за столом → персонаж аккаунта → имя из LSS.</div>
+          <div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-top:8px;">
+            <span class="meta-item">${escapeHtml(member.selected_character_name_source || "fallback")}</span>
+            ${member.selected_character_lss_name ? `<span class="meta-item">LSS: ${escapeHtml(member.selected_character_lss_name)}</span>` : ""}
+          </div>
           ${
             String(member.user_id || "") === currentUserId && lss.name
               ? `<div class="cart-buttons" style="margin-top:8px; gap:6px;">
@@ -3546,6 +3894,12 @@ function renderMasterRoomParticipants(table) {
           }
         </div>
       </div>
+      ${canManage ? `
+        <div style="margin-top:10px;">
+          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Visibility matrix</div>
+          ${renderMasterRoomVisibilityMatrix(member)}
+        </div>
+      ` : ""}
     </div>
   `).join("");
 }
@@ -3707,12 +4061,15 @@ function renderMasterRoomLssBridge(table) {
           `
           : `<div class="muted">Сначала открой вкладку LSS и загрузи персонажа. После этого здесь появится подтверждение привязки к столу.</div>`
       }
+      ${currentMember ? `<div style="margin-top:12px;">${renderMasterRoomCharacterSheet(currentMember)}</div>` : ""}
     </div>
   `;
 }
 
 function renderMasterRoomPartyOverview(table) {
   const members = safeArray(table?.members);
+  const activeSheetId = String(MASTER_ROOM_STATE.activeSheetMemberId || members[0]?.id || "").trim();
+  const activeSheetMember = members.find((member) => String(member.id || "") === activeSheetId) || members[0] || null;
   return `
     <div class="cabinet-block master-room-stage-panel" style="margin-top:12px;">
       <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
@@ -3728,18 +4085,22 @@ function renderMasterRoomPartyOverview(table) {
           <div class="stat-box" style="padding:12px; min-height:auto;">
             <div class="flex-between" style="gap:8px; align-items:flex-start;">
               <div>
-                <div style="font-size:15px; font-weight:800;">${escapeHtml(member.selected_character_name || member.display_name || member.nickname)}</div>
+                <div style="font-size:15px; font-weight:800;">${escapeHtml(resolveMasterRoomCharacterName(member, member.display_name || member.nickname).value)}</div>
                 <div class="muted" style="font-size:12px; margin-top:4px;">${escapeHtml(member.nickname || member.email || "Игрок")}</div>
               </div>
               <span class="quality-badge" style="padding:3px 8px; min-height:auto;">${member.role_in_table === "gm" ? "GM" : "Player"}</span>
             </div>
             <div class="trader-meta" style="gap:6px; margin-top:10px; flex-wrap:wrap;">
-              <span class="meta-item">${escapeHtml(member.visibility_preset || "basic")}</span>
-              ${member.selected_character_name ? `<span class="meta-item">LSS/char: ${escapeHtml(member.selected_character_name)}</span>` : ""}
+              <span class="meta-item">${escapeHtml(masterRoomVisibilityLabel(member.visibility_preset))}</span>
+              <span class="meta-item">${resolveMasterRoomCharacterName(member, member.display_name || member.nickname).source === "manual" ? "ручное имя" : "linked/LSS имя"}</span>
+            </div>
+            <div class="cart-buttons" style="margin-top:10px; gap:8px;">
+              <button class="btn ${String(member.id || "") === String(activeSheetMember?.id || "") ? "active" : ""}" type="button" data-master-room-open-sheet="${escapeHtml(member.id)}">Открыть sheet</button>
             </div>
           </div>
         `).join("")}
       </div>
+      ${activeSheetMember ? `<div style="margin-top:12px;">${renderMasterRoomCharacterSheet(activeSheetMember)}</div>` : ""}
     </div>
   `;
 }
@@ -3869,16 +4230,24 @@ function renderMasterRoomInitiativeTrack(combat) {
       <div class="master-room-initiative-row">
         ${entries.map((entry, index) => {
           const active = index === combat.turn_index;
+          const next = index === ((combat.turn_index + 1) % Math.max(entries.length, 1));
+          const statusMeta = getMasterRoomCombatStatusMeta(entry.status);
+          const typeLabel = getMasterRoomEntityKindLabel(entry.entity_kind || entry.entry_type);
+          const portrait = entry.portrait_url
+            ? `<img src="${escapeHtml(entry.portrait_url)}" alt="${escapeHtml(entry.name)}" class="master-room-initiative-avatar">`
+            : `<span class="master-room-initiative-avatar master-room-initiative-avatar-fallback">${escapeHtml((entry.name || "?").slice(0, 1).toUpperCase())}</span>`;
           return `
             <button
-              class="master-room-initiative-chip ${active ? "master-room-initiative-chip-active" : ""} ${entry.entry_type === "enemy" ? "master-room-initiative-chip-enemy" : ""}"
+              class="master-room-initiative-chip ${active ? "master-room-initiative-chip-active" : ""} ${next ? "master-room-initiative-chip-next" : ""} ${entry.entry_type === "enemy" ? "master-room-initiative-chip-enemy" : ""}"
               type="button"
               data-master-room-focus-turn="${escapeHtml(String(index))}"
             >
               <span class="master-room-initiative-chip-order">${escapeHtml(String(index + 1))}</span>
+              ${portrait}
               <span class="master-room-initiative-chip-body">
                 <strong>${escapeHtml(entry.name)}</strong>
-                <small>${escapeHtml(entry.entry_type === "enemy" ? "Противник" : "Партия")} • Init ${escapeHtml(String(entry.initiative || 0))}</small>
+                <small>${escapeHtml(typeLabel)} • Init ${escapeHtml(String(entry.initiative || 0))}${entry.level ? ` • lvl ${escapeHtml(String(entry.level))}` : ""}</small>
+                <small>${escapeHtml(statusMeta.label)}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}</small>
               </span>
             </button>
           `;
@@ -3888,13 +4257,89 @@ function renderMasterRoomInitiativeTrack(combat) {
   `;
 }
 
+function renderMasterRoomCombatLogPanel(combat) {
+  const entries = safeArray(combat?.log).filter((entry) => isMasterRoomCombatLogEntryVisible(
+    entry,
+    MASTER_ROOM_STATE.combatLogFilter,
+    MASTER_ROOM_STATE.combatHideSecondary
+  ));
+  if (!entries.length) {
+    return `<div class="muted">Под выбранный фильтр пока нет событий.</div>`;
+  }
+  const ordered = entries.slice().reverse();
+  return ordered.map((entry, index) => {
+    const tone = getMasterRoomCombatLogTone(entry);
+    const bucket = getMasterRoomCombatLogFilterBucket(entry);
+    const outcome = String(entry?.outcome || "").trim();
+    const headline = getMasterRoomCombatLogHeadline(entry);
+    const label = String(entry?.event_type || entry?.type || "note").trim();
+    const previousEntry = ordered[index - 1] || null;
+    const roundChanged = !previousEntry || Number(previousEntry?.round || 0) !== Number(entry?.round || 0);
+    const isTurnMarker = String(entry?.event_type || entry?.type || "").trim().toLowerCase() === "turn";
+    const isRoundMarker = String(entry?.event_type || entry?.type || "").trim().toLowerCase() === "round";
+    return `
+      ${roundChanged ? `<div class="master-room-combat-log-divider"><span>Раунд ${escapeHtml(String(entry.round || 1))}</span></div>` : ""}
+      ${isTurnMarker ? `<div class="master-room-combat-log-turn-divider"><span>Ход: ${escapeHtml(entry.actor_name || "Участник")}</span></div>` : ""}
+      ${isRoundMarker ? "" : ""}
+      <div class="master-room-combat-log-entry master-room-combat-log-entry-${escapeHtml(tone)} ${bucket === "system" ? "master-room-combat-log-entry-systemline" : ""}">
+        <div class="master-room-combat-log-avatar">
+          ${getMasterRoomCombatLogAvatarMarkup(entry, combat)}
+        </div>
+        <div class="master-room-combat-log-main">
+          <div class="master-room-combat-log-topline">
+            <strong>${escapeHtml(entry.actor_name || "Система")}</strong>
+            <span class="master-room-combat-log-time">R${escapeHtml(String(entry.round || 1))} • ${escapeHtml(formatDateTime(entry.created_at))}</span>
+          </div>
+          <div class="master-room-combat-log-text">${escapeHtml(headline)}</div>
+          <div class="master-room-combat-log-tags">
+            <span class="meta-item">${escapeHtml(label)}</span>
+            ${entry.target_name ? `<span class="meta-item">цель: ${escapeHtml(entry.target_name)}</span>` : ""}
+            ${entry.dice ? `<span class="meta-item">${escapeHtml(entry.dice.toUpperCase())}${entry.roll_total ? ` • ${escapeHtml(String(entry.roll_total))}` : ""}</span>` : ""}
+            ${entry.damage ? `<span class="meta-item">${escapeHtml(String(entry.damage))}${entry.damage_type ? ` ${escapeHtml(entry.damage_type)}` : ""}</span>` : ""}
+            ${outcome ? `<span class="meta-item">${escapeHtml(outcome)}</span>` : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderMasterRoomDiceLogPanel(combat) {
+  const entries = safeArray(combat?.log).filter((entry) => ["roll", "save", "attack"].includes(String(entry?.event_type || entry?.type || "").trim().toLowerCase()));
+  if (!entries.length) {
+    return `<div class="muted">Dice log пока пуст.</div>`;
+  }
+  return entries.slice().reverse().slice(0, 6).map((entry) => `
+    <div class="master-room-dice-log-entry">
+      <div class="master-room-dice-log-head">
+        <strong>${escapeHtml(entry.actor_name || "Система")}</strong>
+        <span class="master-room-combat-log-time">${escapeHtml(formatDateTime(entry.created_at))}</span>
+      </div>
+      <div class="master-room-dice-result-line">
+        <span class="meta-item">${escapeHtml((entry.dice || entry.event_type || "roll").toUpperCase())}</span>
+        <strong>${escapeHtml(String(entry.roll_total || 0))}</strong>
+        <span class="muted">${escapeHtml(entry.modifier >= 0 ? `+${entry.modifier}` : String(entry.modifier || 0))}</span>
+      </div>
+      <div class="muted" style="margin-top:4px; font-size:0.82rem;">${escapeHtml(entry.text || entry.reason || "Бросок")}</div>
+    </div>
+  `).join("");
+}
+
 function renderMasterRoomBattlePanel(table) {
   const combat = normalizeMasterRoomCombat(table?.combat);
+  const canManage = canManageMasterRoomTable(table);
   const currentTurn = combat.entries[combat.turn_index] || null;
   const currentUserId = getCurrentUserId();
   const lss = getCurrentLssCharacterSnapshot();
   const members = combat.entries.filter((entry) => entry.entry_type !== "enemy");
   const enemies = combat.entries.filter((entry) => entry.entry_type === "enemy");
+  const currentMembership = getMasterRoomCurrentMembership(table);
+  const nextTurn = combat.entries[(combat.turn_index + 1) % Math.max(combat.entries.length, 1)] || null;
+  const visibleLogCount = safeArray(combat.log).filter((entry) => isMasterRoomCombatLogEntryVisible(
+    entry,
+    MASTER_ROOM_STATE.combatLogFilter,
+    MASTER_ROOM_STATE.combatHideSecondary
+  )).length;
 
   return `
     <div class="cabinet-block master-room-stage-panel master-room-battle-stage" style="margin-top:12px;">
@@ -3908,59 +4353,175 @@ function renderMasterRoomBattlePanel(table) {
           <span class="meta-item">${combat.active ? "Бой активен" : "Подготовка"}</span>
           <span class="meta-item">Раунд ${escapeHtml(String(combat.round))}</span>
           <span class="meta-item">Ход: ${escapeHtml(currentTurn?.name || "не выбран")}</span>
+          <button class="btn btn-secondary" type="button" id="masterRoomCombatLogToggleBtn" style="min-height:30px; padding:4px 9px; border-radius:10px;">
+            ${MASTER_ROOM_STATE.combatLogOpen ? "Скрыть лог" : "Показать лог"}
+          </button>
         </div>
       </div>
 
-      <div class="profile-grid master-room-combat-toolbar" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-        <div class="filter-group">
-          <label>Раунд</label>
-          <input id="masterRoomCombatRound" type="number" min="1" step="1" value="${escapeHtml(String(combat.round || 1))}">
-        </div>
-        <div class="filter-group">
-          <label>Текущий ход</label>
-          <select id="masterRoomCombatTurnIndex">
-            ${combat.entries.length
-              ? combat.entries.map((entry, index) => `
-                  <option value="${escapeHtml(String(index))}" ${index === combat.turn_index ? "selected" : ""}>
-                    ${escapeHtml(entry.name)}${entry.initiative ? ` • init ${escapeHtml(String(entry.initiative))}` : ""}
-                  </option>
-                `).join("")
-              : `<option value="0">Нет боевых позиций</option>`}
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Статус</label>
-          <select id="masterRoomCombatActiveState">
-            <option value="inactive" ${combat.active ? "" : "selected"}>Подготовка</option>
-            <option value="active" ${combat.active ? "selected" : ""}>Активный бой</option>
-          </select>
-        </div>
-      </div>
+      ${
+        canManage
+          ? `
+            <div class="profile-grid master-room-combat-toolbar" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+              <div class="filter-group">
+                <label>Раунд</label>
+                <input id="masterRoomCombatRound" type="number" min="1" step="1" value="${escapeHtml(String(combat.round || 1))}">
+              </div>
+              <div class="filter-group">
+                <label>Текущий ход</label>
+                <select id="masterRoomCombatTurnIndex">
+                  ${combat.entries.length
+                    ? combat.entries.map((entry, index) => `
+                        <option value="${escapeHtml(String(index))}" ${index === combat.turn_index ? "selected" : ""}>
+                          ${escapeHtml(entry.name)}${entry.initiative ? ` • init ${escapeHtml(String(entry.initiative))}` : ""}
+                        </option>
+                      `).join("")
+                    : `<option value="0">Нет боевых позиций</option>`}
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Статус</label>
+                <select id="masterRoomCombatActiveState">
+                  <option value="inactive" ${combat.active ? "" : "selected"}>Подготовка</option>
+                  <option value="active" ${combat.active ? "selected" : ""}>Активный бой</option>
+                </select>
+              </div>
+            </div>
 
-      <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
-        <button class="btn btn-primary" type="button" id="masterRoomCombatBootstrapBtn">Собрать бой из стола</button>
-        <button class="btn" type="button" id="masterRoomCombatSaveStateBtn">Сохранить фазу боя</button>
-        <button class="btn" type="button" id="masterRoomCombatNextTurnBtn" ${combat.entries.length ? "" : "disabled"}>Следующий ход</button>
-      </div>
+            <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-primary" type="button" id="masterRoomCombatBootstrapBtn">Собрать бой из стола</button>
+              <button class="btn" type="button" id="masterRoomCombatSaveStateBtn">Сохранить фазу боя</button>
+              <button class="btn" type="button" id="masterRoomCombatNextTurnBtn" ${combat.entries.length ? "" : "disabled"}>Следующий ход</button>
+            </div>
+          `
+          : `<div class="cabinet-block" style="padding:10px 12px; margin-bottom:8px;">
+               <div class="muted" style="font-size:0.82rem;">Lobby combat view: игрок видит очередь хода, читаемый лог и основные статы текущей сцены. Редактирование и скрытые GM-детали не показываются.</div>
+             </div>`
+      }
 
       <div style="margin-top:12px;">
         ${renderMasterRoomInitiativeTrack(combat)}
       </div>
 
-      <div class="profile-grid master-room-battle-grid" style="grid-template-columns:minmax(0,1.28fr) minmax(320px,0.92fr); gap:12px; margin-top:12px;">
-        <div>
-          <div class="master-room-battle-columns">
+      <div class="profile-grid master-room-battle-grid" style="grid-template-columns:minmax(0,1.34fr) minmax(300px,0.78fr); gap:12px; margin-top:12px;">
+        <div class="cabinet-block master-room-journal-shell" style="padding:12px;">
+          <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
             <div>
+              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Combat log</div>
+              <h5 style="margin:4px 0 6px 0;">Лента событий боя</h5>
+              <div class="muted" style="font-size:0.82rem;">Текущие действия, броски, эффекты и смена фаз собираются в одну боевую ленту.</div>
+            </div>
+            <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+              <span class="meta-item">${escapeHtml(String(visibleLogCount))} событий</span>
+              <button class="btn btn-secondary" type="button" data-master-room-combat-secondary-toggle="1" style="min-height:30px; padding:4px 9px; border-radius:10px;">
+                ${MASTER_ROOM_STATE.combatHideSecondary ? "Показать системные" : "Скрыть вторичное"}
+              </button>
+            </div>
+          </div>
+          <div class="account-hub-tab-row master-room-log-filter-row" style="margin-bottom:10px;">
+            ${[
+              ["all", "Все"],
+              ["combat", "Бой"],
+              ["dice", "Кубы"],
+              ["effect", "Эффекты"],
+              ["system", "Система"],
+            ].map(([value, label]) => `
+              <button class="btn ${MASTER_ROOM_STATE.combatLogFilter === value ? "active" : ""}" type="button" data-master-room-combat-filter="${escapeHtml(value)}">${escapeHtml(label)}</button>
+            `).join("")}
+          </div>
+          ${
+            MASTER_ROOM_STATE.combatLogOpen
+              ? `<div class="master-room-combat-log master-room-combat-log-immersive">${renderMasterRoomCombatLogPanel(combat)}</div>`
+              : `<div class="master-room-journal-empty">Журнал свернут. Открой лог, чтобы видеть последовательность боя.</div>`
+          }
+        </div>
+
+        <div class="master-room-tactical-stack">
+          ${renderMasterRoomDiceDock(combat)}
+
+          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
+            <div class="master-room-panel-kicker">Тактическая сводка</div>
+            <div class="profile-grid" style="grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px;">
+              <div class="stat-box" style="padding:10px; min-height:auto;">
+                <div class="muted">Раунд</div>
+                <div style="font-size:18px; font-weight:800; margin-top:6px;">${escapeHtml(String(combat.round))}</div>
+              </div>
+              <div class="stat-box" style="padding:10px; min-height:auto;">
+                <div class="muted">Статус</div>
+                <div style="font-size:18px; font-weight:800; margin-top:6px;">${combat.active ? "Активен" : "Подготовка"}</div>
+              </div>
+              <div class="stat-box" style="padding:10px; min-height:auto;">
+                <div class="muted">Союзники</div>
+                <div style="font-size:18px; font-weight:800; margin-top:6px;">${escapeHtml(String(members.length))}</div>
+              </div>
+              <div class="stat-box" style="padding:10px; min-height:auto;">
+                <div class="muted">Противники</div>
+                <div style="font-size:18px; font-weight:800; margin-top:6px;">${escapeHtml(String(enemies.length))}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
+            <div class="master-room-panel-kicker">Текущий порядок</div>
+            <div class="master-room-turn-focus-card" style="margin-top:10px;">
+              <div class="master-room-turn-focus-label">Сейчас</div>
+              <strong>${escapeHtml(currentTurn?.name || "Ход не выбран")}</strong>
+              <div class="muted" style="font-size:0.82rem; margin-top:4px;">${escapeHtml(currentTurn ? getMasterRoomEntityKindLabel(currentTurn.entity_kind || currentTurn.entry_type) : "Сначала собери сцену")}</div>
+            </div>
+            <div class="master-room-turn-focus-card master-room-turn-focus-card-next" style="margin-top:8px;">
+              <div class="master-room-turn-focus-label">Следом</div>
+              <strong>${escapeHtml(nextTurn?.name || "—")}</strong>
+              <div class="muted" style="font-size:0.82rem; margin-top:4px;">${escapeHtml(nextTurn ? getMasterRoomEntityKindLabel(nextTurn.entity_kind || nextTurn.entry_type) : "Ожидает выбора")}</div>
+            </div>
+          </div>
+
+          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
+            <div class="flex-between" style="gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <div>
+                <div class="master-room-panel-kicker">Dice log</div>
+                <div class="muted" style="font-size:0.82rem;">Последние механические события</div>
+              </div>
+              <span class="meta-item">${escapeHtml(String(safeArray(combat.log).filter((entry) => getMasterRoomCombatLogFilterBucket(entry) === "dice").length))}</span>
+            </div>
+            <div class="master-room-dice-log-list">
+              ${renderMasterRoomDiceLogPanel(combat)}
+            </div>
+          </div>
+
+          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
+            <div class="master-room-panel-kicker">${canManage ? "GM actions" : "Player view"}</div>
+            <div class="muted" style="font-size:0.82rem; margin-top:8px;">
+              ${canManage
+                ? "ГМ управляет фазой боя, скрытыми данными и ручными событиями. Игроки получают только сцену, доступный бой и разрешённые детали."
+                : "Игрок видит очередь, журнал боя и свои действия, но не получает GM-only инструменты и скрытые статы противников."}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cabinet-block master-room-roster-shell" style="padding:12px; margin-top:12px;">
+        <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+          <div>
+            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Боевые позиции</div>
+            <h5 style="margin:4px 0 6px 0;">Участники сцены</h5>
+            <div class="muted" style="font-size:0.82rem;">Отдельный слой для партии и врагов, чтобы журнал и tactical stack не превращались в админскую таблицу.</div>
+          </div>
+          <span class="meta-item">${escapeHtml(String(combat.entries.length))} в сцене</span>
+        </div>
+
+        <div class="master-room-battle-columns">
+          <div>
               <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin:0 0 8px 2px;">Партия</div>
               ${members.length ? members.map((entry) => {
                 const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
                 const linkedMember = getMasterRoomMemberById(table, entry.membership_id);
                 const canUseLss = String(linkedMember?.user_id || "") === currentUserId && lss.name;
+                const resolvedName = resolveMasterRoomCharacterName(linkedMember, entry.name);
                 return `
                   <div class="cabinet-block master-room-combatant-card ${isCurrentTurn ? "master-room-combatant-card-active" : ""}" style="padding:12px; margin-bottom:10px;">
                     <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
                       <div>
-                        <div style="font-weight:800;">${escapeHtml(entry.name || linkedMember?.nickname || "Участник")}</div>
+                        <div style="font-weight:800;">${escapeHtml(resolvedName.value || entry.name || linkedMember?.nickname || "Участник")}</div>
                         <div class="muted" style="font-size:0.8rem;">
                           ${escapeHtml(linkedMember?.nickname || "участник")} • ${escapeHtml(entry.role_in_table === "gm" ? "ГМ" : "Игрок")}
                           ${isCurrentTurn ? " • сейчас ход" : ""}
@@ -3970,46 +4531,53 @@ function renderMasterRoomBattlePanel(table) {
                         <span class="meta-item">HP ${escapeHtml(String(entry.hp_current))}/${escapeHtml(String(entry.hp_max))}</span>
                         <span class="meta-item">AC ${escapeHtml(String(entry.ac))}</span>
                         <span class="meta-item">Init ${escapeHtml(String(entry.initiative))}</span>
+                        <span class="meta-item">${escapeHtml(masterRoomVisibilityLabel(linkedMember?.visibility_preset))}</span>
                       </div>
                     </div>
-                    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
-                      <div class="filter-group">
-                        <label>Имя</label>
-                        <input id="masterRoomCombatName-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.name)}">
-                      </div>
-                      <div class="filter-group">
-                        <label>HP сейчас</label>
-                        <input id="masterRoomCombatHpCurrent-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_current))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>HP макс</label>
-                        <input id="masterRoomCombatHpMax-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_max))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>AC</label>
-                        <input id="masterRoomCombatAc-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.ac))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>Init</label>
-                        <input id="masterRoomCombatInit-${escapeHtml(entry.entry_id)}" type="number" step="1" value="${escapeHtml(String(entry.initiative))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>Статус</label>
-                        <input id="masterRoomCombatStatus-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.status || "")}" placeholder="ready / down / hidden">
-                      </div>
-                    </div>
-                    <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
-                      <button class="btn btn-primary" type="button" data-master-room-combat-save="${escapeHtml(entry.entry_id)}">Сохранить</button>
-                      <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" type="number" min="1" step="1" value="1" style="max-width:88px;">
-                      <button class="btn btn-danger" type="button" data-master-room-combat-damage="${escapeHtml(entry.entry_id)}">Урон</button>
-                      <button class="btn" type="button" data-master-room-combat-heal="${escapeHtml(entry.entry_id)}">Лечение</button>
-                      ${canUseLss ? `<button class="btn" type="button" data-master-room-combat-use-lss="${escapeHtml(entry.entry_id)}">Взять статы из LSS</button>` : ""}
-                    </div>
+                    ${
+                      canManage
+                        ? `
+                          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
+                            <div class="filter-group">
+                              <label>Имя</label>
+                              <input id="masterRoomCombatName-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.name)}">
+                            </div>
+                            <div class="filter-group">
+                              <label>HP сейчас</label>
+                              <input id="masterRoomCombatHpCurrent-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_current))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>HP макс</label>
+                              <input id="masterRoomCombatHpMax-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_max))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>AC</label>
+                              <input id="masterRoomCombatAc-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.ac))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>Init</label>
+                              <input id="masterRoomCombatInit-${escapeHtml(entry.entry_id)}" type="number" step="1" value="${escapeHtml(String(entry.initiative))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>Статус</label>
+                              <input id="masterRoomCombatStatus-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.status || "")}" placeholder="ready / down / hidden">
+                            </div>
+                          </div>
+                          <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                            <button class="btn btn-primary" type="button" data-master-room-combat-save="${escapeHtml(entry.entry_id)}">Сохранить</button>
+                            <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" type="number" min="1" step="1" value="1" style="max-width:88px;">
+                            <button class="btn btn-danger" type="button" data-master-room-combat-damage="${escapeHtml(entry.entry_id)}">Урон</button>
+                            <button class="btn" type="button" data-master-room-combat-heal="${escapeHtml(entry.entry_id)}">Лечение</button>
+                            ${canUseLss ? `<button class="btn" type="button" data-master-room-combat-use-lss="${escapeHtml(entry.entry_id)}">Взять статы из LSS</button>` : ""}
+                          </div>
+                        `
+                        : `<div class="muted" style="font-size:0.82rem;">Персонаж за столом: ${escapeHtml(resolvedName.source === "manual" ? "ручное имя стола" : "linked имя персонажа")} • статус ${escapeHtml(entry.status || "ready")}</div>`
+                    }
                   </div>
                 `;
               }).join("") : `<div class="muted">Партия ещё не собрана в бою.</div>`}
             </div>
-            <div>
+          <div>
               <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin:0 0 8px 2px;">Противники</div>
               ${enemies.length ? enemies.map((entry) => {
                 const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
@@ -4021,44 +4589,50 @@ function renderMasterRoomBattlePanel(table) {
                         <div class="muted" style="font-size:0.8rem;">${escapeHtml(entry.source || "enemy")} ${entry.enemy_ref ? `• ${escapeHtml(entry.enemy_ref)}` : ""}${isCurrentTurn ? " • сейчас ход" : ""}</div>
                       </div>
                       <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-                        <span class="meta-item">HP ${escapeHtml(String(entry.hp_current))}/${escapeHtml(String(entry.hp_max))}</span>
-                        <span class="meta-item">AC ${escapeHtml(String(entry.ac))}</span>
+                        <span class="meta-item">${canManage ? `HP ${escapeHtml(String(entry.hp_current))}/${escapeHtml(String(entry.hp_max))}` : "HP hidden"}</span>
+                        <span class="meta-item">${canManage ? `AC ${escapeHtml(String(entry.ac))}` : "AC hidden"}</span>
                         <span class="meta-item">Init ${escapeHtml(String(entry.initiative))}</span>
                       </div>
                     </div>
-                    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
-                      <div class="filter-group">
-                        <label>Имя</label>
-                        <input id="masterRoomCombatName-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.name)}">
-                      </div>
-                      <div class="filter-group">
-                        <label>HP сейчас</label>
-                        <input id="masterRoomCombatHpCurrent-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_current))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>HP макс</label>
-                        <input id="masterRoomCombatHpMax-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_max))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>AC</label>
-                        <input id="masterRoomCombatAc-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.ac))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>Init</label>
-                        <input id="masterRoomCombatInit-${escapeHtml(entry.entry_id)}" type="number" step="1" value="${escapeHtml(String(entry.initiative))}">
-                      </div>
-                      <div class="filter-group">
-                        <label>Статус</label>
-                        <input id="masterRoomCombatStatus-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.status || "")}" placeholder="hostile / down / hidden">
-                      </div>
-                    </div>
-                    <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
-                      <button class="btn btn-primary" type="button" data-master-room-combat-save="${escapeHtml(entry.entry_id)}">Сохранить</button>
-                      <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" type="number" min="1" step="1" value="1" style="max-width:88px;">
-                      <button class="btn btn-danger" type="button" data-master-room-combat-damage="${escapeHtml(entry.entry_id)}">Урон</button>
-                      <button class="btn" type="button" data-master-room-combat-heal="${escapeHtml(entry.entry_id)}">Лечение</button>
-                      <button class="btn btn-danger" type="button" data-master-room-combat-remove="${escapeHtml(entry.entry_id)}">Убрать</button>
-                    </div>
+                    ${
+                      canManage
+                        ? `
+                          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
+                            <div class="filter-group">
+                              <label>Имя</label>
+                              <input id="masterRoomCombatName-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.name)}">
+                            </div>
+                            <div class="filter-group">
+                              <label>HP сейчас</label>
+                              <input id="masterRoomCombatHpCurrent-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_current))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>HP макс</label>
+                              <input id="masterRoomCombatHpMax-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.hp_max))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>AC</label>
+                              <input id="masterRoomCombatAc-${escapeHtml(entry.entry_id)}" type="number" min="0" step="1" value="${escapeHtml(String(entry.ac))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>Init</label>
+                              <input id="masterRoomCombatInit-${escapeHtml(entry.entry_id)}" type="number" step="1" value="${escapeHtml(String(entry.initiative))}">
+                            </div>
+                            <div class="filter-group">
+                              <label>Статус</label>
+                              <input id="masterRoomCombatStatus-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.status || "")}" placeholder="hostile / down / hidden">
+                            </div>
+                          </div>
+                          <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                            <button class="btn btn-primary" type="button" data-master-room-combat-save="${escapeHtml(entry.entry_id)}">Сохранить</button>
+                            <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" type="number" min="1" step="1" value="1" style="max-width:88px;">
+                            <button class="btn btn-danger" type="button" data-master-room-combat-damage="${escapeHtml(entry.entry_id)}">Урон</button>
+                            <button class="btn" type="button" data-master-room-combat-heal="${escapeHtml(entry.entry_id)}">Лечение</button>
+                            <button class="btn btn-danger" type="button" data-master-room-combat-remove="${escapeHtml(entry.entry_id)}">Убрать</button>
+                          </div>
+                        `
+                        : `<div class="muted" style="font-size:0.82rem;">Игрок видит тип события, очередь хода и логику боя, но без точных GM-only статов врага.</div>`
+                    }
                     ${entry.attacks?.length ? `<div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-top:10px;">${entry.attacks.slice(0, 3).map((attack, attackIndex) => `<button class="btn" type="button" data-master-room-combat-attack="${escapeHtml(entry.entry_id)}" data-master-room-combat-attack-name="${escapeHtml(attack.name || `Атака ${attackIndex + 1}`)}">${escapeHtml(attack.name || `Атака ${attackIndex + 1}`)}</button>`).join("")}</div>` : ""}
                     ${
                       entry.spells?.length
@@ -4068,20 +4642,28 @@ function renderMasterRoomBattlePanel(table) {
                   </div>
                 `;
               }).join("") : `<div class="muted">Противники ещё не добавлены.</div>`}
-            </div>
           </div>
         </div>
 
-        <div>
-          <div class="cabinet-block" style="padding:12px; margin-bottom:10px;">
-            <h5 style="margin:0 0 8px 0;">Бросок / действие / заклинание</h5>
+        <div class="cabinet-block master-room-action-console" style="padding:12px; margin-top:12px;">
+            <h5 style="margin:0 0 8px 0;">Dice / действие / заклинание</h5>
             <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
               <div class="filter-group">
                 <label>Кто бросает</label>
                 <select id="masterRoomCombatRollActor">
                   <option value="">Система / вручную</option>
-                  ${combat.entries.map((entry) => `
+                  ${combat.entries
+                    .filter((entry) => canManage || String(entry.membership_id || "") === String(currentMembership?.id || ""))
+                    .map((entry) => `
                     <option value="${escapeHtml(entry.entry_id)}">${escapeHtml(entry.name)}</option>
+                  `).join("")}
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Тип события</label>
+                <select id="masterRoomCombatEventType">
+                  ${["roll", "attack", "damage", "heal", "save", "effect"].map((type) => `
+                    <option value="${escapeHtml(type)}" ${MASTER_ROOM_STATE.combatEventType === type ? "selected" : ""}>${escapeHtml(type)}</option>
                   `).join("")}
                 </select>
               </div>
@@ -4093,6 +4675,17 @@ function renderMasterRoomBattlePanel(table) {
                 <label>Модификатор</label>
                 <input id="masterRoomCombatRollModifier" type="number" step="1" value="0">
               </div>
+              <div class="filter-group">
+                <label>Цель</label>
+                <select id="masterRoomCombatTarget">
+                  <option value="">Без цели</option>
+                  ${combat.entries.map((entry) => `<option value="${escapeHtml(entry.entry_id)}">${escapeHtml(entry.name)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Эффект / урон</label>
+                <input id="masterRoomCombatDamage" type="number" min="0" step="1" value="0">
+              </div>
               <div class="filter-group" style="grid-column:1 / -1;">
                 <label>Причина / заклинание</label>
                 <input id="masterRoomCombatRollReason" type="text" placeholder="Fire Bolt, атака, спасбросок, урон от ловушки...">
@@ -4101,30 +4694,6 @@ function renderMasterRoomBattlePanel(table) {
             <div class="cart-buttons" style="margin-top:10px;">
               <button class="btn btn-primary" type="button" id="masterRoomCombatRollBtn">Бросить</button>
             </div>
-          </div>
-
-          <div class="cabinet-block" style="padding:12px;">
-            <h5 style="margin:0 0 8px 0;">Лог боя</h5>
-            <div class="master-room-combat-log">
-              ${combat.log.length ? combat.log.slice().reverse().map((entry) => `
-                <div class="master-room-combat-log-entry">
-                  <div class="flex-between" style="gap:8px; flex-wrap:wrap;">
-                    <strong>${escapeHtml(entry.actor_name || "Система")}</strong>
-                    <span class="muted" style="font-size:0.78rem;">${escapeHtml(formatDateTime(entry.created_at))}</span>
-                  </div>
-                  <div style="margin-top:4px;">${escapeHtml(entry.text || entry.reason || "Системное событие")}</div>
-                  ${
-                    entry.reason || entry.dice
-                      ? `<div class="muted" style="font-size:0.78rem; margin-top:4px;">
-                          ${entry.dice ? `${escapeHtml(entry.dice)} ${escapeHtml(String(entry.modifier >= 0 ? `+${entry.modifier}` : entry.modifier))}` : ""}
-                          ${entry.reason ? ` • ${escapeHtml(entry.reason)}` : ""}
-                        </div>`
-                      : ""
-                  }
-                </div>
-              `).join("") : `<div class="muted">Лог боя пока пуст.</div>`}
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -4160,19 +4729,28 @@ function renderMasterRoom() {
     : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол.</p></div>`;
 
   container.innerHTML = `
+    <div class="master-room-mode-shell">
     <div class="cabinet-block master-room-hero" style="margin-bottom:12px;">
+      <div class="master-room-hero-backdrop">
       <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <div>
+        <div class="master-room-hero-copy">
+          <div class="master-room-hero-kicker">GM control room</div>
           <h3 style="margin:0 0 6px 0;">🛡️ Master Room</h3>
-          <div class="muted">Реальный серверный слой ГМа: столы, игроки, доступы к торговцам и ручная выдача.</div>
-          <div class="muted" style="margin-top:6px; font-size:0.82rem;">Контур делится на два слоя: lobby для участников и GM control для владельца/ГМа конкретного стола.</div>
+          <div class="muted">Центр управления столом, игроками, сценой, доступами и боевым состоянием.</div>
+          <div class="muted" style="margin-top:6px; font-size:0.82rem;">Не вкладка настроек, а отдельный игровой режим: lobby для участников и GM control для владельца/ГМа.</div>
         </div>
-        <div class="cart-buttons" style="gap:8px;">
+        <div class="master-room-hero-status">
+          <div class="trader-meta" style="gap:6px; flex-wrap:wrap; justify-content:flex-end;">
           <span class="meta-item" style="align-self:center;">
             ${canManageActive ? "GM control" : "Lobby mode"}
           </span>
+          <span class="meta-item">${active ? escapeHtml(active.title) : "Без активного стола"}</span>
+          <span class="meta-item">${active ? `${safeArray(active.members).length} участников` : "0 участников"}</span>
+          </div>
+          <div class="cart-buttons master-room-hero-actions" style="gap:8px;">
           <button class="btn" type="button" id="masterRoomToggleCreateBtn">${createOpen ? "Скрыть создание" : "Создать стол"}</button>
           <button class="btn" type="button" id="masterRoomReloadBtn">Обновить</button>
+          </div>
         </div>
       </div>
       <div class="cabinet-block master-room-mode-note" style="padding:10px 12px; margin-top:12px; background:${canManageActive || globalGmMode ? "rgba(76,129,161,0.18)" : "rgba(255,255,255,0.04)"};">
@@ -4181,6 +4759,7 @@ function renderMasterRoom() {
             ? `<strong>У тебя есть права управления этим столом.</strong> Полный слой управления показывается только владельцу стола или участнику с role_in_table = gm.`
             : `Сейчас открыт lobby-режим. Видны состав партии и бой, но управление столом, игроками, торговцами и выдачей скрыто.`
         }
+      </div>
       </div>
     </div>
 
@@ -4206,7 +4785,7 @@ function renderMasterRoom() {
       <div class="cabinet-block master-room-sidebar-panel master-room-rail-panel">
         <div class="flex-between" style="margin-bottom:10px; align-items:flex-end;">
           <div>
-            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Столы</div>
+            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Control Rail</div>
             <h4 style="margin:4px 0 0;">Твои игровые комнаты</h4>
           </div>
           <span class="meta-item">${MASTER_ROOM_STATE.tables.length}</span>
@@ -4219,6 +4798,7 @@ function renderMasterRoom() {
           <div class="master-room-top-strip">
           ${canManageActive ? `
           <div class="cabinet-block master-room-stage-panel master-room-command-panel">
+            <div class="master-room-panel-kicker">Command deck</div>
             <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
               <div>
                 <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>
@@ -4260,6 +4840,7 @@ function renderMasterRoom() {
           </div>
           ` : `
           <div class="cabinet-block master-room-stage-panel master-room-command-panel">
+            <div class="master-room-panel-kicker">Lobby view</div>
             <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
               <div>
                 <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>
@@ -4298,6 +4879,7 @@ function renderMasterRoom() {
           ` : ""}
           ${renderMasterRoomBattlePanel(active)}
         </div>` : `<div class="cabinet-block"><p>Выбери стол сверху или создай новый.</p></div>`}
+    </div>
     </div>
   `;
 
@@ -4654,6 +5236,28 @@ function bindMasterRoomActions() {
     });
   });
 
+  document.querySelectorAll("[data-master-room-visibility-scope]").forEach((select) => {
+    if (select.dataset.boundMasterRoomVisibilityScope === "1") return;
+    select.dataset.boundMasterRoomVisibilityScope = "1";
+    select.addEventListener("change", async () => {
+      const active = getMasterRoomActiveTable();
+      const member = getMasterRoomMemberById(active, select.dataset.masterRoomVisibilityScope || "");
+      if (!member) return;
+      const key = String(select.dataset.masterRoomVisibilityKey || "").trim();
+      const matrix = {
+        ...getMasterRoomMemberVisibilityMatrix(member),
+        [key]: normalizeMasterRoomScope(select.value),
+      };
+      await patchMasterRoomMember(member.id, {
+        hidden_sections: {
+          ...(member.hidden_sections || {}),
+          visibility_matrix: matrix,
+        },
+      });
+      showToast("Visibility matrix обновлена");
+    });
+  });
+
   document.querySelectorAll("[data-master-room-member-role]").forEach((select) => {
     if (select.dataset.boundMasterRoomMemberRole === "1") return;
     select.dataset.boundMasterRoomMemberRole = "1";
@@ -4675,6 +5279,15 @@ function bindMasterRoomActions() {
         { selected_character_name: String(input.value || "").trim() }
       );
       showToast("Персонаж участника обновлён");
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-open-sheet]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomOpenSheet === "1") return;
+    btn.dataset.boundMasterRoomOpenSheet = "1";
+    btn.addEventListener("click", () => {
+      MASTER_ROOM_STATE.activeSheetMemberId = btn.dataset.masterRoomOpenSheet || "";
+      renderMasterRoom();
     });
   });
 
@@ -4883,13 +5496,26 @@ function bindMasterRoomActions() {
     combatRollBtn.dataset.boundMasterRoomCombatRoll = "1";
     combatRollBtn.addEventListener("click", async () => {
       const actorEntryId = String(getEl("masterRoomCombatRollActor")?.value || "").trim();
+      const eventType = String(getEl("masterRoomCombatEventType")?.value || "roll").trim();
+      MASTER_ROOM_STATE.combatEventType = eventType;
       await rollMasterRoomCombat({
         entry_id: actorEntryId || null,
+        target_entry_id: String(getEl("masterRoomCombatTarget")?.value || "").trim() || null,
         dice: String(getEl("masterRoomCombatRollDice")?.value || "d20").trim(),
         modifier: safeNumber(getEl("masterRoomCombatRollModifier")?.value, 0),
+        damage: safeNumber(getEl("masterRoomCombatDamage")?.value, 0),
+        event_type: eventType,
         reason: String(getEl("masterRoomCombatRollReason")?.value || "").trim(),
       });
       showToast("Бросок добавлен в лог боя");
+    });
+  }
+
+  const combatEventType = getEl("masterRoomCombatEventType");
+  if (combatEventType && combatEventType.dataset.boundMasterRoomCombatEventType !== "1") {
+    combatEventType.dataset.boundMasterRoomCombatEventType = "1";
+    combatEventType.addEventListener("change", () => {
+      MASTER_ROOM_STATE.combatEventType = String(combatEventType.value || "roll").trim();
     });
   }
 
@@ -4986,6 +5612,33 @@ function bindMasterRoomActions() {
     });
   }
 
+  const combatLogToggleBtn = getEl("masterRoomCombatLogToggleBtn");
+  if (combatLogToggleBtn && combatLogToggleBtn.dataset.boundMasterRoomCombatLogToggle !== "1") {
+    combatLogToggleBtn.dataset.boundMasterRoomCombatLogToggle = "1";
+    combatLogToggleBtn.addEventListener("click", () => {
+      MASTER_ROOM_STATE.combatLogOpen = !MASTER_ROOM_STATE.combatLogOpen;
+      renderMasterRoom();
+    });
+  }
+
+  document.querySelectorAll("[data-master-room-combat-filter]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomCombatFilter === "1") return;
+    btn.dataset.boundMasterRoomCombatFilter = "1";
+    btn.addEventListener("click", () => {
+      MASTER_ROOM_STATE.combatLogFilter = String(btn.dataset.masterRoomCombatFilter || "all").trim() || "all";
+      renderMasterRoom();
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-combat-secondary-toggle]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomCombatSecondary === "1") return;
+    btn.dataset.boundMasterRoomCombatSecondary = "1";
+    btn.addEventListener("click", () => {
+      MASTER_ROOM_STATE.combatHideSecondary = !MASTER_ROOM_STATE.combatHideSecondary;
+      renderMasterRoom();
+    });
+  });
+
   document.querySelectorAll("[data-master-room-roll-die]").forEach((btn) => {
     if (btn.dataset.boundMasterRoomRollDie === "1") return;
     btn.dataset.boundMasterRoomRollDie = "1";
@@ -4997,6 +5650,7 @@ function bindMasterRoomActions() {
         entry_id: actorEntryId || null,
         dice: die,
         modifier: 0,
+        event_type: "roll",
         reason: "Быстрый бросок",
       });
       showToast(`Брошен ${die.toUpperCase()}`);
@@ -5024,11 +5678,17 @@ function bindMasterRoomActions() {
       const rollActorSelect = getEl("masterRoomCombatRollActor");
       if (rollDiceInput) rollDiceInput.value = MASTER_ROOM_STATE.combatDiceType || "d20";
       if (rollReasonInput) rollReasonInput.value = attackName;
+      const eventTypeSelect = getEl("masterRoomCombatEventType");
+      if (eventTypeSelect) {
+        eventTypeSelect.value = "attack";
+        MASTER_ROOM_STATE.combatEventType = "attack";
+      }
       if (rollActorSelect) rollActorSelect.value = entryId;
       await rollMasterRoomCombat({
         entry_id: entryId,
         dice: MASTER_ROOM_STATE.combatDiceType || "d20",
         modifier: 0,
+        event_type: "attack",
         reason: attackName,
       });
       showToast(`В лог добавлено действие: ${attackName}`);
@@ -5068,6 +5728,7 @@ export async function openCabinet() {
 
 export function closeCabinet() {
   const modal = getEl("cabinetModal");
+  stopMasterRoomPolling();
   closeModal(modal);
 }
 
@@ -5076,6 +5737,9 @@ export function closeCabinet() {
 // ------------------------------------------------------------
 export async function switchCabinetTab(tabName) {
   CABINET_STATE.activeTab = tabName;
+  if (tabName !== "masterroom") {
+    stopMasterRoomPolling();
+  }
   renderCabinetHeader();
 
   hideAllCabinetSections();

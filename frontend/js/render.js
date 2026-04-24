@@ -307,9 +307,12 @@ function getReputationStars(reputation) {
 
 function getTraderQuality(reputation) {
   const rep = Number(reputation || 0);
-  if (rep <= 1) return "Новичок";
-  if (rep <= 3) return "Опытный";
-  return "Мастер";
+  if (rep < 10) return "Незнакомец";
+  if (rep < 25) return "Заметил тебя";
+  if (rep < 45) return "Знакомый";
+  if (rep < 65) return "Уважаемый клиент";
+  if (rep < 85) return "Надёжный партнёр";
+  return "Любимец торговца";
 }
 
 function getTraderDiscountPercent(reputation) {
@@ -317,6 +320,30 @@ function getTraderDiscountPercent(reputation) {
   const ratio = rep / 100;
   const buyMultiplier = 1 - ((1 - 0.6667) * ratio);
   return Math.max(0, Math.round((1 - buyMultiplier) * 100));
+}
+
+function getTraderLevelLabel(level) {
+  const numericLevel = Math.max(1, Math.min(6, Number(level || 1)));
+  if (numericLevel === 1) return "Новичок";
+  if (numericLevel === 2) return "Подмастерье";
+  if (numericLevel === 3) return "Опытный";
+  if (numericLevel === 4) return "Профессионал";
+  if (numericLevel === 5) return "Мастер";
+  return "Легендарный поставщик";
+}
+
+function getTraderSellBonusPercent(reputation) {
+  const rep = Math.max(0, Math.min(100, Number(reputation || 0)));
+  const ratio = rep / 100;
+  const sellMultiplier = 0.5 + (0.3 * ratio);
+  return Math.max(0, Math.round((sellMultiplier - 0.5) * 100));
+}
+
+function getTraderReputationTone(reputation) {
+  const rep = Math.max(0, Math.min(100, Number(reputation || 0)));
+  if (rep < 25) return "low";
+  if (rep < 65) return "mid";
+  return "high";
 }
 
 function getTraderEmoji(type) {
@@ -1096,12 +1123,16 @@ function buildTraderHeader(trader) {
   const hasImage = Boolean(imageUrl);
 
   const repStars = getReputationStars(trader?.reputation);
-  const repTitle = trader?.skill_label || getTraderQuality(trader?.reputation);
+  const repTitle = getTraderQuality(trader?.reputation);
+  const skillTitle = trader?.skill_label || getTraderLevelLabel(trader?.trader_level || trader?.level || 1);
   const currentDiscount = Number.isFinite(Number(trader?.discount_percent))
     ? Number(trader?.discount_percent)
     : getTraderDiscountPercent(trader?.reputation);
+  const sellBonus = getTraderSellBonusPercent(trader?.reputation);
   const traderEmoji = getTraderEmoji(trader?.type);
   const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
+  const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
+  const reputationTone = getTraderReputationTone(trader?.reputation);
 
   return `
     <div class="trader-modal-header">
@@ -1120,6 +1151,7 @@ function buildTraderHeader(trader) {
       <div class="trader-modal-info">
         <div class="trader-header-title-row">
           <h2>${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</h2>
+          <span class="trader-quality">${escapeHtml(getTraderLevelLabel(traderLevel))}</span>
         </div>
 
         <div class="trader-meta trader-modal-meta">
@@ -1129,14 +1161,41 @@ function buildTraderHeader(trader) {
           <span class="meta-item">⭐ ${escapeHtml(repStars)}</span>
         </div>
 
+        <div class="trader-economy-strip">
+          <div class="trader-economy-cell">
+            <span>Репутация</span>
+            <strong class="trader-reputation-value trader-reputation-value-${escapeHtml(reputationTone)}">${escapeHtml(String(trader?.reputation ?? 0))}%</strong>
+            <small>${escapeHtml(repTitle)}</small>
+          </div>
+          <div class="trader-economy-cell">
+            <span>Покупка</span>
+            <strong>-${escapeHtml(String(currentDiscount))}%</strong>
+            <small>от базовой цены</small>
+          </div>
+          <div class="trader-economy-cell">
+            <span>Продажа</span>
+            <strong>+${escapeHtml(String(sellBonus))}%</strong>
+            <small>к выкупу</small>
+          </div>
+          <div class="trader-economy-cell">
+            <span>Кошелёк</span>
+            <strong>${escapeHtml(String(trader?.money_label || trader?.gold_label || trader?.gold || "—"))}</strong>
+            <small>золото торговца</small>
+          </div>
+        </div>
+
         <div class="trader-detail-section trader-reputation-box">
-          <p><strong>⭐ Репутация:</strong> ${escapeHtml(String(trader?.reputation ?? 0))}</p>
-          <p><strong>🏷 Скилл торговца:</strong> ${escapeHtml(repTitle)}</p>
-          <p><strong>💸 Текущая скидка:</strong> ${escapeHtml(String(currentDiscount))}%</p>
+          <div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <span class="meta-item">lvl ${escapeHtml(String(traderLevel))}</span>
+            <span class="meta-item">${escapeHtml(skillTitle)}</span>
+            <span class="meta-item">${escapeHtml(repTitle)}</span>
+          </div>
+          <p><strong>⭐ Репутация:</strong> ${escapeHtml(String(trader?.reputation ?? 0))}% • ${escapeHtml(repStars)}</p>
+          <p><strong>🏷 Класс торговца:</strong> ${escapeHtml(skillTitle)}</p>
+          <p><strong>💸 Покупка у торговца:</strong> скидка ${escapeHtml(String(currentDiscount))}% от базы</p>
+          <p><strong>💰 Продажа торговцу:</strong> бонус до +${escapeHtml(String(sellBonus))}% к базовому выкупу</p>
           <p><strong>🎯 Специализация:</strong> ${escapeHtml(specialization)}</p>
-          <p><strong>💰 Золото торговца:</strong> ${escapeHtml(
-            String(trader?.money_label || trader?.gold_label || trader?.gold || "—")
-          )}</p>
+          <div class="muted" style="font-size:0.78rem; margin-top:8px;">Цена в списках товаров уже учитывает репутацию. В продаже игроку показывается твоя цена, а не сухая база.</div>
           ${restockButtonsMarkup}
         </div>
 
@@ -1443,6 +1502,11 @@ function buildTraderCard(trader) {
   const repStars = getReputationStars(trader?.reputation);
   const traderEmoji = getTraderEmoji(trader?.type);
   const preview = specializationPreview(trader);
+  const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
+  const traderLevelLabel = getTraderLevelLabel(traderLevel);
+  const buyDiscount = getTraderDiscountPercent(trader?.reputation);
+  const sellBonus = getTraderSellBonusPercent(trader?.reputation);
+  const reputationTone = getTraderReputationTone(trader?.reputation);
 
   return `
     <article
@@ -1463,6 +1527,11 @@ function buildTraderCard(trader) {
       }
 
       <div class="trader-info">
+        <div class="trader-meta trader-card-topline">
+          <span class="trader-quality">${escapeHtml(getTraderLevelLabel(traderLevel))}</span>
+          <span class="meta-item">lvl ${escapeHtml(String(traderLevel))}</span>
+          <span class="meta-item trader-reputation-chip trader-reputation-chip-${escapeHtml(reputationTone)}">${escapeHtml(String(trader?.reputation ?? 0))}%</span>
+        </div>
         <div class="trader-name">${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</div>
         <div class="trader-type">${escapeHtml(trader?.type || "—")}</div>
 
@@ -1476,8 +1545,24 @@ function buildTraderCard(trader) {
           ${escapeHtml(trader?.description || "Описание отсутствует")}
         </div>
 
+        <div class="trader-card-economy">
+          <div class="trader-card-economy-cell">
+            <span>Покупка</span>
+            <strong>-${escapeHtml(String(buyDiscount))}%</strong>
+          </div>
+          <div class="trader-card-economy-cell">
+            <span>Продажа</span>
+            <strong>+${escapeHtml(String(sellBonus))}%</strong>
+          </div>
+          <div class="trader-card-economy-cell">
+            <span>Репутация</span>
+            <strong>${escapeHtml(repTitle)}</strong>
+          </div>
+        </div>
+
         <div class="trader-meta trader-meta-footer">
           <span class="meta-item">🎯 ${escapeHtml(preview)}</span>
+          <span class="meta-item">🧭 ${escapeHtml(traderLevelLabel)}</span>
           <span class="meta-item">🏷️ ${escapeHtml(repTitle)}</span>
         </div>
       </div>

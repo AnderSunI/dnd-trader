@@ -8,7 +8,9 @@ import {
   fetchDirectMessages,
   fetchFriendsState,
   fetchPlayerInventory,
+  deleteAccountMedia,
   fetchTraders,
+  setPrimaryAccountMedia,
   markConversationRead,
   rejectFriendRequest,
   removeFriend,
@@ -16,6 +18,7 @@ import {
   sendDirectMessage,
   sendFriendRequest,
   transferToPlayer,
+  uploadAccountMedia,
   updateAccount,
   isAuthenticated,
 } from "./api.js";
@@ -114,6 +117,34 @@ function getCurrentCharacters() {
 
 function getCurrentShowcase() {
   return ACCOUNT_STATE.account?.showcase || {};
+}
+
+function getProfileMedia() {
+  const media = ACCOUNT_STATE.account?.user?.profile_media;
+  if (!media || typeof media !== "object") {
+    return {
+      avatar: null,
+      banner: null,
+      showcase: [],
+    };
+  }
+  return {
+    avatar: media.avatar && typeof media.avatar === "object" ? media.avatar : null,
+    banner: media.banner && typeof media.banner === "object" ? media.banner : null,
+    showcase: Array.isArray(media.showcase) ? media.showcase : [],
+  };
+}
+
+function getProfileAvatarUrl() {
+  const user = getCurrentUser() || {};
+  const media = getProfileMedia();
+  return safeText(media.avatar?.url || user.avatar_url || "", "").trim();
+}
+
+function getProfileBannerUrl() {
+  const user = getCurrentUser() || {};
+  const media = getProfileMedia();
+  return safeText(media.banner?.url || user.banner_url || "", "").trim();
 }
 
 function getActiveConversation() {
@@ -263,36 +294,153 @@ function roleBadgeLabel(user) {
   return "player";
 }
 
+function getCharacterNameState(character) {
+  const manualName = safeText(character?.manual_name || character?.name || "", "").trim();
+  const lssName = safeText(character?.lss_name || "", "").trim();
+  const backendSource = safeText(character?.name_source || "", "").trim();
+  const resolved = safeText(character?.name || manualName || lssName || "Персонаж", "Персонаж");
+  const source = backendSource || (manualName ? "character_manual" : lssName ? "lss" : "fallback");
+  const sourceLabelMap = {
+    table_manual: "Ручное имя за столом",
+    character_manual: "Ручное имя персонажа",
+    manual: "Ручное имя персонажа",
+    lss: "Из LSS",
+    fallback: "Базовое имя",
+  };
+  return {
+    resolved,
+    source,
+    sourceLabel: sourceLabelMap[source] || "Базовое имя",
+    manualName,
+    lssName,
+  };
+}
+
+function renderMediaSlot(kind, title, description, previewUrl) {
+  const pendingPreview = getPendingMediaData(kind).dataUrl;
+  const effectivePreview = pendingPreview || previewUrl;
+  return `
+    <div class="cabinet-block account-media-slot">
+      <div class="flex-between" style="gap:10px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <div style="font-weight:800;">${escapeHtml(title)}</div>
+          <div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(description)}</div>
+        </div>
+        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-primary" type="button" data-account-pick-media="${escapeHtml(kind)}">Выбрать файл</button>
+          <button class="btn" type="button" data-account-upload-media="${escapeHtml(kind)}">Загрузить</button>
+          <button class="btn btn-danger" type="button" data-account-delete-media="${escapeHtml(kind)}">Очистить</button>
+        </div>
+      </div>
+      <div class="profile-grid" style="grid-template-columns:minmax(220px,0.9fr) minmax(0,1.1fr); gap:12px;">
+        <div class="account-media-preview ${effectivePreview ? "account-media-preview-filled" : ""}" data-account-media-preview="${escapeHtml(kind)}">
+          ${
+            effectivePreview
+              ? `<img src="${escapeHtml(effectivePreview)}" alt="${escapeHtml(title)}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+              : `<div class="muted" style="font-size:0.84rem;">PNG / JPG / WEBP / GIF<br>до ${kind === "showcase" ? "8" : "4"} МБ</div>`
+          }
+        </div>
+        <div class="filter-group">
+          <label>URL fallback</label>
+          <input id="${kind === "avatar" ? "accountAvatarUrlInput" : "accountBannerUrlInput"}" type="text" value="${escapeHtml(previewUrl || "")}" placeholder="https://...">
+          <div class="muted" style="font-size:0.76rem; margin-top:6px;">Можно оставить ссылку вручную, но основной путь теперь через загрузку файла.</div>
+        </div>
+      </div>
+      <input id="account${kind.charAt(0).toUpperCase() + kind.slice(1)}FileInput" type="file" accept="image/*" hidden>
+    </div>
+  `;
+}
+
+function renderShowcaseGallery() {
+  const media = getProfileMedia();
+  const items = Array.isArray(media.showcase) ? media.showcase : [];
+  const pendingPreview = getPendingMediaData("showcase").dataUrl;
+  return `
+    <div class="cabinet-block">
+      <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <h4 style="margin:0 0 4px;">Витрина и скриншоты</h4>
+          <div class="muted" style="font-size:0.82rem;">Можно хранить игровые скрины, арты и обложку профиля.</div>
+        </div>
+        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-primary" type="button" data-account-pick-media="showcase">Добавить скрин</button>
+          <button class="btn" type="button" data-account-upload-media="showcase">Загрузить выбранное</button>
+        </div>
+      </div>
+      <div class="profile-grid" style="grid-template-columns:minmax(220px,0.9fr) minmax(0,1.1fr); gap:12px; margin-bottom:12px;">
+        <div class="account-media-preview ${pendingPreview ? "account-media-preview-filled" : ""}" data-account-media-preview="showcase">
+          ${pendingPreview ? `<img src="${escapeHtml(pendingPreview)}" alt="showcase preview" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">` : `<div class="muted" style="font-size:0.84rem;">Drag-and-drop через браузер пока не нужен: достаточно выбора файла, превью и серверной загрузки.</div>`}
+        </div>
+        <div class="filter-group">
+          <label>Подпись к скрину</label>
+          <input id="accountShowcaseCaptionInput" type="text" maxlength="160" placeholder="Например: победа над боссом или арт персонажа">
+          <div class="muted" style="font-size:0.76rem; margin-top:6px;">Первый или помеченный primary элемент становится обложкой витрины.</div>
+        </div>
+      </div>
+      <input id="accountShowcaseFileInput" type="file" accept="image/*" hidden>
+      ${
+        items.length
+          ? `<div class="account-showcase-grid">
+              ${items.map((entry) => `
+                <article class="account-showcase-card">
+                  <div class="account-showcase-thumb">
+                    <img src="${escapeHtml(entry.url || "")}" alt="${escapeHtml(entry.caption || "showcase")}">
+                  </div>
+                  <div class="flex-between" style="gap:8px; align-items:flex-start; margin-top:10px;">
+                    <div>
+                      <div style="font-weight:800;">${escapeHtml(entry.caption || "Без подписи")}</div>
+                      <div class="muted" style="font-size:0.76rem; margin-top:4px;">${entry.is_primary ? "Обложка витрины" : "Доп. скрин"}</div>
+                    </div>
+                    ${entry.is_primary ? `<span class="meta-item">primary</span>` : ""}
+                  </div>
+                  <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                    ${entry.is_primary ? "" : `<button class="btn" type="button" data-account-set-primary-media="${escapeHtml(entry.id)}">Сделать обложкой</button>`}
+                    <button class="btn btn-danger" type="button" data-account-delete-media="${escapeHtml(entry.id)}">Удалить</button>
+                  </div>
+                </article>
+              `).join("")}
+            </div>`
+          : `<div class="muted">Витрина пока пустая. Загрузите первый скрин или арт.</div>`
+      }
+    </div>
+  `;
+}
+
 function renderAccountHero() {
   const user = getCurrentUser();
   if (!user) {
     return `<div class="cabinet-block"><p>Профиль не загружен.</p></div>`;
   }
 
-  const avatar = safeText(user.avatar_url || "", "").trim();
+  const avatar = getProfileAvatarUrl();
+  const banner = getProfileBannerUrl();
   const avatarMarkup = avatar
-    ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.nickname || "avatar")}" style="width:84px; height:84px; border-radius:22px; object-fit:cover; border:1px solid rgba(255,255,255,0.12);">`
-    : `<div style="width:84px; height:84px; border-radius:22px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; font-weight:800; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1);">${escapeHtml((user.nickname || user.email || "U").slice(0, 1).toUpperCase())}</div>`;
+    ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.nickname || "avatar")}" style="width:96px; height:96px; border-radius:26px; object-fit:cover; border:1px solid rgba(255,255,255,0.12); box-shadow:0 10px 24px rgba(0,0,0,0.28);">`
+    : `<div style="width:96px; height:96px; border-radius:26px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1);">${escapeHtml((user.nickname || user.email || "U").slice(0, 1).toUpperCase())}</div>`;
   const isGm = String(user.role || "").trim().toLowerCase() === "gm";
   const lssName = getCurrentLssCharacterName();
+  const partiesCount = getCurrentParties().length;
+  const charactersCount = getCurrentCharacters().length;
+  const showcase = getCurrentShowcase();
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px; overflow:hidden; padding:0;">
-      <div style="padding:20px; background:${user.banner_url ? `linear-gradient(rgba(11,18,28,0.60), rgba(11,18,28,0.94)), url('${escapeHtml(user.banner_url)}') center/cover` : "radial-gradient(circle at top left, rgba(79,126,165,0.55), transparent 32%), linear-gradient(135deg, rgba(23,31,43,0.98), rgba(10,15,24,0.98))"}; border:1px solid rgba(255,255,255,0.08);">
-        <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
-          ${avatarMarkup}
-          <div style="min-width:220px; flex:1 1 220px;">
-            <div class="muted" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em;">Мой аккаунт</div>
-            <div style="font-size:1.3rem; font-weight:900; margin-top:4px;">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
-            <div class="muted" style="margin-top:4px;">@${escapeHtml(user.nickname || user.username || "player")} • ${escapeHtml(user.email || "")}</div>
-            <div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-top:10px;">
+    <section class="cabinet-block account-hub-hero" style="margin-bottom:12px; overflow:hidden; padding:0;">
+      <div class="account-hub-hero-backdrop" style="background:${banner ? `linear-gradient(rgba(9,16,24,0.46), rgba(9,16,24,0.92)), url('${escapeHtml(banner)}') center/cover` : "radial-gradient(circle at top left, rgba(214,181,122,0.22), transparent 28%), radial-gradient(circle at top right, rgba(105,153,171,0.28), transparent 24%), linear-gradient(135deg, rgba(25,31,42,0.98), rgba(9,13,19,0.99))"};">
+        <div class="account-hub-hero-layout">
+          <div class="account-hub-identity">
+            <div class="account-hub-avatar-wrap">${avatarMarkup}</div>
+            <div style="min-width:220px; flex:1 1 220px;">
+              <div class="account-hub-kicker">Игровой профиль</div>
+              <div class="account-hub-title">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
+              <div class="muted account-hub-subtitle">@${escapeHtml(user.nickname || user.username || "player")} • ${escapeHtml(user.email || "")}</div>
+              <div class="trader-meta account-hub-meta">
               <span class="meta-item">role: ${escapeHtml(roleBadgeLabel(user))}</span>
               <span class="meta-item">${user.is_online ? "online" : `last seen: ${escapeHtml(formatDateTime(user.last_seen_at))}`}</span>
               <span class="meta-item">created: ${escapeHtml(formatDateTime(user.created_at))}</span>
               ${lssName ? `<span class="meta-item">LSS: ${escapeHtml(lssName)}</span>` : ""}
-            </div>
-            <div style="margin-top:10px; font-size:0.92rem;">${escapeHtml(user.short_status || "Без статуса")}</div>
-            <div class="cart-buttons" style="margin-top:12px; gap:8px; flex-wrap:wrap;">
+              </div>
+              <div class="account-hub-status">${escapeHtml(user.short_status || "Без статуса")}</div>
+              <div class="cart-buttons account-hub-actions">
               <button class="btn ${isGm ? "btn-danger" : "btn-primary"}" type="button" id="accountToggleGmModeBtn">
                 ${isGm ? "Переключить в Player" : "Включить GM mode"}
               </button>
@@ -300,21 +448,48 @@ function renderAccountHero() {
               <button class="btn" type="button" data-account-section="chat">Открыть чат</button>
             </div>
           </div>
+          </div>
+          <div class="account-hub-sidepanel">
+            <div class="account-hub-sidepanel-header">
+              <div class="account-hub-kicker">Витрина профиля</div>
+              <div class="muted" style="font-size:0.8rem;">Личные игровые маркеры</div>
+            </div>
+            <div class="profile-grid" style="grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
+              <div class="stat-box" style="min-height:auto; padding:12px;">
+                <div class="muted">Персонажи</div>
+                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String(charactersCount))}</div>
+              </div>
+              <div class="stat-box" style="min-height:auto; padding:12px;">
+                <div class="muted">Партии</div>
+                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String(partiesCount))}</div>
+              </div>
+              <div class="stat-box" style="min-height:auto; padding:12px;">
+                <div class="muted">Друзья</div>
+                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String(showcase.friends_count || 0))}</div>
+              </div>
+              <div class="stat-box" style="min-height:auto; padding:12px;">
+                <div class="muted">Витрина</div>
+                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String((getProfileMedia().showcase || []).length))}</div>
+              </div>
+            </div>
+            <div class="account-hub-featured-note">
+              ${escapeHtml(user.bio || "Профиль игрока, витрина персонажей и социальный хаб кампании.")}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   `;
 }
 
 function renderSectionNav() {
   return `
-    <div class="cabinet-block" style="margin-bottom:12px; padding:12px; background:linear-gradient(180deg, rgba(31,39,53,0.96), rgba(16,22,31,0.96)); border:1px solid rgba(255,255,255,0.06);">
-      <div class="cart-buttons" style="gap:8px; flex-wrap:wrap;">
+    <div class="cabinet-block account-hub-nav" style="margin-bottom:12px; padding:12px;">
+      <div class="account-hub-tab-row">
         ${ACCOUNT_SECTIONS.map((section) => `
           <button
             class="btn ${ACCOUNT_STATE.section === section.key ? "active" : ""}"
             type="button"
-            style="${ACCOUNT_STATE.section === section.key ? "box-shadow: inset 0 0 0 1px rgba(135,189,255,0.35);" : ""}"
             data-account-section="${escapeHtml(section.key)}"
           >
             ${escapeHtml(section.label)}
@@ -328,9 +503,79 @@ function renderSectionNav() {
 function renderProfileSection() {
   const user = getCurrentUser();
   if (!user) return `<div class="cabinet-block"><p>Профиль недоступен.</p></div>`;
+  const showcase = getCurrentShowcase();
+  const activeCharacter = showcase.active_character;
+  const activeParty = showcase.active_party;
+  const media = getProfileMedia();
 
   return `
-    <div class="cabinet-block">
+    <div class="account-hub-profile-grid">
+      <div class="cabinet-block account-hub-stage-card">
+        <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+          <div>
+            <h4 style="margin:0 0 4px;">Обзор профиля</h4>
+            <div class="muted" style="font-size:0.82rem;">Сначала идентичность и быстрые игровые блоки, редактирование ниже.</div>
+          </div>
+          <span class="meta-item">${media.avatar?.url ? "avatar uploaded" : "avatar via URL/fallback"}</span>
+        </div>
+        <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">О себе</div>
+            <div style="margin-top:8px; font-size:0.92rem; line-height:1.5;">${escapeHtml(user.bio || showcase.about_me || "Заполни краткое описание профиля и стиля игры.")}</div>
+          </div>
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Активный персонаж</div>
+            <div style="margin-top:8px; font-weight:800;">${escapeHtml(activeCharacter?.name || getCurrentLssCharacterName() || "Не выбран")}</div>
+            <div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(activeCharacter?.class_name || "Связь с LSS доступна")}</div>
+          </div>
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Текущий стол</div>
+            <div style="margin-top:8px; font-weight:800;">${escapeHtml(activeParty?.title || "Не выбран")}</div>
+            <div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(activeParty?.role_in_table || "Можно выбрать в настройках")}</div>
+          </div>
+          <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="muted">Быстрые теги</div>
+            <div style="margin-top:8px; font-size:0.86rem;">${escapeHtml((user.profile_tags || []).join(" • ") || "co-op • roleplay • bg3")}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="account-hub-support-column">
+        <div class="cabinet-block account-hub-stage-card">
+          <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+            <div>
+              <h4 style="margin:0 0 4px;">Featured</h4>
+              <div class="muted" style="font-size:0.82rem;">Главное о твоём профиле без ухода в настройки.</div>
+            </div>
+            <span class="meta-item">${escapeHtml(roleBadgeLabel(user))}</span>
+          </div>
+          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
+            <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="muted">Статус</div>
+              <div style="margin-top:8px; font-weight:800;">${escapeHtml(user.short_status || "Без статуса")}</div>
+            </div>
+            <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="muted">Витрина</div>
+              <div style="margin-top:8px; font-weight:800;">${escapeHtml(String((media.showcase || []).length))} media</div>
+            </div>
+            <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="muted">Активный стол</div>
+              <div style="margin-top:8px; font-weight:800;">${escapeHtml(activeParty?.title || "Не выбран")}</div>
+            </div>
+          </div>
+        </div>
+        ${renderMediaSlot("avatar", "Аватар", "Основной образ профиля, используется в хабе и social-блоках.", getProfileAvatarUrl())}
+        ${renderMediaSlot("banner", "Баннер", "Фон hero-зоны профиля. Можно оставить URL как fallback.", getProfileBannerUrl())}
+      </div>
+    </div>
+
+    <div class="cabinet-block account-hub-edit-panel" style="margin-top:12px;">
+      <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <h4 style="margin:0 0 4px;">Редактирование профиля</h4>
+          <div class="muted" style="font-size:0.82rem;">Редактирование остаётся доступным, но больше не занимает весь экран вместо профиля.</div>
+        </div>
+      </div>
       <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
         <div class="filter-group">
           <label>Username / nickname</label>
@@ -339,14 +584,6 @@ function renderProfileSection() {
         <div class="filter-group">
           <label>Display name</label>
           <input id="accountDisplayNameInput" type="text" value="${escapeHtml(user.display_name || "")}">
-        </div>
-        <div class="filter-group">
-          <label>Avatar URL</label>
-          <input id="accountAvatarUrlInput" type="text" value="${escapeHtml(user.avatar_url || "")}" placeholder="https://...">
-        </div>
-        <div class="filter-group">
-          <label>Banner URL</label>
-          <input id="accountBannerUrlInput" type="text" value="${escapeHtml(user.banner_url || "")}" placeholder="https://...">
         </div>
         <div class="filter-group" style="grid-column:1 / -1;">
           <label>Короткий статус</label>
@@ -538,29 +775,40 @@ function renderCharactersSection() {
   const lssName = getCurrentLssCharacterName();
   return `
     <div class="cabinet-block">
-      <h4 style="margin:0 0 10px;">Мои персонажи</h4>
+      <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <h4 style="margin:0 0 4px;">Мои персонажи</h4>
+          <div class="muted" style="font-size:0.82rem;">Приоритет имени сейчас такой: ручное имя персонажа в аккаунте, затем имя из LSS. Это видно прямо в карточке.</div>
+        </div>
+      </div>
       ${lssName ? `
         <div class="cabinet-block" style="padding:10px 12px; margin-bottom:10px;">
           <div style="font-weight:800;">Текущий персонаж из LSS</div>
           <div class="muted" style="font-size:0.82rem; margin-top:4px;">${escapeHtml(lssName)}</div>
         </div>
       ` : ""}
+      <div class="account-showcase-grid">
       ${characters.length
-        ? characters.map((character) => `
-            <div style="padding:10px 0; border-top:1px solid rgba(255,255,255,0.06);">
+        ? characters.map((character) => {
+            const nameState = getCharacterNameState(character);
+            return `
+            <article class="account-showcase-card">
               <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
                 <div>
-                  <div style="font-weight:800;">${escapeHtml(character.name || "Персонаж")}</div>
-                  <div class="muted" style="font-size:0.82rem;">lvl ${escapeHtml(String(character.level || 1))} • ${escapeHtml(character.class_name || "class")} • ${escapeHtml(character.race || "race")}</div>
+                  <div style="font-weight:800;">${escapeHtml(nameState.resolved)}</div>
+                  <div class="muted" style="font-size:0.82rem; margin-top:4px;">lvl ${escapeHtml(String(character.level || 1))} • ${escapeHtml(character.class_name || "class")} • ${escapeHtml(character.race || "race")}</div>
+                  <div class="muted" style="font-size:0.76rem; margin-top:6px;">Источник имени: ${escapeHtml(nameState.sourceLabel)}${nameState.lssName ? ` • LSS: ${escapeHtml(nameState.lssName)}` : ""}</div>
                 </div>
                 <label class="meta-item" style="cursor:pointer;">
                   <input type="radio" name="accountActiveCharacter" value="${escapeHtml(String(character.id))}" ${activeCharacterId === Number(character.id) ? "checked" : ""}>
                   active
                 </label>
               </div>
-            </div>
-          `).join("")
+            </article>
+          `;
+          }).join("")
         : `<div class="muted">Персонажей пока нет.</div>`}
+      </div>
       <div class="cart-buttons" style="margin-top:10px;">
         <button class="btn btn-primary" type="button" id="accountSaveActiveCharacterBtn">Сохранить active character</button>
       </div>
@@ -594,6 +842,9 @@ function renderShowcaseSection() {
           ? showcase.featured_items.map((item) => `<div style="padding:6px 0;">${escapeHtml(item.name || "Предмет")} ×${escapeHtml(String(item.quantity || 1))}</div>`).join("")
           : `<div class="muted">Пока пусто.</div>`}
       </div>
+    </div>
+    <div style="margin-top:12px;">
+      ${renderShowcaseGallery()}
     </div>
   `;
 }
@@ -944,9 +1195,13 @@ export function renderAccountModule() {
   }
 
   root.innerHTML = `
-    ${renderAccountHero()}
-    ${renderSectionNav()}
-    ${renderCurrentSection()}
+    <div class="account-hub-shell">
+      ${renderAccountHero()}
+      ${renderSectionNav()}
+      <div class="account-hub-section account-hub-section-${escapeHtml(ACCOUNT_STATE.section)}">
+        ${renderCurrentSection()}
+      </div>
+    </div>
   `;
 
   bindAccountModuleActions();
@@ -1119,6 +1374,97 @@ async function sendTradeToCurrentFriend() {
   await loadTradeInventory();
   renderAccountModule();
   showToast("Передача выполнена");
+}
+
+function getAccountFileInput(kind) {
+  if (kind === "avatar") return getEl("accountAvatarFileInput");
+  if (kind === "banner") return getEl("accountBannerFileInput");
+  return getEl("accountShowcaseFileInput");
+}
+
+async function readImageFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function validateImageFile(file, kind) {
+  if (!file) throw new Error("Файл не выбран");
+  if (!file.type?.startsWith("image/")) throw new Error("Нужен файл изображения");
+  const limit = kind === "showcase" ? 8 * 1024 * 1024 : 4 * 1024 * 1024;
+  if (Number(file.size || 0) > limit) {
+    throw new Error(`Файл слишком большой. Лимит: ${kind === "showcase" ? "8" : "4"} МБ`);
+  }
+}
+
+async function handleMediaFilePicked(kind) {
+  const input = getAccountFileInput(kind);
+  const file = input?.files?.[0];
+  validateImageFile(file, kind);
+  const dataUrl = await readImageFileAsDataUrl(file);
+  if (input) {
+    input.dataset.previewDataUrl = dataUrl;
+    input.dataset.fileName = file.name || `${kind}.png`;
+  }
+  renderAccountModule();
+}
+
+function getPendingMediaData(kind) {
+  const input = getAccountFileInput(kind);
+  return {
+    dataUrl: String(input?.dataset?.previewDataUrl || "").trim(),
+    fileName: String(input?.dataset?.fileName || "").trim(),
+  };
+}
+
+async function uploadPickedMedia(kind) {
+  const pending = getPendingMediaData(kind);
+  if (!pending.dataUrl) throw new Error("Сначала выбери файл");
+  const payload = await uploadAccountMedia({
+    kind,
+    data_url: pending.dataUrl,
+    file_name: pending.fileName || `${kind}.png`,
+    caption: kind === "showcase" ? String(getEl("accountShowcaseCaptionInput")?.value || "").trim() : "",
+    make_primary: kind === "showcase" && !getProfileMedia().showcase.length,
+  });
+  const input = getAccountFileInput(kind);
+  if (input) {
+    input.value = "";
+    delete input.dataset.previewDataUrl;
+    delete input.dataset.fileName;
+  }
+  ACCOUNT_STATE.account = payload;
+  syncAccountUser(payload?.user || {});
+  renderAccountModule();
+  showToast(kind === "showcase" ? "Изображение добавлено в витрину" : "Изображение профиля обновлено");
+}
+
+async function removeAccountMedia(mediaId) {
+  const media = getProfileMedia();
+  let payload = null;
+  if ((mediaId === "avatar" && !media.avatar && getCurrentUser()?.avatar_url) || (mediaId === "banner" && !media.banner && getCurrentUser()?.banner_url)) {
+    payload = await updateAccount({
+      avatar_url: mediaId === "avatar" ? "" : undefined,
+      banner_url: mediaId === "banner" ? "" : undefined,
+    });
+  } else {
+    payload = await deleteAccountMedia(mediaId);
+  }
+  ACCOUNT_STATE.account = payload;
+  syncAccountUser(payload?.user || {});
+  renderAccountModule();
+  showToast("Изображение удалено");
+}
+
+async function promoteAccountMedia(mediaId) {
+  const payload = await setPrimaryAccountMedia(mediaId);
+  ACCOUNT_STATE.account = payload;
+  syncAccountUser(payload?.user || {});
+  renderAccountModule();
+  showToast("Обложка витрины обновлена");
 }
 
 export function bindAccountModuleActions() {
@@ -1319,6 +1665,65 @@ export function bindAccountModuleActions() {
     } catch (error) {
       showToast(error.message || "Не удалось переключить GM mode");
     }
+  });
+
+  ["avatar", "banner", "showcase"].forEach((kind) => {
+    const input = getAccountFileInput(kind);
+    if (input && input.dataset.boundAccountMediaInput !== "1") {
+      input.dataset.boundAccountMediaInput = "1";
+      input.addEventListener("change", async () => {
+        try {
+          await handleMediaFilePicked(kind);
+          showToast("Превью готово, можно загружать");
+        } catch (error) {
+          showToast(error.message || "Не удалось подготовить изображение");
+        }
+      });
+    }
+  });
+
+  document.querySelectorAll("[data-account-pick-media]").forEach((btn) => {
+    if (btn.dataset.boundAccountPickMedia === "1") return;
+    btn.dataset.boundAccountPickMedia = "1";
+    btn.addEventListener("click", () => {
+      getAccountFileInput(btn.dataset.accountPickMedia || "")?.click();
+    });
+  });
+
+  document.querySelectorAll("[data-account-upload-media]").forEach((btn) => {
+    if (btn.dataset.boundAccountUploadMedia === "1") return;
+    btn.dataset.boundAccountUploadMedia = "1";
+    btn.addEventListener("click", async () => {
+      try {
+        await uploadPickedMedia(btn.dataset.accountUploadMedia || "");
+      } catch (error) {
+        showToast(error.message || "Не удалось загрузить изображение");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-account-delete-media]").forEach((btn) => {
+    if (btn.dataset.boundAccountDeleteMedia === "1") return;
+    btn.dataset.boundAccountDeleteMedia = "1";
+    btn.addEventListener("click", async () => {
+      try {
+        await removeAccountMedia(btn.dataset.accountDeleteMedia || "");
+      } catch (error) {
+        showToast(error.message || "Не удалось удалить изображение");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-account-set-primary-media]").forEach((btn) => {
+    if (btn.dataset.boundAccountPrimaryMedia === "1") return;
+    btn.dataset.boundAccountPrimaryMedia = "1";
+    btn.addEventListener("click", async () => {
+      try {
+        await promoteAccountMedia(btn.dataset.accountSetPrimaryMedia || "");
+      } catch (error) {
+        showToast(error.message || "Не удалось обновить обложку");
+      }
+    });
   });
 
   document.querySelectorAll("[data-account-section-open]").forEach((btn) => {
