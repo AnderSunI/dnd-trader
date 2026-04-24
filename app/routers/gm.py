@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import random
 import re
 from datetime import datetime
@@ -97,11 +98,16 @@ class UpdateCombatantRequest(BaseModel):
 class CombatRollRequest(BaseModel):
     membership_id: int | None = None
     entry_id: str | None = Field(default=None, max_length=160)
+    target_entry_id: str | None = Field(default=None, max_length=160)
     actor_name: str | None = Field(default=None, max_length=120)
     dice: str = Field(default="d20", max_length=16)
     modifier: int = Field(default=0, ge=-999, le=999)
     reason: str | None = Field(default=None, max_length=240)
     damage: int | None = Field(default=None, ge=0, le=99999)
+    event_type: str | None = Field(default="roll", max_length=40)
+    visibility: str | None = Field(default="public", max_length=32)
+    outcome: str | None = Field(default=None, max_length=40)
+    damage_type: str | None = Field(default=None, max_length=60)
 
 
 class AddCombatEnemyRequest(BaseModel):
@@ -132,6 +138,10 @@ def create_gm_router(*, get_db) -> APIRouter:
     def normalize_visibility(value: str | None) -> str:
         raw = str(value or "basic").strip().lower()
         return raw if raw in {"private", "basic", "sheet", "full"} else "basic"
+
+    def normalize_visibility_scope(value: str | None) -> str:
+        raw = str(value or "owner_only").strip().lower()
+        return raw if raw in {"public", "gm_only", "owner_only", "revealed"} else "owner_only"
 
     def normalize_access_mode(value: str | None) -> str:
         raw = str(value or "open").strip().lower()
@@ -213,17 +223,34 @@ def create_gm_router(*, get_db) -> APIRouter:
             "is_active": bool(user.is_active),
         }
 
-    def serialize_membership(entry: PartyMembership) -> dict[str, Any]:
+    def serialize_membership(
+        entry: PartyMembership,
+        *,
+        viewer_user_id: int,
+        can_manage: bool,
+    ) -> dict[str, Any]:
         user = entry.user
+        visibility_matrix = normalize_visibility_matrix(entry.hidden_sections, entry.visibility_preset)
+        character_sheet = extract_character_sheet_payload(entry.selected_character, entry)
+        visible_sheet = {
+            section: value
+            for section, value in character_sheet.items()
+            if section == "portrait_url" or section == "identity" or can_view_scope(visibility_matrix.get(section, "owner_only"), viewer_user_id=viewer_user_id, membership=entry, can_manage=can_manage)
+        }
+        resolved_name, name_source, lss_name = resolve_character_name(entry.selected_character, entry)
         return {
             "id": entry.id,
             "user_id": entry.user_id,
             "role_in_table": entry.role_in_table,
             "visibility_preset": entry.visibility_preset,
             "selected_character_id": entry.selected_character_id,
-            "selected_character_name": entry.selected_character_name or "",
+            "selected_character_name": resolved_name,
+            "selected_character_name_source": name_source,
+            "selected_character_lss_name": lss_name,
             "notes": entry.notes or "",
             "hidden_sections": entry.hidden_sections or {},
+            "visibility_matrix": visibility_matrix,
+            "character_sheet": visible_sheet,
             "status": entry.status,
             "joined_at": entry.joined_at.isoformat() if entry.joined_at else now_iso(),
             "nickname": user.nickname if user else "",
@@ -253,6 +280,20 @@ def create_gm_router(*, get_db) -> APIRouter:
         except (TypeError, ValueError):
             return fallback
 
+    def unwrap_lss_value(node: Any, fallback: Any = "") -> Any:
+        if node is None:
+            return fallback
+        if isinstance(node, (str, int, float, bool)):
+            return node
+        if isinstance(node, dict):
+            if "value" in node:
+                return unwrap_lss_value(node.get("value"), fallback)
+            if "score" in node:
+                return unwrap_lss_value(node.get("score"), fallback)
+            if "filled" in node and len(node) == 1:
+                return unwrap_lss_value(node.get("filled"), fallback)
+        return fallback
+
     def get_nested_value(payload: Any, path: str, fallback: Any = None) -> Any:
         current = payload
         for key in path.split("."):
@@ -263,17 +304,259 @@ def create_gm_router(*, get_db) -> APIRouter:
                 return fallback
         return current
 
-    def extract_character_combat_snapshot(character: Character | None, membership: PartyMembership) -> dict[str, Any]:
+    def parse_rich_text_to_plain(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, dict):
+            if value.get("type") == "doc" and isinstance(value.get("content"), list):
+                return " ".join(
+                    text for text in (parse_rich_text_to_plain(item) for item in value.get("content", []))
+                    if text
+                ).strip()
+            if "value" in value:
+                return parse_rich_text_to_plain(value.get("value"))
+            if "data" in value:
+                return parse_rich_text_to_plain(value.get("data"))
+            if isinstance(value.get("content"), list):
+                return " ".join(
+                    text for text in (parse_rich_text_to_plain(item) for item in value.get("content", []))
+                    if text
+                ).strip()
+            if value.get("text"):
+                return str(value.get("text") or "").strip()
+        if isinstance(value, list):
+            return " ".join(text for text in (parse_rich_text_to_plain(item) for item in value) if text).strip()
+        return str(value).strip()
+
+    def get_character_lss_root(character: Character | None) -> dict[str, Any]:
+        if not character:
+            return {}
         data = character.data if isinstance(character.data, dict) else {}
-        lss = data.get("lss") if isinstance(data.get("lss"), dict) else {}
-        root = lss if lss else data
+        root = data.get("lss") if isinstance(data.get("lss"), dict) else data
+        if isinstance(root.get("data"), str):
+            try:
+                parsed = json.loads(root["data"])
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                return root
+        if isinstance(root.get("data"), dict):
+            return root["data"]
+        return root if isinstance(root, dict) else {}
+
+    def extract_portrait_url(source: dict[str, Any]) -> str:
+        avatar = source.get("avatar") if isinstance(source.get("avatar"), dict) else {}
+        media = source.get("media") if isinstance(source.get("media"), dict) else {}
+        visual = source.get("visual") if isinstance(source.get("visual"), dict) else {}
+        for candidate in [
+            avatar.get("webp"),
+            avatar.get("jpeg"),
+            source.get("portrait"),
+            source.get("portraitUrl"),
+            source.get("avatarUrl"),
+            source.get("imageUrl"),
+            media.get("portrait"),
+            media.get("image"),
+            visual.get("portrait"),
+            visual.get("avatar"),
+        ]:
+            value = str(candidate or "").strip()
+            if value:
+                return value
+        return ""
+
+    def resolve_character_name(character: Character | None, membership: PartyMembership | None = None) -> tuple[str, str, str]:
+        manual_table_name = str(getattr(membership, "selected_character_name", "") or "").strip()
+        if manual_table_name:
+            return manual_table_name, "table_manual", manual_table_name
+        manual_character_name = str(getattr(character, "name", "") or "").strip()
+        root = get_character_lss_root(character)
+        info = root.get("info") if isinstance(root.get("info"), dict) else {}
+        lss_name = str(
+            unwrap_lss_value(root.get("name"))
+            or unwrap_lss_value(info.get("name"))
+            or ""
+        ).strip()
+        manual_is_generic = manual_character_name.lower() in {"", "персонаж", "character"}
+        if manual_character_name and not manual_is_generic:
+            return manual_character_name, "character_manual", lss_name
+        if lss_name:
+            return lss_name, "lss", lss_name
+        if manual_character_name:
+            return manual_character_name, "fallback", lss_name
+        return "Персонаж", "fallback", lss_name
+
+    def default_visibility_matrix(preset: str) -> dict[str, str]:
+        base = {
+            "identity": "public",
+            "combat": "public",
+            "stats": "owner_only",
+            "spells": "owner_only",
+            "inventory": "gm_only",
+            "equipment": "owner_only",
+            "notes": "gm_only",
+            "story": "owner_only",
+        }
+        normalized = normalize_visibility(preset)
+        if normalized == "private":
+            return {
+                "identity": "owner_only",
+                "combat": "owner_only",
+                "stats": "owner_only",
+                "spells": "owner_only",
+                "inventory": "gm_only",
+                "equipment": "owner_only",
+                "notes": "gm_only",
+                "story": "owner_only",
+            }
+        if normalized == "sheet":
+            return {
+                "identity": "public",
+                "combat": "public",
+                "stats": "public",
+                "spells": "owner_only",
+                "inventory": "owner_only",
+                "equipment": "owner_only",
+                "notes": "gm_only",
+                "story": "owner_only",
+            }
+        if normalized == "full":
+            return {
+                "identity": "public",
+                "combat": "public",
+                "stats": "public",
+                "spells": "revealed",
+                "inventory": "revealed",
+                "equipment": "revealed",
+                "notes": "owner_only",
+                "story": "revealed",
+            }
+        return base
+
+    def normalize_visibility_matrix(hidden_sections: Any, preset: str) -> dict[str, str]:
+        hidden = hidden_sections if isinstance(hidden_sections, dict) else {}
+        raw_matrix = hidden.get("visibility_matrix") if isinstance(hidden.get("visibility_matrix"), dict) else {}
+        matrix = default_visibility_matrix(preset)
+        for key, value in raw_matrix.items():
+            if key in matrix:
+                matrix[key] = normalize_visibility_scope(value)
+        return matrix
+
+    def sanitize_hidden_sections(hidden_sections: Any, preset: str) -> dict[str, Any]:
+        hidden = hidden_sections if isinstance(hidden_sections, dict) else {}
+        sanitized = {
+            key: value
+            for key, value in hidden.items()
+            if key != "visibility_matrix"
+        }
+        sanitized["visibility_matrix"] = normalize_visibility_matrix(hidden, preset)
+        return sanitized
+
+    def can_view_scope(scope: str, *, viewer_user_id: int, membership: PartyMembership, can_manage: bool) -> bool:
+        normalized = normalize_visibility_scope(scope)
+        if can_manage:
+            return True
+        if normalized in {"public", "revealed"}:
+            return True
+        if normalized == "owner_only":
+            return membership.user_id == viewer_user_id
+        return False
+
+    def extract_character_sheet_payload(character: Character | None, membership: PartyMembership) -> dict[str, Any]:
+        root = get_character_lss_root(character)
+        info = root.get("info") if isinstance(root.get("info"), dict) else {}
+        vitality = root.get("vitality") if isinstance(root.get("vitality"), dict) else {}
+        stats = root.get("stats") if isinstance(root.get("stats"), dict) else {}
+        spells = root.get("spells") if isinstance(root.get("spells"), dict) else {}
+        coins = root.get("coins") if isinstance(root.get("coins"), dict) else {}
+        name, _, lss_name = resolve_character_name(character, None)
+        return {
+            "portrait_url": extract_portrait_url(root),
+            "identity": {
+                "name": name,
+                "lss_name": lss_name,
+                "class_name": str(unwrap_lss_value(info.get("charClass")) or getattr(character, "class_name", "") or "").strip(),
+                "subclass": str(unwrap_lss_value(info.get("charSubclass")) or "").strip(),
+                "level": max(1, coerce_int(unwrap_lss_value(info.get("level")) or getattr(character, "level", 1), 1)),
+                "race": str(unwrap_lss_value(info.get("race")) or getattr(character, "race", "") or "").strip(),
+                "background": str(unwrap_lss_value(info.get("background")) or "").strip(),
+                "alignment": str(unwrap_lss_value(info.get("alignment")) or getattr(character, "alignment", "") or "").strip(),
+            },
+            "combat": {
+                "hp_current": max(0, coerce_int(unwrap_lss_value(vitality.get("hp-current")) or unwrap_lss_value(vitality.get("hp_current")) or 0, 0)),
+                "hp_max": max(1, coerce_int(unwrap_lss_value(vitality.get("hp-max")) or unwrap_lss_value(vitality.get("hp_max")) or 1, 1)),
+                "ac": max(0, coerce_int(unwrap_lss_value(vitality.get("ac")) or 10, 10)),
+                "initiative": coerce_int(unwrap_lss_value(vitality.get("initiative")) or 0, 0),
+                "speed": coerce_int(unwrap_lss_value(vitality.get("speed")) or 0, 0),
+                "conditions": root.get("conditions") if isinstance(root.get("conditions"), list) else [],
+            },
+            "stats": [
+                {
+                    "key": key,
+                    "score": coerce_int(unwrap_lss_value(value.get("score")) if isinstance(value, dict) else unwrap_lss_value(value), 10),
+                }
+                for key, value in stats.items()
+            ],
+            "spells": {
+                "prepared_count": len(root.get("spells", {}).get("prepared", [])) if isinstance(root.get("spells", {}), dict) and isinstance(root.get("spells", {}).get("prepared"), list) else 0,
+                "slots": {
+                    key: {
+                        "value": coerce_int(unwrap_lss_value(slot.get("value")) if isinstance(slot, dict) else 0, 0),
+                        "filled": coerce_int(unwrap_lss_value(slot.get("filled")) if isinstance(slot, dict) else 0, 0),
+                    }
+                    for key, slot in spells.items()
+                    if str(key).startswith("slots-")
+                },
+            },
+            "inventory": {
+                "weapons": [
+                    {
+                        "name": str(unwrap_lss_value(item.get("name")) or "").strip(),
+                        "damage": str(unwrap_lss_value(item.get("dmg")) or "").strip(),
+                        "notes": str(parse_rich_text_to_plain(item.get("notes")) or "").strip(),
+                    }
+                    for item in (root.get("weaponsList") if isinstance(root.get("weaponsList"), list) else [])
+                    if isinstance(item, dict)
+                ],
+                "coins": {
+                    key: coerce_int(unwrap_lss_value(value.get("value")) if isinstance(value, dict) else unwrap_lss_value(value), 0)
+                    for key, value in coins.items()
+                },
+            },
+            "story": {
+                "appearance": parse_rich_text_to_plain(root.get("appearance")),
+                "background": parse_rich_text_to_plain(root.get("text", {}).get("background") if isinstance(root.get("text"), dict) else ""),
+                "personality": parse_rich_text_to_plain(root.get("personality")),
+                "ideals": parse_rich_text_to_plain(root.get("ideals")),
+                "flaws": parse_rich_text_to_plain(root.get("flaws")),
+                "bonds": parse_rich_text_to_plain(root.get("bonds")),
+                "traits": parse_rich_text_to_plain(root.get("traits")),
+                "features": parse_rich_text_to_plain(root.get("features")),
+                "equipment": parse_rich_text_to_plain(root.get("equipment")),
+                "quests": parse_rich_text_to_plain(root.get("quests")),
+                "notes": [
+                    parse_rich_text_to_plain(root.get(f"notes-{index}"))
+                    for index in range(1, 7)
+                    if parse_rich_text_to_plain(root.get(f"notes-{index}"))
+                ],
+            },
+        }
+
+    def extract_character_combat_snapshot(character: Character | None, membership: PartyMembership) -> dict[str, Any]:
+        root = get_character_lss_root(character)
+        vitality = root.get("vitality") if isinstance(root.get("vitality"), dict) else {}
+        info = root.get("info") if isinstance(root.get("info"), dict) else {}
+        resolved_name, _, _ = resolve_character_name(character, membership)
 
         hp_max = max(
             1,
             coerce_int(
-                get_nested_value(root, "vitality.hp-max")
-                or get_nested_value(root, "vitality.hp_max")
+                unwrap_lss_value(vitality.get("hp-max"))
+                or unwrap_lss_value(vitality.get("hp_max"))
                 or root.get("hp_max")
+                or getattr(character, "level", 10)
                 or 10,
                 10,
             ),
@@ -281,8 +564,8 @@ def create_gm_router(*, get_db) -> APIRouter:
         hp_current = max(
             0,
             coerce_int(
-                get_nested_value(root, "vitality.hp-current")
-                or get_nested_value(root, "vitality.hp_current")
+                unwrap_lss_value(vitality.get("hp-current"))
+                or unwrap_lss_value(vitality.get("hp_current"))
                 or root.get("hp_current")
                 or hp_max,
                 hp_max,
@@ -291,35 +574,35 @@ def create_gm_router(*, get_db) -> APIRouter:
         ac = max(
             0,
             coerce_int(
-                get_nested_value(root, "vitality.ac") or root.get("ac") or 10,
+                unwrap_lss_value(vitality.get("ac")) or root.get("ac") or 10,
                 10,
             ),
         )
         initiative = coerce_int(
-            get_nested_value(root, "vitality.initiative") or root.get("initiative") or 0,
+            unwrap_lss_value(vitality.get("initiative")) or root.get("initiative") or 0,
             0,
         )
         level = max(
             1,
             coerce_int(
-                get_nested_value(root, "info.level") or root.get("level") or getattr(character, "level", 1) or 1,
+                unwrap_lss_value(info.get("level")) or root.get("level") or getattr(character, "level", 1) or 1,
                 1,
             ),
         )
         class_name = str(
-            get_nested_value(root, "info.charClass")
-            or get_nested_value(root, "info.class")
+            unwrap_lss_value(info.get("charClass"))
+            or unwrap_lss_value(info.get("class"))
             or getattr(character, "class_name", "")
             or ""
         ).strip()
         race = str(
-            get_nested_value(root, "info.race")
+            unwrap_lss_value(info.get("race"))
             or getattr(character, "race", "")
             or ""
         ).strip()
 
         return {
-            "name": membership.selected_character_name or (character.name if character else "Персонаж"),
+            "name": resolved_name,
             "hp_current": hp_current,
             "hp_max": hp_max,
             "ac": ac,
@@ -363,12 +646,20 @@ def create_gm_router(*, get_db) -> APIRouter:
         return {
             "id": str(row.get("id") or f"log_{index}_{int(datetime.utcnow().timestamp())}"),
             "type": str(row.get("type") or "note").strip(),
+            "event_type": str(row.get("event_type") or row.get("type") or "note").strip(),
             "membership_id": coerce_int(row.get("membership_id"), 0),
+            "entry_id": str(row.get("entry_id") or "").strip(),
+            "target_entry_id": str(row.get("target_entry_id") or "").strip(),
+            "target_name": str(row.get("target_name") or "").strip(),
             "actor_name": str(row.get("actor_name") or "Система").strip(),
             "dice": str(row.get("dice") or "").strip(),
             "modifier": coerce_int(row.get("modifier"), 0),
             "roll_total": coerce_int(row.get("roll_total"), 0),
             "damage": coerce_int(row.get("damage"), 0),
+            "outcome": str(row.get("outcome") or "").strip(),
+            "damage_type": str(row.get("damage_type") or "").strip(),
+            "visibility": normalize_visibility_scope(row.get("visibility")),
+            "round": max(1, coerce_int(row.get("round"), 1)),
             "reason": str(row.get("reason") or "").strip(),
             "text": str(row.get("text") or "").strip(),
             "created_at": str(row.get("created_at") or now_iso()),
@@ -386,23 +677,57 @@ def create_gm_router(*, get_db) -> APIRouter:
                     return row
         return None
 
-    def serialize_combat(entry: PartyTable) -> dict[str, Any]:
+    def serialize_combat(entry: PartyTable, *, viewer_user_id: int, can_manage: bool) -> dict[str, Any]:
         settings = entry.settings if isinstance(entry.settings, dict) else {}
         raw = settings.get("combat") if isinstance(settings.get("combat"), dict) else {}
         members_count = max(len(entry.memberships), 1)
+        membership_map = {membership.id: membership for membership in entry.memberships}
         entries = [
             normalize_combat_entry(item, index)
             for index, item in enumerate(raw.get("entries") if isinstance(raw.get("entries"), list) else [])
         ]
+        hydrated_entries: list[dict[str, Any]] = []
+        for index, row in enumerate(entries):
+            normalized = normalize_combat_entry(row, index)
+            membership = membership_map.get(int(normalized.get("membership_id") or 0))
+            if membership:
+                sheet = extract_character_sheet_payload(membership.selected_character, membership)
+                visibility_matrix = normalize_visibility_matrix(membership.hidden_sections, membership.visibility_preset)
+                resolved_name, _, _ = resolve_character_name(membership.selected_character, membership)
+                normalized["name"] = resolved_name or normalized["name"]
+                normalized["portrait_url"] = sheet.get("portrait_url", "")
+                normalized["level"] = sheet.get("identity", {}).get("level", 1)
+                normalized["class_name"] = sheet.get("identity", {}).get("class_name", "")
+                normalized["race"] = sheet.get("identity", {}).get("race", "")
+                normalized["visibility_preset"] = membership.visibility_preset
+                normalized["visibility_matrix"] = visibility_matrix
+                normalized["entity_kind"] = "player" if membership.role_in_table == "player" else "gm"
+                if not can_view_scope(visibility_matrix.get("combat", "owner_only"), viewer_user_id=viewer_user_id, membership=membership, can_manage=can_manage):
+                    normalized["hp_current"] = 0
+                    normalized["hp_max"] = 0
+                    normalized["ac"] = 0
+            else:
+                normalized["portrait_url"] = ""
+                normalized["level"] = 0
+                normalized["class_name"] = ""
+                normalized["race"] = ""
+                normalized["entity_kind"] = "enemy" if normalized["entry_type"] == "enemy" else "npc"
+            if normalized["entry_type"] == "enemy" and not can_manage:
+                normalized["hp_current"] = 0
+                normalized["hp_max"] = 0
+                normalized["ac"] = 0
+            hydrated_entries.append(normalized)
         logs = [
             normalize_combat_log_entry(item, index)
             for index, item in enumerate(raw.get("log") if isinstance(raw.get("log"), list) else [])
-        ][-60:]
+            if can_manage
+            or normalize_visibility_scope((item if isinstance(item, dict) else {}).get("visibility")) != "gm_only"
+        ][-80:]
         return {
             "active": bool(raw.get("active", False)),
             "round": max(1, coerce_int(raw.get("round"), 1)),
-            "turn_index": max(0, min(coerce_int(raw.get("turn_index"), 0), max(len(entries) - 1, 0))),
-            "entries": entries,
+            "turn_index": max(0, min(coerce_int(raw.get("turn_index"), 0), max(len(hydrated_entries) - 1, 0))),
+            "entries": hydrated_entries,
             "log": logs,
             "updated_at": str(raw.get("updated_at") or entry.updated_at.isoformat() if entry.updated_at else now_iso()),
             "members_count": members_count,
@@ -422,7 +747,7 @@ def create_gm_router(*, get_db) -> APIRouter:
             "log": [
                 normalize_combat_log_entry(item, index)
                 for index, item in enumerate(raw.get("log") if isinstance(raw.get("log"), list) else [])
-            ][-60:],
+            ][-80:],
             "updated_at": now_iso(),
         }
         settings["combat"] = combat
@@ -441,7 +766,23 @@ def create_gm_router(*, get_db) -> APIRouter:
         combat["updated_at"] = now_iso()
         return entry
 
-    def serialize_table(entry: PartyTable) -> dict[str, Any]:
+    def build_turn_log_entry(combat: dict[str, Any]) -> dict[str, Any]:
+        entries = combat.get("entries", [])
+        turn_index = min(max(0, coerce_int(combat.get("turn_index"), 0)), max(len(entries) - 1, 0))
+        current = entries[turn_index] if entries else {}
+        actor_name = str(current.get("name") or "Неизвестный").strip() or "Неизвестный"
+        return append_combat_log(
+            combat,
+            type="turn",
+            event_type="turn",
+            actor_name=actor_name,
+            entry_id=str(current.get("entry_id") or "").strip(),
+            visibility="public",
+            round=max(1, coerce_int(combat.get("round"), 1)),
+            text=f"Раунд {max(1, coerce_int(combat.get('round'), 1))}: ход {actor_name}",
+        )
+
+    def serialize_table(entry: PartyTable, *, viewer_user_id: int, can_manage: bool) -> dict[str, Any]:
         traders = []
         for access in sorted(entry.trader_accesses, key=lambda row: row.trader.name.lower() if row.trader else ""):
             traders.append(
@@ -468,13 +809,17 @@ def create_gm_router(*, get_db) -> APIRouter:
             "notes": entry.notes or "",
             "trader_access_mode": entry.trader_access_mode or "open",
             "owner_user_id": entry.owner_user_id,
+            "viewer_can_manage": can_manage,
             "created_at": entry.created_at.isoformat() if entry.created_at else now_iso(),
             "updated_at": entry.updated_at.isoformat() if entry.updated_at else now_iso(),
-            "members": [serialize_membership(member) for member in entry.memberships],
+            "members": [
+                serialize_membership(member, viewer_user_id=viewer_user_id, can_manage=can_manage)
+                for member in entry.memberships
+            ],
             "trader_accesses": traders,
             "shared_traders": [trader["name"] for trader in traders if trader["is_enabled"]],
             "grants": [serialize_party_grant(grant) for grant in grants],
-            "combat": serialize_combat(entry),
+            "combat": serialize_combat(entry, viewer_user_id=viewer_user_id, can_manage=can_manage),
         }
 
     def get_table_with_relations(db: Session, table_id: int) -> PartyTable:
@@ -482,6 +827,7 @@ def create_gm_router(*, get_db) -> APIRouter:
             db.query(PartyTable)
             .options(
                 joinedload(PartyTable.memberships).joinedload(PartyMembership.user),
+                joinedload(PartyTable.memberships).joinedload(PartyMembership.selected_character),
                 joinedload(PartyTable.trader_accesses).joinedload(PartyTraderAccess.trader),
                 joinedload(PartyTable.grants).joinedload(PartyGrant.item),
                 joinedload(PartyTable.grants).joinedload(PartyGrant.granted_by),
@@ -513,6 +859,21 @@ def create_gm_router(*, get_db) -> APIRouter:
         if membership:
             return table
         raise HTTPException(status_code=403, detail="Нет доступа к управлению этим столом")
+
+    def require_table_membership_access(
+        db: Session,
+        table_id: int,
+        current_user: User,
+    ) -> PartyTable:
+        table = get_table_with_relations(db, table_id)
+        if current_user.role == "admin":
+            return table
+        if table.owner_user_id == current_user.id:
+            return table
+        membership = get_membership_for_user(table, current_user.id)
+        if membership:
+            return table
+        raise HTTPException(status_code=403, detail="Нет доступа к этому столу")
 
     def find_user_for_invite(
         db: Session,
@@ -763,7 +1124,6 @@ def create_gm_router(*, get_db) -> APIRouter:
             .join(PartyMembership, PartyMembership.table_id == PartyTable.id)
             .filter(
                 PartyMembership.user_id == current_user.id,
-                PartyMembership.role_in_table == "gm",
             )
             .order_by(PartyTable.updated_at.desc(), PartyTable.id.desc())
             .all()
@@ -788,7 +1148,14 @@ def create_gm_router(*, get_db) -> APIRouter:
 
         return {
             "status": "ok",
-            "tables": [serialize_table(entry) for entry in deduped.values()],
+            "tables": [
+                serialize_table(
+                    entry,
+                    viewer_user_id=current_user.id,
+                    can_manage=bool(entry.owner_user_id == current_user.id or get_table_gm_membership(entry, current_user.id)),
+                )
+                for entry in deduped.values()
+            ],
         }
 
     @router.post("/gm/tables")
@@ -817,7 +1184,7 @@ def create_gm_router(*, get_db) -> APIRouter:
             role_in_table="gm",
             visibility_preset="full",
             selected_character_id=character.id,
-            selected_character_name=character.name,
+            selected_character_name=resolve_character_name(character)[0],
             hidden_sections={},
             notes="",
             status="active",
@@ -828,7 +1195,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table.id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.patch("/gm/tables/{table_id}")
@@ -855,7 +1222,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.delete("/gm/tables/{table_id}")
@@ -896,7 +1263,7 @@ def create_gm_router(*, get_db) -> APIRouter:
             role_in_table=role_in_table,
             visibility_preset="basic" if role_in_table != "gm" else "full",
             selected_character_id=character.id,
-            selected_character_name=character.name,
+            selected_character_name=resolve_character_name(character)[0],
             hidden_sections={},
             status="active",
             notes="",
@@ -907,7 +1274,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.patch("/gm/tables/{table_id}/members/{membership_id}")
@@ -918,16 +1285,24 @@ def create_gm_router(*, get_db) -> APIRouter:
         current_user: User = Depends(get_current_active_user),
         db: Session = Depends(get_db),
     ):
-        table = require_table_gm_access(db, table_id, current_user)
+        table = require_table_membership_access(db, table_id, current_user)
         membership = next((row for row in table.memberships if row.id == membership_id), None)
         if not membership:
             raise HTTPException(status_code=404, detail="Участник стола не найден")
+        can_manage = bool(table.owner_user_id == current_user.id or get_table_gm_membership(table, current_user.id))
+        is_self = membership.user_id == current_user.id
+        if not can_manage and not is_self:
+            raise HTTPException(status_code=403, detail="Можно обновлять только своего участника")
 
         if payload.role_in_table is not None:
+            if not can_manage:
+                raise HTTPException(status_code=403, detail="Игрок не может менять роль в столе")
             membership.role_in_table = normalize_role_in_table(payload.role_in_table)
             membership.visibility_preset = "full" if membership.role_in_table == "gm" else membership.visibility_preset
 
         if payload.visibility_preset is not None:
+            if not can_manage:
+                raise HTTPException(status_code=403, detail="Игрок не может менять visibility preset")
             membership.visibility_preset = normalize_visibility(payload.visibility_preset)
         if payload.selected_character_id is not None:
             character = (
@@ -941,13 +1316,20 @@ def create_gm_router(*, get_db) -> APIRouter:
             if not character:
                 raise HTTPException(status_code=404, detail="Персонаж участника не найден")
             membership.selected_character_id = character.id
-            membership.selected_character_name = character.name
+            membership.selected_character_name = resolve_character_name(character)[0]
         if payload.selected_character_name is not None:
             membership.selected_character_name = str(payload.selected_character_name or "").strip()
         if payload.notes is not None:
+            if not can_manage:
+                raise HTTPException(status_code=403, detail="Игрок не может менять GM notes участника")
             membership.notes = str(payload.notes or "").strip()
         if payload.hidden_sections is not None:
-            membership.hidden_sections = payload.hidden_sections
+            if not can_manage:
+                raise HTTPException(status_code=403, detail="Игрок не может менять visibility matrix")
+            membership.hidden_sections = sanitize_hidden_sections(
+                payload.hidden_sections,
+                membership.visibility_preset,
+            )
 
         db.add(membership)
         db.commit()
@@ -955,7 +1337,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=can_manage),
         }
 
     @router.delete("/gm/tables/{table_id}/members/{membership_id}")
@@ -978,7 +1360,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.post("/gm/tables/{table_id}/trader-accesses")
@@ -1019,7 +1401,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.delete("/gm/tables/{table_id}/trader-accesses/{trader_id}")
@@ -1045,7 +1427,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.post("/gm/tables/{table_id}/grants/item")
@@ -1098,7 +1480,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.post("/gm/tables/{table_id}/combat/bootstrap")
@@ -1140,7 +1522,7 @@ def create_gm_router(*, get_db) -> APIRouter:
                         "membership_id": membership.id,
                         "user_id": membership.user_id,
                         "selected_character_id": membership.selected_character_id or character.id,
-                        "name": membership.selected_character_name or snapshot["name"],
+                        "name": snapshot["name"],
                         "role_in_table": membership.role_in_table,
                         "hp_current": existing.get("hp_current", snapshot["hp_current"]),
                         "hp_max": existing.get("hp_max", snapshot["hp_max"]),
@@ -1161,16 +1543,20 @@ def create_gm_router(*, get_db) -> APIRouter:
         append_combat_log(
             combat,
             type="system",
+            event_type="sync",
             actor_name="Система",
+            visibility="public",
+            round=max(1, coerce_int(combat.get("round"), 1)),
             text=f"Боевой состав синхронизирован: {len(entries)} участников",
         )
+        build_turn_log_entry(combat)
 
         db.add(table)
         db.commit()
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.patch("/gm/tables/{table_id}/combat")
@@ -1188,15 +1574,27 @@ def create_gm_router(*, get_db) -> APIRouter:
             combat["active"] = bool(payload.active)
         if payload.round is not None:
             combat["round"] = max(1, int(payload.round))
+            append_combat_log(
+                combat,
+                type="round",
+                event_type="round",
+                actor_name="Система",
+                visibility="public",
+                round=combat["round"],
+                text=f"Раунд {combat['round']}",
+            )
         if payload.turn_index is not None:
+            previous_turn = coerce_int(combat.get("turn_index"), 0)
             combat["turn_index"] = min(max(0, int(payload.turn_index)), max(len(entries) - 1, 0))
+            if combat["turn_index"] != previous_turn or payload.round is not None:
+                build_turn_log_entry(combat)
 
         db.add(table)
         db.commit()
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.patch("/gm/tables/{table_id}/combat/members/{membership_id}")
@@ -1274,7 +1672,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.post("/gm/tables/{table_id}/combat/enemies")
@@ -1319,7 +1717,11 @@ def create_gm_router(*, get_db) -> APIRouter:
         append_combat_log(
             combat,
             type="system",
+            event_type="spawn",
             actor_name="Система",
+            entry_id=enemy_entry["entry_id"],
+            visibility="public",
+            round=max(1, coerce_int(combat.get("round"), 1)),
             text=f"Добавлен противник: {enemy_entry['name']}",
         )
 
@@ -1328,7 +1730,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
             "entry": enemy_entry,
         }
 
@@ -1374,7 +1776,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.delete("/gm/tables/{table_id}/combat/entries/{entry_id}")
@@ -1400,7 +1802,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=True),
         }
 
     @router.post("/gm/tables/{table_id}/combat/roll")
@@ -1410,7 +1812,9 @@ def create_gm_router(*, get_db) -> APIRouter:
         current_user: User = Depends(get_current_active_user),
         db: Session = Depends(get_db),
     ):
-        table = require_table_gm_access(db, table_id, current_user)
+        table = require_table_membership_access(db, table_id, current_user)
+        can_manage = bool(table.owner_user_id == current_user.id or get_table_gm_membership(table, current_user.id))
+        current_membership = get_membership_for_user(table, current_user.id)
         _, combat = mutate_combat_state(table)
 
         dice_raw = str(payload.dice or "d20").strip().lower()
@@ -1423,33 +1827,94 @@ def create_gm_router(*, get_db) -> APIRouter:
         modifier = int(payload.modifier or 0)
         roll_total = sum(random.randint(1, sides) for _ in range(count)) + modifier
 
-        actor_name = str(payload.actor_name or "").strip() or "Неизвестный"
+        actor_name = str(payload.actor_name or "").strip() or (current_user.display_name or current_user.nickname or "Неизвестный")
+        target_name = ""
         if payload.entry_id:
             entry = find_combat_entry(combat, entry_id=payload.entry_id)
             if entry:
                 actor_name = str(entry.get("name") or actor_name).strip() or actor_name
+                if not can_manage and int(entry.get("membership_id") or 0) > 0 and current_membership and int(entry.get("membership_id") or 0) != current_membership.id:
+                    raise HTTPException(status_code=403, detail="Игрок может бросать только от себя")
         if payload.membership_id is not None:
             membership = next((row for row in table.memberships if row.id == payload.membership_id), None)
             if not membership:
                 raise HTTPException(status_code=404, detail="Участник стола не найден")
+            if not can_manage and current_membership and membership.id != current_membership.id:
+                raise HTTPException(status_code=403, detail="Игрок может бросать только от своего персонажа")
             actor_name = (
-                membership.selected_character_name
+                resolve_character_name(membership.selected_character, membership)[0]
                 or membership.user.display_name
                 or membership.user.nickname
                 or actor_name
             )
+        if payload.target_entry_id:
+            target_entry = find_combat_entry(combat, entry_id=payload.target_entry_id)
+            if target_entry:
+                target_name = str(target_entry.get("name") or "").strip()
+
+        event_type = str(payload.event_type or "roll").strip().lower()
+        visibility = normalize_visibility_scope(payload.visibility if can_manage else "public")
+        reason = str(payload.reason or "").strip()
+        outcome = str(payload.outcome or "").strip().lower()
+        damage = int(payload.damage or 0)
+        damage_type = str(payload.damage_type or "").strip()
+        if not outcome:
+            if event_type in {"attack", "save"}:
+                outcome = "success" if roll_total >= 10 else "failure"
+            elif event_type == "damage":
+                outcome = "hit"
+        if event_type == "damage" and damage <= 0:
+            damage = max(0, roll_total)
+
+        text = f"{actor_name} бросает {count}d{sides} {modifier:+d} = {roll_total}"
+        if event_type == "attack" and target_name:
+            text = f"{actor_name} атакует {target_name}: {roll_total}"
+        elif event_type == "save":
+            text = f"{actor_name} делает спасбросок{f' ({reason})' if reason else ''}: {roll_total}"
+        elif event_type == "damage":
+            damage_label = f"{damage} {damage_type} урона".strip()
+            text = f"{actor_name} наносит {damage_label or f'{damage} урона'}"
+            if target_name:
+                text += f" → {target_name}"
+        elif event_type == "heal":
+            text = f"{actor_name} восстанавливает {damage or roll_total} HP"
+            if target_name:
+                text += f" → {target_name}"
+        elif event_type == "effect":
+            text = f"{actor_name} применяет эффект"
+            if target_name:
+                text += f" → {target_name}"
+            if reason:
+                text += f": {reason}"
+        if outcome:
+            suffix = {
+                "success": "успех",
+                "failure": "провал",
+                "hit": "попадание",
+                "miss": "промах",
+                "critical": "крит",
+            }.get(outcome, outcome)
+            text = f"{text} — {suffix}"
 
         log_entry = append_combat_log(
             combat,
-            type="roll",
-            membership_id=payload.membership_id or 0,
+            type="roll" if event_type == "roll" else event_type,
+            event_type=event_type,
+            membership_id=payload.membership_id or current_membership.id if current_membership else 0,
+            entry_id=str(payload.entry_id or "").strip(),
+            target_entry_id=str(payload.target_entry_id or "").strip(),
+            target_name=target_name,
             actor_name=actor_name,
             dice=f"{count}d{sides}" if count > 1 else f"d{sides}",
             modifier=modifier,
             roll_total=roll_total,
-            damage=int(payload.damage or 0),
-            reason=str(payload.reason or "").strip(),
-            text=f"{actor_name} бросает {count}d{sides} {modifier:+d} = {roll_total}",
+            damage=damage,
+            damage_type=damage_type,
+            reason=reason,
+            outcome=outcome,
+            visibility=visibility,
+            round=max(1, coerce_int(combat.get("round"), 1)),
+            text=text,
         )
 
         db.add(table)
@@ -1457,7 +1922,7 @@ def create_gm_router(*, get_db) -> APIRouter:
         table = get_table_with_relations(db, table_id)
         return {
             "status": "ok",
-            "table": serialize_table(table),
+            "table": serialize_table(table, viewer_user_id=current_user.id, can_manage=can_manage),
             "roll": log_entry,
         }
 

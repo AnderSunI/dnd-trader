@@ -25,6 +25,7 @@ LEGACY_SCHEMA_PATCHES: dict[str, list[tuple[str, str]]] = {
         ("show_gm_badge", "BOOLEAN DEFAULT TRUE"),
         ("profile_tags", "JSON"),
         ("preferred_systems", "JSON"),
+        ("profile_media", "JSON"),
         ("featured_item_ids", "JSON"),
         ("active_character_id", "INTEGER"),
         ("active_party_id", "INTEGER"),

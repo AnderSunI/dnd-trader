@@ -347,6 +347,22 @@ export async function updateAccount(data) {
   return apiPatch("/account/me", data ?? {});
 }
 
+export async function fetchAccountMedia() {
+  return apiGet("/account/media");
+}
+
+export async function uploadAccountMedia(data) {
+  return apiPost("/account/media/upload", data ?? {});
+}
+
+export async function setPrimaryAccountMedia(mediaId) {
+  return apiPost(`/account/media/${encodeURIComponent(String(mediaId || ""))}/primary`, {});
+}
+
+export async function deleteAccountMedia(mediaId) {
+  return apiDelete(`/account/media/${encodeURIComponent(String(mediaId || ""))}`);
+}
+
 export async function searchAccountUsers(query) {
   return apiGet(`/account/friends/search?q=${encodeURIComponent(String(query || "").trim())}`);
 }
@@ -593,6 +609,10 @@ window.apiModule = {
   deactivateGmMode,
   fetchAccount,
   updateAccount,
+  fetchAccountMedia,
+  uploadAccountMedia,
+  setPrimaryAccountMedia,
+  deleteAccountMedia,
   searchAccountUsers,
   fetchFriendsState,
   sendFriendRequest,

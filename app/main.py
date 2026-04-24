@@ -149,7 +149,12 @@ app.include_router(
         cleaned_items_path=CLEANED_ITEMS_PATH,
     )
 )
-app.include_router(create_account_router(get_db=get_db))
+app.include_router(
+    create_account_router(
+        get_db=get_db,
+        uploads_root=FRONTEND_STATIC_DIR / "uploads" / "account",
+    )
+)
 app.include_router(create_gm_router(get_db=get_db))
 
 
