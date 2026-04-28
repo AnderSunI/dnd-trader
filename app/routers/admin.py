@@ -4,16 +4,27 @@ import json
 import random
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..models import Item, PartyGrant, PartyTraderAccess, Trader, TraderItem, UserItem
+from ..auth import get_current_active_user
+from ..models import Item, PartyGrant, PartyTraderAccess, Trader, TraderItem, User, UserItem
 from ..seed_db import traders_data
 
 
 # ============================================================
 # HELPERS
 # ============================================================
+
+def require_admin_user(current_user: User = Depends(get_current_active_user)) -> User:
+    role = str(current_user.role or "").strip().lower()
+    if role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Требуется роль admin",
+        )
+    return current_user
+
 
 def _to_int(value, default: int = 0) -> int:
     try:
@@ -336,37 +347,53 @@ def relink_all_items(db: Session) -> int:
 def create_admin_router(*, get_db, cleaned_items_path) -> APIRouter:
     router = APIRouter(prefix="/admin", tags=["admin"])
 
+    def run_seed_reset(db: Session) -> dict:
+        db.query(PartyGrant).delete()
+        db.query(PartyTraderAccess).delete()
+        db.query(UserItem).delete()
+        db.query(TraderItem).delete()
+        db.query(Trader).delete()
+        db.query(Item).delete()
+        db.commit()
+
+        traders_imported = import_traders_from_seed(db)
+        items_imported = import_items_from_json(db, cleaned_items_path)
+        linked = relink_all_items(db)
+
+        return {
+            "status": "ok",
+            "traders_imported": traders_imported,
+            "items_imported": items_imported,
+            "linked": linked,
+        }
+
     @router.post("/reset")
-    def reset_db(db: Session = Depends(get_db)):
+    def reset_db(
+        db: Session = Depends(get_db),
+        _admin: User = Depends(require_admin_user),
+    ):
         try:
-            db.query(PartyGrant).delete()
-            db.query(PartyTraderAccess).delete()
-            db.query(UserItem).delete()
-            db.query(TraderItem).delete()
-            db.query(Trader).delete()
-            db.query(Item).delete()
-            db.commit()
-
-            traders_imported = import_traders_from_seed(db)
-            items_imported = import_items_from_json(db, cleaned_items_path)
-            linked = relink_all_items(db)
-
-            return {
-                "status": "ok",
-                "traders_imported": traders_imported,
-                "items_imported": items_imported,
-                "linked": linked,
-            }
+            return run_seed_reset(db)
         except Exception as exc:
             db.rollback()
             raise HTTPException(status_code=500, detail=f"Ошибка reset: {exc}") from exc
 
     @router.post("/full-reset")
-    def full_reset(db: Session = Depends(get_db)):
-        return reset_db(db)
+    def full_reset(
+        db: Session = Depends(get_db),
+        _admin: User = Depends(require_admin_user),
+    ):
+        try:
+            return run_seed_reset(db)
+        except Exception as exc:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Ошибка reset: {exc}") from exc
 
     @router.post("/relink-items")
-    def relink_items(db: Session = Depends(get_db)):
+    def relink_items(
+        db: Session = Depends(get_db),
+        _admin: User = Depends(require_admin_user),
+    ):
         try:
             linked = relink_all_items(db)
             return {
@@ -378,7 +405,7 @@ def create_admin_router(*, get_db, cleaned_items_path) -> APIRouter:
             raise HTTPException(status_code=500, detail=f"Ошибка relink-items: {exc}") from exc
 
     @router.get("/seed-preview")
-    def seed_preview():
+    def seed_preview(_admin: User = Depends(require_admin_user)):
         return {
             "status": "ok",
             "count": len(traders_data),

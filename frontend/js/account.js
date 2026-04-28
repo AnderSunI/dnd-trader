@@ -321,29 +321,29 @@ function renderMediaSlot(kind, title, description, previewUrl) {
   const effectivePreview = pendingPreview || previewUrl;
   return `
     <div class="cabinet-block account-media-slot">
-      <div class="flex-between" style="gap:10px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="flex-between account-hub-card-head">
         <div>
-          <div style="font-weight:800;">${escapeHtml(title)}</div>
-          <div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(description)}</div>
+          <div class="account-hub-card-title">${escapeHtml(title)}</div>
+          <div class="muted account-hub-stat-note">${escapeHtml(description)}</div>
         </div>
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+        <div class="trader-meta cabinet-header-meta">
           <button class="btn btn-primary" type="button" data-account-pick-media="${escapeHtml(kind)}">Выбрать файл</button>
           <button class="btn" type="button" data-account-upload-media="${escapeHtml(kind)}">Загрузить</button>
           <button class="btn btn-danger" type="button" data-account-delete-media="${escapeHtml(kind)}">Очистить</button>
         </div>
       </div>
-      <div class="profile-grid" style="grid-template-columns:minmax(220px,0.9fr) minmax(0,1.1fr); gap:12px;">
+      <div class="profile-grid account-media-slot-grid">
         <div class="account-media-preview ${effectivePreview ? "account-media-preview-filled" : ""}" data-account-media-preview="${escapeHtml(kind)}">
           ${
             effectivePreview
-              ? `<img src="${escapeHtml(effectivePreview)}" alt="${escapeHtml(title)}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
-              : `<div class="muted" style="font-size:0.84rem;">PNG / JPG / WEBP / GIF<br>до ${kind === "showcase" ? "8" : "4"} МБ</div>`
+              ? `<img src="${escapeHtml(effectivePreview)}" alt="${escapeHtml(title)}" class="account-media-preview-image">`
+              : `<div class="muted account-media-preview-empty">PNG / JPG / WEBP / GIF<br>до ${kind === "showcase" ? "8" : "4"} МБ</div>`
           }
         </div>
         <div class="filter-group">
           <label>URL fallback</label>
           <input id="${kind === "avatar" ? "accountAvatarUrlInput" : "accountBannerUrlInput"}" type="text" value="${escapeHtml(previewUrl || "")}" placeholder="https://...">
-          <div class="muted" style="font-size:0.76rem; margin-top:6px;">Можно оставить ссылку вручную, но основной путь теперь через загрузку файла.</div>
+          <div class="muted account-media-slot-note">Можно оставить ссылку вручную, но основной путь теперь через загрузку файла.</div>
         </div>
       </div>
       <input id="account${kind.charAt(0).toUpperCase() + kind.slice(1)}FileInput" type="file" accept="image/*" hidden>
@@ -357,24 +357,24 @@ function renderShowcaseGallery() {
   const pendingPreview = getPendingMediaData("showcase").dataUrl;
   return `
     <div class="cabinet-block">
-      <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="flex-between account-hub-card-head">
         <div>
-          <h4 style="margin:0 0 4px;">Витрина и скриншоты</h4>
-          <div class="muted" style="font-size:0.82rem;">Можно хранить игровые скрины, арты и обложку профиля.</div>
+          <h4 class="account-hub-card-title">Витрина и скриншоты</h4>
+          <div class="muted account-hub-card-copy">Можно хранить игровые скрины, арты и обложку профиля.</div>
         </div>
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+        <div class="trader-meta cabinet-header-meta">
           <button class="btn btn-primary" type="button" data-account-pick-media="showcase">Добавить скрин</button>
           <button class="btn" type="button" data-account-upload-media="showcase">Загрузить выбранное</button>
         </div>
       </div>
-      <div class="profile-grid" style="grid-template-columns:minmax(220px,0.9fr) minmax(0,1.1fr); gap:12px; margin-bottom:12px;">
+      <div class="profile-grid account-media-slot-grid account-showcase-upload-grid">
         <div class="account-media-preview ${pendingPreview ? "account-media-preview-filled" : ""}" data-account-media-preview="showcase">
-          ${pendingPreview ? `<img src="${escapeHtml(pendingPreview)}" alt="showcase preview" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">` : `<div class="muted" style="font-size:0.84rem;">Drag-and-drop через браузер пока не нужен: достаточно выбора файла, превью и серверной загрузки.</div>`}
+          ${pendingPreview ? `<img src="${escapeHtml(pendingPreview)}" alt="showcase preview" class="account-media-preview-image">` : `<div class="muted account-media-preview-empty">Drag-and-drop через браузер пока не нужен: достаточно выбора файла, превью и серверной загрузки.</div>`}
         </div>
         <div class="filter-group">
           <label>Подпись к скрину</label>
           <input id="accountShowcaseCaptionInput" type="text" maxlength="160" placeholder="Например: победа над боссом или арт персонажа">
-          <div class="muted" style="font-size:0.76rem; margin-top:6px;">Первый или помеченный primary элемент становится обложкой витрины.</div>
+          <div class="muted account-media-slot-note">Первый или помеченный primary элемент становится обложкой витрины.</div>
         </div>
       </div>
       <input id="accountShowcaseFileInput" type="file" accept="image/*" hidden>
@@ -386,14 +386,14 @@ function renderShowcaseGallery() {
                   <div class="account-showcase-thumb">
                     <img src="${escapeHtml(entry.url || "")}" alt="${escapeHtml(entry.caption || "showcase")}">
                   </div>
-                  <div class="flex-between" style="gap:8px; align-items:flex-start; margin-top:10px;">
+                  <div class="flex-between account-showcase-card-head">
                     <div>
-                      <div style="font-weight:800;">${escapeHtml(entry.caption || "Без подписи")}</div>
-                      <div class="muted" style="font-size:0.76rem; margin-top:4px;">${entry.is_primary ? "Обложка витрины" : "Доп. скрин"}</div>
+                      <div class="account-showcase-card-title">${escapeHtml(entry.caption || "Без подписи")}</div>
+                      <div class="muted account-showcase-card-note">${entry.is_primary ? "Обложка витрины" : "Доп. скрин"}</div>
                     </div>
                     ${entry.is_primary ? `<span class="meta-item">primary</span>` : ""}
                   </div>
-                  <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                  <div class="cart-buttons account-showcase-card-actions">
                     ${entry.is_primary ? "" : `<button class="btn" type="button" data-account-set-primary-media="${escapeHtml(entry.id)}">Сделать обложкой</button>`}
                     <button class="btn btn-danger" type="button" data-account-delete-media="${escapeHtml(entry.id)}">Удалить</button>
                   </div>
@@ -415,21 +415,24 @@ function renderAccountHero() {
   const avatar = getProfileAvatarUrl();
   const banner = getProfileBannerUrl();
   const avatarMarkup = avatar
-    ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.nickname || "avatar")}" style="width:96px; height:96px; border-radius:26px; object-fit:cover; border:1px solid rgba(255,255,255,0.12); box-shadow:0 10px 24px rgba(0,0,0,0.28);">`
-    : `<div style="width:96px; height:96px; border-radius:26px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1);">${escapeHtml((user.nickname || user.email || "U").slice(0, 1).toUpperCase())}</div>`;
+    ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.nickname || "avatar")}" class="account-hub-avatar-media">`
+    : `<div class="account-hub-avatar-fallback">${escapeHtml((user.nickname || user.email || "U").slice(0, 1).toUpperCase())}</div>`;
   const isGm = String(user.role || "").trim().toLowerCase() === "gm";
   const lssName = getCurrentLssCharacterName();
   const partiesCount = getCurrentParties().length;
   const charactersCount = getCurrentCharacters().length;
   const showcase = getCurrentShowcase();
+  const heroBackdrop = banner
+    ? `linear-gradient(rgba(9,16,24,0.46), rgba(9,16,24,0.92)), url('${escapeHtml(banner)}') center/cover`
+    : "radial-gradient(circle at top left, rgba(214,181,122,0.22), transparent 28%), radial-gradient(circle at top right, rgba(105,153,171,0.28), transparent 24%), linear-gradient(135deg, rgba(25,31,42,0.98), rgba(9,13,19,0.99))";
 
   return `
-    <section class="cabinet-block account-hub-hero" style="margin-bottom:12px; overflow:hidden; padding:0;">
-      <div class="account-hub-hero-backdrop" style="background:${banner ? `linear-gradient(rgba(9,16,24,0.46), rgba(9,16,24,0.92)), url('${escapeHtml(banner)}') center/cover` : "radial-gradient(circle at top left, rgba(214,181,122,0.22), transparent 28%), radial-gradient(circle at top right, rgba(105,153,171,0.28), transparent 24%), linear-gradient(135deg, rgba(25,31,42,0.98), rgba(9,13,19,0.99))"};">
+    <section class="cabinet-block account-hub-hero">
+      <div class="account-hub-hero-backdrop" style="--account-hero-backdrop:${heroBackdrop};">
         <div class="account-hub-hero-layout">
           <div class="account-hub-identity">
             <div class="account-hub-avatar-wrap">${avatarMarkup}</div>
-            <div style="min-width:220px; flex:1 1 220px;">
+            <div class="account-hub-copy">
               <div class="account-hub-kicker">Игровой профиль</div>
               <div class="account-hub-title">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
               <div class="muted account-hub-subtitle">@${escapeHtml(user.nickname || user.username || "player")} • ${escapeHtml(user.email || "")}</div>
@@ -452,24 +455,24 @@ function renderAccountHero() {
           <div class="account-hub-sidepanel">
             <div class="account-hub-sidepanel-header">
               <div class="account-hub-kicker">Витрина профиля</div>
-              <div class="muted" style="font-size:0.8rem;">Личные игровые маркеры</div>
+              <div class="muted account-hub-sidepanel-note">Личные игровые маркеры</div>
             </div>
-            <div class="profile-grid" style="grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
-              <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="account-hub-metrics-grid">
+              <div class="stat-box account-hub-metric-card">
                 <div class="muted">Персонажи</div>
-                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String(charactersCount))}</div>
+                <div class="account-hub-metric-value">${escapeHtml(String(charactersCount))}</div>
               </div>
-              <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="stat-box account-hub-metric-card">
                 <div class="muted">Партии</div>
-                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String(partiesCount))}</div>
+                <div class="account-hub-metric-value">${escapeHtml(String(partiesCount))}</div>
               </div>
-              <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="stat-box account-hub-metric-card">
                 <div class="muted">Друзья</div>
-                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String(showcase.friends_count || 0))}</div>
+                <div class="account-hub-metric-value">${escapeHtml(String(showcase.friends_count || 0))}</div>
               </div>
-              <div class="stat-box" style="min-height:auto; padding:12px;">
+              <div class="stat-box account-hub-metric-card">
                 <div class="muted">Витрина</div>
-                <div style="font-size:1.1rem; font-weight:900; margin-top:6px;">${escapeHtml(String((getProfileMedia().showcase || []).length))}</div>
+                <div class="account-hub-metric-value">${escapeHtml(String((getProfileMedia().showcase || []).length))}</div>
               </div>
             </div>
             <div class="account-hub-featured-note">
@@ -484,7 +487,7 @@ function renderAccountHero() {
 
 function renderSectionNav() {
   return `
-    <div class="cabinet-block account-hub-nav" style="margin-bottom:12px; padding:12px;">
+    <div class="cabinet-block account-hub-nav account-hub-nav-shell">
       <div class="account-hub-tab-row">
         ${ACCOUNT_SECTIONS.map((section) => `
           <button
@@ -507,60 +510,66 @@ function renderProfileSection() {
   const activeCharacter = showcase.active_character;
   const activeParty = showcase.active_party;
   const media = getProfileMedia();
+  const previewTitle = activeCharacter?.name || getCurrentLssCharacterName() || user.display_name || user.nickname || "Кабинет персонажа";
+  const previewMeta = [
+    `Роль: ${roleBadgeLabel(user)}`,
+    activeParty?.title ? `Стол: ${activeParty.title}` : "",
+    lssCharacterMeta(user, activeCharacter),
+  ].filter(Boolean);
 
   return `
     <div class="account-hub-profile-grid">
       <div class="cabinet-block account-hub-stage-card">
-        <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+        <div class="flex-between account-hub-card-head">
           <div>
-            <h4 style="margin:0 0 4px;">Обзор профиля</h4>
-            <div class="muted" style="font-size:0.82rem;">Сначала идентичность и быстрые игровые блоки, редактирование ниже.</div>
+            <h4 class="account-hub-card-title">Обзор профиля</h4>
+            <div class="muted account-hub-card-copy">Сначала идентичность и быстрые игровые блоки, редактирование ниже.</div>
           </div>
           <span class="meta-item">${media.avatar?.url ? "avatar uploaded" : "avatar via URL/fallback"}</span>
         </div>
-        <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
-          <div class="stat-box" style="min-height:auto; padding:12px;">
+        <div class="profile-grid account-hub-stats-grid">
+          <div class="stat-box account-hub-stat-card">
             <div class="muted">О себе</div>
-            <div style="margin-top:8px; font-size:0.92rem; line-height:1.5;">${escapeHtml(user.bio || showcase.about_me || "Заполни краткое описание профиля и стиля игры.")}</div>
+            <div class="account-hub-stat-copy">${escapeHtml(user.bio || showcase.about_me || "Заполни краткое описание профиля и стиля игры.")}</div>
           </div>
-          <div class="stat-box" style="min-height:auto; padding:12px;">
+          <div class="stat-box account-hub-stat-card">
             <div class="muted">Активный персонаж</div>
-            <div style="margin-top:8px; font-weight:800;">${escapeHtml(activeCharacter?.name || getCurrentLssCharacterName() || "Не выбран")}</div>
-            <div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(activeCharacter?.class_name || "Связь с LSS доступна")}</div>
+            <div class="account-hub-stat-value">${escapeHtml(activeCharacter?.name || getCurrentLssCharacterName() || "Не выбран")}</div>
+            <div class="muted account-hub-stat-note">${escapeHtml(activeCharacter?.class_name || "Связь с LSS доступна")}</div>
           </div>
-          <div class="stat-box" style="min-height:auto; padding:12px;">
+          <div class="stat-box account-hub-stat-card">
             <div class="muted">Текущий стол</div>
-            <div style="margin-top:8px; font-weight:800;">${escapeHtml(activeParty?.title || "Не выбран")}</div>
-            <div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(activeParty?.role_in_table || "Можно выбрать в настройках")}</div>
+            <div class="account-hub-stat-value">${escapeHtml(activeParty?.title || "Не выбран")}</div>
+            <div class="muted account-hub-stat-note">${escapeHtml(activeParty?.role_in_table || "Можно выбрать в настройках")}</div>
           </div>
-          <div class="stat-box" style="min-height:auto; padding:12px;">
+          <div class="stat-box account-hub-stat-card">
             <div class="muted">Быстрые теги</div>
-            <div style="margin-top:8px; font-size:0.86rem;">${escapeHtml((user.profile_tags || []).join(" • ") || "co-op • roleplay • bg3")}</div>
+            <div class="account-hub-stat-tags">${escapeHtml((user.profile_tags || []).join(" • ") || "co-op • roleplay • bg3")}</div>
           </div>
         </div>
       </div>
 
       <div class="account-hub-support-column">
         <div class="cabinet-block account-hub-stage-card">
-          <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+          <div class="flex-between account-hub-card-head">
             <div>
-              <h4 style="margin:0 0 4px;">Featured</h4>
-              <div class="muted" style="font-size:0.82rem;">Главное о твоём профиле без ухода в настройки.</div>
+              <h4 class="account-hub-card-title">Featured</h4>
+              <div class="muted account-hub-card-copy">Главное о твоём профиле без ухода в настройки.</div>
             </div>
             <span class="meta-item">${escapeHtml(roleBadgeLabel(user))}</span>
           </div>
-          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
-            <div class="stat-box" style="min-height:auto; padding:12px;">
+          <div class="profile-grid account-hub-featured-grid">
+            <div class="stat-box account-hub-stat-card">
               <div class="muted">Статус</div>
-              <div style="margin-top:8px; font-weight:800;">${escapeHtml(user.short_status || "Без статуса")}</div>
+              <div class="account-hub-stat-value">${escapeHtml(user.short_status || "Без статуса")}</div>
             </div>
-            <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="stat-box account-hub-stat-card">
               <div class="muted">Витрина</div>
-              <div style="margin-top:8px; font-weight:800;">${escapeHtml(String((media.showcase || []).length))} media</div>
+              <div class="account-hub-stat-value">${escapeHtml(String((media.showcase || []).length))} media</div>
             </div>
-            <div class="stat-box" style="min-height:auto; padding:12px;">
+            <div class="stat-box account-hub-stat-card">
               <div class="muted">Активный стол</div>
-              <div style="margin-top:8px; font-weight:800;">${escapeHtml(activeParty?.title || "Не выбран")}</div>
+              <div class="account-hub-stat-value">${escapeHtml(activeParty?.title || "Не выбран")}</div>
             </div>
           </div>
         </div>
@@ -569,14 +578,14 @@ function renderProfileSection() {
       </div>
     </div>
 
-    <div class="cabinet-block account-hub-edit-panel" style="margin-top:12px;">
-      <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+    <div class="cabinet-block account-hub-edit-panel account-hub-edit-shell">
+      <div class="flex-between account-hub-card-head">
         <div>
-          <h4 style="margin:0 0 4px;">Редактирование профиля</h4>
-          <div class="muted" style="font-size:0.82rem;">Редактирование остаётся доступным, но больше не занимает весь экран вместо профиля.</div>
+          <h4 class="account-hub-card-title">Редактирование профиля</h4>
+          <div class="muted account-hub-card-copy">Редактирование остаётся доступным, но больше не занимает весь экран вместо профиля.</div>
         </div>
       </div>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+      <div class="profile-grid account-hub-edit-grid">
         <div class="filter-group">
           <label>Username / nickname</label>
           <input id="accountNicknameInput" type="text" value="${escapeHtml(user.nickname || "")}">
@@ -585,20 +594,34 @@ function renderProfileSection() {
           <label>Display name</label>
           <input id="accountDisplayNameInput" type="text" value="${escapeHtml(user.display_name || "")}">
         </div>
-        <div class="filter-group" style="grid-column:1 / -1;">
+        <div class="filter-group account-hub-full-span">
           <label>Короткий статус</label>
           <input id="accountShortStatusInput" type="text" value="${escapeHtml(user.short_status || "")}" placeholder="Во что играю, кого ищу, чем занят">
         </div>
-        <div class="filter-group" style="grid-column:1 / -1;">
+        <div class="filter-group account-hub-full-span">
           <label>О себе</label>
           <textarea id="accountBioInput" rows="4" placeholder="О себе, интересы, стиль игры...">${escapeHtml(user.bio || "")}</textarea>
         </div>
       </div>
-      <div class="cart-buttons" style="margin-top:10px;">
+      <div class="cart-buttons account-hub-edit-actions">
         <button class="btn btn-primary" type="button" id="accountSaveProfileBtn">Сохранить профиль</button>
       </div>
     </div>
+
+    <div class="cabinet-block account-hub-preview-card">
+      <div class="account-hub-preview-emblem">✦</div>
+      <div class="account-hub-preview-copy">
+        <div class="account-hub-kicker">Личный кабинет — превью</div>
+        <div class="account-hub-preview-title">${escapeHtml(previewTitle)}</div>
+        <div class="account-hub-preview-meta">${escapeHtml(previewMeta.join(" • ") || "Игровой профиль и social hub")}</div>
+      </div>
+      <div class="account-hub-preview-scene"></div>
+    </div>
   `;
+}
+
+function lssCharacterMeta(user, activeCharacter) {
+  return activeCharacter?.class_name || user.short_status || "Игровой профиль и social hub";
 }
 
 function renderFriendsSearch() {

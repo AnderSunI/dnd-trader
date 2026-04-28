@@ -485,33 +485,49 @@ function applyCabinetModalLayout() {
   const sidebar = modal.querySelector(".cabinet-sidebar");
   const main = modal.querySelector(".cabinet-main");
   const closeBtn = content?.querySelector(".close");
+  const isWorkspaceMode = CABINET_STATE.activeTab === "masterroom";
+
+  modal.dataset.cabinetLayoutMode = isWorkspaceMode ? "workspace" : "modal";
 
   if (content) {
-    const desktopWidth = window.innerWidth <= 1360
-      ? "calc(100vw - 40px)"
-      : "calc(100vw - 132px)";
+    if (isWorkspaceMode) {
+      content.style.position = "relative";
+      content.style.width = "calc(100vw - 24px)";
+      content.style.maxWidth = "none";
+      content.style.maxHeight = "calc(100vh - 24px)";
+      content.style.minHeight = "calc(100vh - 24px)";
+      content.style.margin = "12px auto";
+      content.style.padding = "20px 20px 22px";
+      content.style.overflow = "hidden auto";
+    } else {
+      const desktopWidth = window.innerWidth <= 1360
+        ? "calc(100vw - 40px)"
+        : "calc(100vw - 132px)";
 
-    content.style.position = "relative";
-    content.style.width = `min(1240px, ${desktopWidth})`;
-    content.style.maxWidth = "1240px";
-    content.style.maxHeight = "calc(100vh - 88px)";
-    content.style.margin = "40px auto";
-    content.style.padding = "14px 14px 16px";
-    content.style.overflow = "hidden auto";
+      content.style.position = "relative";
+      content.style.width = `min(1240px, ${desktopWidth})`;
+      content.style.maxWidth = "1240px";
+      content.style.maxHeight = "calc(100vh - 88px)";
+      content.style.minHeight = "";
+      content.style.margin = "40px auto";
+      content.style.padding = "14px 14px 16px";
+      content.style.overflow = "hidden auto";
+    }
   }
 
   if (layout) {
     layout.style.display = "grid";
-    layout.style.gridTemplateColumns =
-      window.innerWidth <= 1180 ? "1fr" : "198px minmax(0, 1fr)";
-    layout.style.gap = "12px";
+    layout.style.gridTemplateColumns = isWorkspaceMode
+      ? (window.innerWidth <= 1180 ? "1fr" : "240px minmax(0, 1fr)")
+      : (window.innerWidth <= 1180 ? "1fr" : "198px minmax(0, 1fr)");
+    layout.style.gap = isWorkspaceMode ? "16px" : "12px";
     layout.style.alignItems = "start";
   }
 
   if (sidebar) {
     sidebar.style.minWidth = "0";
-    sidebar.style.padding = "10px";
-    sidebar.style.borderRadius = "18px";
+    sidebar.style.padding = isWorkspaceMode ? "16px 12px 14px" : "10px";
+    sidebar.style.borderRadius = isWorkspaceMode ? "24px" : "18px";
   }
 
   if (main) {
@@ -528,6 +544,33 @@ function applyCabinetModalLayout() {
     closeBtn.style.height = "30px";
     closeBtn.style.minHeight = "30px";
     closeBtn.style.fontSize = "19px";
+  }
+}
+
+function updateCabinetViewState(isOpen = false) {
+  const body = document.body;
+  if (!body) return;
+
+  body.classList.toggle("cabinet-open", Boolean(isOpen));
+
+  [
+    "cabinet-tab-inventory",
+    "cabinet-tab-myaccount",
+    "cabinet-tab-project",
+    "cabinet-tab-lss",
+    "cabinet-tab-history",
+    "cabinet-tab-quests",
+    "cabinet-tab-map",
+    "cabinet-tab-bestiari",
+    "cabinet-tab-files",
+    "cabinet-tab-playernotes",
+    "cabinet-tab-gmnotes",
+    "cabinet-tab-masterroom",
+    "cabinet-masterroom-battle-focus",
+  ].forEach((className) => body.classList.remove(className));
+
+  if (isOpen && CABINET_STATE.activeTab) {
+    body.classList.add(`cabinet-tab-${CABINET_STATE.activeTab}`);
   }
 }
 
@@ -669,18 +712,18 @@ function renderCabinetHeader() {
   const bio = safeText(user?.bio || "", "");
 
   header.innerHTML = `
-    <div class="cabinet-header-inner" style="padding-right:34px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <div>
-          <div class="muted" style="font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px;">Личный кабинет</div>
-          <h2 style="margin:0 0 3px 0; font-size:1.16rem;">Кабинет персонажа</h2>
-          <div class="muted" style="font-size:0.82rem;">
+    <div class="cabinet-header-inner cabinet-header-shell">
+      <div class="flex-between cabinet-header-layout">
+        <div class="cabinet-header-copy">
+          <div class="muted cabinet-header-kicker">Личный кабинет</div>
+          <h2 class="cabinet-header-title">Кабинет персонажа</h2>
+          <div class="muted cabinet-header-subtitle">
             Роль: <strong>${escapeHtml(role)}</strong>
             ${user?.email ? ` • ${escapeHtml(user.email)}` : ""}
           </div>
         </div>
 
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+        <div class="trader-meta cabinet-header-meta">
           <span class="meta-item">Раздел: ${escapeHtml(activeLabel)}</span>
           ${user?.nickname ? `<span class="meta-item">@${escapeHtml(user.nickname)}</span>` : ""}
           ${user?.display_name ? `<span class="meta-item">${escapeHtml(user.display_name)}</span>` : ""}
@@ -707,20 +750,9 @@ function renderCabinetTabs() {
         <button
           class="btn cabinet-rail-btn ${active ? "active" : ""}"
           data-cabinet-tab="${escapeHtml(tab.key)}"
-          style="
-            width:100%;
-            min-height:42px;
-            padding:9px 12px;
-            justify-content:flex-start;
-            text-align:left;
-            border-radius:15px;
-            font-size:0.86rem;
-            font-weight:800;
-            line-height:1.05;
-          "
         >
-          <span style="display:flex; align-items:center; gap:9px; width:100%;">
-            <span style="width:16px; text-align:center; font-size:0.92rem;">${escapeHtml(parts.icon)}</span>
+          <span class="cabinet-rail-btn-inner">
+            <span class="cabinet-rail-btn-icon">${escapeHtml(parts.icon)}</span>
             <span>${escapeHtml(parts.text)}</span>
           </span>
         </button>
@@ -3165,6 +3197,151 @@ function getMasterRoomVisibilitySections() {
   ];
 }
 
+function getMasterRoomVisibilityFieldGroups() {
+  return [
+    {
+      key: "identity",
+      label: "Профиль",
+      fields: [
+        { key: "name", label: "Имя" },
+        { key: "portrait", label: "Портрет" },
+        { key: "class_level_race", label: "Класс / уровень / раса" },
+        { key: "background", label: "Предыстория / мировоззрение" },
+      ],
+    },
+    {
+      key: "combat",
+      label: "Бой",
+      fields: [
+        { key: "hp", label: "HP" },
+        { key: "ac", label: "AC" },
+        { key: "initiative", label: "Инициатива" },
+        { key: "conditions", label: "Состояния" },
+      ],
+    },
+    {
+      key: "stats",
+      label: "Характеристики",
+      fields: [
+        { key: "abilities", label: "Базовые статы" },
+        { key: "saves", label: "Спасброски" },
+        { key: "skills", label: "Навыки" },
+      ],
+    },
+    {
+      key: "spells",
+      label: "Заклинания",
+      fields: [
+        { key: "slots", label: "Ячейки" },
+        { key: "prepared", label: "Подготовленные" },
+        { key: "known", label: "Известные" },
+      ],
+    },
+    {
+      key: "inventory",
+      label: "Инвентарь",
+      fields: [
+        { key: "items", label: "Предметы" },
+        { key: "currency", label: "Валюта" },
+        { key: "consumables", label: "Расходники" },
+      ],
+    },
+    {
+      key: "equipment",
+      label: "Экипировка",
+      fields: [
+        { key: "weapons", label: "Оружие" },
+        { key: "armor", label: "Броня" },
+        { key: "attunement", label: "Настройка" },
+      ],
+    },
+    {
+      key: "story",
+      label: "История",
+      fields: [
+        { key: "personality", label: "Личность" },
+        { key: "quests", label: "Квесты" },
+        { key: "relationships", label: "Связи" },
+      ],
+    },
+    {
+      key: "notes",
+      label: "Секреты",
+      fields: [
+        { key: "gm_notes", label: "GM-заметки" },
+        { key: "private_notes", label: "Личные заметки" },
+        { key: "secrets", label: "Секреты" },
+      ],
+    },
+  ];
+}
+
+function getMasterRoomMemberVisibilityFields(member) {
+  const raw =
+    member?.visibility_fields && typeof member.visibility_fields === "object"
+      ? member.visibility_fields
+      : member?.hidden_sections?.visibility_fields && typeof member.hidden_sections.visibility_fields === "object"
+        ? member.hidden_sections.visibility_fields
+        : {};
+  const normalized = {};
+  getMasterRoomVisibilityFieldGroups().forEach((group) => {
+    const groupSource = raw[group.key] && typeof raw[group.key] === "object" ? raw[group.key] : {};
+    normalized[group.key] = {};
+    group.fields.forEach((field) => {
+      const value = String(groupSource[field.key] || "").trim();
+      normalized[group.key][field.key] = value ? normalizeMasterRoomScope(value) : "";
+    });
+  });
+  return normalized;
+}
+
+function getMasterRoomFieldScope(member, groupKey, fieldKey) {
+  const fields = getMasterRoomMemberVisibilityFields(member);
+  const value = fields?.[groupKey]?.[fieldKey];
+  if (value) return normalizeMasterRoomScope(value);
+  const matrix = getMasterRoomMemberVisibilityMatrix(member);
+  return normalizeMasterRoomScope(matrix[groupKey]);
+}
+
+function canEditMasterRoomMemberVisibility(member, table = getMasterRoomActiveTable()) {
+  if (!member) return false;
+  if (canManageMasterRoomTable(table)) return true;
+  return String(member.user_id || "") === getCurrentUserId();
+}
+
+function countMasterRoomOpenVisibilityFields(member) {
+  let open = 0;
+  let total = 0;
+  getMasterRoomVisibilityFieldGroups().forEach((group) => {
+    group.fields.forEach((field) => {
+      total += 1;
+      const scope = getMasterRoomFieldScope(member, group.key, field.key);
+      if (["public", "revealed"].includes(scope)) open += 1;
+    });
+  });
+  return { open, total };
+}
+
+function canViewMasterRoomMemberField(member, groupKey, fieldKey, table = getMasterRoomActiveTable()) {
+  if (!member) return false;
+  if (canManageMasterRoomTable(table)) return true;
+  const scope = getMasterRoomFieldScope(member, groupKey, fieldKey);
+  if (["public", "revealed"].includes(scope)) return true;
+  if (scope === "owner_only") {
+    return String(member.user_id || "") === getCurrentUserId();
+  }
+  return false;
+}
+
+function renderMasterRoomLockedField(label, note = "Скрыто настройками видимости LSS.") {
+  return `
+    <div class="stat-box master-room-locked-field">
+      <div class="muted">${escapeHtml(label)}</div>
+      <div class="master-room-locked-field-copy">${escapeHtml(note)}</div>
+    </div>
+  `;
+}
+
 function resolveMasterRoomCharacterName(member, fallback = "") {
   const manual = String(member?.selected_character_name || "").trim();
   const lssName = String(member?.selected_character_lss_name || "").trim();
@@ -3230,6 +3407,37 @@ function getMasterRoomCombatLogAvatarMarkup(entry, combat) {
   return `<span class="master-room-combat-log-avatar-fallback">${escapeHtml((actorName || "?").slice(0, 1).toUpperCase())}</span>`;
 }
 
+function getMasterRoomCombatEntryPortraitMarkup(entry, nameFallback = "?", className = "master-room-combatant-portrait") {
+  const name = String(entry?.name || nameFallback || "?").trim();
+  if (entry?.portrait_url) {
+    return `<img src="${escapeHtml(entry.portrait_url)}" alt="${escapeHtml(name)}" class="${escapeHtml(className)}-img">`;
+  }
+  return `<span class="${escapeHtml(className)}-fallback">${escapeHtml((name || "?").slice(0, 1).toUpperCase())}</span>`;
+}
+
+function getMasterRoomCombatLogTargetMarkup(entry, combat) {
+  const targetId = String(entry?.target_entry_id || "").trim();
+  const targetName = String(entry?.target_name || "Сцена").trim();
+  const targetEntry = safeArray(combat?.entries).find((item) => String(item.entry_id || "") === targetId);
+  if (!targetEntry) {
+    return `<span class="master-room-combat-log-target-portrait-fallback">◇</span>`;
+  }
+  return getMasterRoomCombatEntryPortraitMarkup(targetEntry, targetName, "master-room-combat-log-target-portrait");
+}
+
+function getMasterRoomCombatEventIcon(entry) {
+  const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
+  if (type === "attack") return "⚔";
+  if (type === "damage") return "◆";
+  if (type === "heal") return "+";
+  if (type === "save") return "🛡";
+  if (type === "effect") return "✦";
+  if (type === "roll") return "◈";
+  if (type === "turn") return "↻";
+  if (type === "round") return "∞";
+  return "◇";
+}
+
 function getMasterRoomCombatLogHeadline(entry) {
   const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
   if (type === "turn") return entry?.text || `Ход: ${entry?.actor_name || "Участник"}`;
@@ -3241,6 +3449,427 @@ function getMasterRoomCombatLogHeadline(entry) {
   if (type === "effect") return entry?.text || `${entry?.target_name || entry?.actor_name || "Цель"} получает эффект`;
   if (type === "roll") return entry?.text || `${entry?.actor_name || "Участник"} бросает ${entry?.dice || "куб"}`;
   return entry?.text || entry?.reason || "Системное событие";
+}
+
+function getMasterRoomCombatLogVerb(entry) {
+  const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
+  if (type === "attack") return "атака";
+  if (type === "damage") return "урон";
+  if (type === "heal") return "лечение";
+  if (type === "save") return "спасбросок";
+  if (type === "effect") return "эффект";
+  if (type === "roll") return "бросок";
+  if (type === "turn") return "ход";
+  if (type === "round") return "раунд";
+  return "событие";
+}
+
+function getMasterRoomCombatOutcomeLabel(entry) {
+  const outcome = String(entry?.outcome || "").trim();
+  if (outcome) return outcome;
+  const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
+  if (type === "heal" && Number(entry?.damage || 0) > 0) return `Исцелено ${entry.damage}`;
+  if ((type === "damage" || type === "effect") && Number(entry?.damage || 0) > 0) {
+    return `${entry.damage}${entry?.damage_type ? ` ${entry.damage_type}` : ""}`;
+  }
+  if (type === "save" && Number.isFinite(Number(entry?.roll_total))) return String(entry.roll_total);
+  if ((type === "attack" || type === "roll") && Number.isFinite(Number(entry?.roll_total))) return String(entry.roll_total);
+  return "";
+}
+
+function getMasterRoomCombatOutcomeClass(entry) {
+  const text = String(getMasterRoomCombatOutcomeLabel(entry) || "").trim().toLowerCase();
+  if (!text) return "";
+  if (["попадание", "успех", "исцелено"].some((token) => text.includes(token))) return "success";
+  if (["промах", "провал"].some((token) => text.includes(token))) return "failure";
+  if (["урон", "огонь", "яд", "молни"].some((token) => text.includes(token))) return "danger";
+  return "neutral";
+}
+
+function getMasterRoomMemberPortrait(member) {
+  const sheet = member?.character_sheet && typeof member.character_sheet === "object" ? member.character_sheet : {};
+  return String(sheet?.portrait_url || "").trim();
+}
+
+function renderMasterRoomHeroRoster(table) {
+  const members = safeArray(table?.members).slice(0, 8);
+  if (!members.length) {
+    return `<div class="master-room-hero-roster-empty">Участники появятся после создания и приглашения в стол.</div>`;
+  }
+
+  return members.map((member) => {
+    const portrait = getMasterRoomMemberPortrait(member);
+    const resolved = resolveMasterRoomCharacterName(member, member?.display_name || member?.nickname || "Персонаж");
+    const roleLabel = member?.role_in_table === "gm" ? "GM" : "Player";
+    return `
+      <div class="master-room-hero-roster-card">
+        <div class="master-room-hero-roster-avatar">
+          ${
+            portrait
+              ? `<img src="${escapeHtml(portrait)}" alt="${escapeHtml(resolved.value)}" class="master-room-hero-roster-avatar-img">`
+              : `<span class="master-room-hero-roster-avatar-fallback">${escapeHtml((resolved.value || "?").slice(0, 1).toUpperCase())}</span>`
+          }
+        </div>
+        <div class="master-room-hero-roster-copy">
+          <strong>${escapeHtml(resolved.value)}</strong>
+          <small>${escapeHtml(member?.nickname || member?.email || "Игрок")} • ${escapeHtml(roleLabel)}</small>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderMasterRoomHeroSummary(table) {
+  const members = safeArray(table?.members);
+  const onlineCount = members.filter((member) => String(member?.status || "").trim().toLowerCase() !== "offline").length;
+  const tradersCount = safeArray(table?.trader_accesses).length;
+  const grantsCount = safeArray(table?.grants).length;
+
+  return `
+    <div class="master-room-hero-summary">
+      <div class="master-room-hero-summary-card">
+        <span>Игроков</span>
+        <strong>${escapeHtml(String(members.filter((member) => member.role_in_table !== "gm").length))}</strong>
+      </div>
+      <div class="master-room-hero-summary-card">
+        <span>Персонажей</span>
+        <strong>${escapeHtml(String(members.length))}</strong>
+      </div>
+      <div class="master-room-hero-summary-card master-room-hero-summary-card-accent">
+        <span>Онлайн</span>
+        <strong>${escapeHtml(String(onlineCount))}/${escapeHtml(String(members.length || 0))}</strong>
+      </div>
+      <div class="master-room-hero-summary-card">
+        <span>Торговцы</span>
+        <strong>${escapeHtml(String(tradersCount))}</strong>
+      </div>
+      <div class="master-room-hero-summary-card">
+        <span>Выдачи</span>
+        <strong>${escapeHtml(String(grantsCount))}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomHeroQuickActions(canManageActive) {
+  return `
+    <div class="master-room-hero-quick-actions">
+      <div class="master-room-hero-quick-action">
+        <span>🕯️</span>
+        <strong>${canManageActive ? "Инициатива" : "Сцена"}</strong>
+        <small>${canManageActive ? "Очередь и старт боя" : "Текущий ритм стола"}</small>
+      </div>
+      <div class="master-room-hero-quick-action">
+        <span>📖</span>
+        <strong>${canManageActive ? "Сессия" : "Журнал"}</strong>
+        <small>${canManageActive ? "События и статус" : "Последние события"}</small>
+      </div>
+      <div class="master-room-hero-quick-action">
+        <span>🪶</span>
+        <strong>${canManageActive ? "Ноты" : "Персонаж"}</strong>
+        <small>${canManageActive ? "Секреты и заметки" : "Привязка из LSS"}</small>
+      </div>
+      <div class="master-room-hero-quick-action">
+        <span>👥</span>
+        <strong>${canManageActive ? "Персоны" : "Party"}</strong>
+        <small>${canManageActive ? "Состав и доступы" : "Состав группы"}</small>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomVisibilityBoard(table, canManage) {
+  if (!table) return "";
+
+  const sections = getMasterRoomVisibilitySections();
+  const members = safeArray(table.members);
+  const currentMembership = getMasterRoomCurrentMembership(table);
+  const visibleMembers = canManage ? members : (currentMembership ? [currentMembership] : []);
+  const scopeCounts = {
+    public: 0,
+    revealed: 0,
+    owner_only: 0,
+    gm_only: 0,
+  };
+
+  visibleMembers.forEach((member) => {
+    const matrix = getMasterRoomMemberVisibilityMatrix(member);
+    sections.forEach((section) => {
+      const scope = normalizeMasterRoomScope(matrix[section.key]);
+      scopeCounts[scope] = (scopeCounts[scope] || 0) + 1;
+    });
+  });
+
+  const playerVisibleCount = (scopeCounts.public || 0) + (scopeCounts.revealed || 0);
+  const hiddenCount = (scopeCounts.owner_only || 0) + (scopeCounts.gm_only || 0);
+  const currentMatrix = currentMembership ? getMasterRoomMemberVisibilityMatrix(currentMembership) : null;
+  const currentOpenSections = currentMatrix
+    ? sections.filter((section) => ["public", "revealed"].includes(normalizeMasterRoomScope(currentMatrix[section.key])))
+    : [];
+
+  return `
+    <div class="cabinet-block master-room-visibility-board">
+      <div class="master-room-panel-kicker">Слой видимости</div>
+      <div class="master-room-visibility-board-grid">
+        <div class="master-room-visibility-board-copy">
+          <h4 class="master-room-section-title">${canManage ? "GM видит весь стол" : "Твой открытый слой стола"}</h4>
+          <div class="muted master-room-command-copy">
+            ${canManage
+              ? "Игрокам показывается только раскрытая мастером информация. Секреты, заметки и закрытые разделы остаются в GM-слое."
+              : "Ты видишь только раскрытые разделы своего персонажа, партии, боя и сцены."}
+          </div>
+        </div>
+        <div class="master-room-visibility-meter master-room-visibility-meter-gm">
+          <span>${canManage ? "GM layer" : "Table layer"}</span>
+          <strong>${canManage ? "full" : escapeHtml(masterRoomVisibilityLabel(currentMembership?.visibility_preset || "basic"))}</strong>
+        </div>
+        <div class="master-room-visibility-meter">
+          <span>${canManage ? "Открыто игрокам" : "Открыто тебе"}</span>
+          <strong>${escapeHtml(String(canManage ? playerVisibleCount : currentOpenSections.length))}</strong>
+        </div>
+        <div class="master-room-visibility-meter master-room-visibility-meter-locked">
+          <span>${canManage ? "Скрыто / личное" : "Закрыто мастером"}</span>
+          <strong>${escapeHtml(String(canManage ? hiddenCount : Math.max(0, sections.length - currentOpenSections.length)))}</strong>
+        </div>
+      </div>
+      <div class="master-room-visibility-chip-row">
+        ${
+          (canManage ? sections : currentOpenSections).slice(0, 8).map((section) => {
+            const scope = currentMatrix ? normalizeMasterRoomScope(currentMatrix[section.key]) : "";
+            return `<span class="master-room-visibility-chip">${escapeHtml(section.label)}${scope ? `: ${escapeHtml(masterRoomScopeLabel(scope))}` : ""}</span>`;
+          }).join("")
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomTableSurface(table, canManage) {
+  if (!table) return "";
+
+  const members = safeArray(table.members);
+  const currentMembership = getMasterRoomCurrentMembership(table);
+  const visibleMembers = canManage ? members : (currentMembership ? [currentMembership, ...members.filter((member) => String(member.id || "") !== String(currentMembership.id || ""))] : members);
+  const onlineCount = members.filter((member) => String(member?.status || "").trim().toLowerCase() !== "offline").length;
+  const combat = normalizeMasterRoomCombat(table.combat);
+  const openTraderCount = safeArray(table.trader_accesses).length;
+  const grantCount = safeArray(table.grants).length;
+
+  return `
+    <section class="cabinet-block master-room-table-surface">
+      <div class="master-room-table-surface-head">
+        <div>
+          <div class="master-room-panel-kicker">Virtual tabletop</div>
+          <h3 class="master-room-table-surface-title">${escapeHtml(table.title || "Стол")}</h3>
+          <div class="muted master-room-command-copy">
+            ${canManage
+              ? "GM-слой: сцена, партия, доступы, выдачи и бой в одном рабочем столе."
+              : "Открытый слой стола: партия, твой LSS-персонаж, сцена и доступный бой."}
+          </div>
+        </div>
+        <div class="master-room-table-surface-status">
+          <span class="meta-item">онлайн ${escapeHtml(String(onlineCount))}/${escapeHtml(String(members.length))}</span>
+          <span class="meta-item">${combat.active ? `бой R${escapeHtml(String(combat.round || 1))}` : "сцена"}</span>
+          <span class="meta-item">${canManage ? "GM" : "player view"}</span>
+        </div>
+      </div>
+
+      <div class="master-room-table-surface-body">
+        <div class="master-room-map-board">
+          <div class="master-room-map-board-frame">
+            <div class="master-room-map-board-title">Сцена стола</div>
+            <div class="master-room-map-token-ring">
+              ${visibleMembers.slice(0, 8).map((member, index) => {
+                const name = resolveMasterRoomCharacterName(member, member.display_name || member.nickname || member.email || "Игрок").value;
+                const portrait = getMasterRoomMemberPortrait(member);
+                const matrix = getMasterRoomMemberVisibilityMatrix(member);
+                const openFields = getMasterRoomVisibilitySections().filter((section) => ["public", "revealed"].includes(normalizeMasterRoomScope(matrix[section.key]))).length;
+                const isCurrent = currentMembership && String(currentMembership.id || "") === String(member.id || "");
+                return `
+                  <button class="master-room-map-token ${isCurrent ? "master-room-map-token-current" : ""}" type="button" data-master-room-open-sheet="${escapeHtml(member.id)}" style="--token-index:${index};">
+                    <span class="master-room-map-token-avatar">
+                      ${portrait
+                        ? `<img src="${escapeHtml(portrait)}" alt="${escapeHtml(name)}">`
+                        : `<span>${escapeHtml((name || "?").slice(0, 1).toUpperCase())}</span>`}
+                    </span>
+                    <span class="master-room-map-token-copy">
+                      <strong>${escapeHtml(name)}</strong>
+                      <small>${escapeHtml(canManage ? `${openFields}/8 открыто` : masterRoomVisibilityLabel(member.visibility_preset))}</small>
+                    </span>
+                  </button>
+                `;
+              }).join("") || `<div class="master-room-map-empty">За столом пока нет фишек игроков.</div>`}
+            </div>
+          </div>
+        </div>
+
+        <div class="master-room-table-tools">
+          <div class="master-room-table-tool">
+            <span>LSS</span>
+            <strong>${escapeHtml(currentMembership?.selected_character_name || getCurrentLssCharacterName() || "не выбран")}</strong>
+            <div class="master-room-table-tool-actions">
+              <button class="btn btn-secondary master-room-mini-action-btn" type="button" data-master-room-open-lss="1">Открыть LSS</button>
+              ${currentMembership ? `<button class="btn btn-secondary master-room-mini-action-btn" type="button" data-master-room-open-sheet="${escapeHtml(currentMembership.id)}">Видимость</button>` : ""}
+            </div>
+          </div>
+          <div class="master-room-table-tool">
+            <span>Торговцы</span>
+            <strong>${escapeHtml(String(openTraderCount))}</strong>
+          </div>
+          <div class="master-room-table-tool">
+            <span>Выдачи</span>
+            <strong>${escapeHtml(String(grantCount))}</strong>
+          </div>
+          <div class="master-room-table-tool">
+            <span>Кубы</span>
+            <strong>${escapeHtml(MASTER_ROOM_STATE.combatDiceType || "d20")}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderMasterRoomSidebarPreview(table) {
+  if (!table) {
+    return `
+      <div class="master-room-sidebar-preview-empty">
+        Создай первый стол, чтобы появился состав, состояние сессии и права управления.
+      </div>
+    `;
+  }
+
+  const members = safeArray(table.members);
+  const onlineCount = members.filter((member) => String(member?.status || "").trim().toLowerCase() !== "offline").length;
+  const averageLevel = Math.max(1, Math.round(
+    members.reduce((sum, member) => sum + Number(member?.character_sheet?.level || 0), 0) / Math.max(1, members.length)
+  ));
+
+  return `
+    <div class="master-room-sidebar-preview-card">
+      <div class="master-room-sidebar-preview-art"></div>
+      <div class="master-room-sidebar-preview-title">${escapeHtml(table.title)}</div>
+      <div class="master-room-sidebar-preview-meta">
+        <span>Система: <strong>D&D 5e</strong></span>
+        <span>Уровень: <strong>${escapeHtml(String(averageLevel))}</strong></span>
+        <span>Доступ: <strong>По приглашению</strong></span>
+        <span>Онлайн: <strong>${escapeHtml(String(onlineCount))}/${escapeHtml(String(members.length))}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomSidebarPlayers(table) {
+  const members = safeArray(table?.members);
+  if (!members.length) {
+    return `<div class="master-room-sidebar-player-empty">Подключённые игроки появятся после создания стола.</div>`;
+  }
+
+  return members.map((member) => {
+    const portrait = getMasterRoomMemberPortrait(member);
+    const name = resolveMasterRoomCharacterName(member, member?.display_name || member?.nickname || "Игрок").value;
+    const status = String(member?.status || "").trim().toLowerCase() === "offline" ? "Отошёл" : "Онлайн";
+    const statusClass = status === "Онлайн" ? "online" : "away";
+    return `
+      <div class="master-room-sidebar-player">
+        <div class="master-room-sidebar-player-avatar">
+          ${
+            portrait
+              ? `<img src="${escapeHtml(portrait)}" alt="${escapeHtml(name)}" class="master-room-sidebar-player-avatar-img">`
+              : `<span class="master-room-sidebar-player-avatar-fallback">${escapeHtml((name || "?").slice(0, 1).toUpperCase())}</span>`
+          }
+        </div>
+        <div class="master-room-sidebar-player-copy">
+          <strong>${escapeHtml(name)}</strong>
+          <small>${escapeHtml(member?.role_in_table === "gm" ? "GM" : "Игрок")}</small>
+        </div>
+        <span class="master-room-sidebar-player-status master-room-sidebar-player-status-${statusClass}">${status}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderMasterRoomStageTabs() {
+  return `
+    <div class="master-room-stage-tabs">
+      <button class="btn active" type="button">Стол / Партия</button>
+      <button class="btn" type="button">Игроки</button>
+      <button class="btn" type="button">Персонажи</button>
+      <button class="btn" type="button">Доступ к торговцам</button>
+      <button class="btn" type="button">Выдача предметов</button>
+      <button class="btn" type="button">Журнал</button>
+    </div>
+  `;
+}
+
+function getMasterRoomJournalIcon(entry) {
+  const type = String(entry?.event_type || entry?.type || "note").trim().toLowerCase();
+  if (type === "attack" || type === "damage") return "⚔️";
+  if (type === "heal") return "✨";
+  if (type === "effect") return "🪄";
+  if (type === "turn" || type === "round") return "🕯️";
+  if (type === "roll" || type === "save") return "🎲";
+  return "📜";
+}
+
+function renderMasterRoomEventJournal(table) {
+  const entries = safeArray(table?.combat?.log).slice(-7).reverse();
+  if (!entries.length) {
+    return `
+      <div class="master-room-event-journal-empty">
+        Журнал пока пуст. Начни бой, добавь событие или бросок, чтобы здесь появился ритм сессии.
+      </div>
+    `;
+  }
+
+  return entries.map((entry) => `
+    <div class="master-room-event-journal-entry">
+      <div class="master-room-event-journal-icon">${getMasterRoomJournalIcon(entry)}</div>
+      <div class="master-room-event-journal-copy">
+        <strong>${escapeHtml(getMasterRoomCombatLogHeadline(entry))}</strong>
+        <small>${escapeHtml(String(entry?.reason || entry?.text || "").trim() || "Событие журнала")}</small>
+      </div>
+      <div class="master-room-event-journal-time">${escapeHtml(formatTime(entry?.created_at || entry?.at || new Date().toISOString()))}</div>
+    </div>
+  `).join("");
+}
+
+function renderMasterRoomEmptyTabletop(canManage) {
+  return `
+    <section class="cabinet-block master-room-empty-tabletop">
+      <div class="master-room-empty-tabletop-main">
+        <div class="master-room-panel-kicker">Virtual tabletop</div>
+        <h3 class="master-room-empty-tabletop-title">Стол ещё не выбран</h3>
+        <div class="master-room-empty-tabletop-copy">
+          Создай комнату или открой существующую. Здесь появятся сцена, фишки игроков из LSS, слой видимости, бой, торговцы и выдачи предметов.
+        </div>
+        <div class="master-room-empty-map">
+          <div class="master-room-empty-map-compass">✦</div>
+          <div class="master-room-empty-map-node master-room-empty-map-node-gm">GM</div>
+          <div class="master-room-empty-map-node master-room-empty-map-node-party">Party</div>
+          <div class="master-room-empty-map-node master-room-empty-map-node-lss">LSS</div>
+          <div class="master-room-empty-map-node master-room-empty-map-node-combat">Battle</div>
+        </div>
+      </div>
+      <aside class="master-room-empty-side">
+        <div class="master-room-empty-step">
+          <span>1</span>
+          <strong>Создать стол</strong>
+          <small>Название, token и базовый слой доступа.</small>
+        </div>
+        <div class="master-room-empty-step">
+          <span>2</span>
+          <strong>Подключить LSS</strong>
+          <small>Игрок выбирает персонажа и управляет раскрытием полей.</small>
+        </div>
+        <div class="master-room-empty-step">
+          <span>3</span>
+          <strong>Открыть сцену</strong>
+          <small>${canManage ? "GM управляет боем, торговцами и выдачами." : "Игрок видит только раскрытый слой стола."}</small>
+        </div>
+      </aside>
+    </section>
+  `;
 }
 
 function normalizeMasterRoomCombat(raw) {
@@ -3739,7 +4368,70 @@ function renderMasterRoomVisibilityMatrix(member) {
   `;
 }
 
+function renderMasterRoomFieldVisibilityEditor(member) {
+  const table = getMasterRoomActiveTable();
+  const canEdit = canEditMasterRoomMemberVisibility(member, table);
+  const matrix = getMasterRoomMemberVisibilityMatrix(member);
+  const fields = getMasterRoomMemberVisibilityFields(member);
+  const summary = countMasterRoomOpenVisibilityFields(member);
+  const disabledAttr = canEdit ? "" : "disabled";
+
+  return `
+    <div class="master-room-field-visibility">
+      <div class="flex-between master-room-field-visibility-head">
+        <div>
+          <div class="muted master-room-section-kicker">LSS visibility</div>
+          <h5 class="master-room-field-visibility-title">Что видно за столом</h5>
+          <div class="muted master-room-command-copy">
+            ${canEdit
+              ? "Настройка полей LSS-фишки: что раскрыто партии, что видно только владельцу, а что остаётся в GM-слое."
+              : "Просмотр текущего слоя видимости. Менять его может владелец персонажа или GM стола."}
+          </div>
+        </div>
+        <div class="master-room-visibility-meter master-room-field-visibility-summary">
+          <span>Открыто партии</span>
+          <strong>${escapeHtml(String(summary.open))}/${escapeHtml(String(summary.total))}</strong>
+        </div>
+      </div>
+      <div class="master-room-field-visibility-grid">
+        ${getMasterRoomVisibilityFieldGroups().map((group) => {
+          const sectionScope = normalizeMasterRoomScope(matrix[group.key]);
+          return `
+            <section class="master-room-field-visibility-group">
+              <div class="master-room-field-visibility-group-head">
+                <strong>${escapeHtml(group.label)}</strong>
+                <span>${escapeHtml(masterRoomScopeLabel(sectionScope))}</span>
+              </div>
+              <div class="master-room-field-visibility-list">
+                ${group.fields.map((field) => {
+                  const explicitScope = fields?.[group.key]?.[field.key] || "";
+                  const resolvedScope = getMasterRoomFieldScope(member, group.key, field.key);
+                  return `
+                    <label class="master-room-field-visibility-row">
+                      <span>
+                        <strong>${escapeHtml(field.label)}</strong>
+                        <small>${explicitScope ? escapeHtml(masterRoomScopeLabel(resolvedScope)) : `наследует: ${escapeHtml(masterRoomScopeLabel(sectionScope))}`}</small>
+                      </span>
+                      <select ${disabledAttr} data-master-room-field-visibility-member="${escapeHtml(member.id)}" data-master-room-field-visibility-group="${escapeHtml(group.key)}" data-master-room-field-visibility-key="${escapeHtml(field.key)}">
+                        <option value="" ${explicitScope ? "" : "selected"}>inherit</option>
+                        ${["public", "revealed", "owner_only", "gm_only"].map((scope) => `
+                          <option value="${escapeHtml(scope)}" ${explicitScope === scope ? "selected" : ""}>${escapeHtml(masterRoomScopeLabel(scope))}</option>
+                        `).join("")}
+                      </select>
+                    </label>
+                  `;
+                }).join("")}
+              </div>
+            </section>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderMasterRoomCharacterSheet(member) {
+  const table = getMasterRoomActiveTable();
   const sheet = member?.character_sheet && typeof member.character_sheet === "object" ? member.character_sheet : {};
   const identity = sheet.identity && typeof sheet.identity === "object" ? sheet.identity : {};
   const combat = sheet.combat && typeof sheet.combat === "object" ? sheet.combat : {};
@@ -3755,67 +4447,88 @@ function renderMasterRoomCharacterSheet(member) {
   const equipmentEntries = safeArray(equipment.weapons || equipment.items).slice(0, 4);
   const spellSlots = Object.entries(spells.slots || {}).slice(0, 4);
   const noteEntries = safeArray(notes.entries).slice(0, 3);
+  const canSee = (groupKey, fieldKey) => canViewMasterRoomMemberField(member, groupKey, fieldKey, table);
+  const canSeeName = canSee("identity", "name");
+  const canSeePortrait = canSee("identity", "portrait");
+  const canSeeClass = canSee("identity", "class_level_race");
+  const canSeeBackground = canSee("identity", "background");
+  const canSeeHp = canSee("combat", "hp");
+  const canSeeAc = canSee("combat", "ac");
+  const canSeeInitiative = canSee("combat", "initiative");
+  const canSeeStats = canSee("stats", "abilities");
+  const canSeeSpells = canSee("spells", "slots") || canSee("spells", "prepared") || canSee("spells", "known");
+  const canSeeInventory = canSee("inventory", "items") || canSee("inventory", "currency") || canSee("inventory", "consumables");
+  const canSeeEquipment = canSee("equipment", "weapons") || canSee("equipment", "armor") || canSee("equipment", "attunement");
+  const canSeeStory = canSee("story", "personality") || canSee("story", "quests") || canSee("story", "relationships");
+  const canSeeNotes = canSee("notes", "gm_notes") || canSee("notes", "private_notes") || canSee("notes", "secrets");
+  const visibleName = canSeeName
+    ? (identity.name || member?.selected_character_name || member?.nickname || "Персонаж")
+    : "Скрытый персонаж";
+  const visibleClassLine = canSeeClass
+    ? `${escapeHtml(identity.class_name || "class")} ${identity.subclass ? `• ${escapeHtml(identity.subclass)}` : ""} ${identity.race ? `• ${escapeHtml(identity.race)}` : ""}`
+    : "Класс, уровень и раса скрыты";
 
   return `
     <div class="cabinet-block master-room-sheet-card">
       <div class="flex-between" style="gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:10px;">
         <div>
           <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">LSS-like sheet view</div>
-          <h4 style="margin:4px 0 6px;">${escapeHtml(identity.name || member?.selected_character_name || member?.nickname || "Персонаж")}</h4>
-          <div class="muted" style="font-size:0.82rem;">${escapeHtml(identity.class_name || "class")} ${identity.subclass ? `• ${escapeHtml(identity.subclass)}` : ""} ${identity.race ? `• ${escapeHtml(identity.race)}` : ""}</div>
+          <h4 style="margin:4px 0 6px;">${escapeHtml(visibleName)}</h4>
+          <div class="muted" style="font-size:0.82rem;">${visibleClassLine}</div>
         </div>
         <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-          ${sheet.portrait_url ? `<img src="${escapeHtml(sheet.portrait_url)}" alt="${escapeHtml(identity.name || "portrait")}" class="master-room-sheet-avatar">` : ""}
-          ${combat.hp_max ? `<span class="meta-item">HP ${escapeHtml(String(combat.hp_current || 0))}/${escapeHtml(String(combat.hp_max || 0))}</span>` : ""}
-          ${combat.ac ? `<span class="meta-item">AC ${escapeHtml(String(combat.ac || 0))}</span>` : ""}
-          ${combat.initiative || combat.initiative === 0 ? `<span class="meta-item">Init ${escapeHtml(String(combat.initiative || 0))}</span>` : ""}
+          ${canSeePortrait && sheet.portrait_url ? `<img src="${escapeHtml(sheet.portrait_url)}" alt="${escapeHtml(visibleName || "portrait")}" class="master-room-sheet-avatar">` : ""}
+          ${canSeeHp && combat.hp_max ? `<span class="meta-item">HP ${escapeHtml(String(combat.hp_current || 0))}/${escapeHtml(String(combat.hp_max || 0))}</span>` : ""}
+          ${canSeeAc && combat.ac ? `<span class="meta-item">AC ${escapeHtml(String(combat.ac || 0))}</span>` : ""}
+          ${canSeeInitiative && (combat.initiative || combat.initiative === 0) ? `<span class="meta-item">Init ${escapeHtml(String(combat.initiative || 0))}</span>` : ""}
         </div>
       </div>
       <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-        <div class="stat-box" style="min-height:auto; padding:12px;">
+        ${canSeeClass || canSeeBackground ? `<div class="stat-box" style="min-height:auto; padding:12px;">
           <div class="muted">Identity</div>
           <div style="margin-top:8px; font-size:0.86rem; line-height:1.55;">
-            ${identity.background ? `${escapeHtml(identity.background)}<br>` : ""}
-            ${identity.alignment ? `${escapeHtml(identity.alignment)}<br>` : ""}
-            lvl ${escapeHtml(String(identity.level || 1))}
+            ${canSeeBackground && identity.background ? `${escapeHtml(identity.background)}<br>` : ""}
+            ${canSeeBackground && identity.alignment ? `${escapeHtml(identity.alignment)}<br>` : ""}
+            ${canSeeClass ? `lvl ${escapeHtml(String(identity.level || 1))}` : ""}
           </div>
-        </div>
-        ${statEntries.length ? `
+        </div>` : renderMasterRoomLockedField("Identity")}
+        ${statEntries.length && canSeeStats ? `
           <div class="stat-box" style="min-height:auto; padding:12px;">
             <div class="muted">Stats</div>
             <div class="master-room-mini-grid" style="margin-top:8px;">
               ${statEntries.map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key).toUpperCase())}: ${escapeHtml(String(value))}</span>`).join("")}
             </div>
           </div>
-        ` : ""}
-        ${spellSlots.length ? `
+        ` : statEntries.length ? renderMasterRoomLockedField("Stats") : ""}
+        ${spellSlots.length && canSeeSpells ? `
           <div class="stat-box" style="min-height:auto; padding:12px;">
             <div class="muted">Spells</div>
             <div class="master-room-mini-grid" style="margin-top:8px;">
               ${spellSlots.map(([key, value]) => `<span class="meta-item">${escapeHtml(String(key))}: ${escapeHtml(String(value))}</span>`).join("")}
             </div>
           </div>
-        ` : ""}
-        ${inventoryEntries.length ? `
+        ` : spellSlots.length ? renderMasterRoomLockedField("Spells") : ""}
+        ${inventoryEntries.length && canSeeInventory ? `
           <div class="stat-box" style="min-height:auto; padding:12px;">
             <div class="muted">Inventory</div>
             <div style="margin-top:8px; font-size:0.84rem; line-height:1.5;">${inventoryEntries.map((item) => escapeHtml(item)).join("<br>")}</div>
           </div>
-        ` : ""}
-        ${equipmentEntries.length ? `
+        ` : inventoryEntries.length ? renderMasterRoomLockedField("Inventory") : ""}
+        ${equipmentEntries.length && canSeeEquipment ? `
           <div class="stat-box" style="min-height:auto; padding:12px;">
             <div class="muted">Equipment</div>
             <div style="margin-top:8px; font-size:0.84rem; line-height:1.5;">${equipmentEntries.map((item) => escapeHtml(item)).join("<br>")}</div>
           </div>
-        ` : ""}
+        ` : equipmentEntries.length ? renderMasterRoomLockedField("Equipment") : ""}
       </div>
       ${story.background || story.personality || noteEntries.length ? `
         <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:10px;">
-          ${story.background ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Background</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${escapeHtml(clampText(story.background, 420))}</div></div>` : ""}
-          ${story.personality ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Personality</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${escapeHtml(clampText(story.personality, 320))}</div></div>` : ""}
-          ${noteEntries.length ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Notes</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${noteEntries.map((item) => escapeHtml(clampText(item, 160))).join("<br>")}</div></div>` : ""}
+          ${story.background ? (canSeeStory ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Background</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${escapeHtml(clampText(story.background, 420))}</div></div>` : renderMasterRoomLockedField("Background")) : ""}
+          ${story.personality ? (canSeeStory ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Personality</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${escapeHtml(clampText(story.personality, 320))}</div></div>` : renderMasterRoomLockedField("Personality")) : ""}
+          ${noteEntries.length ? (canSeeNotes ? `<div class="stat-box" style="min-height:auto; padding:12px;"><div class="muted">Notes</div><div style="margin-top:8px; font-size:0.84rem; line-height:1.55;">${noteEntries.map((item) => escapeHtml(clampText(item, 160))).join("<br>")}</div></div>` : renderMasterRoomLockedField("Notes")) : ""}
         </div>
       ` : ""}
+      ${renderMasterRoomFieldVisibilityEditor(member)}
     </div>
   `;
 }
@@ -4021,19 +4734,19 @@ function renderMasterRoomLssBridge(table) {
 
   return `
     <div class="cabinet-block master-room-stage-panel">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="flex-between master-room-section-head">
         <div>
-          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">LSS</div>
-          <h4 style="margin:4px 0 6px;">Активный персонаж игрока</h4>
-          <div class="muted" style="font-size:0.82rem;">Можно взять текущий LSS или выбрать персонажа из аккаунт-пула и привязать его к столу без ручного ввода.</div>
+          <div class="muted master-room-section-kicker">LSS</div>
+          <h4 class="master-room-section-title">Активный персонаж игрока</h4>
+          <div class="muted master-room-command-copy">Можно взять текущий LSS или выбрать персонажа из аккаунт-пула и привязать его к столу без ручного ввода.</div>
         </div>
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+        <div class="trader-meta cabinet-header-meta">
           <span class="meta-item">${snapshot.name || selectedPoolEntry?.name || "LSS не выбран"}</span>
           ${snapshot.class_name ? `<span class="meta-item">${escapeHtml(snapshot.class_name)}</span>` : ""}
           <span class="meta-item">HP ${escapeHtml(String(snapshot.hp_current || 0))}/${escapeHtml(String(snapshot.hp_max || 0))}</span>
         </div>
       </div>
-      <div class="profile-grid" style="grid-template-columns:minmax(220px,1.05fr) auto; gap:10px; margin-bottom:12px;">
+      <div class="profile-grid master-room-lss-grid">
         <div class="filter-group">
           <label>Выбор персонажа для стола</label>
           <select id="masterRoomCharacterPoolSelect">
@@ -4045,23 +4758,23 @@ function renderMasterRoomLssBridge(table) {
             `).join("")}
           </select>
         </div>
-        <div class="cart-buttons" style="align-self:end; justify-content:flex-end; gap:8px;">
+        <div class="cart-buttons master-room-lss-actions">
           <button class="btn btn-primary" type="button" id="masterRoomApplyCharacterPoolBtn" ${currentMember ? "" : "disabled"}>Привязать к столу</button>
         </div>
       </div>
       ${
         snapshot.name || selectedPoolEntry
           ? `
-            <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
-              <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Имя</div><div style="font-size:16px;font-weight:800; margin-top:6px;">${escapeHtml(snapshot.name || selectedPoolEntry?.name || "—")}</div></div>
-              <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Класс</div><div style="font-size:16px;font-weight:800; margin-top:6px;">${escapeHtml(snapshot.class_name || selectedPoolEntry?.class_name || "—")}</div></div>
-              <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Уровень</div><div style="font-size:16px;font-weight:800; margin-top:6px;">${escapeHtml(String(snapshot.level || selectedPoolEntry?.level || 1))}</div></div>
-              <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Инициатива</div><div style="font-size:16px;font-weight:800; margin-top:6px;">${escapeHtml(String(snapshot.initiative || 0))}</div></div>
+            <div class="profile-grid master-room-stats-grid">
+              <div class="stat-box master-room-stat-card"><div class="muted">Имя</div><div class="master-room-stat-value">${escapeHtml(snapshot.name || selectedPoolEntry?.name || "—")}</div></div>
+              <div class="stat-box master-room-stat-card"><div class="muted">Класс</div><div class="master-room-stat-value">${escapeHtml(snapshot.class_name || selectedPoolEntry?.class_name || "—")}</div></div>
+              <div class="stat-box master-room-stat-card"><div class="muted">Уровень</div><div class="master-room-stat-value">${escapeHtml(String(snapshot.level || selectedPoolEntry?.level || 1))}</div></div>
+              <div class="stat-box master-room-stat-card"><div class="muted">Инициатива</div><div class="master-room-stat-value">${escapeHtml(String(snapshot.initiative || 0))}</div></div>
             </div>
           `
           : `<div class="muted">Сначала открой вкладку LSS и загрузи персонажа. После этого здесь появится подтверждение привязки к столу.</div>`
       }
-      ${currentMember ? `<div style="margin-top:12px;">${renderMasterRoomCharacterSheet(currentMember)}</div>` : ""}
+      ${currentMember ? `<div class="master-room-sheet-wrap">${renderMasterRoomCharacterSheet(currentMember)}</div>` : ""}
     </div>
   `;
 }
@@ -4071,36 +4784,36 @@ function renderMasterRoomPartyOverview(table) {
   const activeSheetId = String(MASTER_ROOM_STATE.activeSheetMemberId || members[0]?.id || "").trim();
   const activeSheetMember = members.find((member) => String(member.id || "") === activeSheetId) || members[0] || null;
   return `
-    <div class="cabinet-block master-room-stage-panel" style="margin-top:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+    <div class="cabinet-block master-room-stage-panel master-room-party-shell">
+      <div class="flex-between master-room-section-head">
         <div>
-          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Партия</div>
-          <h4 style="margin:4px 0 6px;">Состав стола</h4>
-          <div class="muted" style="font-size:0.82rem;">Как в RPG-хабе: сразу видно кто за столом, кем играет и какую роль держит.</div>
+          <div class="muted master-room-section-kicker">Партия</div>
+          <h4 class="master-room-section-title">Состав стола</h4>
+          <div class="muted master-room-command-copy">Как в RPG-хабе: сразу видно кто за столом, кем играет и какую роль держит.</div>
         </div>
         <span class="meta-item">${members.length}</span>
       </div>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+      <div class="profile-grid master-room-party-grid">
         ${members.map((member) => `
-          <div class="stat-box" style="padding:12px; min-height:auto;">
-            <div class="flex-between" style="gap:8px; align-items:flex-start;">
+          <div class="stat-box master-room-party-card">
+            <div class="flex-between master-room-party-card-head">
               <div>
-                <div style="font-size:15px; font-weight:800;">${escapeHtml(resolveMasterRoomCharacterName(member, member.display_name || member.nickname).value)}</div>
-                <div class="muted" style="font-size:12px; margin-top:4px;">${escapeHtml(member.nickname || member.email || "Игрок")}</div>
+                <div class="master-room-party-card-title">${escapeHtml(resolveMasterRoomCharacterName(member, member.display_name || member.nickname).value)}</div>
+                <div class="muted master-room-party-card-subtitle">${escapeHtml(member.nickname || member.email || "Игрок")}</div>
               </div>
-              <span class="quality-badge" style="padding:3px 8px; min-height:auto;">${member.role_in_table === "gm" ? "GM" : "Player"}</span>
+              <span class="quality-badge master-room-party-badge">${member.role_in_table === "gm" ? "GM" : "Player"}</span>
             </div>
-            <div class="trader-meta" style="gap:6px; margin-top:10px; flex-wrap:wrap;">
+            <div class="trader-meta master-room-party-meta">
               <span class="meta-item">${escapeHtml(masterRoomVisibilityLabel(member.visibility_preset))}</span>
               <span class="meta-item">${resolveMasterRoomCharacterName(member, member.display_name || member.nickname).source === "manual" ? "ручное имя" : "linked/LSS имя"}</span>
             </div>
-            <div class="cart-buttons" style="margin-top:10px; gap:8px;">
+            <div class="cart-buttons master-room-action-row">
               <button class="btn ${String(member.id || "") === String(activeSheetMember?.id || "") ? "active" : ""}" type="button" data-master-room-open-sheet="${escapeHtml(member.id)}">Открыть sheet</button>
             </div>
           </div>
         `).join("")}
       </div>
-      ${activeSheetMember ? `<div style="margin-top:12px;">${renderMasterRoomCharacterSheet(activeSheetMember)}</div>` : ""}
+      ${activeSheetMember ? `<div class="master-room-sheet-wrap">${renderMasterRoomCharacterSheet(activeSheetMember)}</div>` : ""}
     </div>
   `;
 }
@@ -4111,26 +4824,26 @@ function renderMasterRoomDiceDock(combat) {
   return `
     <div class="master-room-dice-dock master-room-stage-panel">
       <div class="cabinet-block master-room-dice-panel">
-        <div class="flex-between" style="gap:8px; align-items:center;">
+        <div class="flex-between master-room-dice-head">
           <div>
-            <div style="font-weight:800; font-size:14px;">🎲 Кубы</div>
-            <div class="muted" style="font-size:11px;">быстрый боевой бросок</div>
+            <div class="master-room-dice-title">🎲 Кубы</div>
+            <div class="muted master-room-dice-copy">быстрый боевой бросок</div>
           </div>
-          <button class="btn btn-secondary" type="button" id="masterRoomDiceToggleBtn" style="min-height:30px; padding:4px 9px; border-radius:10px;">
+          <button class="btn btn-secondary master-room-compact-btn" type="button" id="masterRoomDiceToggleBtn">
             ${MASTER_ROOM_STATE.combatDiceOpen ? "Скрыть" : "Открыть"}
           </button>
         </div>
         ${
           MASTER_ROOM_STATE.combatDiceOpen
             ? `
-              <div class="cart-buttons" style="margin-top:8px; flex-wrap:wrap; gap:5px; justify-content:flex-start;">
+              <div class="cart-buttons master-room-dice-actions">
                 ${dieButtons.map((die) => `
-                  <button class="btn ${MASTER_ROOM_STATE.combatDiceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-master-room-roll-die="${die}" style="min-height:28px; padding:4px 8px; border-radius:10px; font-size:12px;">
+                  <button class="btn ${MASTER_ROOM_STATE.combatDiceType === die ? "btn-primary" : "btn-secondary"} master-room-die-btn" type="button" data-master-room-roll-die="${die}">
                     ${die.toUpperCase()}
                   </button>
                 `).join("")}
               </div>
-              <div class="muted" style="margin-top:8px; font-size:12px;">
+              <div class="muted master-room-dice-last">
                 ${last ? `Последний: <strong>${escapeHtml(String(last.dice || last.type || "").toUpperCase())}</strong> → <strong>${escapeHtml(String(last.roll_total || last.result || "—"))}</strong>` : "Выбери куб"}
               </div>
             `
@@ -4213,45 +4926,56 @@ function renderMasterRoomInitiativeTrack(combat) {
   if (!entries.length) {
     return `
       <div class="master-room-initiative-track">
-        <div class="muted" style="font-size:0.82rem;">Очередь хода появится после сборки боя.</div>
+        <div class="muted master-room-combat-copy">Очередь хода появится после сборки боя.</div>
       </div>
     `;
   }
 
   return `
     <div class="master-room-initiative-track">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
-        <div>
-          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Порядок хода</div>
-          <div style="font-weight:800; margin-top:4px;">Пошаговая линия инициативы</div>
+      <div class="master-room-initiative-grid">
+        <div class="master-room-initiative-control">
+          <div class="master-room-initiative-title">Инициатива</div>
+          <label class="master-room-initiative-sort">
+            <span>Сортировка:</span>
+            <select aria-label="Сортировка инициативы">
+              <option>Инициатива</option>
+            </select>
+          </label>
         </div>
-        <div class="muted" style="font-size:0.82rem;">как в тактическом бою: видно кто ходит сейчас и кто идёт следующим</div>
+        <span class="master-room-initiative-arrow" aria-hidden="true">‹‹</span>
+        <div>
+          <div class="master-room-initiative-row">
+            ${entries.map((entry, index) => {
+              const active = index === combat.turn_index;
+              const next = index === ((combat.turn_index + 1) % Math.max(entries.length, 1)) && !active;
+              const portrait = entry.portrait_url
+                ? `<img src="${escapeHtml(entry.portrait_url)}" alt="${escapeHtml(entry.name)}" class="master-room-initiative-avatar">`
+                : `<span class="master-room-initiative-avatar master-room-initiative-avatar-fallback ${entry.entry_type === "enemy" ? "master-room-initiative-avatar-enemy" : "master-room-initiative-avatar-ally"}"><span>${escapeHtml((entry.name || "?").slice(0, 1).toUpperCase())}</span></span>`;
+              return `
+                <button
+                  class="master-room-initiative-chip ${active ? "master-room-initiative-chip-active" : ""} ${next ? "master-room-initiative-chip-next" : ""} ${entry.entry_type === "enemy" ? "master-room-initiative-chip-enemy" : ""}"
+                  type="button"
+                  data-master-room-focus-turn="${escapeHtml(String(index))}"
+                >
+                  ${active ? `<span class="master-room-initiative-caret"></span>` : ""}
+                  <span class="master-room-initiative-status">${entry.entry_type === "enemy" ? "✦" : "◆"}</span>
+                  ${portrait}
+                  <span class="master-room-initiative-score">${escapeHtml(String(entry.initiative || 0))}</span>
+                  <span class="master-room-initiative-chip-body">
+                    <strong>${escapeHtml(entry.name)}</strong>
+                  </span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </div>
+        <span class="master-room-initiative-arrow" aria-hidden="true">››</span>
       </div>
-      <div class="master-room-initiative-row">
-        ${entries.map((entry, index) => {
-          const active = index === combat.turn_index;
-          const next = index === ((combat.turn_index + 1) % Math.max(entries.length, 1));
-          const statusMeta = getMasterRoomCombatStatusMeta(entry.status);
-          const typeLabel = getMasterRoomEntityKindLabel(entry.entity_kind || entry.entry_type);
-          const portrait = entry.portrait_url
-            ? `<img src="${escapeHtml(entry.portrait_url)}" alt="${escapeHtml(entry.name)}" class="master-room-initiative-avatar">`
-            : `<span class="master-room-initiative-avatar master-room-initiative-avatar-fallback">${escapeHtml((entry.name || "?").slice(0, 1).toUpperCase())}</span>`;
-          return `
-            <button
-              class="master-room-initiative-chip ${active ? "master-room-initiative-chip-active" : ""} ${next ? "master-room-initiative-chip-next" : ""} ${entry.entry_type === "enemy" ? "master-room-initiative-chip-enemy" : ""}"
-              type="button"
-              data-master-room-focus-turn="${escapeHtml(String(index))}"
-            >
-              <span class="master-room-initiative-chip-order">${escapeHtml(String(index + 1))}</span>
-              ${portrait}
-              <span class="master-room-initiative-chip-body">
-                <strong>${escapeHtml(entry.name)}</strong>
-                <small>${escapeHtml(typeLabel)} • Init ${escapeHtml(String(entry.initiative || 0))}${entry.level ? ` • lvl ${escapeHtml(String(entry.level))}` : ""}</small>
-                <small>${escapeHtml(statusMeta.label)}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}</small>
-              </span>
-            </button>
-          `;
-        }).join("")}
+      <div class="master-room-initiative-now">
+        <span></span>
+        <div>Ход: <strong>${escapeHtml((combat.entries[combat.turn_index]?.name || "не выбран"))}</strong></div>
+        <span></span>
       </div>
     </div>
   `;
@@ -4270,8 +4994,9 @@ function renderMasterRoomCombatLogPanel(combat) {
   return ordered.map((entry, index) => {
     const tone = getMasterRoomCombatLogTone(entry);
     const bucket = getMasterRoomCombatLogFilterBucket(entry);
-    const outcome = String(entry?.outcome || "").trim();
+    const outcome = getMasterRoomCombatOutcomeLabel(entry);
     const headline = getMasterRoomCombatLogHeadline(entry);
+    const verb = getMasterRoomCombatLogVerb(entry);
     const label = String(entry?.event_type || entry?.type || "note").trim();
     const previousEntry = ordered[index - 1] || null;
     const roundChanged = !previousEntry || Number(previousEntry?.round || 0) !== Number(entry?.round || 0);
@@ -4285,18 +5010,34 @@ function renderMasterRoomCombatLogPanel(combat) {
         <div class="master-room-combat-log-avatar">
           ${getMasterRoomCombatLogAvatarMarkup(entry, combat)}
         </div>
+        <div class="master-room-combat-log-action-icon master-room-combat-log-action-icon-${escapeHtml(tone)}">
+          ${escapeHtml(getMasterRoomCombatEventIcon(entry))}
+        </div>
         <div class="master-room-combat-log-main">
-          <div class="master-room-combat-log-topline">
-            <strong>${escapeHtml(entry.actor_name || "Система")}</strong>
-            <span class="master-room-combat-log-time">R${escapeHtml(String(entry.round || 1))} • ${escapeHtml(formatDateTime(entry.created_at))}</span>
+          <div class="master-room-combat-log-rail">
+            <div class="master-room-combat-log-actor">
+              <strong>${escapeHtml(entry.actor_name || "Система")}</strong>
+              <small>${escapeHtml(verb)}</small>
+            </div>
+            <div class="master-room-combat-log-arrow">→</div>
+            <div class="master-room-combat-log-target-portrait">
+              ${getMasterRoomCombatLogTargetMarkup(entry, combat)}
+            </div>
+            <div class="master-room-combat-log-target">
+              ${entry.target_name ? `<strong>${escapeHtml(entry.target_name)}</strong>` : `<strong>Сцена</strong>`}
+              <small>${escapeHtml(label)}</small>
+            </div>
+            ${outcome ? `<div class="master-room-combat-log-outcome master-room-combat-log-outcome-${escapeHtml(getMasterRoomCombatOutcomeClass(entry))}">${escapeHtml(outcome)}</div>` : ""}
+            <div class="master-room-combat-log-meta">
+              ${entry.dice ? `<span class="master-room-combat-log-dice">${escapeHtml(entry.dice.toUpperCase())}${entry.roll_total ? ` • ${escapeHtml(String(entry.roll_total))}` : ""}</span>` : ""}
+              <span class="master-room-combat-log-time">R${escapeHtml(String(entry.round || 1))} • ${escapeHtml(formatDateTime(entry.created_at))}</span>
+            </div>
           </div>
           <div class="master-room-combat-log-text">${escapeHtml(headline)}</div>
           <div class="master-room-combat-log-tags">
             <span class="meta-item">${escapeHtml(label)}</span>
-            ${entry.target_name ? `<span class="meta-item">цель: ${escapeHtml(entry.target_name)}</span>` : ""}
-            ${entry.dice ? `<span class="meta-item">${escapeHtml(entry.dice.toUpperCase())}${entry.roll_total ? ` • ${escapeHtml(String(entry.roll_total))}` : ""}</span>` : ""}
+            ${entry.reason ? `<span class="meta-item">${escapeHtml(entry.reason)}</span>` : ""}
             ${entry.damage ? `<span class="meta-item">${escapeHtml(String(entry.damage))}${entry.damage_type ? ` ${escapeHtml(entry.damage_type)}` : ""}</span>` : ""}
-            ${outcome ? `<span class="meta-item">${escapeHtml(outcome)}</span>` : ""}
           </div>
         </div>
       </div>
@@ -4320,9 +5061,65 @@ function renderMasterRoomDiceLogPanel(combat) {
         <strong>${escapeHtml(String(entry.roll_total || 0))}</strong>
         <span class="muted">${escapeHtml(entry.modifier >= 0 ? `+${entry.modifier}` : String(entry.modifier || 0))}</span>
       </div>
-      <div class="muted" style="margin-top:4px; font-size:0.82rem;">${escapeHtml(entry.text || entry.reason || "Бросок")}</div>
+      <div class="muted master-room-command-copy master-room-focus-copy">${escapeHtml(entry.text || entry.reason || "Бросок")}</div>
     </div>
   `).join("");
+}
+
+function renderMasterRoomLastRollDice(lastRoll) {
+  const total = safeNumber(lastRoll?.roll_total || lastRoll?.result, 0);
+  const dice = String(lastRoll?.dice || lastRoll?.event_type || "d20").trim();
+  const values = total
+    ? [Math.max(1, Math.floor(total / 2)), Math.max(1, total - Math.floor(total / 2))]
+    : [0, 0, 0];
+  return `
+    <div class="master-room-last-roll-dice-row">
+      <span class="master-room-last-roll-dice-label">${escapeHtml(dice)}</span>
+      ${values.slice(0, 3).map((value) => `<span class="master-room-last-roll-poly">${escapeHtml(String(value || "—"))}</span>`).join("")}
+      <span class="master-room-last-roll-equals">=</span>
+    </div>
+  `;
+}
+
+function getMasterRoomCombatantHealthClass(entry) {
+  const max = Math.max(1, safeNumber(entry?.hp_max, 1));
+  const current = Math.max(0, safeNumber(entry?.hp_current, 0));
+  const ratio = current / max;
+  if (ratio <= 0.25) return "danger";
+  if (ratio <= 0.55) return "warn";
+  return "ok";
+}
+
+function renderMasterRoomCombatantSummary(entry, table, currentTurn, canManage) {
+  const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
+  const linkedMember = entry.entry_type === "enemy" ? null : getMasterRoomMemberById(table, entry.membership_id);
+  const resolvedName = entry.entry_type === "enemy"
+    ? { value: entry.name, source: "enemy" }
+    : resolveMasterRoomCharacterName(linkedMember, entry.name);
+  const healthClass = getMasterRoomCombatantHealthClass(entry);
+  const hpLabel = canManage || entry.entry_type !== "enemy"
+    ? `${entry.hp_current}/${entry.hp_max}`
+    : "hidden";
+
+  return `
+    <div class="master-room-combatant-row ${entry.entry_type === "enemy" ? "master-room-combatant-row-enemy" : ""} ${isCurrentTurn ? "master-room-combatant-row-active" : ""}">
+      <div class="master-room-combatant-portrait">
+        ${getMasterRoomCombatEntryPortraitMarkup(entry, resolvedName.value)}
+      </div>
+      <div class="master-room-combatant-row-main">
+        <div class="master-room-combatant-row-title">${escapeHtml(resolvedName.value || entry.name || "Участник")}</div>
+        <div class="master-room-combatant-row-subtitle">
+          ${entry.entry_type === "enemy" ? escapeHtml(entry.source || "enemy") : escapeHtml(linkedMember?.nickname || "party")}
+          ${isCurrentTurn ? " • ходит" : ""}
+        </div>
+      </div>
+      <div class="master-room-combatant-row-stats">
+        <span class="master-room-combatant-hp master-room-combatant-hp-${healthClass}">HP ${escapeHtml(String(hpLabel))}</span>
+        <span>AC ${canManage || entry.entry_type !== "enemy" ? escapeHtml(String(entry.ac)) : "?"}</span>
+        <span>Init ${escapeHtml(String(entry.initiative))}</span>
+      </div>
+    </div>
+  `;
 }
 
 function renderMasterRoomBattlePanel(table) {
@@ -4340,85 +5137,45 @@ function renderMasterRoomBattlePanel(table) {
     MASTER_ROOM_STATE.combatLogFilter,
     MASTER_ROOM_STATE.combatHideSecondary
   )).length;
+  const lastRoll = MASTER_ROOM_STATE.combatLastRoll || safeArray(combat.log).slice().reverse().find((entry) => ["roll", "attack", "save"].includes(String(entry?.event_type || entry?.type || "").trim().toLowerCase())) || null;
 
   return `
-    <div class="cabinet-block master-room-stage-panel master-room-battle-stage" style="margin-top:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+    <div class="cabinet-block master-room-stage-panel master-room-battle-stage master-room-battle-shell">
+      <div class="flex-between master-room-section-head">
         <div>
-          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Бой</div>
-          <h4 style="margin:4px 0 6px;">Журнал боя и тактическая сцена</h4>
-          <div class="muted" style="font-size:0.82rem;">Партия, противники, урон, броски и события боя синхронизируются в одном серверном состоянии стола.</div>
+          <div class="muted master-room-section-kicker">Бой</div>
+          <h4 class="master-room-section-title">Журнал боя и тактическая сцена</h4>
+          <div class="muted master-room-command-copy">Партия, противники, урон, броски и события боя синхронизируются в одном серверном состоянии стола.</div>
         </div>
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+        <div class="trader-meta cabinet-header-meta">
           <span class="meta-item">${combat.active ? "Бой активен" : "Подготовка"}</span>
           <span class="meta-item">Раунд ${escapeHtml(String(combat.round))}</span>
-          <span class="meta-item">Ход: ${escapeHtml(currentTurn?.name || "не выбран")}</span>
-          <button class="btn btn-secondary" type="button" id="masterRoomCombatLogToggleBtn" style="min-height:30px; padding:4px 9px; border-radius:10px;">
+          <button class="btn btn-secondary master-room-compact-btn" type="button" id="masterRoomCombatLogToggleBtn">
             ${MASTER_ROOM_STATE.combatLogOpen ? "Скрыть лог" : "Показать лог"}
           </button>
         </div>
       </div>
 
-      ${
-        canManage
-          ? `
-            <div class="profile-grid master-room-combat-toolbar" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-              <div class="filter-group">
-                <label>Раунд</label>
-                <input id="masterRoomCombatRound" type="number" min="1" step="1" value="${escapeHtml(String(combat.round || 1))}">
-              </div>
-              <div class="filter-group">
-                <label>Текущий ход</label>
-                <select id="masterRoomCombatTurnIndex">
-                  ${combat.entries.length
-                    ? combat.entries.map((entry, index) => `
-                        <option value="${escapeHtml(String(index))}" ${index === combat.turn_index ? "selected" : ""}>
-                          ${escapeHtml(entry.name)}${entry.initiative ? ` • init ${escapeHtml(String(entry.initiative))}` : ""}
-                        </option>
-                      `).join("")
-                    : `<option value="0">Нет боевых позиций</option>`}
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Статус</label>
-                <select id="masterRoomCombatActiveState">
-                  <option value="inactive" ${combat.active ? "" : "selected"}>Подготовка</option>
-                  <option value="active" ${combat.active ? "selected" : ""}>Активный бой</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
-              <button class="btn btn-primary" type="button" id="masterRoomCombatBootstrapBtn">Собрать бой из стола</button>
-              <button class="btn" type="button" id="masterRoomCombatSaveStateBtn">Сохранить фазу боя</button>
-              <button class="btn" type="button" id="masterRoomCombatNextTurnBtn" ${combat.entries.length ? "" : "disabled"}>Следующий ход</button>
-            </div>
-          `
-          : `<div class="cabinet-block" style="padding:10px 12px; margin-bottom:8px;">
-               <div class="muted" style="font-size:0.82rem;">Lobby combat view: игрок видит очередь хода, читаемый лог и основные статы текущей сцены. Редактирование и скрытые GM-детали не показываются.</div>
-             </div>`
-      }
-
-      <div style="margin-top:12px;">
+      <div class="master-room-battle-gap">
         ${renderMasterRoomInitiativeTrack(combat)}
       </div>
 
-      <div class="profile-grid master-room-battle-grid" style="grid-template-columns:minmax(0,1.34fr) minmax(300px,0.78fr); gap:12px; margin-top:12px;">
-        <div class="cabinet-block master-room-journal-shell" style="padding:12px;">
-          <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="profile-grid master-room-battle-grid master-room-battle-grid-shell">
+        <div class="cabinet-block master-room-journal-shell master-room-battle-card">
+          <div class="flex-between master-room-section-head">
             <div>
-              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Combat log</div>
-              <h5 style="margin:4px 0 6px 0;">Лента событий боя</h5>
-              <div class="muted" style="font-size:0.82rem;">Текущие действия, броски, эффекты и смена фаз собираются в одну боевую ленту.</div>
+              <div class="muted master-room-section-kicker">Combat log</div>
+              <h5 class="master-room-section-title">Лента событий боя</h5>
+              <div class="muted master-room-command-copy">Текущие действия, броски, эффекты и смена фаз собираются в одну боевую ленту.</div>
             </div>
-            <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+            <div class="trader-meta cabinet-header-meta">
               <span class="meta-item">${escapeHtml(String(visibleLogCount))} событий</span>
-              <button class="btn btn-secondary" type="button" data-master-room-combat-secondary-toggle="1" style="min-height:30px; padding:4px 9px; border-radius:10px;">
+              <button class="btn btn-secondary master-room-compact-btn" type="button" data-master-room-combat-secondary-toggle="1">
                 ${MASTER_ROOM_STATE.combatHideSecondary ? "Показать системные" : "Скрыть вторичное"}
               </button>
             </div>
           </div>
-          <div class="account-hub-tab-row master-room-log-filter-row" style="margin-bottom:10px;">
+          <div class="account-hub-tab-row master-room-log-filter-row master-room-log-filter-shell">
             ${[
               ["all", "Все"],
               ["combat", "Бой"],
@@ -4437,97 +5194,145 @@ function renderMasterRoomBattlePanel(table) {
         </div>
 
         <div class="master-room-tactical-stack">
-          ${renderMasterRoomDiceDock(combat)}
-
-          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
-            <div class="master-room-panel-kicker">Тактическая сводка</div>
-            <div class="profile-grid" style="grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px;">
-              <div class="stat-box" style="padding:10px; min-height:auto;">
-                <div class="muted">Раунд</div>
-                <div style="font-size:18px; font-weight:800; margin-top:6px;">${escapeHtml(String(combat.round))}</div>
-              </div>
-              <div class="stat-box" style="padding:10px; min-height:auto;">
-                <div class="muted">Статус</div>
-                <div style="font-size:18px; font-weight:800; margin-top:6px;">${combat.active ? "Активен" : "Подготовка"}</div>
-              </div>
-              <div class="stat-box" style="padding:10px; min-height:auto;">
-                <div class="muted">Союзники</div>
-                <div style="font-size:18px; font-weight:800; margin-top:6px;">${escapeHtml(String(members.length))}</div>
-              </div>
-              <div class="stat-box" style="padding:10px; min-height:auto;">
-                <div class="muted">Противники</div>
-                <div style="font-size:18px; font-weight:800; margin-top:6px;">${escapeHtml(String(enemies.length))}</div>
-              </div>
+          <div class="cabinet-block master-room-tactical-card master-room-battle-card">
+            <div class="master-room-panel-kicker">Раунд</div>
+            <div class="master-room-round-card">
+              <div class="master-room-round-orb">${escapeHtml(String(combat.round))}</div>
+              <div class="master-room-round-infinity">/ ∞</div>
+              <button class="btn master-room-round-next-btn" type="button" id="masterRoomCombatNextTurnQuickBtn" ${combat.entries.length ? "" : "disabled"}>↻ Следующий раунд</button>
+            </div>
+            <div class="master-room-round-meta">
+              <span>Ходит: <strong>${escapeHtml(currentTurn?.name || "—")}</strong></span>
+              <span>Союзники: <strong>${escapeHtml(String(members.length))}</strong></span>
+              <span>Противники: <strong>${escapeHtml(String(enemies.length))}</strong></span>
             </div>
           </div>
 
-          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
-            <div class="master-room-panel-kicker">Текущий порядок</div>
-            <div class="master-room-turn-focus-card" style="margin-top:10px;">
-              <div class="master-room-turn-focus-label">Сейчас</div>
-              <strong>${escapeHtml(currentTurn?.name || "Ход не выбран")}</strong>
-              <div class="muted" style="font-size:0.82rem; margin-top:4px;">${escapeHtml(currentTurn ? getMasterRoomEntityKindLabel(currentTurn.entity_kind || currentTurn.entry_type) : "Сначала собери сцену")}</div>
-            </div>
-            <div class="master-room-turn-focus-card master-room-turn-focus-card-next" style="margin-top:8px;">
-              <div class="master-room-turn-focus-label">Следом</div>
-              <strong>${escapeHtml(nextTurn?.name || "—")}</strong>
-              <div class="muted" style="font-size:0.82rem; margin-top:4px;">${escapeHtml(nextTurn ? getMasterRoomEntityKindLabel(nextTurn.entity_kind || nextTurn.entry_type) : "Ожидает выбора")}</div>
+          <div class="cabinet-block master-room-tactical-card master-room-battle-card">
+            <div class="master-room-panel-kicker">Окружение</div>
+            <div class="master-room-environment-list">
+              <div class="master-room-environment-item">Локация: <strong>${escapeHtml(table?.title || "Сцена стола")}</strong></div>
+              <div class="master-room-environment-item">Свет: <strong>${combat.active ? "Активная сцена" : "Подготовка к бою"}</strong></div>
+              <div class="master-room-environment-item">Следом: <strong>${escapeHtml(nextTurn?.name || "ожидает выбора")}</strong></div>
+              <div class="master-room-environment-item">Фаза: <strong>${escapeHtml(combat.active ? "боевой режим" : "лобби/сборка")}</strong></div>
             </div>
           </div>
 
-          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
-            <div class="flex-between" style="gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+          <div class="cabinet-block master-room-tactical-card master-room-battle-card">
+            <div class="master-room-panel-kicker">Быстрые действия ${canManage ? "(GM)" : ""}</div>
+            <div class="master-room-quick-actions-grid">
+              <button class="btn btn-secondary" type="button" data-master-room-combat-quick-event="damage">⚔ Урон</button>
+              <button class="btn btn-secondary" type="button" data-master-room-combat-quick-event="heal">✚ Исцеление</button>
+              <button class="btn btn-secondary" type="button" data-master-room-combat-quick-event="effect">✦ Состояние</button>
+              <button class="btn btn-secondary" type="button" data-master-room-combat-quick-event="save">🛡 Спасбросок</button>
+              <button class="btn btn-secondary" type="button" data-master-room-combat-quick-event="roll">◇ Заметка</button>
+              <button class="btn btn-secondary" type="button" data-master-room-combat-secondary-toggle="1">☰ Системные</button>
+            </div>
+          </div>
+
+          <div class="cabinet-block master-room-tactical-card master-room-battle-card">
+            <div class="flex-between master-room-dice-log-head master-room-dice-log-head-gap">
               <div>
-                <div class="master-room-panel-kicker">Dice log</div>
-                <div class="muted" style="font-size:0.82rem;">Последние механические события</div>
+                <div class="master-room-panel-kicker">Состав сцены</div>
+                <div class="muted master-room-command-copy">${escapeHtml(String(combat.entries.length))} боевых позиций</div>
               </div>
-              <span class="meta-item">${escapeHtml(String(safeArray(combat.log).filter((entry) => getMasterRoomCombatLogFilterBucket(entry) === "dice").length))}</span>
             </div>
-            <div class="master-room-dice-log-list">
-              ${renderMasterRoomDiceLogPanel(combat)}
+            <div class="master-room-combatants-compact-list">
+              ${combat.entries.length
+                ? combat.entries.map((entry) => renderMasterRoomCombatantSummary(entry, table, currentTurn, canManage)).join("")
+                : `<div class="muted master-room-command-copy">Боевые позиции появятся после сборки боя.</div>`}
             </div>
           </div>
 
-          <div class="cabinet-block master-room-tactical-card" style="padding:12px;">
-            <div class="master-room-panel-kicker">${canManage ? "GM actions" : "Player view"}</div>
-            <div class="muted" style="font-size:0.82rem; margin-top:8px;">
-              ${canManage
-                ? "ГМ управляет фазой боя, скрытыми данными и ручными событиями. Игроки получают только сцену, доступный бой и разрешённые детали."
-                : "Игрок видит очередь, журнал боя и свои действия, но не получает GM-only инструменты и скрытые статы противников."}
+          <div class="cabinet-block master-room-tactical-card master-room-battle-card">
+            <div class="flex-between master-room-dice-log-head master-room-dice-log-head-gap">
+              <div>
+                <div class="master-room-panel-kicker">Последний бросок</div>
+                <div class="muted master-room-command-copy">Последняя механическая развязка сцены</div>
+              </div>
+            </div>
+            <div class="master-room-last-roll-card">
+              ${renderMasterRoomLastRollDice(lastRoll)}
+              <div class="master-room-last-roll-total">${escapeHtml(String(lastRoll?.roll_total || lastRoll?.result || "—"))}</div>
+              <div class="master-room-last-roll-note">${escapeHtml(lastRoll?.text || lastRoll?.reason || "Бросков пока нет")}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="cabinet-block master-room-roster-shell" style="padding:12px; margin-top:12px;">
-        <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
-          <div>
-            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Боевые позиции</div>
-            <h5 style="margin:4px 0 6px 0;">Участники сцены</h5>
-            <div class="muted" style="font-size:0.82rem;">Отдельный слой для партии и врагов, чтобы журнал и tactical stack не превращались в админскую таблицу.</div>
-          </div>
+      <details class="cabinet-block master-room-roster-shell master-room-battle-card master-room-roster-gap master-room-combat-controls-panel">
+        <summary class="master-room-combat-controls-summary">
+          <span>
+            <span class="muted master-room-section-kicker">GM controls</span>
+            <strong>Управление боевыми позициями</strong>
+          </span>
           <span class="meta-item">${escapeHtml(String(combat.entries.length))} в сцене</span>
-        </div>
+        </summary>
+
+        ${
+          canManage
+            ? `
+              <div class="cabinet-block master-room-phase-controls">
+                <div class="flex-between master-room-section-head">
+                  <div>
+                    <div class="muted master-room-section-kicker">Combat phase</div>
+                    <h5 class="master-room-section-title">Фаза боя</h5>
+                  </div>
+                  <button class="btn btn-primary" type="button" id="masterRoomCombatBootstrapBtn">Собрать бой из стола</button>
+                </div>
+                <div class="profile-grid master-room-combat-toolbar master-room-form-grid-compact">
+                  <div class="filter-group">
+                    <label>Раунд</label>
+                    <input id="masterRoomCombatRound" type="number" min="1" step="1" value="${escapeHtml(String(combat.round || 1))}">
+                  </div>
+                  <div class="filter-group">
+                    <label>Текущий ход</label>
+                    <select id="masterRoomCombatTurnIndex">
+                      ${combat.entries.length
+                        ? combat.entries.map((entry, index) => `
+                            <option value="${escapeHtml(String(index))}" ${index === combat.turn_index ? "selected" : ""}>
+                              ${escapeHtml(entry.name)}${entry.initiative ? ` • init ${escapeHtml(String(entry.initiative))}` : ""}
+                            </option>
+                          `).join("")
+                        : `<option value="0">Нет боевых позиций</option>`}
+                    </select>
+                  </div>
+                  <div class="filter-group">
+                    <label>Статус</label>
+                    <select id="masterRoomCombatActiveState">
+                      <option value="inactive" ${combat.active ? "" : "selected"}>Подготовка</option>
+                      <option value="active" ${combat.active ? "selected" : ""}>Активный бой</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="cart-buttons master-room-action-row master-room-wrap-actions">
+                  <button class="btn" type="button" id="masterRoomCombatSaveStateBtn">Сохранить фазу боя</button>
+                  <button class="btn" type="button" id="masterRoomCombatNextTurnBtn" ${combat.entries.length ? "" : "disabled"}>Следующий ход</button>
+                </div>
+              </div>
+            `
+            : ""
+        }
 
         <div class="master-room-battle-columns">
           <div>
-              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin:0 0 8px 2px;">Партия</div>
+              <div class="muted master-room-column-kicker">Партия</div>
               ${members.length ? members.map((entry) => {
                 const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
                 const linkedMember = getMasterRoomMemberById(table, entry.membership_id);
                 const canUseLss = String(linkedMember?.user_id || "") === currentUserId && lss.name;
                 const resolvedName = resolveMasterRoomCharacterName(linkedMember, entry.name);
                 return `
-                  <div class="cabinet-block master-room-combatant-card ${isCurrentTurn ? "master-room-combatant-card-active" : ""}" style="padding:12px; margin-bottom:10px;">
-                    <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+                  <div class="cabinet-block master-room-combatant-card ${isCurrentTurn ? "master-room-combatant-card-active" : ""} master-room-combatant-shell">
+                    <div class="flex-between master-room-section-head">
                       <div>
-                        <div style="font-weight:800;">${escapeHtml(resolvedName.value || entry.name || linkedMember?.nickname || "Участник")}</div>
-                        <div class="muted" style="font-size:0.8rem;">
+                        <div class="master-room-combatant-title">${escapeHtml(resolvedName.value || entry.name || linkedMember?.nickname || "Участник")}</div>
+                        <div class="muted master-room-combatant-copy">
                           ${escapeHtml(linkedMember?.nickname || "участник")} • ${escapeHtml(entry.role_in_table === "gm" ? "ГМ" : "Игрок")}
                           ${isCurrentTurn ? " • сейчас ход" : ""}
                         </div>
                       </div>
-                      <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+                      <div class="trader-meta cabinet-header-meta">
                         <span class="meta-item">HP ${escapeHtml(String(entry.hp_current))}/${escapeHtml(String(entry.hp_max))}</span>
                         <span class="meta-item">AC ${escapeHtml(String(entry.ac))}</span>
                         <span class="meta-item">Init ${escapeHtml(String(entry.initiative))}</span>
@@ -4537,7 +5342,7 @@ function renderMasterRoomBattlePanel(table) {
                     ${
                       canManage
                         ? `
-                          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
+                          <div class="profile-grid master-room-stats-grid">
                             <div class="filter-group">
                               <label>Имя</label>
                               <input id="masterRoomCombatName-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.name)}">
@@ -4563,32 +5368,32 @@ function renderMasterRoomBattlePanel(table) {
                               <input id="masterRoomCombatStatus-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.status || "")}" placeholder="ready / down / hidden">
                             </div>
                           </div>
-                          <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                          <div class="cart-buttons master-room-action-row master-room-wrap-actions">
                             <button class="btn btn-primary" type="button" data-master-room-combat-save="${escapeHtml(entry.entry_id)}">Сохранить</button>
-                            <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" type="number" min="1" step="1" value="1" style="max-width:88px;">
+                            <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" class="master-room-delta-input" type="number" min="1" step="1" value="1">
                             <button class="btn btn-danger" type="button" data-master-room-combat-damage="${escapeHtml(entry.entry_id)}">Урон</button>
                             <button class="btn" type="button" data-master-room-combat-heal="${escapeHtml(entry.entry_id)}">Лечение</button>
                             ${canUseLss ? `<button class="btn" type="button" data-master-room-combat-use-lss="${escapeHtml(entry.entry_id)}">Взять статы из LSS</button>` : ""}
                           </div>
                         `
-                        : `<div class="muted" style="font-size:0.82rem;">Персонаж за столом: ${escapeHtml(resolvedName.source === "manual" ? "ручное имя стола" : "linked имя персонажа")} • статус ${escapeHtml(entry.status || "ready")}</div>`
+                        : `<div class="muted master-room-command-copy">${escapeHtml(`Персонаж за столом: ${resolvedName.source === "manual" ? "ручное имя стола" : "linked имя персонажа"} • статус ${entry.status || "ready"}`)}</div>`
                     }
                   </div>
                 `;
               }).join("") : `<div class="muted">Партия ещё не собрана в бою.</div>`}
             </div>
           <div>
-              <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin:0 0 8px 2px;">Противники</div>
+              <div class="muted master-room-column-kicker">Противники</div>
               ${enemies.length ? enemies.map((entry) => {
                 const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
                 return `
-                  <div class="cabinet-block master-room-combatant-card master-room-combatant-card-enemy ${isCurrentTurn ? "master-room-combatant-card-active" : ""}" style="padding:12px; margin-bottom:10px;">
-                    <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+                  <div class="cabinet-block master-room-combatant-card master-room-combatant-card-enemy ${isCurrentTurn ? "master-room-combatant-card-active" : ""} master-room-combatant-shell">
+                    <div class="flex-between master-room-section-head">
                       <div>
-                        <div style="font-weight:800;">${escapeHtml(entry.name)}</div>
-                        <div class="muted" style="font-size:0.8rem;">${escapeHtml(entry.source || "enemy")} ${entry.enemy_ref ? `• ${escapeHtml(entry.enemy_ref)}` : ""}${isCurrentTurn ? " • сейчас ход" : ""}</div>
+                        <div class="master-room-combatant-title">${escapeHtml(entry.name)}</div>
+                        <div class="muted master-room-combatant-copy">${escapeHtml(entry.source || "enemy")} ${entry.enemy_ref ? `• ${escapeHtml(entry.enemy_ref)}` : ""}${isCurrentTurn ? " • сейчас ход" : ""}</div>
                       </div>
-                      <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
+                      <div class="trader-meta cabinet-header-meta">
                         <span class="meta-item">${canManage ? `HP ${escapeHtml(String(entry.hp_current))}/${escapeHtml(String(entry.hp_max))}` : "HP hidden"}</span>
                         <span class="meta-item">${canManage ? `AC ${escapeHtml(String(entry.ac))}` : "AC hidden"}</span>
                         <span class="meta-item">Init ${escapeHtml(String(entry.initiative))}</span>
@@ -4597,7 +5402,7 @@ function renderMasterRoomBattlePanel(table) {
                     ${
                       canManage
                         ? `
-                          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
+                          <div class="profile-grid master-room-stats-grid">
                             <div class="filter-group">
                               <label>Имя</label>
                               <input id="masterRoomCombatName-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.name)}">
@@ -4623,20 +5428,20 @@ function renderMasterRoomBattlePanel(table) {
                               <input id="masterRoomCombatStatus-${escapeHtml(entry.entry_id)}" type="text" value="${escapeHtml(entry.status || "")}" placeholder="hostile / down / hidden">
                             </div>
                           </div>
-                          <div class="cart-buttons" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                          <div class="cart-buttons master-room-action-row master-room-wrap-actions">
                             <button class="btn btn-primary" type="button" data-master-room-combat-save="${escapeHtml(entry.entry_id)}">Сохранить</button>
-                            <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" type="number" min="1" step="1" value="1" style="max-width:88px;">
+                            <input id="masterRoomCombatDelta-${escapeHtml(entry.entry_id)}" class="master-room-delta-input" type="number" min="1" step="1" value="1">
                             <button class="btn btn-danger" type="button" data-master-room-combat-damage="${escapeHtml(entry.entry_id)}">Урон</button>
                             <button class="btn" type="button" data-master-room-combat-heal="${escapeHtml(entry.entry_id)}">Лечение</button>
                             <button class="btn btn-danger" type="button" data-master-room-combat-remove="${escapeHtml(entry.entry_id)}">Убрать</button>
                           </div>
                         `
-                        : `<div class="muted" style="font-size:0.82rem;">Игрок видит тип события, очередь хода и логику боя, но без точных GM-only статов врага.</div>`
+                        : `<div class="muted master-room-command-copy">Игрок видит тип события, очередь хода и логику боя, но без точных GM-only статов врага.</div>`
                     }
-                    ${entry.attacks?.length ? `<div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-top:10px;">${entry.attacks.slice(0, 3).map((attack, attackIndex) => `<button class="btn" type="button" data-master-room-combat-attack="${escapeHtml(entry.entry_id)}" data-master-room-combat-attack-name="${escapeHtml(attack.name || `Атака ${attackIndex + 1}`)}">${escapeHtml(attack.name || `Атака ${attackIndex + 1}`)}</button>`).join("")}</div>` : ""}
+                    ${entry.attacks?.length ? `<div class="trader-meta master-room-party-meta">${entry.attacks.slice(0, 3).map((attack, attackIndex) => `<button class="btn" type="button" data-master-room-combat-attack="${escapeHtml(entry.entry_id)}" data-master-room-combat-attack-name="${escapeHtml(attack.name || `Атака ${attackIndex + 1}`)}">${escapeHtml(attack.name || `Атака ${attackIndex + 1}`)}</button>`).join("")}</div>` : ""}
                     ${
                       entry.spells?.length
-                        ? `<div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-top:8px;">${entry.spells.slice(0, 3).map((spell, spellIndex) => `<button class="btn btn-secondary" type="button" data-master-room-combat-attack="${escapeHtml(entry.entry_id)}" data-master-room-combat-attack-name="${escapeHtml(spell.name || `Заклинание ${spellIndex + 1}`)}">${escapeHtml(spell.name || `Заклинание ${spellIndex + 1}`)}</button>`).join("")}</div>`
+                        ? `<div class="trader-meta master-room-party-meta">${entry.spells.slice(0, 3).map((spell, spellIndex) => `<button class="btn btn-secondary" type="button" data-master-room-combat-attack="${escapeHtml(entry.entry_id)}" data-master-room-combat-attack-name="${escapeHtml(spell.name || `Заклинание ${spellIndex + 1}`)}">${escapeHtml(spell.name || `Заклинание ${spellIndex + 1}`)}</button>`).join("")}</div>`
                         : ""
                     }
                   </div>
@@ -4645,9 +5450,9 @@ function renderMasterRoomBattlePanel(table) {
           </div>
         </div>
 
-        <div class="cabinet-block master-room-action-console" style="padding:12px; margin-top:12px;">
-            <h5 style="margin:0 0 8px 0;">Dice / действие / заклинание</h5>
-            <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;">
+        <div class="cabinet-block master-room-action-console master-room-action-console-panel">
+            <h5 class="master-room-action-console-title">Dice / действие / заклинание</h5>
+            <div class="profile-grid master-room-action-console-grid">
               <div class="filter-group">
                 <label>Кто бросает</label>
                 <select id="masterRoomCombatRollActor">
@@ -4691,11 +5496,11 @@ function renderMasterRoomBattlePanel(table) {
                 <input id="masterRoomCombatRollReason" type="text" placeholder="Fire Bolt, атака, спасбросок, урон от ловушки...">
               </div>
             </div>
-            <div class="cart-buttons" style="margin-top:10px;">
+            <div class="cart-buttons master-room-action-row">
               <button class="btn btn-primary" type="button" id="masterRoomCombatRollBtn">Бросить</button>
             </div>
         </div>
-      </div>
+      </details>
     </div>
   `;
 }
@@ -4710,16 +5515,25 @@ function renderMasterRoom() {
   const canManageActive = canManageMasterRoomTable(active);
   const createOpen = Boolean(MASTER_ROOM_STATE.createOpen);
   const globalGmMode = hasGlobalGmMode();
+  const activeMembers = safeArray(active?.members);
+  const activeGm = activeMembers.find((member) => member.role_in_table === "gm") || activeMembers[0] || null;
+  const activeGmName = resolveMasterRoomCharacterName(activeGm, activeGm?.display_name || activeGm?.nickname || "GM");
+  const activeGmPortrait = getMasterRoomMemberPortrait(activeGm);
+  const heroOwnerName = active ? activeGmName.value : (globalGmMode ? "GM layer" : "Player layer");
+  const heroOwnerInitial = (heroOwnerName || "T").slice(0, 1).toUpperCase();
+  const activeCombat = active?.combat && typeof active.combat === "object" ? active.combat : null;
+  const battleFocus = Boolean(activeCombat?.active && safeArray(activeCombat.entries).length);
+  document.body?.classList.toggle("cabinet-masterroom-battle-focus", battleFocus);
 
   const tablesHtml = MASTER_ROOM_STATE.tables.length
     ? MASTER_ROOM_STATE.tables.map((table) => `
-      <div class="cabinet-block master-room-table-card ${table.id === MASTER_ROOM_STATE.activeTableId ? "master-room-table-card-active" : ""}" style="padding:10px 12px;">
-        <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
-          <div>
-            <div style="font-weight:800;">${escapeHtml(table.title)}</div>
-            <div class="muted" style="font-size:0.8rem;">token: ${escapeHtml(table.token)} • участников: ${safeArray(table.members).length}</div>
+      <div class="cabinet-block master-room-table-card ${table.id === MASTER_ROOM_STATE.activeTableId ? "master-room-table-card-active" : ""}">
+        <div class="master-room-table-card-head">
+          <div class="master-room-table-card-copy">
+            <div class="master-room-table-card-title">${escapeHtml(table.title)}</div>
+            <div class="muted master-room-table-card-meta">token: ${escapeHtml(table.token)} • участников: ${safeArray(table.members).length}</div>
           </div>
-          <div class="cart-buttons" style="gap:6px;">
+          <div class="cart-buttons master-room-table-card-actions">
             <button class="btn ${table.id === MASTER_ROOM_STATE.activeTableId ? "active" : ""}" type="button" data-master-room-open="${escapeHtml(table.id)}">Открыть</button>
             ${canManageMasterRoomTable(table) ? `<button class="btn btn-danger" type="button" data-master-room-delete="${escapeHtml(table.id)}">Удалить</button>` : ""}
           </div>
@@ -4729,157 +5543,259 @@ function renderMasterRoom() {
     : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол.</p></div>`;
 
   container.innerHTML = `
-    <div class="master-room-mode-shell">
-    <div class="cabinet-block master-room-hero" style="margin-bottom:12px;">
-      <div class="master-room-hero-backdrop">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <div class="master-room-hero-copy">
-          <div class="master-room-hero-kicker">GM control room</div>
-          <h3 style="margin:0 0 6px 0;">🛡️ Master Room</h3>
-          <div class="muted">Центр управления столом, игроками, сценой, доступами и боевым состоянием.</div>
-          <div class="muted" style="margin-top:6px; font-size:0.82rem;">Не вкладка настроек, а отдельный игровой режим: lobby для участников и GM control для владельца/ГМа.</div>
-        </div>
-        <div class="master-room-hero-status">
-          <div class="trader-meta" style="gap:6px; flex-wrap:wrap; justify-content:flex-end;">
-          <span class="meta-item" style="align-self:center;">
-            ${canManageActive ? "GM control" : "Lobby mode"}
-          </span>
-          <span class="meta-item">${active ? escapeHtml(active.title) : "Без активного стола"}</span>
-          <span class="meta-item">${active ? `${safeArray(active.members).length} участников` : "0 участников"}</span>
-          </div>
-          <div class="cart-buttons master-room-hero-actions" style="gap:8px;">
-          <button class="btn" type="button" id="masterRoomToggleCreateBtn">${createOpen ? "Скрыть создание" : "Создать стол"}</button>
-          <button class="btn" type="button" id="masterRoomReloadBtn">Обновить</button>
-          </div>
-        </div>
-      </div>
-      <div class="cabinet-block master-room-mode-note" style="padding:10px 12px; margin-top:12px; background:${canManageActive || globalGmMode ? "rgba(76,129,161,0.18)" : "rgba(255,255,255,0.04)"};">
-        ${
-          canManageActive
-            ? `<strong>У тебя есть права управления этим столом.</strong> Полный слой управления показывается только владельцу стола или участнику с role_in_table = gm.`
-            : `Сейчас открыт lobby-режим. Видны состав партии и бой, но управление столом, игроками, торговцами и выдачей скрыто.`
-        }
-      </div>
-      </div>
-    </div>
-
-    ${createOpen ? `
-      <div class="cabinet-block master-room-create-panel" style="margin-bottom:12px;">
-        <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
-          <div class="filter-group">
-            <label>Название стола</label>
-            <input id="masterRoomCreateTitle" type="text" placeholder="Например: Подземелье Арканума">
-          </div>
-          <div class="filter-group">
-            <label>Token / код</label>
-            <input id="masterRoomCreateToken" type="text" placeholder="arcanum-party">
-          </div>
-        </div>
-        <div class="cart-buttons" style="margin-top:10px; gap:8px;">
-          <button class="btn btn-primary" type="button" id="masterRoomCreateBtn">Создать стол</button>
-        </div>
-      </div>
-    ` : ""}
-
-    <div class="master-room-shell">
-      <div class="cabinet-block master-room-sidebar-panel master-room-rail-panel">
-        <div class="flex-between" style="margin-bottom:10px; align-items:flex-end;">
-          <div>
-            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Control Rail</div>
-            <h4 style="margin:4px 0 0;">Твои игровые комнаты</h4>
-          </div>
-          <span class="meta-item">${MASTER_ROOM_STATE.tables.length}</span>
-        </div>
-        <div class="master-room-table-rail">
-          ${tablesHtml}
-        </div>
-      </div>
-      ${active ? `<div class="master-room-stage-grid">
-          <div class="master-room-top-strip">
-          ${canManageActive ? `
-          <div class="cabinet-block master-room-stage-panel master-room-command-panel">
-            <div class="master-room-panel-kicker">Command deck</div>
-            <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+    <div class="master-room-mode-shell ${battleFocus ? "master-room-mode-shell-battle" : ""}">
+      <div class="master-room-shell">
+        <aside class="master-room-sidebar">
+          <div class="cabinet-block master-room-sidebar-panel master-room-rail-panel">
+            <div class="master-room-sidebar-topline">VIRTUAL TABLE</div>
+            <div class="flex-between master-room-section-head master-room-section-head-tight">
               <div>
-                <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>
-                <div class="muted" style="font-size:0.82rem;">Token: <strong>${escapeHtml(active.token)}</strong> • источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</div>
+                <div class="muted master-room-section-kicker">Table rail</div>
+                <h4 class="master-room-section-title">Столы и сцены</h4>
               </div>
-              <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-                <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
-                <span class="meta-item">LSS ГМа: ${escapeHtml(getCurrentLssCharacterName() || "не выбран")}</span>
+              <span class="meta-item">${MASTER_ROOM_STATE.tables.length}</span>
+            </div>
+            <div class="master-room-sidebar-copy">
+              Выбери виртуальный стол: здесь живут партия, сцена, бой и слой информации, который мастер раскрывает игрокам.
+            </div>
+            <div class="cart-buttons master-room-sidebar-actions">
+              <button class="btn" type="button" id="masterRoomToggleCreateBtn">${createOpen ? "Скрыть создание" : "Создать стол"}</button>
+              <button class="btn" type="button" id="masterRoomReloadBtn">Обновить</button>
+            </div>
+            ${renderMasterRoomSidebarPreview(active)}
+            <div class="master-room-table-rail">
+              ${tablesHtml}
+            </div>
+          </div>
+          <div class="cabinet-block master-room-sidebar-panel master-room-sidebar-status">
+            <div class="master-room-panel-kicker">Session state</div>
+            <div class="master-room-sidebar-status-title">${escapeHtml(active?.status || (canManageActive ? "gm_control" : "lobby"))}</div>
+            <div class="master-room-sidebar-status-copy">
+              ${active
+                ? `Активная карта: ${escapeHtml(active.title)}`
+                : "Сейчас нет активного стола. Создай комнату или открой существующую."}
+            </div>
+            <div class="cabinet-block master-room-mode-note master-room-mode-state-${canManageActive || globalGmMode ? "control" : "lobby"}">
+              ${
+                canManageActive
+                  ? `<strong>GM-слой активен.</strong> Ты видишь весь стол и решаешь, какие разделы раскрыты игрокам.`
+                  : `Открыт player-слой. Видны только раскрытые мастером разделы стола, партии и боя.`
+              }
+            </div>
+            <div class="master-room-sidebar-players">
+              <div class="master-room-sidebar-players-head">
+                <span>Подключённые игроки</span>
+                <strong>${escapeHtml(String(activeMembers.length))}</strong>
+              </div>
+              <div class="master-room-sidebar-player-list">
+                ${renderMasterRoomSidebarPlayers(active)}
               </div>
             </div>
+          </div>
+        </aside>
 
-            <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-              <div class="filter-group">
-                <label>Название стола</label>
-                <input id="masterRoomTableTitle" type="text" value="${escapeHtml(active.title)}">
-              </div>
-              <div class="filter-group">
-                <label>Статус</label>
-                <input id="masterRoomTableStatus" type="text" value="${escapeHtml(active.status)}">
-              </div>
-              <div class="filter-group" style="grid-column:1 / -1;">
-                <label>Заметки ГМа по столу</label>
-                <textarea id="masterRoomTableNotes" rows="3" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(active.notes || "")}</textarea>
-              </div>
-            </div>
-            <div class="cart-buttons" style="margin-top:10px; gap:8px;">
-              <button class="btn btn-primary" type="button" id="masterRoomSaveTableBtn">Сохранить стол</button>
-            </div>
-
-            <div class="collection-toolbar compact-collection-toolbar" style="margin-top:12px;">
-              <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
-                <label>Поиск игрока по нику / email</label>
-                <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: andersun">
-              </div>
-            </div>
-            <div id="masterRoomUserSearchResults" style="margin-top:8px;">
-              ${renderMasterRoomUserSearchResults(active)}
-            </div>
-          </div>
-          ` : `
-          <div class="cabinet-block master-room-stage-panel master-room-command-panel">
-            <div class="master-room-panel-kicker">Lobby view</div>
-            <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
-              <div>
-                <h3 style="margin:0 0 4px 0;">${escapeHtml(active.title)}</h3>
-                <div class="muted" style="font-size:0.82rem;">Token: <strong>${escapeHtml(active.token)}</strong> • lobby стола</div>
-              </div>
-              <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-                <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
-                <span class="meta-item">Твой персонаж: ${escapeHtml(getMasterRoomCurrentMembership(active)?.selected_character_name || getCurrentLssCharacterName() || "не выбран")}</span>
+        <div class="master-room-stage">
+          <div class="cabinet-block master-room-hero">
+            <div class="master-room-hero-backdrop">
+              <div class="master-room-hero-topline">MASTER ROOM / ВИРТУАЛЬНЫЙ СТОЛ</div>
+              <div class="master-room-hero-layout">
+                <div class="master-room-hero-identity">
+                  <div class="master-room-hero-portrait">
+                    ${
+                      activeGmPortrait
+                        ? `<img src="${escapeHtml(activeGmPortrait)}" alt="${escapeHtml(heroOwnerName)}" class="master-room-hero-portrait-img">`
+                        : `<span class="master-room-hero-portrait-fallback">${escapeHtml(heroOwnerInitial)}</span>`
+                    }
+                  </div>
+                  <div class="master-room-hero-copy">
+                    <h3 class="master-room-hero-title">${escapeHtml(active?.title || "Master Room")}</h3>
+                    <div class="master-room-hero-subtitle">
+                      Сеанс: ${escapeHtml(formatDateTime(active?.updated_at || active?.created_at || new Date().toISOString()))}
+                      ${active?.token ? ` • ID стола: ${escapeHtml(active.token)}` : ""}
+                    </div>
+                    <div class="master-room-hero-owner-row">
+                      <span class="master-room-hero-owner-chip">${escapeHtml(heroOwnerName)}</span>
+                      <span class="master-room-hero-owner-badge">${canManageActive || globalGmMode ? "GM" : "Участник"}</span>
+                      <span class="muted master-room-hero-owner-note">${canManageActive ? "Полный слой стола" : "Открытый слой игрока"}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="master-room-hero-status master-room-hero-status-panel">
+                  ${active ? renderMasterRoomHeroSummary(active) : ""}
+                  <div class="master-room-hero-roster">
+                    ${active ? renderMasterRoomHeroRoster(active) : `<div class="master-room-hero-roster-empty">Нет активного стола.</div>`}
+                  </div>
+                  ${renderMasterRoomHeroQuickActions(canManageActive)}
+                </div>
               </div>
             </div>
-            <div class="muted">Управление столом скрыто. Здесь доступны состав партии, привязка твоего персонажа из LSS и журнал боя.</div>
-          </div>
-          `}
-          ${renderMasterRoomDiceDock(active?.combat)}
           </div>
 
-          ${renderMasterRoomLssBridge(active)}
-          ${renderMasterRoomPartyOverview(active)}
-
-          ${canManageActive ? `
-          <div class="cabinet-block master-room-stage-panel">
-            <div class="flex-between" style="margin-bottom:10px; align-items:flex-end;">
-              <div>
-                <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Партия</div>
-                <h4 style="margin:4px 0 0;">Игроки за столом</h4>
+          ${createOpen ? `
+            <div class="cabinet-block master-room-create-panel">
+              <div class="profile-grid master-room-form-grid">
+                <div class="filter-group">
+                  <label>Название стола</label>
+                  <input id="masterRoomCreateTitle" type="text" placeholder="Например: Подземелье Арканума">
+                </div>
+                <div class="filter-group">
+                  <label>Token / код</label>
+                  <input id="masterRoomCreateToken" type="text" placeholder="arcanum-party">
+                </div>
               </div>
-              <span class="meta-item">${safeArray(active.members).length}</span>
+              <div class="cart-buttons master-room-action-row">
+                <button class="btn btn-primary" type="button" id="masterRoomCreateBtn">Создать стол</button>
+              </div>
             </div>
-            ${renderMasterRoomParticipants(active)}
-          </div>
-          <div class="master-room-ops-grid">
-          ${renderMasterRoomEnemyPanel(active)}
-          ${renderMasterRoomTraderAccesses(active)}
-          ${renderMasterRoomGrantPanel(active)}
-          </div>
           ` : ""}
-          ${renderMasterRoomBattlePanel(active)}
-        </div>` : `<div class="cabinet-block"><p>Выбери стол сверху или создай новый.</p></div>`}
-    </div>
+
+          ${active ? `
+          <div class="master-room-live-grid ${battleFocus ? "master-room-live-grid-battle-focus" : ""}">
+            <div class="master-room-live-primary">
+              ${renderMasterRoomVisibilityBoard(active, canManageActive)}
+              ${renderMasterRoomTableSurface(active, canManageActive)}
+            </div>
+            <aside class="cabinet-block master-room-event-journal-panel">
+              <div class="master-room-panel-kicker">Журнал событий</div>
+              <div class="master-room-event-journal-head">
+                <div>
+                  <h4 class="master-room-section-title">Последние события</h4>
+                  <div class="muted master-room-command-copy">Ключевые действия стола, боя и подключений.</div>
+                </div>
+              </div>
+              <div class="master-room-event-journal-list">
+                ${renderMasterRoomEventJournal(active)}
+              </div>
+              <button class="btn master-room-event-journal-btn" type="button">Открыть полный журнал</button>
+            </aside>
+          </div>
+          ${renderMasterRoomStageTabs()}
+          <div class="master-room-main-grid ${battleFocus ? "master-room-main-grid-battle-focus" : ""}">
+            <div class="master-room-main-primary">
+          <div class="master-room-stage-grid">
+            <div class="master-room-top-strip">
+            ${canManageActive ? `
+            <div class="cabinet-block master-room-stage-panel master-room-command-panel">
+              <div class="master-room-panel-kicker">GM table layer</div>
+              <div class="flex-between master-room-section-head">
+                <div>
+                  <h3 class="master-room-command-title">${escapeHtml(active.title)}</h3>
+                  <div class="muted master-room-command-copy">Token: <strong>${escapeHtml(active.token)}</strong> • источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</div>
+                  <div class="master-room-command-lead">Виртуальная карта стола: партия, видимость разделов, доступы, выдачи, заметки мастера и живая сцена.</div>
+                </div>
+                <div class="trader-meta cabinet-header-meta">
+                  <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
+                  <span class="meta-item">LSS ГМа: ${escapeHtml(getCurrentLssCharacterName() || "не выбран")}</span>
+                </div>
+              </div>
+              <div class="master-room-command-overview">
+                <div class="master-room-command-overview-card">
+                  <span>Статус</span>
+                  <strong>${escapeHtml(active.status || "active")}</strong>
+                </div>
+                <div class="master-room-command-overview-card">
+                  <span>Участники</span>
+                  <strong>${escapeHtml(String(safeArray(active.members).length))}</strong>
+                </div>
+                <div class="master-room-command-overview-card master-room-command-overview-card-accent">
+                  <span>Торговцы</span>
+                  <strong>${escapeHtml(String(safeArray(active.trader_accesses).length))}</strong>
+                </div>
+                <div class="master-room-command-overview-card">
+                  <span>Выдачи</span>
+                  <strong>${escapeHtml(String(safeArray(active.grants).length))}</strong>
+                </div>
+              </div>
+              <div class="master-room-command-grid">
+                <div class="master-room-command-zone">
+                  <div class="master-room-command-zone-head">
+                    <div>
+                      <div class="master-room-command-zone-kicker">Table settings</div>
+                      <h4 class="master-room-command-zone-title">Параметры карты</h4>
+                    </div>
+                  </div>
+                  <div class="profile-grid master-room-form-grid-compact">
+                    <div class="filter-group">
+                      <label>Название стола</label>
+                      <input id="masterRoomTableTitle" type="text" value="${escapeHtml(active.title)}">
+                    </div>
+                    <div class="filter-group">
+                      <label>Статус</label>
+                      <input id="masterRoomTableStatus" type="text" value="${escapeHtml(active.status)}">
+                    </div>
+                    <div class="filter-group master-room-form-span">
+                      <label>Заметки ГМа по столу</label>
+                      <textarea id="masterRoomTableNotes" rows="4" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(active.notes || "")}</textarea>
+                    </div>
+                  </div>
+                  <div class="cart-buttons master-room-action-row">
+                    <button class="btn btn-primary" type="button" id="masterRoomSaveTableBtn">Сохранить стол</button>
+                  </div>
+                </div>
+                <div class="master-room-command-zone master-room-command-zone-side">
+                  <div class="master-room-command-zone-head">
+                    <div>
+                      <div class="master-room-command-zone-kicker">Recruitment</div>
+                      <h4 class="master-room-command-zone-title">Поиск и доступ</h4>
+                    </div>
+                  </div>
+                  <div class="collection-toolbar compact-collection-toolbar master-room-toolbar">
+                    <div class="filter-group master-room-toolbar-field">
+                      <label>Поиск игрока по нику / email</label>
+                      <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: andersun">
+                    </div>
+                  </div>
+                  <div id="masterRoomUserSearchResults" class="master-room-results-box">
+                    ${renderMasterRoomUserSearchResults(active)}
+                  </div>
+                </div>
+              </div>
+            </div>
+            ` : `
+            <div class="cabinet-block master-room-stage-panel master-room-command-panel">
+              <div class="master-room-panel-kicker">Player table layer</div>
+              <div class="flex-between master-room-section-head">
+                <div>
+                  <h3 class="master-room-command-title">${escapeHtml(active.title)}</h3>
+                  <div class="muted master-room-command-copy">Token: <strong>${escapeHtml(active.token)}</strong> • открытый слой стола</div>
+                </div>
+                <div class="trader-meta cabinet-header-meta">
+                  <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
+                  <span class="meta-item">Твой персонаж: ${escapeHtml(getMasterRoomCurrentMembership(active)?.selected_character_name || getCurrentLssCharacterName() || "не выбран")}</span>
+                </div>
+              </div>
+              <div class="muted">GM-слой скрыт. Здесь доступны только раскрытые мастером данные партии, персонажа, сцены и боя.</div>
+            </div>
+            `}
+            ${renderMasterRoomDiceDock(active?.combat)}
+            </div>
+
+            ${renderMasterRoomLssBridge(active)}
+            ${renderMasterRoomPartyOverview(active)}
+
+            ${canManageActive ? `
+            <div class="cabinet-block master-room-stage-panel">
+              <div class="flex-between master-room-section-head master-room-section-head-tight">
+                <div>
+                  <div class="muted master-room-section-kicker">Партия</div>
+                  <h4 class="master-room-section-title">Игроки за столом</h4>
+                </div>
+                <span class="meta-item">${safeArray(active.members).length}</span>
+              </div>
+              ${renderMasterRoomParticipants(active)}
+            </div>
+            <div class="master-room-ops-grid">
+            ${renderMasterRoomEnemyPanel(active)}
+            ${renderMasterRoomTraderAccesses(active)}
+            ${renderMasterRoomGrantPanel(active)}
+            </div>
+            ` : ""}
+            ${renderMasterRoomBattlePanel(active)}
+          </div>
+            </div>
+          </div>` : renderMasterRoomEmptyTabletop(canManageActive || globalGmMode)}
+        </div>
+      </div>
     </div>
   `;
 
@@ -5095,8 +6011,12 @@ function bindMasterRoomActions() {
   if (reloadBtn && reloadBtn.dataset.boundMasterRoomReload !== "1") {
     reloadBtn.dataset.boundMasterRoomReload = "1";
     reloadBtn.addEventListener("click", async () => {
-      await loadMasterRoom();
-      showToast("Master Room обновлён");
+      try {
+        await loadMasterRoom();
+        showToast("Master Room обновлён");
+      } catch (error) {
+        showToast(error?.message || "Не удалось обновить Master Room");
+      }
     });
   }
 
@@ -5110,7 +6030,11 @@ function bindMasterRoomActions() {
         showToast("Укажи название стола");
         return;
       }
-      await createMasterRoomTable(title, token || title);
+      try {
+        await createMasterRoomTable(title, token || title);
+      } catch (error) {
+        showToast(error?.message || "Не удалось создать стол");
+      }
     });
   }
 
@@ -5131,13 +6055,17 @@ function bindMasterRoomActions() {
   if (saveTableBtn && saveTableBtn.dataset.boundMasterRoomSaveTable !== "1") {
     saveTableBtn.dataset.boundMasterRoomSaveTable = "1";
     saveTableBtn.addEventListener("click", async () => {
-      await patchMasterRoomTable({
-        title: String(getEl("masterRoomTableTitle")?.value || "").trim(),
-        status: String(getEl("masterRoomTableStatus")?.value || "").trim(),
-        notes: String(getEl("masterRoomTableNotes")?.value || "").trim(),
-        trader_access_mode: String(getEl("masterRoomTraderAccessMode")?.value || "open").trim(),
-      });
-      showToast("Стол обновлён");
+      try {
+        await patchMasterRoomTable({
+          title: String(getEl("masterRoomTableTitle")?.value || "").trim(),
+          status: String(getEl("masterRoomTableStatus")?.value || "").trim(),
+          notes: String(getEl("masterRoomTableNotes")?.value || "").trim(),
+          trader_access_mode: String(getEl("masterRoomTraderAccessMode")?.value || "open").trim(),
+        });
+        showToast("Стол обновлён");
+      } catch (error) {
+        showToast(error?.message || "Не удалось обновить стол");
+      }
     });
   }
 
@@ -5258,6 +6186,37 @@ function bindMasterRoomActions() {
     });
   });
 
+  document.querySelectorAll("[data-master-room-field-visibility-member]").forEach((select) => {
+    if (select.dataset.boundMasterRoomFieldVisibility === "1") return;
+    select.dataset.boundMasterRoomFieldVisibility = "1";
+    select.addEventListener("change", async () => {
+      const active = getMasterRoomActiveTable();
+      const member = getMasterRoomMemberById(active, select.dataset.masterRoomFieldVisibilityMember || "");
+      if (!member || !canEditMasterRoomMemberVisibility(member, active)) return;
+
+      const groupKey = String(select.dataset.masterRoomFieldVisibilityGroup || "").trim();
+      const fieldKey = String(select.dataset.masterRoomFieldVisibilityKey || "").trim();
+      if (!groupKey || !fieldKey) return;
+
+      const fields = getMasterRoomMemberVisibilityFields(member);
+      fields[groupKey] = { ...(fields[groupKey] || {}) };
+      const nextValue = String(select.value || "").trim();
+      if (nextValue) {
+        fields[groupKey][fieldKey] = normalizeMasterRoomScope(nextValue);
+      } else {
+        delete fields[groupKey][fieldKey];
+      }
+
+      await patchMasterRoomMember(member.id, {
+        hidden_sections: {
+          ...(member.hidden_sections || {}),
+          visibility_fields: fields,
+        },
+      });
+      showToast("Видимость поля LSS обновлена");
+    });
+  });
+
   document.querySelectorAll("[data-master-room-member-role]").forEach((select) => {
     if (select.dataset.boundMasterRoomMemberRole === "1") return;
     select.dataset.boundMasterRoomMemberRole = "1";
@@ -5311,6 +6270,14 @@ function bindMasterRoomActions() {
     btn.addEventListener("click", async () => {
       await syncCurrentMemberFromLss(btn.dataset.masterRoomUseLss || "");
       showToast("Персонаж из LSS добавлен в стол");
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-open-lss]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomOpenLss === "1") return;
+    btn.dataset.boundMasterRoomOpenLss = "1";
+    btn.addEventListener("click", async () => {
+      await switchCabinetTab("lss");
     });
   });
 
@@ -5454,8 +6421,8 @@ function bindMasterRoomActions() {
     });
   }
 
-  const combatNextTurnBtn = getEl("masterRoomCombatNextTurnBtn");
-  if (combatNextTurnBtn && combatNextTurnBtn.dataset.boundMasterRoomCombatNext !== "1") {
+  [getEl("masterRoomCombatNextTurnBtn"), getEl("masterRoomCombatNextTurnQuickBtn")].filter(Boolean).forEach((combatNextTurnBtn) => {
+    if (combatNextTurnBtn.dataset.boundMasterRoomCombatNext === "1") return;
     combatNextTurnBtn.dataset.boundMasterRoomCombatNext = "1";
     combatNextTurnBtn.addEventListener("click", async () => {
       const active = getMasterRoomActiveTable();
@@ -5473,7 +6440,7 @@ function bindMasterRoomActions() {
       });
       showToast("Ход передан дальше");
     });
-  }
+  });
 
   document.querySelectorAll("[data-master-room-focus-turn]").forEach((btn) => {
     if (btn.dataset.boundMasterRoomFocusTurn === "1") return;
@@ -5518,6 +6485,24 @@ function bindMasterRoomActions() {
       MASTER_ROOM_STATE.combatEventType = String(combatEventType.value || "roll").trim();
     });
   }
+
+  document.querySelectorAll("[data-master-room-combat-quick-event]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomCombatQuickEvent === "1") return;
+    btn.dataset.boundMasterRoomCombatQuickEvent = "1";
+    btn.addEventListener("click", () => {
+      const nextType = String(btn.dataset.masterRoomCombatQuickEvent || "roll").trim() || "roll";
+      MASTER_ROOM_STATE.combatEventType = nextType;
+      const eventTypeSelect = getEl("masterRoomCombatEventType");
+      if (eventTypeSelect) eventTypeSelect.value = nextType;
+      const reasonInput = getEl("masterRoomCombatRollReason");
+      if (reasonInput && !String(reasonInput.value || "").trim()) {
+        reasonInput.value = btn.textContent?.trim() || nextType;
+      }
+      const controls = document.querySelector(".master-room-combat-controls-panel");
+      if (controls && "open" in controls) controls.open = true;
+      getEl("masterRoomCombatRollActor")?.focus?.();
+    });
+  });
 
   document.querySelectorAll("[data-master-room-combat-save]").forEach((btn) => {
     if (btn.dataset.boundMasterRoomCombatSave === "1") return;
@@ -5717,6 +6702,7 @@ export async function openCabinet() {
   renderCabinetTabs();
   bindCabinetTabs();
   bindCabinetActions();
+  updateCabinetViewState(true);
   openModal(modal);
   try {
     await refreshCurrentCabinetTab();
@@ -5729,6 +6715,7 @@ export async function openCabinet() {
 export function closeCabinet() {
   const modal = getEl("cabinetModal");
   stopMasterRoomPolling();
+  updateCabinetViewState(false);
   closeModal(modal);
 }
 
@@ -5740,6 +6727,8 @@ export async function switchCabinetTab(tabName) {
   if (tabName !== "masterroom") {
     stopMasterRoomPolling();
   }
+  updateCabinetViewState(isCabinetOpen());
+  applyCabinetModalLayout();
   renderCabinetHeader();
 
   hideAllCabinetSections();
