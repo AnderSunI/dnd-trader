@@ -16,3 +16,9 @@ docker-compose.override.yml
 # OS
 .DS_Store1
 rebuild_longstoryshort_rebuilt_readable_v3.py
+
+# local/dev
+SESSION_MEMORY.md
+dnd_trader.db
+frontend/static/images/Referens/
+frontend/static/images/Screen/
