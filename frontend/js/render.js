@@ -81,7 +81,7 @@ function normalizeTraderIdForMarkup(traderId) {
 function buildRestockButtonsMarkup(traderId) {
   const normalizedId = normalizeTraderIdForMarkup(traderId);
   return `
-    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+    <div class="trader-restock-actions">
       <button
         class="btn btn-primary js-restock-trader"
         data-trader-id="${normalizedId}"
@@ -1133,17 +1133,30 @@ function buildTraderHeader(trader) {
   const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
   const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
   const reputationTone = getTraderReputationTone(trader?.reputation);
+  const reputationValue = Math.max(0, Math.min(100, Number(trader?.reputation ?? 0) || 0));
+  const portraitQuote = trader?.quote || trader?.motto || trader?.personality || "Честная сделка держится на доверии, золоте и правильном моменте.";
 
   return `
     <div class="trader-modal-header">
       ${
         hasImage
           ? `
-        <div class="trader-modal-image-wrap">
-          <img class="trader-modal-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
-              trader?.name || "Торговец"
-            )}" />
-        </div>
+        <aside class="trader-modal-portrait-panel">
+          <div class="trader-modal-image-wrap">
+            <img class="trader-modal-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
+                trader?.name || "Торговец"
+              )}" />
+          </div>
+          <div class="trader-modal-portrait-caption">«${escapeHtml(String(portraitQuote))}»</div>
+          <div class="trader-modal-reputation-card">
+            <div class="trader-modal-reputation-head">
+              <strong>Репутация</strong>
+              <span>${escapeHtml(String(trader?.reputation ?? 0))}</span>
+            </div>
+            <progress value="${escapeHtml(String(reputationValue))}" max="100"></progress>
+            <div class="muted">До следующего уровня: ${escapeHtml(String(Math.max(0, 100 - reputationValue)))} / 100</div>
+          </div>
+        </aside>
       `
           : ""
       }
@@ -1185,17 +1198,18 @@ function buildTraderHeader(trader) {
         </div>
 
         <div class="trader-detail-section trader-reputation-box">
-          <div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+          <div class="trader-meta trader-reputation-summary-meta">
             <span class="meta-item">lvl ${escapeHtml(String(traderLevel))}</span>
             <span class="meta-item">${escapeHtml(skillTitle)}</span>
             <span class="meta-item">${escapeHtml(repTitle)}</span>
           </div>
-          <p><strong>⭐ Репутация:</strong> ${escapeHtml(String(trader?.reputation ?? 0))}% • ${escapeHtml(repStars)}</p>
-          <p><strong>🏷 Класс торговца:</strong> ${escapeHtml(skillTitle)}</p>
-          <p><strong>💸 Покупка у торговца:</strong> скидка ${escapeHtml(String(currentDiscount))}% от базы</p>
-          <p><strong>💰 Продажа торговцу:</strong> бонус до +${escapeHtml(String(sellBonus))}% к базовому выкупу</p>
-          <p><strong>🎯 Специализация:</strong> ${escapeHtml(specialization)}</p>
-          <div class="muted" style="font-size:0.78rem; margin-top:8px;">Цена в списках товаров уже учитывает репутацию. В продаже игроку показывается твоя цена, а не сухая база.</div>
+          <div class="trader-reputation-summary-grid">
+            <span><strong>Репутация</strong>${escapeHtml(String(trader?.reputation ?? 0))}% • ${escapeHtml(repStars)}</span>
+            <span><strong>Покупка</strong>скидка ${escapeHtml(String(currentDiscount))}%</span>
+            <span><strong>Продажа</strong>бонус +${escapeHtml(String(sellBonus))}%</span>
+            <span><strong>Специализация</strong>${escapeHtml(specialization)}</span>
+          </div>
+          <div class="muted trader-reputation-note">Цена в списках товаров уже учитывает репутацию. В продаже игроку показывается твоя цена, а не сухая база.</div>
           ${restockButtonsMarkup}
         </div>
 

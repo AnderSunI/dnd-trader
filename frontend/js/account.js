@@ -54,12 +54,12 @@ const ACCOUNT_STATE = {
 const ACCOUNT_SECTIONS = [
   { key: "profile", label: "Профиль" },
   { key: "friends", label: "Друзья" },
+  { key: "chat", label: "Чат" },
   { key: "parties", label: "Столы / Партии" },
   { key: "characters", label: "Персонажи" },
   { key: "showcase", label: "Витрина" },
   { key: "trade", label: "Обмен" },
   { key: "settings", label: "Настройки" },
-  { key: "chat", label: "Чат" },
 ];
 
 function syncAccountUser(userPatch = {}) {
@@ -163,6 +163,34 @@ function getActiveChatPeer() {
 
 function getConversationFriendUserId(conversation) {
   return Number(conversation?.friend?.id || ACCOUNT_STATE.activeFriendId || 0);
+}
+
+function renderAccountChatAvatar(user, className = "account-chat-avatar") {
+  const name = safeText(user?.display_name || user?.nickname || user?.email || "Игрок", "Игрок");
+  const initial = name.slice(0, 1).toUpperCase();
+  const avatarUrl = safeText(user?.avatar_url || "", "").trim();
+  return `
+    <span class="${className} ${user?.is_online ? "account-chat-avatar-online" : ""}">
+      ${avatarUrl
+        ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name)}">`
+        : `<span>${escapeHtml(initial)}</span>`}
+    </span>
+  `;
+}
+
+function scrollAccountChatToBottom() {
+  if (ACCOUNT_STATE.section !== "chat") return;
+  window.setTimeout(() => {
+    const thread = document.querySelector(".account-chat-thread");
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, 0);
+}
+
+function formatAccountChatTime(value) {
+  const formatted = formatDateTime(value);
+  if (!formatted || formatted === "—") return "";
+  const parts = formatted.split(",");
+  return (parts.length > 1 ? parts[parts.length - 1] : formatted).trim();
 }
 
 function getCurrentLssCharacterName() {
@@ -625,89 +653,156 @@ function lssCharacterMeta(user, activeCharacter) {
 }
 
 function renderFriendsSearch() {
+  const results = Array.isArray(ACCOUNT_STATE.searchResults) ? ACCOUNT_STATE.searchResults : [];
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="profile-grid" style="grid-template-columns:minmax(240px,1fr) auto; gap:10px; align-items:end;">
+    <section class="cabinet-block account-social-search">
+      <div class="account-social-search-head">
+        <div>
+          <div class="account-hub-kicker">Social search</div>
+          <h4 class="account-social-title">Поиск игроков</h4>
+          <div class="muted account-social-copy">Найди игрока по нику, display name или email и открой direct chat.</div>
+        </div>
+        <span class="meta-item">${escapeHtml(String(results.length))} найдено</span>
+      </div>
+      <div class="account-social-search-row">
         <div class="filter-group">
           <label>Поиск игроков</label>
           <input id="accountFriendsSearchInput" type="text" value="${escapeHtml(ACCOUNT_STATE.searchQuery || "")}" placeholder="Ник, display name или email">
         </div>
-        <button class="btn" type="button" id="accountFriendsSearchBtn">Найти</button>
+        <button class="btn btn-primary" type="button" id="accountFriendsSearchBtn">Найти</button>
       </div>
-      <div style="margin-top:10px;">
-        ${ACCOUNT_STATE.searchResults.length
-          ? ACCOUNT_STATE.searchResults.map((user) => `
-              <div class="cabinet-block" style="padding:10px 12px; margin-top:8px;">
-                <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
-                  <div>
-                    <div style="font-weight:800;">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
-                    <div class="muted" style="font-size:0.82rem;">@${escapeHtml(user.nickname || user.username || "")} ${user.short_status ? `• ${escapeHtml(user.short_status)}` : ""}</div>
-                  </div>
-                  ${renderFriendActionButton(user)}
+      <div class="account-social-search-results">
+        ${results.length
+          ? results.map((user) => `
+              <div class="account-social-result-row">
+                ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
+                <div class="account-social-person-copy">
+                  <strong>${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</strong>
+                  <span>@${escapeHtml(user.nickname || user.username || "")}${user.short_status ? ` • ${escapeHtml(user.short_status)}` : ""}</span>
                 </div>
+                ${renderFriendActionButton(user)}
               </div>
             `).join("")
-          : `<div class="muted">Поиск пока пуст.</div>`}
+          : `<div class="account-social-empty">Поиск пока пуст. Введи ник или email игрока.</div>`}
       </div>
-    </div>
+    </section>
   `;
 }
 
 function renderFriendsList() {
   const state = ACCOUNT_STATE.friends;
+  const friends = Array.isArray(state.friends) ? state.friends : [];
+  const incoming = Array.isArray(state.incoming_requests) ? state.incoming_requests : [];
+  const outgoing = Array.isArray(state.outgoing_requests) ? state.outgoing_requests : [];
   return `
-    ${renderFriendsSearch()}
-    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px;">
-      <div class="cabinet-block">
-        <h4 style="margin:0 0 8px;">Друзья</h4>
-        ${state.friends.length
-          ? state.friends.map((entry) => `
-              <div style="padding:10px 0; border-top:1px solid rgba(255,255,255,0.06);">
-                <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
-                  <div>
-                    <div style="font-weight:800;">${escapeHtml(entry.friend?.display_name || entry.friend?.nickname || "Игрок")}</div>
-                    <div class="muted" style="font-size:0.82rem;">@${escapeHtml(entry.friend?.nickname || "")} • ${entry.friend?.is_online ? "online" : "offline"}</div>
-                  </div>
-                  <div class="cart-buttons" style="gap:6px;">
-                    <button class="btn" type="button" data-account-open-chat="${escapeHtml(String(entry.friend?.id || ""))}">Чат</button>
-                    <button class="btn" type="button" data-account-open-trade="${escapeHtml(String(entry.friend?.id || ""))}">Обмен</button>
-                    <button class="btn btn-danger" type="button" data-account-remove-friend="${escapeHtml(String(entry.friend?.id || ""))}">Удалить</button>
-                  </div>
-                </div>
-              </div>
-            `).join("")
-          : `<div class="muted">Друзей пока нет.</div>`}
+    <div class="account-social-shell">
+      ${renderFriendsSearch()}
+      <div class="account-social-summary">
+        <div class="account-social-summary-card">
+          <span>Друзья</span>
+          <strong>${escapeHtml(String(friends.length))}</strong>
+        </div>
+        <div class="account-social-summary-card">
+          <span>Входящие</span>
+          <strong>${escapeHtml(String(incoming.length))}</strong>
+        </div>
+        <div class="account-social-summary-card">
+          <span>Исходящие</span>
+          <strong>${escapeHtml(String(outgoing.length))}</strong>
+        </div>
       </div>
 
-      <div class="cabinet-block">
-        <h4 style="margin:0 0 8px;">Входящие заявки</h4>
-        ${state.incoming_requests.length
-          ? state.incoming_requests.map((entry) => `
-              <div style="padding:10px 0; border-top:1px solid rgba(255,255,255,0.06);">
-                <div style="font-weight:800;">${escapeHtml(entry.user?.display_name || entry.user?.nickname || "Игрок")}</div>
-                <div class="muted" style="font-size:0.82rem;">${escapeHtml(entry.message || "Без сообщения")}</div>
-                <div class="cart-buttons" style="margin-top:8px; gap:6px;">
-                  <button class="btn btn-primary" type="button" data-account-accept-request="${escapeHtml(String(entry.id))}">Принять</button>
-                  <button class="btn btn-danger" type="button" data-account-reject-request="${escapeHtml(String(entry.id))}">Отклонить</button>
-                </div>
-              </div>
-            `).join("")
-          : `<div class="muted">Входящих заявок нет.</div>`}
-      </div>
+      <div class="account-social-grid">
+        <section class="cabinet-block account-social-panel account-social-panel-main">
+          <div class="account-social-panel-head">
+            <div>
+              <div class="account-hub-kicker">Party network</div>
+              <h4 class="account-social-title">Друзья</h4>
+            </div>
+            <span class="meta-item">${escapeHtml(String(friends.length))}</span>
+          </div>
+          <div class="account-social-list">
+            ${friends.length
+              ? friends.map((entry) => {
+                  const friend = entry.friend || {};
+                  return `
+                    <div class="account-social-friend-card">
+                      ${renderAccountChatAvatar(friend)}
+                      <div class="account-social-person-copy">
+                        <strong>${escapeHtml(friend.display_name || friend.nickname || "Игрок")}</strong>
+                        <span>@${escapeHtml(friend.nickname || "")} • ${friend.is_online ? "online" : "offline"}</span>
+                        ${friend.short_status ? `<small>${escapeHtml(friend.short_status)}</small>` : ""}
+                      </div>
+                      <div class="account-social-actions">
+                        <button class="btn" type="button" data-account-open-chat="${escapeHtml(String(friend.id || ""))}">Чат</button>
+                        <button class="btn" type="button" data-account-open-trade="${escapeHtml(String(friend.id || ""))}">Обмен</button>
+                        <button class="btn btn-danger" type="button" data-account-remove-friend="${escapeHtml(String(friend.id || ""))}">Удалить</button>
+                      </div>
+                    </div>
+                  `;
+                }).join("")
+              : `<div class="account-social-empty">Друзей пока нет. Используй поиск выше, чтобы собрать party network.</div>`}
+          </div>
+        </section>
 
-      <div class="cabinet-block">
-        <h4 style="margin:0 0 8px;">Исходящие заявки</h4>
-        ${state.outgoing_requests.length
-          ? state.outgoing_requests.map((entry) => `
-              <div style="padding:10px 0; border-top:1px solid rgba(255,255,255,0.06);">
-                <div style="font-weight:800;">${escapeHtml(entry.user?.display_name || entry.user?.nickname || "Игрок")}</div>
-                <div class="muted" style="font-size:0.82rem;">${escapeHtml(entry.message || "Ожидает ответа")}</div>
-                <div class="cart-buttons" style="margin-top:8px; gap:6px;">
-                  <button class="btn btn-danger" type="button" data-account-cancel-request="${escapeHtml(String(entry.id))}">Отменить</button>
-                </div>
-              </div>
-            `).join("")
-          : `<div class="muted">Исходящих заявок нет.</div>`}
+        <section class="cabinet-block account-social-panel">
+          <div class="account-social-panel-head">
+            <div>
+              <div class="account-hub-kicker">Incoming</div>
+              <h4 class="account-social-title">Входящие заявки</h4>
+            </div>
+            <span class="meta-item">${escapeHtml(String(incoming.length))}</span>
+          </div>
+          <div class="account-social-list">
+            ${incoming.length
+              ? incoming.map((entry) => {
+                  const user = entry.user || {};
+                  return `
+                    <div class="account-social-request-card">
+                      ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
+                      <div class="account-social-person-copy">
+                        <strong>${escapeHtml(user.display_name || user.nickname || "Игрок")}</strong>
+                        <span>${escapeHtml(entry.message || "Без сообщения")}</span>
+                      </div>
+                      <div class="account-social-actions account-social-actions-inline">
+                        <button class="btn btn-primary" type="button" data-account-accept-request="${escapeHtml(String(entry.id))}">Принять</button>
+                        <button class="btn btn-danger" type="button" data-account-reject-request="${escapeHtml(String(entry.id))}">Отклонить</button>
+                      </div>
+                    </div>
+                  `;
+                }).join("")
+              : `<div class="account-social-empty">Входящих заявок нет.</div>`}
+          </div>
+        </section>
+
+        <section class="cabinet-block account-social-panel">
+          <div class="account-social-panel-head">
+            <div>
+              <div class="account-hub-kicker">Outgoing</div>
+              <h4 class="account-social-title">Исходящие заявки</h4>
+            </div>
+            <span class="meta-item">${escapeHtml(String(outgoing.length))}</span>
+          </div>
+          <div class="account-social-list">
+            ${outgoing.length
+              ? outgoing.map((entry) => {
+                  const user = entry.user || {};
+                  return `
+                    <div class="account-social-request-card">
+                      ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
+                      <div class="account-social-person-copy">
+                        <strong>${escapeHtml(user.display_name || user.nickname || "Игрок")}</strong>
+                        <span>${escapeHtml(entry.message || "Ожидает ответа")}</span>
+                      </div>
+                      <div class="account-social-actions account-social-actions-inline">
+                        <button class="btn btn-danger" type="button" data-account-cancel-request="${escapeHtml(String(entry.id))}">Отменить</button>
+                      </div>
+                    </div>
+                  `;
+                }).join("")
+              : `<div class="account-social-empty">Исходящих заявок нет.</div>`}
+          </div>
+        </section>
       </div>
     </div>
   `;
@@ -718,58 +813,109 @@ function renderTradeSection() {
   const friends = Array.isArray(ACCOUNT_STATE.friends?.friends) ? ACCOUNT_STATE.friends.friends : [];
   const tradeItems = Array.isArray(ACCOUNT_STATE.tradeInventory) ? ACCOUNT_STATE.tradeInventory : [];
   const currentMoneyLabel = formatMoneyCp(getCurrentUser()?.money_cp_total || 0);
+  const activePeerName = activePeer?.display_name || activePeer?.nickname || "Обмен с другом";
 
   return `
-    <div class="profile-grid" style="grid-template-columns:minmax(280px,0.78fr) minmax(0,1.32fr); gap:12px; align-items:start;">
-      <div class="cabinet-block">
-        <h4 style="margin:0 0 10px;">Кому передать</h4>
-        ${friends.length
-          ? friends.map((entry) => `
-              <button
-                class="btn ${Number(entry?.friend?.id || 0) === Number(ACCOUNT_STATE.activeFriendId || 0) ? "active" : ""}"
-                type="button"
-                style="width:100%; justify-content:flex-start; margin-bottom:8px;"
-                data-account-open-trade="${escapeHtml(String(entry?.friend?.id || ""))}"
-              >
-                ${escapeHtml(entry?.friend?.display_name || entry?.friend?.nickname || "Друг")}
-              </button>
-            `).join("")
-          : `<div class="muted">Сначала добавь друзей.</div>`}
-      </div>
+    <div class="account-trade-shell">
+      <section class="cabinet-block account-trade-hero">
+        <div class="account-trade-hero-copy">
+          <div class="account-hub-kicker">Player exchange</div>
+          <h4 class="account-social-title">Обмен / передача</h4>
+          <div class="muted account-social-copy">Передай золото или предмет игроку из списка друзей. Вся логика передачи остаётся через текущий API.</div>
+        </div>
+        <div class="account-trade-summary">
+          <div class="account-social-summary-card">
+            <span>Золото</span>
+            <strong>${escapeHtml(currentMoneyLabel)}</strong>
+          </div>
+          <div class="account-social-summary-card">
+            <span>Предметы</span>
+            <strong>${escapeHtml(String(tradeItems.length))}</strong>
+          </div>
+          <div class="account-social-summary-card">
+            <span>Друзья</span>
+            <strong>${escapeHtml(String(friends.length))}</strong>
+          </div>
+        </div>
+      </section>
 
-      <div class="cabinet-block">
-        <div class="flex-between" style="gap:12px; flex-wrap:wrap; margin-bottom:10px;">
-          <div>
-            <h4 style="margin:0 0 4px;">${escapeHtml(activePeer?.display_name || activePeer?.nickname || "Обмен с другом")}</h4>
-            <div class="muted" style="font-size:0.82rem;">${activePeer ? `@${escapeHtml(activePeer.nickname || "")}` : "Выбери друга слева"}</div>
+      <div class="account-trade-grid">
+        <aside class="cabinet-block account-trade-peer-panel">
+          <div class="account-social-panel-head">
+            <div>
+              <div class="account-hub-kicker">Recipient</div>
+              <h4 class="account-social-title">Кому передать</h4>
+            </div>
+            <span class="meta-item">${escapeHtml(String(friends.length))}</span>
           </div>
-          <span class="meta-item">Твоё золото: ${escapeHtml(currentMoneyLabel)}</span>
-        </div>
+          <div class="account-trade-peer-list">
+            ${friends.length
+              ? friends.map((entry) => {
+                  const friend = entry?.friend || {};
+                  const isActive = Number(friend.id || 0) === Number(ACCOUNT_STATE.activeFriendId || 0);
+                  return `
+                    <button
+                      class="account-trade-peer-card ${isActive ? "account-trade-peer-card-active" : ""}"
+                      type="button"
+                      data-account-open-trade="${escapeHtml(String(friend.id || ""))}"
+                    >
+                      ${renderAccountChatAvatar(friend, "account-chat-avatar account-chat-avatar-small")}
+                      <span class="account-social-person-copy">
+                        <strong>${escapeHtml(friend.display_name || friend.nickname || "Друг")}</strong>
+                        <span>@${escapeHtml(friend.nickname || "")} • ${friend.is_online ? "online" : "offline"}</span>
+                      </span>
+                    </button>
+                  `;
+                }).join("")
+              : `<div class="account-social-empty">Сначала добавь друзей.</div>`}
+          </div>
+        </aside>
 
-        <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
-          <div class="filter-group">
-            <label>Золото</label>
-            <input id="accountTradeGoldInput" type="number" min="0" step="1" placeholder="в медяках" ${activePeer ? "" : "disabled"}>
+        <section class="cabinet-block account-trade-console">
+          <div class="account-chat-header">
+            <div class="account-chat-peer">
+              ${renderAccountChatAvatar(activePeer || {}, "account-chat-avatar account-chat-avatar-large")}
+              <div class="account-chat-peer-copy">
+                <h4>${escapeHtml(activePeerName)}</h4>
+                <span>${activePeer ? `@${escapeHtml(activePeer.nickname || "")}` : "Выбери друга слева"}</span>
+              </div>
+            </div>
+            <span class="meta-item">Твоё золото: ${escapeHtml(currentMoneyLabel)}</span>
           </div>
-          <div class="filter-group">
-            <label>Предмет</label>
-            <select id="accountTradeItemSelect" ${activePeer ? "" : "disabled"}>
-              <option value="">Не выбран</option>
-              ${tradeItems.map((item) => `
-                <option value="${escapeHtml(String(item.item_id || item.id || ""))}">
-                  ${escapeHtml(item.name || "Предмет")} ×${escapeHtml(String(item.quantity || 1))}
-                </option>
-              `).join("")}
-            </select>
+
+          <div class="account-trade-form-grid">
+            <div class="filter-group">
+              <label>Золото</label>
+              <input id="accountTradeGoldInput" type="number" min="0" step="1" placeholder="в медяках" ${activePeer ? "" : "disabled"}>
+              <div class="muted account-chat-field-note">Можно оставить 0, если передаёшь только предмет.</div>
+            </div>
+            <div class="filter-group">
+              <label>Предмет</label>
+              <select id="accountTradeItemSelect" ${activePeer ? "" : "disabled"}>
+                <option value="">Не выбран</option>
+                ${tradeItems.map((item) => `
+                  <option value="${escapeHtml(String(item.item_id || item.id || ""))}">
+                    ${escapeHtml(item.name || "Предмет")} ×${escapeHtml(String(item.quantity || 1))}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Количество</label>
+              <input id="accountTradeQuantityInput" type="number" min="1" step="1" value="1" ${activePeer ? "" : "disabled"}>
+            </div>
           </div>
-          <div class="filter-group">
-            <label>Количество</label>
-            <input id="accountTradeQuantityInput" type="number" min="1" step="1" value="1" ${activePeer ? "" : "disabled"}>
+
+          <div class="account-trade-note">
+            <span>Передача попадёт в social/trade flow аккаунта.</span>
+            <strong>${escapeHtml(activePeer ? "Готово к отправке" : "Получатель не выбран")}</strong>
           </div>
-        </div>
-        <div class="cart-buttons" style="margin-top:10px;">
-          <button class="btn btn-primary" type="button" id="accountSendTradeBtn" ${activePeer ? "" : "disabled"}>Передать</button>
-        </div>
+
+          <div class="cart-buttons account-trade-actions">
+            <button class="btn btn-primary" type="button" id="accountSendTradeBtn" ${activePeer ? "" : "disabled"}>Передать</button>
+            <button class="btn" type="button" data-account-section="chat">Открыть чат</button>
+          </div>
+        </section>
       </div>
     </div>
   `;
@@ -958,94 +1104,146 @@ function renderChatSection() {
   const activePeer = getActiveChatPeer();
   const chatEntries = getChatEntries();
   const tradeItems = Array.isArray(ACCOUNT_STATE.tradeInventory) ? ACCOUNT_STATE.tradeInventory : [];
-  const currentMoneyLabel = formatMoneyCp(getCurrentUser()?.money_cp_total || 0);
+  const currentUser = getCurrentUser() || {};
+  const currentMoneyLabel = formatMoneyCp(currentUser?.money_cp_total || 0);
+  const currentUserId = Number(currentUser?.id || 0);
+  const activePeerName = activePeer?.display_name || activePeer?.nickname || "Выбери диалог";
+  const activePeerStatus = activePeer
+    ? (activePeer.is_online ? "online" : `last seen ${formatDateTime(activePeer.last_seen_at)}`)
+    : "Диалог не выбран";
+  const lastMessageStamp = activeConversation?.last_message_at || activeConversation?.updated_at || "";
+  const participantRows = [
+    {
+      user: currentUser,
+      title: currentUser?.display_name || currentUser?.nickname || "Ты",
+      role: "Ты",
+      status: "online",
+    },
+    activePeer
+      ? {
+          user: activePeer,
+          title: activePeer.display_name || activePeer.nickname || "Игрок",
+          role: activePeer.is_online ? "В сети" : "Не в сети",
+          status: activePeer.is_online ? "online" : "offline",
+        }
+      : null,
+  ].filter(Boolean);
+
   return `
-    <div class="profile-grid" style="grid-template-columns:minmax(280px,0.82fr) minmax(0,1.4fr); gap:12px; align-items:start;">
-      <div class="cabinet-block">
-        <h4 style="margin:0 0 8px;">Диалоги и друзья</h4>
-        ${chatEntries.length
-          ? chatEntries.map((entry) => {
-              const isActive =
-                String(entry?.conversation?.id || "") === String(ACCOUNT_STATE.activeConversationId || "") ||
-                Number(entry?.friend?.id || 0) === Number(ACCOUNT_STATE.activeFriendId || 0);
-              const buttonStyle = isActive
-                ? "width:100%; justify-content:flex-start; margin-bottom:8px; background:linear-gradient(180deg, rgba(61,106,134,0.94), rgba(41,79,104,0.98)); border-color:rgba(134,203,211,0.26); color:rgba(245,249,250,0.98);"
-                : "width:100%; justify-content:flex-start; margin-bottom:8px; background:linear-gradient(180deg, rgba(21,31,38,0.94), rgba(12,20,26,0.98)); border-color:rgba(255,255,255,0.08); color:rgba(232,239,241,0.96);";
-              const secondaryStyle = isActive
-                ? "font-size:0.78rem; color:rgba(232,242,245,0.88);"
-                : "font-size:0.78rem; color:rgba(174,191,198,0.88);";
-              const tertiaryStyle = isActive
-                ? "font-size:0.76rem; color:rgba(214,231,236,0.76);"
-                : "font-size:0.76rem; color:rgba(148,167,175,0.82);";
-              return `
-              <button
-                class="btn ${isActive ? "active" : ""}"
-                type="button"
-                style="${buttonStyle}"
-                data-account-open-friend="${escapeHtml(String(entry?.friend?.id || ""))}"
-              >
-                <span style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; width:100%;">
-                  <span>${escapeHtml(entry?.friend?.display_name || entry?.friend?.nickname || "Диалог")}</span>
-                  <span style="${secondaryStyle}">
-                    ${escapeHtml(
-                      entry?.conversation?.latest_message?.body ||
-                      entry?.friend?.short_status ||
-                      "Открыть диалог"
-                    )}
-                  </span>
-                  <span style="${tertiaryStyle}">
-                    ${entry?.friend?.is_online ? "online" : `last seen: ${escapeHtml(formatDateTime(entry?.friend?.last_seen_at))}`}
-                  </span>
-                  ${safeNumber(entry?.conversation?.unread_count, 0) > 0 ? `<span class="meta-item">unread: ${escapeHtml(String(entry.conversation.unread_count))}</span>` : ""}
-                </span>
-              </button>
-            `;
-            }).join("")
-          : `<div class="muted">Диалогов пока нет. Добавь друга и выбери его в списке.</div>`}
-      </div>
-
-      <div class="cabinet-block" style="background:linear-gradient(180deg, rgba(16,27,34,0.97), rgba(8,14,20,0.99)); border-color:rgba(134,203,211,0.16);">
-        <div class="flex-between" style="gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+    <div class="account-messenger-shell">
+      <aside class="cabinet-block account-messenger-list">
+        <div class="account-messenger-list-head">
           <div>
-            <h4 style="margin:0 0 4px;">${escapeHtml(activePeer?.display_name || activePeer?.nickname || "Direct chat")}</h4>
-            <div class="muted" style="font-size:0.82rem;">
-              ${activePeer ? `@${escapeHtml(activePeer.nickname || "")}` : "Выбери друга слева"}
-            </div>
+            <div class="account-hub-kicker">Direct messages</div>
+            <h4 class="account-messenger-title">Чаты</h4>
           </div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px; min-height:340px; max-height:52vh; overflow:auto; padding:10px 8px 10px 2px; border-radius:16px; background:linear-gradient(180deg, rgba(10,18,24,0.88), rgba(15,24,30,0.92)); border:1px solid rgba(255,255,255,0.06);">
-          ${ACCOUNT_STATE.messages.length
-            ? ACCOUNT_STATE.messages.map((message) => `
-                <div style="align-self:${Number(message.sender_user_id) === Number(getCurrentUser()?.id) ? "flex-end" : "flex-start"}; max-width:min(78%, 560px); padding:10px 12px; border-radius:14px; background:${Number(message.sender_user_id) === Number(getCurrentUser()?.id) ? "linear-gradient(180deg, rgba(61,106,134,0.92), rgba(41,79,104,0.96))" : "linear-gradient(180deg, rgba(35,47,56,0.96), rgba(25,35,43,0.98))"}; border:1px solid ${Number(message.sender_user_id) === Number(getCurrentUser()?.id) ? "rgba(134,203,211,0.24)" : "rgba(255,255,255,0.08)"}; box-shadow:0 8px 18px rgba(0,0,0,0.22);">
-                  <div style="white-space:pre-wrap; color:rgba(240,245,247,0.96);">${escapeHtml(message.body || "")}</div>
-                  <div style="font-size:0.76rem; margin-top:4px; color:rgba(220,232,236,0.72);">${escapeHtml(formatDateTime(message.created_at))}</div>
-                </div>
-              `).join("")
-            : `<div class="muted">${activePeer ? "Диалог ещё пуст. Напиши первым." : "Слева выбери друга или существующий диалог."}</div>`}
-        </div>
-        <div style="margin-top:12px;">
-          <textarea id="accountChatMessageInput" rows="3" placeholder="Сообщение другу..." ${activePeer ? "" : "disabled"}></textarea>
-          <div class="cart-buttons" style="margin-top:8px;">
-            <button class="btn btn-primary" type="button" id="accountSendMessageBtn" ${activePeer ? "" : "disabled"}>Отправить</button>
-          </div>
+          <button class="btn account-chat-icon-btn" type="button" data-account-refresh-chat="1" title="Обновить" aria-label="Обновить">↻</button>
         </div>
 
-        <div class="cabinet-block" style="margin-top:12px; padding:12px;">
-          <div class="flex-between" style="gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-            <div>
-              <h4 style="margin:0 0 4px;">Обмен / Бартер</h4>
-              <div class="muted" style="font-size:0.82rem;">
-                ${activePeer ? `Передача другу ${escapeHtml(activePeer.display_name || activePeer.nickname || "игроку")}` : "Сначала выбери друга"}
+        <div class="account-messenger-list-scroll">
+          ${chatEntries.length
+            ? chatEntries.map((entry) => {
+                const friend = entry?.friend || {};
+                const latest = entry?.conversation?.latest_message || null;
+                const isActive =
+                  String(entry?.conversation?.id || "") === String(ACCOUNT_STATE.activeConversationId || "") ||
+                  Number(friend?.id || 0) === Number(ACCOUNT_STATE.activeFriendId || 0);
+                const unreadCount = safeNumber(entry?.conversation?.unread_count, 0);
+                const preview = latest?.body || friend?.short_status || "Открыть диалог";
+                const stamp = entry?.conversation?.last_message_at || entry?.conversation?.updated_at || friend?.last_seen_at || "";
+                const stampLabel = stamp ? formatAccountChatTime(stamp) : "";
+                return `
+                  <button
+                    class="account-dialog-row ${isActive ? "account-dialog-row-active" : ""}"
+                    type="button"
+                    data-account-open-friend="${escapeHtml(String(friend?.id || ""))}"
+                  >
+                    ${renderAccountChatAvatar(friend)}
+                    <span class="account-dialog-main">
+                      <span class="account-dialog-topline">
+                        <strong>${escapeHtml(friend?.display_name || friend?.nickname || "Диалог")}</strong>
+                        <small>${escapeHtml(stampLabel)}</small>
+                      </span>
+                      <span class="account-dialog-preview">${escapeHtml(preview)}</span>
+                      <span class="account-dialog-status ${friend?.is_online ? "account-dialog-status-online" : "account-dialog-status-offline"}">${friend?.is_online ? "online" : "offline"}</span>
+                    </span>
+                    ${unreadCount > 0 ? `<span class="account-dialog-unread">${escapeHtml(String(unreadCount))}</span>` : ""}
+                  </button>
+                `;
+              }).join("")
+            : `
+              <div class="account-chat-empty-state">
+                <strong>Диалогов пока нет</strong>
+                <span>Добавь друга, и direct chat появится здесь.</span>
+                <button class="btn" type="button" data-account-section="friends">К друзьям</button>
               </div>
-            </div>
-            <span class="meta-item">Твоё золото: ${escapeHtml(currentMoneyLabel)}</span>
-          </div>
+            `}
+        </div>
+      </aside>
 
-          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+      <section class="cabinet-block account-messenger-panel">
+        <header class="account-chat-header">
+          <div class="account-chat-peer">
+            ${renderAccountChatAvatar(activePeer || {}, "account-chat-avatar account-chat-avatar-large")}
+            <div class="account-chat-peer-copy">
+              <h4>${escapeHtml(activePeerName)}</h4>
+              <span>${activePeer ? `@${escapeHtml(activePeer.nickname || "")} • ${escapeHtml(activePeerStatus)}` : "Слева выбери друга или существующий диалог"}</span>
+            </div>
+          </div>
+          <div class="account-chat-header-actions">
+            <button class="btn" type="button" data-account-section="friends">Друзья</button>
+            <button class="btn" type="button" data-account-open-trade="${escapeHtml(String(activePeer?.id || ""))}" ${activePeer ? "" : "disabled"}>Обмен</button>
+          </div>
+        </header>
+
+        <div class="account-chat-pinned">
+          <span class="account-chat-pinned-mark">Закреплено</span>
+          <span>${escapeHtml(activePeer ? "Личная беседа игрока, обмен и быстрые сообщения." : "Выбери диалог слева, чтобы открыть переписку.")}</span>
+          ${lastMessageStamp ? `<small>${escapeHtml(formatDateTime(lastMessageStamp))}</small>` : ""}
+        </div>
+
+        <div class="account-chat-thread" aria-live="polite">
+          ${ACCOUNT_STATE.messages.length
+            ? ACCOUNT_STATE.messages.map((message) => {
+                const own = Number(message.sender_user_id) === currentUserId;
+                return `
+                  <div class="account-message-row ${own ? "account-message-row-own" : "account-message-row-peer"}">
+                    ${own ? "" : renderAccountChatAvatar(activePeer || {}, "account-chat-avatar account-chat-avatar-small")}
+                    <div class="account-message-bubble">
+                      <div class="account-message-body">${escapeHtml(message.body || "")}</div>
+                      <div class="account-message-meta">${escapeHtml(formatAccountChatTime(message.created_at))}</div>
+                    </div>
+                  </div>
+                `;
+              }).join("")
+            : `
+              <div class="account-chat-empty-thread">
+                <strong>${activePeer ? "Диалог ещё пуст" : "Диалог не выбран"}</strong>
+                <span>${activePeer ? "Напиши первым." : "Выбери друга слева, чтобы открыть личные сообщения."}</span>
+              </div>
+            `}
+        </div>
+
+        <footer class="account-chat-composer">
+          <textarea id="accountChatMessageInput" rows="1" placeholder="Сообщение..." ${activePeer ? "" : "disabled"}></textarea>
+          <button class="btn btn-primary account-chat-send-btn" type="button" id="accountSendMessageBtn" ${activePeer ? "" : "disabled"}>Отправить</button>
+        </footer>
+
+        <details class="account-chat-trade-drawer">
+          <summary>
+            <span>Обмен / Бартер</span>
+            <span class="meta-item">Твоё золото: ${escapeHtml(currentMoneyLabel)}</span>
+          </summary>
+          <div class="account-chat-trade-body">
+            <div class="muted account-hub-card-copy">
+              ${activePeer ? `Передача другу ${escapeHtml(activePeer.display_name || activePeer.nickname || "игроку")}` : "Сначала выбери друга"}
+            </div>
+
+            <div class="profile-grid account-chat-trade-grid">
             <div class="filter-group">
               <label>Передать золото</label>
               <input id="accountTradeGoldInput" type="number" min="0" step="1" placeholder="в медяках" ${activePeer ? "" : "disabled"}>
-              <div class="muted" style="font-size:0.76rem; margin-top:4px;">Ввод в медяках для точного расчёта.</div>
+              <div class="muted account-chat-field-note">Ввод в медяках для точного расчёта.</div>
             </div>
             <div class="filter-group">
               <label>Предмет</label>
@@ -1063,11 +1261,50 @@ function renderChatSection() {
               <input id="accountTradeQuantityInput" type="number" min="1" step="1" value="1" ${activePeer ? "" : "disabled"}>
             </div>
           </div>
-          <div class="cart-buttons" style="margin-top:10px;">
+          <div class="cart-buttons account-chat-trade-actions">
             <button class="btn btn-primary" type="button" id="accountSendTradeBtn" ${activePeer ? "" : "disabled"}>Передать</button>
           </div>
+          </div>
+        </details>
+      </section>
+
+      <aside class="cabinet-block account-messenger-info">
+        <div class="account-messenger-info-head">
+          <div class="account-hub-kicker">О беседе</div>
+          <div class="account-messenger-info-title">${escapeHtml(activePeerName)}</div>
+          <div class="account-messenger-info-subtitle">
+            ${escapeHtml(activePeer ? "Личные сообщения" : "Диалог не выбран")}
+          </div>
         </div>
-      </div>
+
+        <div class="account-messenger-info-card">
+          <div class="account-messenger-info-label">Статус</div>
+          <strong>${escapeHtml(activePeerStatus)}</strong>
+          <span>${escapeHtml(activeConversation ? "conversation active" : "выбери друга или беседу")}</span>
+        </div>
+
+        <div class="account-messenger-participants">
+          <div class="account-messenger-info-row-head">
+            <span>Участники</span>
+            <strong>${escapeHtml(String(participantRows.length))}</strong>
+          </div>
+          ${participantRows.map((entry) => `
+            <div class="account-messenger-participant-row">
+              ${renderAccountChatAvatar(entry.user, "account-chat-avatar account-chat-avatar-small")}
+              <span>
+                <strong>${escapeHtml(entry.title)}</strong>
+                <small class="account-messenger-participant-${escapeHtml(entry.status)}">${escapeHtml(entry.role)}</small>
+              </span>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="account-messenger-actions">
+          <button class="btn" type="button" data-account-section="friends">Друзья</button>
+          <button class="btn" type="button" data-account-open-trade="${escapeHtml(String(activePeer?.id || ""))}" ${activePeer ? "" : "disabled"}>Открыть обмен</button>
+          <button class="btn" type="button" data-account-section="profile">Профиль</button>
+        </div>
+      </aside>
     </div>
   `;
 }
@@ -1228,6 +1465,7 @@ export function renderAccountModule() {
   `;
 
   bindAccountModuleActions();
+  scrollAccountChatToBottom();
 }
 
 async function saveProfileSection() {
@@ -1672,6 +1910,32 @@ export function bindAccountModuleActions() {
     } catch (error) {
       showToast(error.message || "Не удалось отправить сообщение");
     }
+  });
+
+  getEl("accountChatMessageInput")?.addEventListener("keydown", async (event) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    try {
+      await sendCurrentDirectMessage();
+    } catch (error) {
+      showToast(error.message || "Не удалось отправить сообщение");
+    }
+  });
+
+  document.querySelectorAll("[data-account-refresh-chat]").forEach((btn) => {
+    if (btn.dataset.boundAccountRefreshChat === "1") return;
+    btn.dataset.boundAccountRefreshChat = "1";
+    btn.addEventListener("click", async () => {
+      try {
+        await loadConversations();
+        if (ACCOUNT_STATE.activeConversationId) {
+          await loadMessages(ACCOUNT_STATE.activeConversationId);
+        }
+        renderAccountModule();
+      } catch (error) {
+        showToast(error.message || "Не удалось обновить чат");
+      }
+    });
   });
 
   getEl("accountSendTradeBtn")?.addEventListener("click", async () => {

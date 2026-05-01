@@ -12,6 +12,8 @@
 // ------------------------------------------------------------
 const TOKEN_KEY = "token";
 const API_BASE_KEY = "apiBase";
+const AUTH_INVALID_EVENT = "dnd:auth:invalid";
+const AUTH_EXPIRED_MESSAGE = "Сессия истекла. Войдите заново.";
 
 function getStoredApiBase() {
   try {
@@ -110,6 +112,24 @@ export function logoutUser() {
   setAuthToken("");
 }
 
+function clearStoredAuthSession(reason = "auth-invalid") {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("user");
+  } catch (_) {}
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent(AUTH_INVALID_EVENT, {
+        detail: {
+          reason,
+          message: AUTH_EXPIRED_MESSAGE,
+        },
+      })
+    );
+  } catch (_) {}
+}
+
 // ------------------------------------------------------------
 // 🧰 CORE REQUEST
 // ------------------------------------------------------------
@@ -158,6 +178,8 @@ function extractErrorMessage(payload, response) {
 
 export async function apiRequest(url, options = {}) {
   const body = options.body;
+  const isAuthEndpoint = /^\/?auth\/(login|register|token)\b/i.test(String(url || ""));
+  const hadAuthToken = Boolean(getAuthToken()) && !isAuthEndpoint;
 
   const response = await fetch(withApiBase(url), {
     ...options,
@@ -167,7 +189,12 @@ export async function apiRequest(url, options = {}) {
   const payload = await parseResponse(response);
 
   if (!response.ok) {
-    throw new Error(extractErrorMessage(payload, response));
+    const message = extractErrorMessage(payload, response);
+    if (response.status === 401 && hadAuthToken) {
+      clearStoredAuthSession(message);
+      throw new Error(AUTH_EXPIRED_MESSAGE);
+    }
+    throw new Error(message);
   }
 
   return payload;

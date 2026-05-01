@@ -81,6 +81,26 @@ import {
   tryParseJson,
 } from "./shared.js";
 
+const CABINET_UI_STORAGE_KEY = "dnd-trader-cabinet-ui";
+
+function readStoredCabinetUiState() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return {};
+    return tryParseJson(window.localStorage.getItem(CABINET_UI_STORAGE_KEY)) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+const STORED_CABINET_UI = readStoredCabinetUiState();
+
+function readStoredCabinetUiFlag(key, fallback = false) {
+  if (Object.prototype.hasOwnProperty.call(STORED_CABINET_UI, key)) {
+    return Boolean(STORED_CABINET_UI[key]);
+  }
+  return Boolean(fallback);
+}
+
 // ------------------------------------------------------------
 // 🌐 STATE
 // ------------------------------------------------------------
@@ -88,6 +108,7 @@ const CABINET_STATE = {
   activeTab: "inventory",
   role: "player",
   initialized: false,
+  railCollapsed: readStoredCabinetUiFlag("cabinetRailCollapsed"),
 };
 
 const GM_NOTES_STATE = {
@@ -119,6 +140,11 @@ const MASTER_ROOM_STATE = {
   tables: [],
   activeTableId: "",
   createOpen: false,
+  stageMode: "table",
+  railCollapsed: readStoredCabinetUiFlag("masterRoomRailCollapsed"),
+  heroCollapsed: readStoredCabinetUiFlag("masterRoomHeroCollapsed", true),
+  sceneCollapsed: readStoredCabinetUiFlag("masterRoomSceneCollapsed"),
+  journalCollapsed: readStoredCabinetUiFlag("masterRoomJournalCollapsed"),
   inviteQuery: "",
   userSearchResults: [],
   traderSearchQuery: "",
@@ -158,6 +184,47 @@ const CABINET_RUNTIME = {
 // ------------------------------------------------------------
 // 🧰 HELPERS
 // ------------------------------------------------------------
+function persistCabinetUiState() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.localStorage.setItem(
+      CABINET_UI_STORAGE_KEY,
+      JSON.stringify({
+        cabinetRailCollapsed: Boolean(CABINET_STATE.railCollapsed),
+        masterRoomRailCollapsed: Boolean(MASTER_ROOM_STATE.railCollapsed),
+        masterRoomHeroCollapsed: Boolean(MASTER_ROOM_STATE.heroCollapsed),
+        masterRoomSceneCollapsed: Boolean(MASTER_ROOM_STATE.sceneCollapsed),
+        masterRoomJournalCollapsed: Boolean(MASTER_ROOM_STATE.journalCollapsed),
+      })
+    );
+  } catch (_) {}
+}
+
+function getCabinetScrollRoot() {
+  const modal = getEl("cabinetModal");
+  return modal?.querySelector(".cabinet-modal-content") || document.scrollingElement || document.documentElement;
+}
+
+function scrollCabinetToTop() {
+  const root = getCabinetScrollRoot();
+  if (root && "scrollTo" in root) {
+    root.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function scrollCabinetAnchor(anchor) {
+  const key = String(anchor || "").trim();
+  if (!key || key === "top") {
+    scrollCabinetToTop();
+    return;
+  }
+
+  const target = document.querySelector(`[data-cabinet-anchor="${key}"]`);
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function safeText(value, fallback = "—") {
   return sharedSafeText(value, fallback);
 }
@@ -486,17 +553,19 @@ function applyCabinetModalLayout() {
   const main = modal.querySelector(".cabinet-main");
   const closeBtn = content?.querySelector(".close");
   const isWorkspaceMode = CABINET_STATE.activeTab === "masterroom";
+  const railCollapsed = Boolean(CABINET_STATE.railCollapsed);
 
   modal.dataset.cabinetLayoutMode = isWorkspaceMode ? "workspace" : "modal";
+  modal.classList.toggle("cabinet-rail-collapsed", railCollapsed);
 
   if (content) {
     if (isWorkspaceMode) {
       content.style.position = "relative";
-      content.style.width = "calc(100vw - 24px)";
+      content.style.width = "100%";
       content.style.maxWidth = "none";
-      content.style.maxHeight = "calc(100vh - 24px)";
-      content.style.minHeight = "calc(100vh - 24px)";
-      content.style.margin = "12px auto";
+      content.style.maxHeight = "calc(100vh - 16px)";
+      content.style.minHeight = "calc(100vh - 16px)";
+      content.style.margin = "0 auto";
       content.style.padding = "20px 20px 22px";
       content.style.overflow = "hidden auto";
     } else {
@@ -518,15 +587,15 @@ function applyCabinetModalLayout() {
   if (layout) {
     layout.style.display = "grid";
     layout.style.gridTemplateColumns = isWorkspaceMode
-      ? (window.innerWidth <= 1180 ? "1fr" : "240px minmax(0, 1fr)")
-      : (window.innerWidth <= 1180 ? "1fr" : "198px minmax(0, 1fr)");
+      ? (window.innerWidth <= 1180 ? "1fr" : `${railCollapsed ? "76px" : "240px"} minmax(0, 1fr)`)
+      : (window.innerWidth <= 1180 ? "1fr" : `${railCollapsed ? "76px" : "198px"} minmax(0, 1fr)`);
     layout.style.gap = isWorkspaceMode ? "16px" : "12px";
     layout.style.alignItems = "start";
   }
 
   if (sidebar) {
     sidebar.style.minWidth = "0";
-    sidebar.style.padding = isWorkspaceMode ? "16px 12px 14px" : "10px";
+    sidebar.style.padding = railCollapsed ? "10px 8px" : (isWorkspaceMode ? "16px 12px 14px" : "10px");
     sidebar.style.borderRadius = isWorkspaceMode ? "24px" : "18px";
   }
 
@@ -761,6 +830,15 @@ function renderCabinetTabs() {
     .join("");
 
   root.innerHTML = `
+    <button
+      class="btn cabinet-rail-toggle-btn"
+      type="button"
+      id="cabinetRailToggleBtn"
+      title="${CABINET_STATE.railCollapsed ? "Развернуть левую шторку" : "Свернуть левую шторку"}"
+      aria-label="${CABINET_STATE.railCollapsed ? "Развернуть левую шторку" : "Свернуть левую шторку"}"
+    >
+      <span>${CABINET_STATE.railCollapsed ? "›" : "‹"}</span>
+    </button>
     <div class="cabinet-tab-buttons-list">
       ${tabButtonsHtml}
     </div>
@@ -781,6 +859,18 @@ function renderCabinetTabs() {
 }
 
 function bindCabinetHeaderActions() {
+  const railToggleBtn = getEl("cabinetRailToggleBtn");
+  if (railToggleBtn && railToggleBtn.dataset.boundCabinetRailToggle !== "1") {
+    railToggleBtn.dataset.boundCabinetRailToggle = "1";
+    railToggleBtn.addEventListener("click", () => {
+      CABINET_STATE.railCollapsed = !CABINET_STATE.railCollapsed;
+      persistCabinetUiState();
+      applyCabinetModalLayout();
+      renderCabinetTabs();
+      bindCabinetTabs();
+    });
+  }
+
   const logoutBtn = getEl("cabinetSidebarLogoutBtn");
   if (logoutBtn && logoutBtn.dataset.boundCabinetLogout !== "1") {
     logoutBtn.dataset.boundCabinetLogout = "1";
@@ -3789,15 +3879,117 @@ function renderMasterRoomSidebarPlayers(table) {
   }).join("");
 }
 
-function renderMasterRoomStageTabs() {
+function renderMasterRoomUtilityBar(table, canManage, battleFocus, globalGmMode) {
+  const combat = normalizeMasterRoomCombat(table?.combat);
+  const activeMode = normalizeMasterRoomStageMode(MASTER_ROOM_STATE.stageMode, canManage);
+  const modeLabel = getMasterRoomStageModes(canManage).find((mode) => mode.key === activeMode)?.label || "Стол";
+  const roleLabel = canManage || globalGmMode ? "GM layer" : "Player layer";
+  const nonBattleActions = table
+    ? `
+      <button class="btn ${activeMode === "table" ? "active" : ""}" type="button" data-master-room-stage-mode="table">Стол</button>
+      <button class="btn ${activeMode === "party" ? "active" : ""}" type="button" data-master-room-stage-mode="party">Партия</button>
+      <button class="btn ${activeMode === "lss" ? "active" : ""}" type="button" data-master-room-stage-mode="lss">LSS</button>
+      <button class="btn ${activeMode === "combat" ? "active" : ""}" type="button" data-master-room-stage-mode="combat">Бой</button>
+      <button class="btn ${activeMode === "journal" ? "active" : ""}" type="button" data-master-room-stage-mode="journal">Журнал</button>
+      <button class="btn" type="button" data-master-room-reload-inline="1">Обновить</button>
+      <button class="btn" type="button" data-master-room-switch-tab="myaccount">Кабинет</button>
+    `
+    : `
+      <button class="btn btn-primary" type="button" data-master-room-scroll-anchor="create">Создать стол</button>
+      <button class="btn" type="button" data-master-room-reload-inline="1">Обновить</button>
+      <button class="btn" type="button" data-master-room-switch-tab="myaccount">Кабинет</button>
+    `;
+
   return `
-    <div class="master-room-stage-tabs">
-      <button class="btn active" type="button">Стол / Партия</button>
-      <button class="btn" type="button">Игроки</button>
-      <button class="btn" type="button">Персонажи</button>
-      <button class="btn" type="button">Доступ к торговцам</button>
-      <button class="btn" type="button">Выдача предметов</button>
-      <button class="btn" type="button">Журнал</button>
+    <div class="cabinet-block master-room-anchor-bar" data-cabinet-anchor="top">
+      <div class="master-room-anchor-copy">
+        <div class="master-room-panel-kicker">${battleFocus ? "Battle tabletop" : "Virtual tabletop"}</div>
+        <strong>${escapeHtml(table?.title || "Master Room")}</strong>
+        <span>${escapeHtml(battleFocus ? `Раунд ${combat.round || 1}` : modeLabel)} • ${escapeHtml(roleLabel)}</span>
+      </div>
+      <div class="master-room-anchor-actions">
+        <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="top" title="Наверх" aria-label="Наверх">↑</button>
+        ${battleFocus ? `
+          <button class="btn" type="button" data-master-room-scroll-anchor="battle">Бой</button>
+          <button class="btn" type="button" data-master-room-scroll-anchor="scene">Контекст</button>
+          <button class="btn" type="button" data-master-room-scroll-anchor="journal">Журнал</button>
+          <button class="btn" type="button" data-master-room-switch-tab="myaccount">Аккаунт</button>
+        ` : `
+          ${nonBattleActions}
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomFloatingNav(battleFocus) {
+  return `
+    <div class="master-room-floating-nav">
+      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="top" title="Наверх" aria-label="Наверх">↑</button>
+      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="${battleFocus ? "battle" : "scene"}" title="${battleFocus ? "К бою" : "К сцене"}" aria-label="${battleFocus ? "К бою" : "К сцене"}">${battleFocus ? "⚔" : "⌂"}</button>
+    </div>
+  `;
+}
+
+function renderMasterRoomCollapsedRail(table, canManage) {
+  const membersCount = safeArray(table?.members).length;
+  return `
+    <div class="cabinet-block master-room-sidebar-panel master-room-rail-mini">
+      <button class="btn master-room-anchor-icon" type="button" data-master-room-toggle-ui="rail" title="Развернуть столы" aria-label="Развернуть столы">›</button>
+      <div class="master-room-rail-mini-mark">MR</div>
+      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="scene" title="Сцена" aria-label="Сцена">⌂</button>
+      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="modes" title="Режимы" aria-label="Режимы">☷</button>
+      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="journal" title="Журнал" aria-label="Журнал">≡</button>
+      <div class="master-room-rail-mini-count" title="Столы">${escapeHtml(String(MASTER_ROOM_STATE.tables.length))}</div>
+      <div class="master-room-rail-mini-count" title="Игроки">${escapeHtml(String(membersCount))}</div>
+      <div class="master-room-rail-mini-role">${escapeHtml(canManage ? "GM" : "P")}</div>
+    </div>
+  `;
+}
+
+function getMasterRoomStageModes(canManage) {
+  const modes = [
+    { key: "table", label: "Стол", note: "сцена" },
+    { key: "party", label: "Партия", note: "фишки" },
+    { key: "lss", label: "LSS", note: "персонаж" },
+    { key: "combat", label: "Бой", note: "инициатива" },
+    { key: "journal", label: "Журнал", note: "события" },
+  ];
+
+  if (!canManage) return modes;
+
+  return [
+    modes[0],
+    modes[1],
+    modes[2],
+    { key: "settings", label: "GM control", note: "стол" },
+    { key: "access", label: "Торговцы", note: "доступ" },
+    { key: "grants", label: "Выдача", note: "предметы" },
+    modes[3],
+    modes[4],
+  ];
+}
+
+function normalizeMasterRoomStageMode(value, canManage) {
+  const key = String(value || "table").trim().toLowerCase();
+  const modes = getMasterRoomStageModes(canManage).map((mode) => mode.key);
+  return modes.includes(key) ? key : "table";
+}
+
+function renderMasterRoomStageTabs(canManage) {
+  const activeMode = normalizeMasterRoomStageMode(MASTER_ROOM_STATE.stageMode, canManage);
+  return `
+    <div class="master-room-stage-tabs" data-cabinet-anchor="modes">
+      ${getMasterRoomStageModes(canManage).map((mode) => `
+        <button
+          class="btn ${activeMode === mode.key ? "active" : ""}"
+          type="button"
+          data-master-room-stage-mode="${escapeHtml(mode.key)}"
+        >
+          <span>${escapeHtml(mode.label)}</span>
+          <small>${escapeHtml(mode.note)}</small>
+        </button>
+      `).join("")}
     </div>
   `;
 }
@@ -3832,6 +4024,375 @@ function renderMasterRoomEventJournal(table) {
       <div class="master-room-event-journal-time">${escapeHtml(formatTime(entry?.created_at || entry?.at || new Date().toISOString()))}</div>
     </div>
   `).join("");
+}
+
+function renderMasterRoomLiveOverview(table, canManage, options = {}) {
+  if (!table) return "";
+
+  const compact = Boolean(options.compact);
+  const sceneCollapsed = Boolean(MASTER_ROOM_STATE.sceneCollapsed);
+  const journalCollapsed = Boolean(MASTER_ROOM_STATE.journalCollapsed);
+  const sceneContent = sceneCollapsed
+    ? `
+      <div class="cabinet-block master-room-collapsed-block">
+        <div>
+          <div class="master-room-panel-kicker">Scene hidden</div>
+          <strong>Сцена стола скрыта</strong>
+          <span>Фишки, видимость и поверхность стола остаются в данных, но не занимают экран.</span>
+        </div>
+        <button class="btn" type="button" data-master-room-toggle-ui="scene">Показать сцену</button>
+      </div>
+    `
+    : `
+      ${renderMasterRoomVisibilityBoard(table, canManage)}
+      ${renderMasterRoomTableSurface(table, canManage)}
+    `;
+
+  return `
+    <div class="master-room-live-grid ${compact ? "master-room-live-grid-compact" : ""}" data-cabinet-anchor="scene">
+      <div class="master-room-live-primary">
+        ${sceneContent}
+      </div>
+      <aside class="cabinet-block master-room-event-journal-panel ${journalCollapsed ? "master-room-event-journal-panel-collapsed" : ""}" data-cabinet-anchor="journal">
+        ${journalCollapsed ? `
+          <div>
+            <div class="master-room-panel-kicker">Journal hidden</div>
+            <h4 class="master-room-section-title">Журнал скрыт</h4>
+            <div class="muted master-room-command-copy">События не удаляются, только убраны с первого экрана.</div>
+          </div>
+          <button class="btn master-room-event-journal-btn" type="button" data-master-room-toggle-ui="journal">Показать журнал</button>
+        ` : `
+          <div class="master-room-panel-kicker">Журнал событий</div>
+          <div class="master-room-event-journal-head">
+            <div>
+              <h4 class="master-room-section-title">Последние события</h4>
+              <div class="muted master-room-command-copy">Ключевые действия стола, боя и подключений.</div>
+            </div>
+          </div>
+          <div class="master-room-event-journal-list">
+            ${renderMasterRoomEventJournal(table)}
+          </div>
+          <button class="btn master-room-event-journal-btn" type="button" data-master-room-scroll-context="journal">Открыть полный журнал</button>
+        `}
+      </aside>
+    </div>
+  `;
+}
+
+function renderMasterRoomBattleBar(table, canManage, globalGmMode) {
+  if (!table) return "";
+
+  const combat = normalizeMasterRoomCombat(table.combat);
+  const members = safeArray(table.members);
+  const currentTurn = combat.entries[combat.turn_index] || null;
+  const roleLabel = canManage || globalGmMode ? "GM" : "Player";
+
+  return `
+    <div class="cabinet-block master-room-battle-bar">
+      <div class="master-room-battle-bar-copy">
+        <div class="master-room-panel-kicker">Боевой режим</div>
+        <h3 class="master-room-battle-bar-title">${escapeHtml(table.title || "Сцена стола")}</h3>
+        <div class="master-room-battle-bar-meta">
+          <span class="meta-item">${escapeHtml(roleLabel)}</span>
+          <span class="meta-item">Раунд ${escapeHtml(String(combat.round || 1))}</span>
+          <span class="meta-item">Ход: ${escapeHtml(currentTurn?.name || "не выбран")}</span>
+          <span class="meta-item">Позиции: ${escapeHtml(String(combat.entries.length))}</span>
+          <span class="meta-item">За столом: ${escapeHtml(String(members.length))}</span>
+        </div>
+      </div>
+      <div class="cart-buttons master-room-battle-bar-actions">
+        <button class="btn btn-secondary" type="button" data-master-room-scroll-context="table">Сцена / видимость</button>
+        <button class="btn btn-secondary" type="button" data-master-room-open-lss="1">LSS</button>
+        <button class="btn btn-secondary" type="button" data-master-room-switch-tab="myaccount">Мой аккаунт</button>
+        <button class="btn btn-primary" type="button" data-master-room-reload-inline="1">Обновить</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomCommandStrip(table, canManage) {
+  const combat = normalizeMasterRoomCombat(table?.combat);
+  const membersCount = safeArray(table?.members).length;
+  const traderCount = safeArray(table?.trader_accesses).length;
+  const grantsCount = safeArray(table?.grants).length;
+  const combatantsCount = safeArray(combat.entries).length;
+  const actionModes = canManage
+    ? [
+        ["settings", "Настроить стол", "token / доступ"],
+        ["party", "Партия", `${membersCount} за столом`],
+        ["access", "Торговцы", `${traderCount} открыто`],
+        ["grants", "Выдача", `${grantsCount} записей`],
+        ["combat", combat.active ? "Продолжить бой" : "Собрать бой", `${combatantsCount} позиций`],
+      ]
+    : [
+        ["party", "Партия", `${membersCount} за столом`],
+        ["lss", "Мой LSS", getCurrentLssCharacterName() || "персонаж"],
+        ["combat", combat.active ? "Бой" : "Подготовка", `${combatantsCount} позиций`],
+        ["journal", "Журнал", `${safeArray(combat.log).length} событий`],
+      ];
+
+  return `
+    <div class="cabinet-block master-room-stage-panel master-room-command-panel master-room-command-strip">
+      <div class="flex-between master-room-section-head">
+        <div>
+          <div class="master-room-panel-kicker">${canManage ? "GM quick command" : "Player table layer"}</div>
+          <h4 class="master-room-section-title">${escapeHtml(table?.title || "Стол")}</h4>
+          <div class="muted master-room-command-copy">
+            Первый экран держит сцену, видимость и фишки; глубокие настройки вынесены в режимы ниже.
+          </div>
+        </div>
+        <div class="trader-meta cabinet-header-meta">
+          <span class="meta-item">${escapeHtml(canManage ? "GM" : "Player")}</span>
+          <span class="meta-item">${escapeHtml(table?.trader_access_mode === "restricted" ? "restricted traders" : "open traders")}</span>
+          <span class="meta-item">R${escapeHtml(String(combat.round || 1))}</span>
+        </div>
+      </div>
+      <div class="master-room-command-strip-grid">
+        ${actionModes.map(([mode, title, note]) => `
+          <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="${escapeHtml(mode)}">
+            <strong>${escapeHtml(title)}</strong>
+            <span>${escapeHtml(note)}</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomCommandPanel(table, canManage) {
+  if (!table) return "";
+
+  if (!canManage) {
+    return `
+      <div class="cabinet-block master-room-stage-panel master-room-command-panel">
+        <div class="master-room-panel-kicker">Player table layer</div>
+        <div class="flex-between master-room-section-head">
+          <div>
+            <h3 class="master-room-command-title">${escapeHtml(table.title)}</h3>
+            <div class="muted master-room-command-copy">Token: <strong>${escapeHtml(table.token)}</strong> • открытый слой стола</div>
+          </div>
+          <div class="trader-meta cabinet-header-meta">
+            <span class="meta-item">Участников: ${safeArray(table.members).length}</span>
+            <span class="meta-item">Твой персонаж: ${escapeHtml(getMasterRoomCurrentMembership(table)?.selected_character_name || getCurrentLssCharacterName() || "не выбран")}</span>
+          </div>
+        </div>
+        <div class="muted">GM-слой скрыт. Здесь доступны только раскрытые мастером данные партии, персонажа, сцены и боя.</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="cabinet-block master-room-stage-panel master-room-command-panel">
+      <div class="master-room-panel-kicker">GM table layer</div>
+      <div class="flex-between master-room-section-head">
+        <div>
+          <h3 class="master-room-command-title">${escapeHtml(table.title)}</h3>
+          <div class="muted master-room-command-copy">Token: <strong>${escapeHtml(table.token)}</strong> • источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</div>
+          <div class="master-room-command-lead">Виртуальная карта стола: партия, видимость разделов, доступы, выдачи, заметки мастера и живая сцена.</div>
+        </div>
+        <div class="trader-meta cabinet-header-meta">
+          <span class="meta-item">Участников: ${safeArray(table.members).length}</span>
+          <span class="meta-item">LSS ГМа: ${escapeHtml(getCurrentLssCharacterName() || "не выбран")}</span>
+        </div>
+      </div>
+      <div class="master-room-command-overview">
+        <div class="master-room-command-overview-card">
+          <span>Статус</span>
+          <strong>${escapeHtml(table.status || "active")}</strong>
+        </div>
+        <div class="master-room-command-overview-card">
+          <span>Участники</span>
+          <strong>${escapeHtml(String(safeArray(table.members).length))}</strong>
+        </div>
+        <div class="master-room-command-overview-card master-room-command-overview-card-accent">
+          <span>Торговцы</span>
+          <strong>${escapeHtml(String(safeArray(table.trader_accesses).length))}</strong>
+        </div>
+        <div class="master-room-command-overview-card">
+          <span>Выдачи</span>
+          <strong>${escapeHtml(String(safeArray(table.grants).length))}</strong>
+        </div>
+      </div>
+      <div class="master-room-command-grid">
+        <div class="master-room-command-zone">
+          <div class="master-room-command-zone-head">
+            <div>
+              <div class="master-room-command-zone-kicker">Table settings</div>
+              <h4 class="master-room-command-zone-title">Параметры карты</h4>
+            </div>
+          </div>
+          <div class="profile-grid master-room-form-grid-compact">
+            <div class="filter-group">
+              <label>Название стола</label>
+              <input id="masterRoomTableTitle" type="text" value="${escapeHtml(table.title)}">
+            </div>
+            <div class="filter-group">
+              <label>Статус</label>
+              <input id="masterRoomTableStatus" type="text" value="${escapeHtml(table.status)}">
+            </div>
+            <div class="filter-group master-room-form-span">
+              <label>Заметки ГМа по столу</label>
+              <textarea id="masterRoomTableNotes" rows="4" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(table.notes || "")}</textarea>
+            </div>
+          </div>
+          <div class="cart-buttons master-room-action-row">
+            <button class="btn btn-primary" type="button" id="masterRoomSaveTableBtn">Сохранить стол</button>
+          </div>
+        </div>
+        <div class="master-room-command-zone master-room-command-zone-side">
+          <div class="master-room-command-zone-head">
+            <div>
+              <div class="master-room-command-zone-kicker">Recruitment</div>
+              <h4 class="master-room-command-zone-title">Поиск и доступ</h4>
+            </div>
+          </div>
+          <div class="collection-toolbar compact-collection-toolbar master-room-toolbar">
+            <div class="filter-group master-room-toolbar-field">
+              <label>Поиск игрока по нику / email</label>
+              <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: andersun">
+            </div>
+          </div>
+          <div id="masterRoomUserSearchResults" class="master-room-results-box">
+            ${renderMasterRoomUserSearchResults(table)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomTableMode(table, canManage) {
+  return `
+    <div class="master-room-table-mode">
+      ${renderMasterRoomLiveOverview(table, canManage)}
+      <div class="master-room-table-mode-tools">
+        ${renderMasterRoomCommandStrip(table, canManage)}
+        ${renderMasterRoomDiceDock(table?.combat)}
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomCombatStage(table, canManage, globalGmMode = false) {
+  const combat = normalizeMasterRoomCombat(table?.combat);
+  const hasEntries = safeArray(combat.entries).length > 0;
+
+  return `
+    <div class="master-room-combat-mode" data-cabinet-anchor="battle">
+      ${hasEntries ? renderMasterRoomBattleBar(table, canManage, globalGmMode) : ""}
+      <div class="master-room-combat-mode-grid">
+        <div class="master-room-combat-mode-primary">
+          ${renderMasterRoomDiceDock(table?.combat)}
+          ${canManage && !hasEntries ? renderMasterRoomEnemyPanel(table) : ""}
+          ${renderMasterRoomBattlePanel(table)}
+        </div>
+        <aside class="master-room-combat-mode-context">
+          ${canManage && hasEntries ? renderMasterRoomEnemyPanel(table) : ""}
+          <div class="cabinet-block master-room-stage-panel master-room-combat-context-card">
+            <div class="master-room-panel-kicker">Table context</div>
+            <h4 class="master-room-section-title">Сцена и партия</h4>
+            <div class="muted master-room-command-copy">Бой остаётся режимом стола: можно быстро вернуться к фишкам, LSS и журналу.</div>
+            <div class="master-room-command-strip-grid master-room-command-strip-grid-compact">
+              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="table">
+                <strong>Стол</strong>
+                <span>сцена</span>
+              </button>
+              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="party">
+                <strong>Партия</strong>
+                <span>фишки</span>
+              </button>
+              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="journal">
+                <strong>Журнал</strong>
+                <span>лог</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomJournalStage(table) {
+  const combat = normalizeMasterRoomCombat(table?.combat);
+  return `
+    <div class="cabinet-block master-room-stage-panel master-room-journal-stage-panel" data-cabinet-anchor="journal">
+      <div class="flex-between master-room-section-head">
+        <div>
+          <div class="master-room-panel-kicker">Session journal</div>
+          <h4 class="master-room-section-title">Журнал стола</h4>
+          <div class="muted master-room-command-copy">События сцены, боя, броски, выдачи и системные отметки в одном месте.</div>
+        </div>
+        <div class="trader-meta cabinet-header-meta">
+          <span class="meta-item">${escapeHtml(String(safeArray(combat.log).length))} событий</span>
+          <span class="meta-item">Раунд ${escapeHtml(String(combat.round || 1))}</span>
+        </div>
+      </div>
+      <div class="master-room-journal-stage-grid">
+        <div class="master-room-event-journal-list">
+          ${renderMasterRoomEventJournal(table)}
+        </div>
+        <div class="master-room-combat-log master-room-combat-log-immersive">
+          ${renderMasterRoomCombatLogPanel(combat)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMasterRoomParticipantsStage(table, canManage) {
+  return `
+    ${renderMasterRoomPartyOverview(table)}
+    ${canManage ? `
+      <div class="cabinet-block master-room-stage-panel">
+        <div class="flex-between master-room-section-head master-room-section-head-tight">
+          <div>
+            <div class="muted master-room-section-kicker">Партия</div>
+            <h4 class="master-room-section-title">Игроки за столом</h4>
+          </div>
+          <span class="meta-item">${safeArray(table?.members).length}</span>
+        </div>
+        ${renderMasterRoomParticipants(table)}
+      </div>
+    ` : ""}
+  `;
+}
+
+function renderMasterRoomNonBattleStage(table, canManage) {
+  if (!table) return "";
+
+  const mode = normalizeMasterRoomStageMode(MASTER_ROOM_STATE.stageMode, canManage);
+  let content = "";
+
+  if (mode === "party") {
+    content = renderMasterRoomParticipantsStage(table, canManage);
+  } else if (mode === "lss") {
+    content = renderMasterRoomLssBridge(table);
+  } else if (mode === "settings") {
+    content = renderMasterRoomCommandPanel(table, canManage);
+  } else if (mode === "access") {
+    content = renderMasterRoomTraderAccesses(table);
+  } else if (mode === "grants") {
+    content = renderMasterRoomGrantPanel(table);
+  } else if (mode === "combat") {
+    content = renderMasterRoomCombatStage(table, canManage);
+  } else if (mode === "journal") {
+    content = renderMasterRoomJournalStage(table);
+  } else {
+    content = renderMasterRoomTableMode(table, canManage);
+  }
+
+  return `
+    <div class="master-room-main-grid master-room-main-grid-stage-mode master-room-main-grid-stage-${escapeHtml(mode)}">
+      <div class="master-room-main-primary">
+        <div class="master-room-stage-grid">
+          <div class="master-room-stage-mode-stack">
+            ${content}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderMasterRoomEmptyTabletop(canManage) {
@@ -5140,16 +5701,18 @@ function renderMasterRoomBattlePanel(table) {
   const lastRoll = MASTER_ROOM_STATE.combatLastRoll || safeArray(combat.log).slice().reverse().find((entry) => ["roll", "attack", "save"].includes(String(entry?.event_type || entry?.type || "").trim().toLowerCase())) || null;
 
   return `
-    <div class="cabinet-block master-room-stage-panel master-room-battle-stage master-room-battle-shell">
-      <div class="flex-between master-room-section-head">
+    <div class="cabinet-block master-room-stage-panel master-room-battle-stage master-room-battle-shell master-room-battle-shell-game">
+      <div class="flex-between master-room-section-head master-room-combat-hud">
         <div>
           <div class="muted master-room-section-kicker">Бой</div>
-          <h4 class="master-room-section-title">Журнал боя и тактическая сцена</h4>
-          <div class="muted master-room-command-copy">Партия, противники, урон, броски и события боя синхронизируются в одном серверном состоянии стола.</div>
+          <h4 class="master-room-section-title">Тактический режим стола</h4>
+          <div class="muted master-room-command-copy">Главный слой: текущий ход, инициатива, лента событий и доступные действия.</div>
         </div>
         <div class="trader-meta cabinet-header-meta">
           <span class="meta-item">${combat.active ? "Бой активен" : "Подготовка"}</span>
           <span class="meta-item">Раунд ${escapeHtml(String(combat.round))}</span>
+          <span class="meta-item">Ход: ${escapeHtml(currentTurn?.name || "—")}</span>
+          <span class="meta-item">Дальше: ${escapeHtml(nextTurn?.name || "—")}</span>
           <button class="btn btn-secondary master-room-compact-btn" type="button" id="masterRoomCombatLogToggleBtn">
             ${MASTER_ROOM_STATE.combatLogOpen ? "Скрыть лог" : "Показать лог"}
           </button>
@@ -5260,62 +5823,68 @@ function renderMasterRoomBattlePanel(table) {
         </div>
       </div>
 
-      <details class="cabinet-block master-room-roster-shell master-room-battle-card master-room-roster-gap master-room-combat-controls-panel">
-        <summary class="master-room-combat-controls-summary">
-          <span>
-            <span class="muted master-room-section-kicker">GM controls</span>
-            <strong>Управление боевыми позициями</strong>
-          </span>
-          <span class="meta-item">${escapeHtml(String(combat.entries.length))} в сцене</span>
-        </summary>
+      <div class="master-room-battle-lower-grid">
+        <details class="cabinet-block master-room-roster-shell master-room-battle-card master-room-roster-workspace master-room-combat-controls-panel master-room-combat-drawer">
+          <summary class="master-room-combat-drawer-summary">
+            <div>
+              <div class="muted master-room-section-kicker">${canManage ? "Roster / GM controls" : "Roster"}</div>
+              <h5 class="master-room-section-title">Боевые позиции</h5>
+              <div class="muted master-room-command-copy">Состав сцены, текущий ход и видимые статы остаются частью виртуального стола.</div>
+            </div>
+            <div class="trader-meta cabinet-header-meta">
+              <span class="meta-item">${escapeHtml(String(combat.entries.length))} в сцене</span>
+              <span class="meta-item">Ход: ${escapeHtml(currentTurn?.name || "—")}</span>
+              <span class="meta-item">Открыть</span>
+            </div>
+          </summary>
 
-        ${
-          canManage
-            ? `
-              <div class="cabinet-block master-room-phase-controls">
-                <div class="flex-between master-room-section-head">
-                  <div>
-                    <div class="muted master-room-section-kicker">Combat phase</div>
-                    <h5 class="master-room-section-title">Фаза боя</h5>
+          ${
+            canManage
+              ? `
+                <div class="cabinet-block master-room-phase-controls">
+                  <div class="flex-between master-room-section-head">
+                    <div>
+                      <div class="muted master-room-section-kicker">Combat phase</div>
+                      <h5 class="master-room-section-title">Фаза боя</h5>
+                    </div>
+                    <button class="btn btn-primary" type="button" id="masterRoomCombatBootstrapBtn">Собрать бой из стола</button>
                   </div>
-                  <button class="btn btn-primary" type="button" id="masterRoomCombatBootstrapBtn">Собрать бой из стола</button>
+                  <div class="profile-grid master-room-combat-toolbar master-room-form-grid-compact">
+                    <div class="filter-group">
+                      <label>Раунд</label>
+                      <input id="masterRoomCombatRound" type="number" min="1" step="1" value="${escapeHtml(String(combat.round || 1))}">
+                    </div>
+                    <div class="filter-group">
+                      <label>Текущий ход</label>
+                      <select id="masterRoomCombatTurnIndex">
+                        ${combat.entries.length
+                          ? combat.entries.map((entry, index) => `
+                              <option value="${escapeHtml(String(index))}" ${index === combat.turn_index ? "selected" : ""}>
+                                ${escapeHtml(entry.name)}${entry.initiative ? ` • init ${escapeHtml(String(entry.initiative))}` : ""}
+                              </option>
+                            `).join("")
+                          : `<option value="0">Нет боевых позиций</option>`}
+                      </select>
+                    </div>
+                    <div class="filter-group">
+                      <label>Статус</label>
+                      <select id="masterRoomCombatActiveState">
+                        <option value="inactive" ${combat.active ? "" : "selected"}>Подготовка</option>
+                        <option value="active" ${combat.active ? "selected" : ""}>Активный бой</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="cart-buttons master-room-action-row master-room-wrap-actions">
+                    <button class="btn" type="button" id="masterRoomCombatSaveStateBtn">Сохранить фазу боя</button>
+                    <button class="btn" type="button" id="masterRoomCombatNextTurnBtn" ${combat.entries.length ? "" : "disabled"}>Следующий ход</button>
+                  </div>
                 </div>
-                <div class="profile-grid master-room-combat-toolbar master-room-form-grid-compact">
-                  <div class="filter-group">
-                    <label>Раунд</label>
-                    <input id="masterRoomCombatRound" type="number" min="1" step="1" value="${escapeHtml(String(combat.round || 1))}">
-                  </div>
-                  <div class="filter-group">
-                    <label>Текущий ход</label>
-                    <select id="masterRoomCombatTurnIndex">
-                      ${combat.entries.length
-                        ? combat.entries.map((entry, index) => `
-                            <option value="${escapeHtml(String(index))}" ${index === combat.turn_index ? "selected" : ""}>
-                              ${escapeHtml(entry.name)}${entry.initiative ? ` • init ${escapeHtml(String(entry.initiative))}` : ""}
-                            </option>
-                          `).join("")
-                        : `<option value="0">Нет боевых позиций</option>`}
-                    </select>
-                  </div>
-                  <div class="filter-group">
-                    <label>Статус</label>
-                    <select id="masterRoomCombatActiveState">
-                      <option value="inactive" ${combat.active ? "" : "selected"}>Подготовка</option>
-                      <option value="active" ${combat.active ? "selected" : ""}>Активный бой</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="cart-buttons master-room-action-row master-room-wrap-actions">
-                  <button class="btn" type="button" id="masterRoomCombatSaveStateBtn">Сохранить фазу боя</button>
-                  <button class="btn" type="button" id="masterRoomCombatNextTurnBtn" ${combat.entries.length ? "" : "disabled"}>Следующий ход</button>
-                </div>
-              </div>
-            `
-            : ""
-        }
+              `
+              : `<div class="master-room-roster-player-note">Ты видишь боевые позиции в рамках раскрытого слоя стола. GM-only параметры противников остаются скрытыми.</div>`
+          }
 
-        <div class="master-room-battle-columns">
-          <div>
+          <div class="master-room-battle-columns master-room-roster-columns">
+            <div class="master-room-roster-column">
               <div class="muted master-room-column-kicker">Партия</div>
               ${members.length ? members.map((entry) => {
                 const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
@@ -5382,7 +5951,8 @@ function renderMasterRoomBattlePanel(table) {
                 `;
               }).join("") : `<div class="muted">Партия ещё не собрана в бою.</div>`}
             </div>
-          <div>
+
+            <div class="master-room-roster-column">
               <div class="muted master-room-column-kicker">Противники</div>
               ${enemies.length ? enemies.map((entry) => {
                 const isCurrentTurn = currentTurn && String(currentTurn.entry_id || "") === String(entry.entry_id || "");
@@ -5447,60 +6017,67 @@ function renderMasterRoomBattlePanel(table) {
                   </div>
                 `;
               }).join("") : `<div class="muted">Противники ещё не добавлены.</div>`}
+            </div>
           </div>
-        </div>
+        </details>
 
-        <div class="cabinet-block master-room-action-console master-room-action-console-panel">
-            <h5 class="master-room-action-console-title">Dice / действие / заклинание</h5>
-            <div class="profile-grid master-room-action-console-grid">
-              <div class="filter-group">
-                <label>Кто бросает</label>
-                <select id="masterRoomCombatRollActor">
-                  <option value="">Система / вручную</option>
-                  ${combat.entries
-                    .filter((entry) => canManage || String(entry.membership_id || "") === String(currentMembership?.id || ""))
-                    .map((entry) => `
-                    <option value="${escapeHtml(entry.entry_id)}">${escapeHtml(entry.name)}</option>
-                  `).join("")}
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Тип события</label>
-                <select id="masterRoomCombatEventType">
-                  ${["roll", "attack", "damage", "heal", "save", "effect"].map((type) => `
-                    <option value="${escapeHtml(type)}" ${MASTER_ROOM_STATE.combatEventType === type ? "selected" : ""}>${escapeHtml(type)}</option>
-                  `).join("")}
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Куб</label>
-                <input id="masterRoomCombatRollDice" type="text" value="d20" placeholder="d20 / 2d6">
-              </div>
-              <div class="filter-group">
-                <label>Модификатор</label>
-                <input id="masterRoomCombatRollModifier" type="number" step="1" value="0">
-              </div>
-              <div class="filter-group">
-                <label>Цель</label>
-                <select id="masterRoomCombatTarget">
-                  <option value="">Без цели</option>
-                  ${combat.entries.map((entry) => `<option value="${escapeHtml(entry.entry_id)}">${escapeHtml(entry.name)}</option>`).join("")}
-                </select>
-              </div>
-              <div class="filter-group">
-                <label>Эффект / урон</label>
-                <input id="masterRoomCombatDamage" type="number" min="0" step="1" value="0">
-              </div>
-              <div class="filter-group" style="grid-column:1 / -1;">
-                <label>Причина / заклинание</label>
-                <input id="masterRoomCombatRollReason" type="text" placeholder="Fire Bolt, атака, спасбросок, урон от ловушки...">
-              </div>
+        <section class="cabinet-block master-room-action-console master-room-action-console-panel master-room-action-console-workspace">
+          <div class="flex-between master-room-section-head master-room-section-head-tight">
+            <div>
+              <div class="muted master-room-section-kicker">Action console</div>
+              <h5 class="master-room-action-console-title">Dice / действие / заклинание</h5>
             </div>
-            <div class="cart-buttons master-room-action-row">
-              <button class="btn btn-primary" type="button" id="masterRoomCombatRollBtn">Бросить</button>
+            <span class="meta-item">${escapeHtml(MASTER_ROOM_STATE.combatEventType || "roll")}</span>
+          </div>
+          <div class="profile-grid master-room-action-console-grid">
+            <div class="filter-group">
+              <label>Кто бросает</label>
+              <select id="masterRoomCombatRollActor">
+                <option value="">Система / вручную</option>
+                ${combat.entries
+                  .filter((entry) => canManage || String(entry.membership_id || "") === String(currentMembership?.id || ""))
+                  .map((entry) => `
+                  <option value="${escapeHtml(entry.entry_id)}">${escapeHtml(entry.name)}</option>
+                `).join("")}
+              </select>
             </div>
-        </div>
-      </details>
+            <div class="filter-group">
+              <label>Тип события</label>
+              <select id="masterRoomCombatEventType">
+                ${["roll", "attack", "damage", "heal", "save", "effect"].map((type) => `
+                  <option value="${escapeHtml(type)}" ${MASTER_ROOM_STATE.combatEventType === type ? "selected" : ""}>${escapeHtml(type)}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Куб</label>
+              <input id="masterRoomCombatRollDice" type="text" value="d20" placeholder="d20 / 2d6">
+            </div>
+            <div class="filter-group">
+              <label>Модификатор</label>
+              <input id="masterRoomCombatRollModifier" type="number" step="1" value="0">
+            </div>
+            <div class="filter-group">
+              <label>Цель</label>
+              <select id="masterRoomCombatTarget">
+                <option value="">Без цели</option>
+                ${combat.entries.map((entry) => `<option value="${escapeHtml(entry.entry_id)}">${escapeHtml(entry.name)}</option>`).join("")}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Эффект / урон</label>
+              <input id="masterRoomCombatDamage" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="filter-group master-room-action-console-reason">
+              <label>Причина / заклинание</label>
+              <input id="masterRoomCombatRollReason" type="text" placeholder="Fire Bolt, атака, спасбросок, урон от ловушки...">
+            </div>
+          </div>
+          <div class="cart-buttons master-room-action-row">
+            <button class="btn btn-primary" type="button" id="masterRoomCombatRollBtn">Бросить</button>
+          </div>
+        </section>
+      </div>
     </div>
   `;
 }
@@ -5523,6 +6100,9 @@ function renderMasterRoom() {
   const heroOwnerInitial = (heroOwnerName || "T").slice(0, 1).toUpperCase();
   const activeCombat = active?.combat && typeof active.combat === "object" ? active.combat : null;
   const battleFocus = Boolean(activeCombat?.active && safeArray(activeCombat.entries).length);
+  if (!battleFocus) {
+    MASTER_ROOM_STATE.stageMode = normalizeMasterRoomStageMode(MASTER_ROOM_STATE.stageMode, canManageActive);
+  }
   document.body?.classList.toggle("cabinet-masterroom-battle-focus", battleFocus);
 
   const tablesHtml = MASTER_ROOM_STATE.tables.length
@@ -5543,9 +6123,10 @@ function renderMasterRoom() {
     : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол.</p></div>`;
 
   container.innerHTML = `
-    <div class="master-room-mode-shell ${battleFocus ? "master-room-mode-shell-battle" : ""}">
+    <div class="master-room-mode-shell ${battleFocus ? "master-room-mode-shell-battle" : ""} ${MASTER_ROOM_STATE.railCollapsed ? "master-room-rail-collapsed" : ""}" data-cabinet-anchor="top">
       <div class="master-room-shell">
-        <aside class="master-room-sidebar">
+        <aside class="master-room-sidebar" data-cabinet-anchor="rail">
+          ${MASTER_ROOM_STATE.railCollapsed ? renderMasterRoomCollapsedRail(active, canManageActive) : `
           <div class="cabinet-block master-room-sidebar-panel master-room-rail-panel">
             <div class="master-room-sidebar-topline">VIRTUAL TABLE</div>
             <div class="flex-between master-room-section-head master-room-section-head-tight">
@@ -5592,10 +6173,14 @@ function renderMasterRoom() {
               </div>
             </div>
           </div>
+          `}
         </aside>
 
         <div class="master-room-stage">
-          <div class="cabinet-block master-room-hero">
+          ${renderMasterRoomUtilityBar(active, canManageActive, battleFocus, globalGmMode)}
+
+          ${MASTER_ROOM_STATE.heroCollapsed || battleFocus ? "" : `
+          <div class="cabinet-block master-room-hero" data-cabinet-anchor="status">
             <div class="master-room-hero-backdrop">
               <div class="master-room-hero-topline">MASTER ROOM / ВИРТУАЛЬНЫЙ СТОЛ</div>
               <div class="master-room-hero-layout">
@@ -5630,9 +6215,10 @@ function renderMasterRoom() {
               </div>
             </div>
           </div>
+          `}
 
           ${createOpen ? `
-            <div class="cabinet-block master-room-create-panel">
+            <div class="cabinet-block master-room-create-panel" data-cabinet-anchor="create">
               <div class="profile-grid master-room-form-grid">
                 <div class="filter-group">
                   <label>Название стола</label>
@@ -5650,150 +6236,31 @@ function renderMasterRoom() {
           ` : ""}
 
           ${active ? `
-          <div class="master-room-live-grid ${battleFocus ? "master-room-live-grid-battle-focus" : ""}">
-            <div class="master-room-live-primary">
-              ${renderMasterRoomVisibilityBoard(active, canManageActive)}
-              ${renderMasterRoomTableSurface(active, canManageActive)}
-            </div>
-            <aside class="cabinet-block master-room-event-journal-panel">
-              <div class="master-room-panel-kicker">Журнал событий</div>
-              <div class="master-room-event-journal-head">
-                <div>
-                  <h4 class="master-room-section-title">Последние события</h4>
-                  <div class="muted master-room-command-copy">Ключевые действия стола, боя и подключений.</div>
-                </div>
-              </div>
-              <div class="master-room-event-journal-list">
-                ${renderMasterRoomEventJournal(active)}
-              </div>
-              <button class="btn master-room-event-journal-btn" type="button">Открыть полный журнал</button>
-            </aside>
-          </div>
-          ${renderMasterRoomStageTabs()}
-          <div class="master-room-main-grid ${battleFocus ? "master-room-main-grid-battle-focus" : ""}">
-            <div class="master-room-main-primary">
-          <div class="master-room-stage-grid">
-            <div class="master-room-top-strip">
-            ${canManageActive ? `
-            <div class="cabinet-block master-room-stage-panel master-room-command-panel">
-              <div class="master-room-panel-kicker">GM table layer</div>
-              <div class="flex-between master-room-section-head">
-                <div>
-                  <h3 class="master-room-command-title">${escapeHtml(active.title)}</h3>
-                  <div class="muted master-room-command-copy">Token: <strong>${escapeHtml(active.token)}</strong> • источник: ${escapeHtml(MASTER_ROOM_STATE.source)}</div>
-                  <div class="master-room-command-lead">Виртуальная карта стола: партия, видимость разделов, доступы, выдачи, заметки мастера и живая сцена.</div>
-                </div>
-                <div class="trader-meta cabinet-header-meta">
-                  <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
-                  <span class="meta-item">LSS ГМа: ${escapeHtml(getCurrentLssCharacterName() || "не выбран")}</span>
-                </div>
-              </div>
-              <div class="master-room-command-overview">
-                <div class="master-room-command-overview-card">
-                  <span>Статус</span>
-                  <strong>${escapeHtml(active.status || "active")}</strong>
-                </div>
-                <div class="master-room-command-overview-card">
-                  <span>Участники</span>
-                  <strong>${escapeHtml(String(safeArray(active.members).length))}</strong>
-                </div>
-                <div class="master-room-command-overview-card master-room-command-overview-card-accent">
-                  <span>Торговцы</span>
-                  <strong>${escapeHtml(String(safeArray(active.trader_accesses).length))}</strong>
-                </div>
-                <div class="master-room-command-overview-card">
-                  <span>Выдачи</span>
-                  <strong>${escapeHtml(String(safeArray(active.grants).length))}</strong>
-                </div>
-              </div>
-              <div class="master-room-command-grid">
-                <div class="master-room-command-zone">
-                  <div class="master-room-command-zone-head">
+          ${
+            battleFocus
+              ? `
+                ${renderMasterRoomCombatStage(active, canManageActive, globalGmMode)}
+                <details class="cabinet-block master-room-battle-context-drawer">
+                  <summary class="master-room-combat-drawer-summary">
                     <div>
-                      <div class="master-room-command-zone-kicker">Table settings</div>
-                      <h4 class="master-room-command-zone-title">Параметры карты</h4>
+                      <div class="muted master-room-section-kicker">Table context</div>
+                      <h5 class="master-room-section-title">Сцена, видимость и журнал стола</h5>
+                      <div class="muted master-room-command-copy">Дополнительный слой боя. Открывается только когда нужен контекст виртуального стола.</div>
                     </div>
+                    <span class="meta-item">Открыть</span>
+                  </summary>
+                  <div class="master-room-battle-context" data-master-room-context="table">
+                    ${renderMasterRoomLiveOverview(active, canManageActive, { compact: true })}
                   </div>
-                  <div class="profile-grid master-room-form-grid-compact">
-                    <div class="filter-group">
-                      <label>Название стола</label>
-                      <input id="masterRoomTableTitle" type="text" value="${escapeHtml(active.title)}">
-                    </div>
-                    <div class="filter-group">
-                      <label>Статус</label>
-                      <input id="masterRoomTableStatus" type="text" value="${escapeHtml(active.status)}">
-                    </div>
-                    <div class="filter-group master-room-form-span">
-                      <label>Заметки ГМа по столу</label>
-                      <textarea id="masterRoomTableNotes" rows="4" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(active.notes || "")}</textarea>
-                    </div>
-                  </div>
-                  <div class="cart-buttons master-room-action-row">
-                    <button class="btn btn-primary" type="button" id="masterRoomSaveTableBtn">Сохранить стол</button>
-                  </div>
-                </div>
-                <div class="master-room-command-zone master-room-command-zone-side">
-                  <div class="master-room-command-zone-head">
-                    <div>
-                      <div class="master-room-command-zone-kicker">Recruitment</div>
-                      <h4 class="master-room-command-zone-title">Поиск и доступ</h4>
-                    </div>
-                  </div>
-                  <div class="collection-toolbar compact-collection-toolbar master-room-toolbar">
-                    <div class="filter-group master-room-toolbar-field">
-                      <label>Поиск игрока по нику / email</label>
-                      <input id="masterRoomInviteQuery" type="text" value="${escapeHtml(MASTER_ROOM_STATE.inviteQuery || "")}" placeholder="Например: andersun">
-                    </div>
-                  </div>
-                  <div id="masterRoomUserSearchResults" class="master-room-results-box">
-                    ${renderMasterRoomUserSearchResults(active)}
-                  </div>
-                </div>
-              </div>
-            </div>
-            ` : `
-            <div class="cabinet-block master-room-stage-panel master-room-command-panel">
-              <div class="master-room-panel-kicker">Player table layer</div>
-              <div class="flex-between master-room-section-head">
-                <div>
-                  <h3 class="master-room-command-title">${escapeHtml(active.title)}</h3>
-                  <div class="muted master-room-command-copy">Token: <strong>${escapeHtml(active.token)}</strong> • открытый слой стола</div>
-                </div>
-                <div class="trader-meta cabinet-header-meta">
-                  <span class="meta-item">Участников: ${safeArray(active.members).length}</span>
-                  <span class="meta-item">Твой персонаж: ${escapeHtml(getMasterRoomCurrentMembership(active)?.selected_character_name || getCurrentLssCharacterName() || "не выбран")}</span>
-                </div>
-              </div>
-              <div class="muted">GM-слой скрыт. Здесь доступны только раскрытые мастером данные партии, персонажа, сцены и боя.</div>
-            </div>
-            `}
-            ${renderMasterRoomDiceDock(active?.combat)}
-            </div>
-
-            ${renderMasterRoomLssBridge(active)}
-            ${renderMasterRoomPartyOverview(active)}
-
-            ${canManageActive ? `
-            <div class="cabinet-block master-room-stage-panel">
-              <div class="flex-between master-room-section-head master-room-section-head-tight">
-                <div>
-                  <div class="muted master-room-section-kicker">Партия</div>
-                  <h4 class="master-room-section-title">Игроки за столом</h4>
-                </div>
-                <span class="meta-item">${safeArray(active.members).length}</span>
-              </div>
-              ${renderMasterRoomParticipants(active)}
-            </div>
-            <div class="master-room-ops-grid">
-            ${renderMasterRoomEnemyPanel(active)}
-            ${renderMasterRoomTraderAccesses(active)}
-            ${renderMasterRoomGrantPanel(active)}
-            </div>
-            ` : ""}
-            ${renderMasterRoomBattlePanel(active)}
-          </div>
-            </div>
-          </div>` : renderMasterRoomEmptyTabletop(canManageActive || globalGmMode)}
+                </details>
+              `
+              : `
+                ${renderMasterRoomStageTabs(canManageActive)}
+                ${renderMasterRoomNonBattleStage(active, canManageActive)}
+              `
+          }
+          ` : renderMasterRoomEmptyTabletop(canManageActive || globalGmMode)}
+          ${renderMasterRoomFloatingNav(battleFocus)}
         </div>
       </div>
     </div>
@@ -6019,6 +6486,49 @@ function bindMasterRoomActions() {
       }
     });
   }
+
+  document.querySelectorAll("[data-master-room-toggle-ui]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomToggleUi === "1") return;
+    btn.dataset.boundMasterRoomToggleUi = "1";
+    btn.addEventListener("click", () => {
+      const key = String(btn.dataset.masterRoomToggleUi || "").trim();
+      if (key === "rail") MASTER_ROOM_STATE.railCollapsed = !MASTER_ROOM_STATE.railCollapsed;
+      if (key === "hero") MASTER_ROOM_STATE.heroCollapsed = !MASTER_ROOM_STATE.heroCollapsed;
+      if (key === "scene") MASTER_ROOM_STATE.sceneCollapsed = !MASTER_ROOM_STATE.sceneCollapsed;
+      if (key === "journal") MASTER_ROOM_STATE.journalCollapsed = !MASTER_ROOM_STATE.journalCollapsed;
+      persistCabinetUiState();
+      renderMasterRoom();
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-scroll-anchor]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomScrollAnchor === "1") return;
+    btn.dataset.boundMasterRoomScrollAnchor = "1";
+    btn.addEventListener("click", () => {
+      const anchor = String(btn.dataset.masterRoomScrollAnchor || "").trim();
+      const hasTarget = !anchor || anchor === "top" || Boolean(document.querySelector(`[data-cabinet-anchor="${anchor}"]`));
+      if (!hasTarget && ["scene", "journal", "battle"].includes(anchor)) {
+        if (anchor === "scene") MASTER_ROOM_STATE.stageMode = "table";
+        if (anchor === "journal") MASTER_ROOM_STATE.stageMode = "journal";
+        if (anchor === "battle") MASTER_ROOM_STATE.stageMode = "combat";
+        renderMasterRoom();
+        window.setTimeout(() => scrollCabinetAnchor(anchor), 0);
+        return;
+      }
+      scrollCabinetAnchor(anchor);
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-stage-mode]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomStageMode === "1") return;
+    btn.dataset.boundMasterRoomStageMode = "1";
+    btn.addEventListener("click", () => {
+      const active = getMasterRoomActiveTable();
+      const canManage = canManageMasterRoomTable(active);
+      MASTER_ROOM_STATE.stageMode = normalizeMasterRoomStageMode(btn.dataset.masterRoomStageMode, canManage);
+      renderMasterRoom();
+    });
+  });
 
   const createBtn = getEl("masterRoomCreateBtn");
   if (createBtn && createBtn.dataset.boundMasterRoomCreate !== "1") {
@@ -6281,6 +6791,47 @@ function bindMasterRoomActions() {
     });
   });
 
+  document.querySelectorAll("[data-master-room-switch-tab]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomSwitchTab === "1") return;
+    btn.dataset.boundMasterRoomSwitchTab = "1";
+    btn.addEventListener("click", async () => {
+      const tabName = String(btn.dataset.masterRoomSwitchTab || "").trim();
+      if (!tabName) return;
+      await switchCabinetTab(tabName);
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-reload-inline]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomReloadInline === "1") return;
+    btn.dataset.boundMasterRoomReloadInline = "1";
+    btn.addEventListener("click", async () => {
+      try {
+        await loadMasterRoom();
+        showToast("Master Room обновлён");
+      } catch (error) {
+        showToast(error?.message || "Не удалось обновить Master Room");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-master-room-scroll-context]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomScrollContext === "1") return;
+    btn.dataset.boundMasterRoomScrollContext = "1";
+    btn.addEventListener("click", () => {
+      const overview = btn.closest(".master-room-live-grid");
+      const contextDrawer = document.querySelector(".master-room-battle-context-drawer");
+      if (contextDrawer && "open" in contextDrawer) contextDrawer.open = true;
+      const target = btn.dataset.masterRoomScrollContext === "journal"
+        ? overview?.querySelector(".master-room-event-journal-panel")
+          || document.querySelector(".master-room-battle-context .master-room-event-journal-panel")
+          || document.querySelector(".master-room-event-journal-panel")
+        : document.querySelector(".master-room-battle-context")
+          || overview
+          || document.querySelector(".master-room-live-grid");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
   const characterPoolSelect = getEl("masterRoomCharacterPoolSelect");
   if (characterPoolSelect && characterPoolSelect.dataset.boundMasterRoomCharacterPool !== "1") {
     characterPoolSelect.dataset.boundMasterRoomCharacterPool = "1";
@@ -6498,8 +7049,7 @@ function bindMasterRoomActions() {
       if (reasonInput && !String(reasonInput.value || "").trim()) {
         reasonInput.value = btn.textContent?.trim() || nextType;
       }
-      const controls = document.querySelector(".master-room-combat-controls-panel");
-      if (controls && "open" in controls) controls.open = true;
+      document.querySelector(".master-room-action-console-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
       getEl("masterRoomCombatRollActor")?.focus?.();
     });
   });

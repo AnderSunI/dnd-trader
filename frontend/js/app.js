@@ -1254,6 +1254,32 @@ function handleLogout() {
   showToast("Вы вышли");
 }
 
+let authInvalidNoticeShown = false;
+
+function handleInvalidAuthSession(event) {
+  STATE.token = "";
+  STATE.user = null;
+  STATE.inventory = [];
+  STATE.cart = [];
+  STATE.reserved = [];
+
+  clearPersistedUser();
+  syncGlobalStateBridges();
+  updateUserUI();
+  renderAllLocalState();
+
+  const message = event?.detail?.message || "Сессия истекла. Войдите заново.";
+  if (!authInvalidNoticeShown) {
+    authInvalidNoticeShown = true;
+    showToast(message);
+    window.setTimeout(() => {
+      authInvalidNoticeShown = false;
+    }, 3500);
+  }
+}
+
+window.addEventListener("dnd:auth:invalid", handleInvalidAuthSession);
+
 // ------------------------------------------------------------
 // 🧾 CABINET
 // ------------------------------------------------------------
