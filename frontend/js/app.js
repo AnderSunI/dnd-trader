@@ -1206,7 +1206,6 @@ async function handleLogin() {
     await loadTraders();
     await loadInventoryFromServer();
     renderAllLocalState();
-    await initCabinetModulesIfNeeded();
 
     showToast("Вход выполнен");
   } catch (error) {
@@ -1520,9 +1519,8 @@ async function initApp() {
       await loadInventoryFromServer();
     }
 
-    setAppLoadingStatus("Подготавливаем кабинет...");
+    setAppLoadingStatus("Готовим интерфейс...");
     renderAllLocalState();
-    await initCabinetModulesIfNeeded();
   } finally {
     renderAllLocalState();
     hideAppLoadingOverlay();
