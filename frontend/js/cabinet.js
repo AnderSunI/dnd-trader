@@ -105,7 +105,7 @@ function readStoredCabinetUiFlag(key, fallback = false) {
 // 🌐 STATE
 // ------------------------------------------------------------
 const CABINET_STATE = {
-  activeTab: "inventory",
+  activeTab: "myaccount",
   role: "player",
   initialized: false,
   railCollapsed: readStoredCabinetUiFlag("cabinetRailCollapsed"),
@@ -569,17 +569,18 @@ function applyCabinetModalLayout() {
       content.style.padding = "20px 20px 22px";
       content.style.overflow = "hidden auto";
     } else {
-      const desktopWidth = window.innerWidth <= 1360
-        ? "calc(100vw - 40px)"
-        : "calc(100vw - 132px)";
+      const desktopWidth = window.innerWidth <= 900
+        ? "calc(100vw - 20px)"
+        : "calc(100vw - 24px)";
 
       content.style.position = "relative";
-      content.style.width = `min(1240px, ${desktopWidth})`;
-      content.style.maxWidth = "1240px";
-      content.style.maxHeight = "calc(100vh - 88px)";
-      content.style.minHeight = "";
-      content.style.margin = "40px auto";
-      content.style.padding = "14px 14px 16px";
+      content.style.width = `min(1680px, ${desktopWidth})`;
+      content.style.maxWidth = "1680px";
+      content.style.height = "calc(100vh - 24px)";
+      content.style.maxHeight = "calc(100vh - 24px)";
+      content.style.minHeight = "calc(100vh - 24px)";
+      content.style.margin = "12px auto";
+      content.style.padding = "14px";
       content.style.overflow = "hidden auto";
     }
   }
@@ -588,8 +589,8 @@ function applyCabinetModalLayout() {
     layout.style.display = "grid";
     layout.style.gridTemplateColumns = isWorkspaceMode
       ? (window.innerWidth <= 1180 ? "1fr" : `${railCollapsed ? "76px" : "240px"} minmax(0, 1fr)`)
-      : (window.innerWidth <= 1180 ? "1fr" : `${railCollapsed ? "76px" : "198px"} minmax(0, 1fr)`);
-    layout.style.gap = isWorkspaceMode ? "16px" : "12px";
+      : (window.innerWidth <= 1180 ? "1fr" : `${railCollapsed ? "68px" : "210px"} minmax(0, 1fr)`);
+    layout.style.gap = isWorkspaceMode ? "16px" : "14px";
     layout.style.alignItems = "start";
   }
 
@@ -750,7 +751,12 @@ function ensureCabinetStructure() {
     const section = document.createElement("div");
     section.id = "cabinet-myaccount";
     section.className = "cabinet-section tab-hidden";
-    main.insertBefore(section, main.firstChild);
+    main.insertBefore(section, header?.parentElement === main ? header.nextSibling : main.firstChild);
+  }
+
+  const accountSection = getEl("cabinet-myaccount");
+  if (main && header?.parentElement === main && accountSection && accountSection.previousElementSibling !== header) {
+    main.insertBefore(accountSection, header.nextSibling);
   }
 
   if (main && !getEl("cabinet-project")) {
@@ -7383,7 +7389,7 @@ function isCabinetOpen() {
 function normalizeActiveTabForRole() {
   const visible = getVisibleTabsByRole(CABINET_STATE.role).map((tab) => tab.key);
   if (!visible.includes(CABINET_STATE.activeTab)) {
-    CABINET_STATE.activeTab = "inventory";
+    CABINET_STATE.activeTab = "myaccount";
   }
 }
 

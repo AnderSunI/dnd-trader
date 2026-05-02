@@ -183,6 +183,10 @@ body.cabinet-open .page-shell {
   transition: filter 180ms ease, transform 180ms ease, opacity 180ms ease;
 }
 
+body.cabinet-open {
+  overflow: hidden;
+}
+
 body.cabinet-tab-masterroom .page-shell {
   opacity: 0.08;
   filter: blur(22px) saturate(0.65);
@@ -949,7 +953,31 @@ button:not(:disabled):hover {
 
 .modal-large,
 .cabinet-modal-content {
-  width: min(1320px, calc(100% - 10px));
+  width: min(1680px, calc(100% - 10px));
+}
+
+#cabinetModal[data-cabinet-layout-mode="modal"] {
+  padding: 10px;
+  overflow: hidden;
+  background: rgba(3, 8, 12, 0.88);
+  backdrop-filter: blur(14px);
+}
+
+#cabinetModal[data-cabinet-layout-mode="modal"] .cabinet-modal-content {
+  width: min(1680px, calc(100vw - 24px));
+  max-width: 1680px;
+  height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px);
+  min-height: calc(100vh - 24px);
+  margin: 12px auto;
+  padding: 14px;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+#cabinetModal[data-cabinet-layout-mode="modal"] .cabinet-modal-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 #cabinetModal[data-cabinet-layout-mode="workspace"] .cabinet-modal-content {
@@ -1573,6 +1601,10 @@ body.cabinet-masterroom-battle-focus .cabinet-sidebar {
 }
 
 body.cabinet-masterroom-battle-focus .cabinet-header {
+  display: none;
+}
+
+body.cabinet-tab-myaccount .cabinet-header {
   display: none;
 }
 
@@ -6297,6 +6329,108 @@ td .item-description-short,
   background: var(--account-hero-backdrop);
 }
 
+.account-hub-shell-chat .account-hub-hero-backdrop {
+  padding: 10px 12px;
+}
+
+.account-hub-shell-chat .account-hub-hero-layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.account-hub-shell-chat .account-hub-hero {
+  margin-bottom: 8px;
+}
+
+.account-hub-shell-chat .account-hub-identity {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.account-hub-shell-chat .account-hub-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.account-hub-shell-chat .account-hub-kicker,
+.account-hub-shell-chat .account-hub-title,
+.account-hub-shell-chat .account-hub-subtitle,
+.account-hub-shell-chat .account-hub-meta {
+  grid-column: 1;
+}
+
+.account-hub-shell-chat .account-hub-avatar-wrap img,
+.account-hub-shell-chat .account-hub-avatar-wrap > div {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 16px !important;
+}
+
+.account-hub-shell-chat .account-hub-title {
+  font-size: 1.14rem;
+  margin-top: 1px;
+}
+
+.account-hub-shell-chat .account-hub-actions {
+  margin-top: 8px;
+}
+
+.account-hub-shell-chat .account-hub-actions {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  align-self: end;
+  justify-content: flex-end;
+  min-width: max-content;
+}
+
+.account-hub-shell-chat .account-hub-sidepanel {
+  display: none;
+}
+
+.account-hub-shell-chat .account-hub-featured-note {
+  display: none;
+}
+
+.account-hub-shell-chat .account-hub-preview-card {
+  display: none;
+}
+
+.account-hub-shell-chat .account-hub-meta {
+  margin-top: 5px;
+}
+
+.account-hub-shell-chat .account-hub-status {
+  display: none;
+}
+
+.account-hub-shell-chat .account-hub-actions .btn {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+.account-hub-shell-chat .account-hub-nav {
+  margin-bottom: 8px;
+  padding: 7px;
+}
+
+.account-hub-shell-chat .account-hub-tab-row {
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+}
+
+.account-hub-shell-chat .account-hub-tab-row .btn {
+  min-height: 36px;
+  padding: 7px 12px;
+  border-radius: 12px;
+}
+
 .account-hub-hero-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
@@ -6453,9 +6587,9 @@ td .item-description-short,
   color: #cdbda0;
   border-color: rgba(214, 181, 122, 0.08);
   box-shadow: none;
-  min-height: 52px;
-  padding: 12px 16px;
-  border-radius: 16px;
+  min-height: 44px;
+  padding: 10px 13px;
+  border-radius: 14px;
 }
 
 .account-hub-tab-row .btn.active {
@@ -6650,9 +6784,9 @@ td .item-description-short,
 
 .account-messenger-shell {
   display: grid;
-  grid-template-columns: minmax(260px, 0.34fr) minmax(0, 1fr) minmax(250px, 0.32fr);
-  gap: 12px;
-  min-height: 680px;
+  grid-template-columns: minmax(264px, 0.28fr) minmax(0, 1fr) minmax(246px, 0.26fr);
+  gap: 10px;
+  min-height: clamp(560px, calc(100vh - 306px), 720px);
 }
 
 .account-messenger-list,
@@ -6674,15 +6808,19 @@ td .item-description-short,
 .account-messenger-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 9px;
+  padding: 11px;
 }
 
 .account-messenger-panel {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
-  gap: 10px;
-  padding: 14px;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 9px;
+  padding: 11px;
+}
+
+.account-messenger-info {
+  display: flex;
 }
 
 .account-messenger-list-head,
@@ -6692,6 +6830,10 @@ td .item-description-short,
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.account-chat-header {
+  min-height: 54px;
 }
 
 .account-messenger-title,
@@ -6704,13 +6846,13 @@ td .item-description-short,
 }
 
 .account-messenger-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 .account-chat-icon-btn {
-  width: 38px;
-  min-width: 38px;
-  min-height: 38px;
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
   padding: 0;
   justify-content: center;
 }
@@ -6718,7 +6860,7 @@ td .item-description-short,
 .account-messenger-list-scroll {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   min-height: 0;
   overflow: auto;
   padding-right: 2px;
@@ -6728,16 +6870,16 @@ td .item-description-short,
 .account-dialog-row {
   position: relative;
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   width: 100%;
-  min-height: 72px;
-  padding: 10px;
+  min-height: 58px;
+  padding: 7px;
   text-align: left;
   color: #d9e4e6;
   border: 1px solid rgba(214, 181, 122, 0.08);
-  border-radius: 16px;
+  border-radius: 13px;
   background:
     radial-gradient(circle at top left, rgba(134, 203, 211, 0.055), transparent 28%),
     linear-gradient(180deg, rgba(16, 27, 34, 0.96), rgba(8, 14, 20, 0.99));
@@ -6809,8 +6951,8 @@ td .item-description-short,
 
 .account-chat-avatar {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6844,8 +6986,8 @@ td .item-description-short,
 }
 
 .account-chat-avatar-large {
-  width: 58px;
-  height: 58px;
+  width: 42px;
+  height: 42px;
 }
 
 .account-chat-avatar-small {
@@ -6858,7 +7000,7 @@ td .item-description-short,
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .account-chat-peer-copy {
@@ -6866,7 +7008,7 @@ td .item-description-short,
 }
 
 .account-chat-peer-copy h4 {
-  font-size: 1.18rem;
+  font-size: 1.02rem;
 }
 
 .account-chat-peer-copy span {
@@ -6884,10 +7026,10 @@ td .item-description-short,
 .account-chat-pinned {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 9px;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 8px 10px;
+  border-radius: 13px;
   color: #c9d5d8;
   border: 1px solid rgba(214, 181, 122, 0.14);
   background:
@@ -6897,7 +7039,7 @@ td .item-description-short,
 
 .account-chat-pinned-mark {
   color: #d6b57a;
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -6913,9 +7055,9 @@ td .item-description-short,
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  border-radius: 18px;
+  gap: 7px;
+  padding: 12px;
+  border-radius: 15px;
   border: 1px solid rgba(134, 203, 211, 0.10);
   background:
     radial-gradient(circle at top, rgba(134, 203, 211, 0.06), transparent 28%),
@@ -6927,7 +7069,7 @@ td .item-description-short,
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  max-width: min(78%, 620px);
+  max-width: min(74%, 680px);
 }
 
 .account-message-row-own {
@@ -6940,8 +7082,8 @@ td .item-description-short,
 }
 
 .account-message-bubble {
-  padding: 11px 13px;
-  border-radius: 14px;
+  padding: 9px 12px;
+  border-radius: 13px;
   color: #eef4f5;
   border: 1px solid rgba(214, 181, 122, 0.12);
   background:
@@ -6963,7 +7105,7 @@ td .item-description-short,
 .account-message-body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  line-height: 1.45;
+  line-height: 1.38;
 }
 
 .account-message-meta {
@@ -6996,25 +7138,26 @@ td .item-description-short,
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: end;
-  padding: 10px;
-  border-radius: 16px;
+  padding: 7px;
+  border-radius: 13px;
   border: 1px solid rgba(214, 181, 122, 0.12);
   background: linear-gradient(180deg, rgba(12, 19, 25, 0.96), rgba(6, 11, 16, 0.99));
 }
 
 .account-chat-composer textarea {
-  min-height: 44px;
+  min-height: 40px;
   max-height: 120px;
   resize: vertical;
   border-radius: 12px;
 }
 
 .account-chat-send-btn {
-  min-height: 44px;
-  padding-inline: 18px;
+  min-height: 40px;
+  padding-inline: 16px;
 }
 
 .account-chat-trade-drawer {
+  display: none;
   border-radius: 16px;
   border: 1px solid rgba(214, 181, 122, 0.12);
   background: linear-gradient(180deg, rgba(12, 19, 25, 0.84), rgba(6, 11, 16, 0.96));
@@ -7056,13 +7199,13 @@ td .item-description-short,
 }
 
 .account-messenger-info-head {
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(214, 181, 122, 0.12);
 }
 
 .account-messenger-info-title {
-  margin-top: 6px;
-  font-size: 1.18rem;
+  margin-top: 5px;
+  font-size: 1.06rem;
 }
 
 .account-messenger-info-subtitle {
@@ -7074,8 +7217,8 @@ td .item-description-short,
 .account-messenger-info-card {
   display: grid;
   gap: 6px;
-  padding: 12px;
-  border-radius: 16px;
+  padding: 10px;
+  border-radius: 14px;
   border: 1px solid rgba(134, 203, 211, 0.12);
   background:
     radial-gradient(circle at top right, rgba(134, 203, 211, 0.08), transparent 28%),
@@ -7101,7 +7244,7 @@ td .item-description-short,
 
 .account-messenger-participants {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .account-messenger-info-row-head {
@@ -7117,8 +7260,8 @@ td .item-description-short,
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 9px;
   align-items: center;
-  padding: 8px;
-  border-radius: 14px;
+  padding: 7px;
+  border-radius: 13px;
   border: 1px solid rgba(214, 181, 122, 0.09);
   background: rgba(8, 14, 20, 0.62);
 }

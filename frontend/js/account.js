@@ -1427,12 +1427,16 @@ export async function loadAccountModule() {
     incoming_requests: [],
     outgoing_requests: [],
   };
-  await loadConversations();
-  await loadTradeInventory();
-  if (ACCOUNT_STATE.activeConversationId) {
-    await loadMessages(ACCOUNT_STATE.activeConversationId);
-  } else if (!ACCOUNT_STATE.activeFriendId && ACCOUNT_STATE.friends?.friends?.length) {
-    ACCOUNT_STATE.activeFriendId = String(ACCOUNT_STATE.friends.friends[0]?.friend?.id || "");
+  if (ACCOUNT_STATE.section === "chat") {
+    await loadConversations();
+    await loadTradeInventory();
+    if (ACCOUNT_STATE.activeConversationId) {
+      await loadMessages(ACCOUNT_STATE.activeConversationId);
+    } else if (!ACCOUNT_STATE.activeFriendId && ACCOUNT_STATE.friends?.friends?.length) {
+      ACCOUNT_STATE.activeFriendId = String(ACCOUNT_STATE.friends.friends[0]?.friend?.id || "");
+    }
+  } else if (ACCOUNT_STATE.section === "trade") {
+    await loadTradeInventory();
   }
   ACCOUNT_STATE.loaded = true;
   ensureChatPolling();
@@ -1455,7 +1459,7 @@ export function renderAccountModule() {
   }
 
   root.innerHTML = `
-    <div class="account-hub-shell">
+    <div class="account-hub-shell account-hub-shell-${escapeHtml(ACCOUNT_STATE.section)}">
       ${renderAccountHero()}
       ${renderSectionNav()}
       <div class="account-hub-section account-hub-section-${escapeHtml(ACCOUNT_STATE.section)}">
@@ -1551,9 +1555,10 @@ async function runFriendSearch() {
 
 async function openConversationByFriendId(friendUserId) {
   friendUserId = Number(friendUserId);
-  const existing = ACCOUNT_STATE.conversations.find((entry) => Number(entry?.friend?.id || 0) === friendUserId);
   ACCOUNT_STATE.section = "chat";
   ACCOUNT_STATE.activeFriendId = String(friendUserId);
+  await loadConversations();
+  const existing = ACCOUNT_STATE.conversations.find((entry) => Number(entry?.friend?.id || 0) === friendUserId);
   await loadTradeInventory();
   if (existing) {
     ACCOUNT_STATE.activeConversationId = String(existing.id);
@@ -1742,6 +1747,9 @@ export function bindAccountModuleActions() {
         if (ACCOUNT_STATE.activeConversationId) {
           await loadMessages(ACCOUNT_STATE.activeConversationId);
         }
+        renderAccountModule();
+      } else if (ACCOUNT_STATE.section === "trade") {
+        await loadTradeInventory();
         renderAccountModule();
       }
     });
