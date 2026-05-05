@@ -122,6 +122,124 @@ function getTraderById(traderId) {
   );
 }
 
+
+function getTraderNavigationList() {
+  const filtered = Array.isArray(window.__appFilteredTraders) ? window.__appFilteredTraders : [];
+  const source = filtered.length ? filtered : getTradersState();
+  const seen = new Set();
+  return (Array.isArray(source) ? source : [])
+    .filter((trader) => trader && Number.isFinite(Number(trader.id)))
+    .filter((trader) => {
+      const key = Number(trader.id);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getTraderNavigationState(traderId) {
+  const list = getTraderNavigationList();
+  const currentId = Number(traderId);
+  const index = list.findIndex((trader) => Number(trader.id) === currentId);
+
+  if (!list.length || index < 0) {
+    return { list, index: -1, prev: null, next: null, label: "—" };
+  }
+
+  const prev = list[(index - 1 + list.length) % list.length] || null;
+  const next = list[(index + 1) % list.length] || null;
+
+  return {
+    list,
+    index,
+    prev,
+    next,
+    label: `${index + 1} / ${list.length}`,
+  };
+}
+
+function closeTraderModal(modal = getEl("traderModal")) {
+  if (!modal) return;
+  modal.style.display = "none";
+  document.body.classList.remove("trader-modal-open");
+  modal.classList.remove("trader-modal-refined", "trader-modal-round31", "trader-modal-round32", "trader-modal-round45");
+}
+
+function buildTraderModalChrome(trader) {
+  const nav = getTraderNavigationState(trader?.id);
+  const hasNav = nav.list.length > 1;
+  const prevId = nav.prev?.id ?? "";
+  const nextId = nav.next?.id ?? "";
+
+  return `
+    <div class="trader-modal-chrome trader-modal-chrome-unified" role="navigation" aria-label="Навигация торговца">
+      <button
+        class="trader-modal-nav-btn trader-modal-nav-prev"
+        type="button"
+        data-trader-nav="prev"
+        data-trader-id="${escapeHtml(prevId)}"
+        ${hasNav ? "" : "disabled"}
+        aria-label="Предыдущий торговец"
+      >‹</button>
+
+      <div class="trader-modal-nav-copy">
+        <span>Торговец</span>
+        <strong>${escapeHtml(trader?.name || "Торговец")}</strong>
+        <small>${escapeHtml(nav.label)} • текущий список</small>
+      </div>
+
+      <button
+        class="trader-modal-nav-btn trader-modal-nav-next"
+        type="button"
+        data-trader-nav="next"
+        data-trader-id="${escapeHtml(nextId)}"
+        ${hasNav ? "" : "disabled"}
+        aria-label="Следующий торговец"
+      >›</button>
+
+      <button class="trader-modal-close-btn" type="button" data-trader-modal-close="1" aria-label="Закрыть торговца">×</button>
+    </div>
+  `;
+}
+
+function ensureTraderModalDocumentNavigation() {
+  if (window.__traderModalDocumentNavigationBound) return;
+  window.__traderModalDocumentNavigationBound = true;
+
+  document.addEventListener("click", async (event) => {
+    const closeBtn = event.target.closest?.("[data-trader-modal-close]");
+    if (closeBtn) {
+      const modal = closeBtn.closest?.("#traderModal") || getEl("traderModal");
+      event.preventDefault();
+      event.stopPropagation();
+      closeTraderModal(modal);
+      return;
+    }
+
+    const navBtn = event.target.closest?.("[data-trader-nav]");
+    if (!navBtn) return;
+
+    const modal = navBtn.closest?.("#traderModal") || getEl("traderModal");
+    if (!modal || navBtn.disabled) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const targetTraderId = Number(navBtn.dataset.traderId || 0);
+    if (!Number.isFinite(targetTraderId) || targetTraderId <= 0) {
+      showToast("Следующий торговец не найден");
+      return;
+    }
+
+    if (typeof window.openTraderModal === "function") {
+      await window.openTraderModal(targetTraderId);
+      return;
+    }
+
+    showToast("Навигация торговцев ещё не подключена");
+  }, true);
+}
+
 function getTraderModalContent() {
   return getFirstEl("traderModalContent", "modalContent");
 }
@@ -895,16 +1013,15 @@ function renderItemsTable(items, context, contextId) {
     return `<div class="trader-detail-section"><p>Ничего не найдено.</p></div>`;
   }
 
+  const amountLabel = context === "inventory" ? "Кол-во" : "Остаток";
+
   return `
-    <div class="items-table-container compact-items-table">
-      <table class="items-table">
+    <div class="items-table-container compact-items-table trader-items-compact-container-v48">
+      <table class="items-table items-table-compact-v48">
         <thead>
           <tr>
             <th>Предмет</th>
-            <th>Цена</th>
-            <th>Редкость</th>
-            <th>Качество</th>
-            <th>${context === "inventory" ? "Кол-во" : "Остаток"}</th>
+            <th>Параметры</th>
             <th>Кратко</th>
             <th>Шт</th>
             <th>Действия</th>
@@ -922,21 +1039,31 @@ function renderItemsTable(items, context, contextId) {
               const rareClass = rarityClass(item?.rarity);
               const qtyDisabled = amount <= 0;
               const itemEmoji = getItemEmoji(item);
+              const rarityLabel = normalizeRarity(item?.rarity);
+              const qualityLabel = normalizeQuality(item?.quality);
+              const category = categoryLabel(item?.category_clean || item?.category || "misc");
+              const shortDescription = getItemShortDescription(item, 96) || getItemCharacteristics(item) || "—";
+              const titleText = `${itemEmoji} ${item?.name || "Без названия"}`;
 
               return `
-                <tr data-item-id-row="${itemId}" class="${escapeHtml(rareClass)}">
-                  <td>
-                    <div class="item-name ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:700;")}>${escapeHtml(itemEmoji)} ${escapeHtml(item?.name || "Без названия")}</div>
+                <tr data-item-id-row="${itemId}" class="${escapeHtml(rareClass)} trader-item-row-v48">
+                  <td class="item-main-cell-v48">
+                    <div class="item-title-v48 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")} title="${escapeHtml(titleText)}">
+                      ${escapeHtml(itemEmoji)} <span>${escapeHtml(item?.name || "Без названия")}</span>
+                    </div>
+                    <div class="item-category-v48" title="${escapeHtml(category)}">${escapeHtml(category)}</div>
                   </td>
-                  <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")}>${escapeHtml(priceText)}</span></td>
-                  <td><span class="${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)}>${escapeHtml(
-                    normalizeRarity(item?.rarity)
-                  )}</span></td>
-                  <td>${escapeHtml(normalizeQuality(item?.quality))}</td>
-                  <td>${escapeHtml(String(amount))}</td>
-                  <td>${escapeHtml(getItemShortDescription(item) || getItemCharacteristics(item))}</td>
-                  <td>${renderQtyInput(maxQty, itemId, 1, qtyDisabled)}</td>
-                  <td class="add-cell">${renderItemActions(item, context, contextId)}</td>
+                  <td class="item-meta-cell-v48">
+                    <span class="item-meta-pill-v48 item-price-v48 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")} title="Цена">${escapeHtml(priceText)}</span>
+                    <span class="item-meta-pill-v48 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)} title="Редкость">${escapeHtml(rarityLabel)}</span>
+                    <span class="item-meta-pill-v48" title="Качество">${escapeHtml(qualityLabel)}</span>
+                    <span class="item-meta-pill-v48" title="${escapeHtml(amountLabel)}">${escapeHtml(amountLabel)}: ${escapeHtml(String(amount))}</span>
+                  </td>
+                  <td class="item-desc-cell-v48">
+                    <span title="${escapeHtml(getItemFullDescription(item) || shortDescription)}">${escapeHtml(shortDescription)}</span>
+                  </td>
+                  <td class="item-qty-cell-v48">${renderQtyInput(maxQty, itemId, 1, qtyDisabled)}</td>
+                  <td class="add-cell item-actions-cell-v48">${renderItemActions(item, context, contextId)}</td>
                 </tr>
               `;
             })
@@ -1114,7 +1241,7 @@ function groupItemsByCategory(items) {
 // ------------------------------------------------------------
 // 🧑‍💼 TRADER MODAL BLOCKS
 // ------------------------------------------------------------
-function buildTraderHeader(trader) {
+function buildTraderHeader(trader, tabsMarkup = "") {
   const specialization =
     parseJsonArray(trader?.specialization).join(", ") ||
     safe(trader?.specialization, "—");
@@ -1145,7 +1272,7 @@ function buildTraderHeader(trader) {
           <div class="trader-modal-image-wrap">
             <img class="trader-modal-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
                 trader?.name || "Торговец"
-              )}" />
+              )}" loading="eager" decoding="async" />
           </div>
           <div class="trader-modal-portrait-caption">«${escapeHtml(String(portraitQuote))}»</div>
           <div class="trader-modal-reputation-card">
@@ -1161,8 +1288,9 @@ function buildTraderHeader(trader) {
           : ""
       }
 
-      <div class="trader-modal-info">
-        <div class="trader-header-title-row">
+      <section class="trader-modal-main-column">
+        <div class="trader-modal-info">
+          <div class="trader-header-title-row">
           <h2>${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</h2>
           <span class="trader-quality">${escapeHtml(getTraderLevelLabel(traderLevel))}</span>
         </div>
@@ -1213,10 +1341,14 @@ function buildTraderHeader(trader) {
           ${restockButtonsMarkup}
         </div>
 
-        <div class="trader-detail-section">
+        <div class="trader-detail-section trader-modal-description-section">
           <p><strong>📜 Описание:</strong> ${escapeHtml(trader?.description || "—")}</p>
         </div>
       </div>
+      <div class="trader-modal-tabs-flow">
+        ${tabsMarkup}
+      </div>
+      </section>
     </div>
   `;
 }
@@ -1425,6 +1557,21 @@ function bindTraderModal(modal) {
       const currentTrader = getActiveTraderFromModal(modal);
       const currentTraderId = currentTrader?.id ?? null;
 
+      const closeBtn = event.target.closest("[data-trader-modal-close]");
+      if (closeBtn) {
+        closeTraderModal(modal);
+        return;
+      }
+
+      const navBtn = event.target.closest("[data-trader-nav]");
+      if (navBtn) {
+        const targetTraderId = Number(navBtn.dataset.traderId || 0);
+        if (Number.isFinite(targetTraderId) && targetTraderId > 0 && typeof window.openTraderModal === "function") {
+          await window.openTraderModal(targetTraderId);
+        }
+        return;
+      }
+
       const tabBtn = event.target.closest(".tab-btn[data-main-tab]");
       if (tabBtn) {
         const tabName = tabBtn.dataset.mainTab;
@@ -1472,9 +1619,15 @@ function bindTraderModal(modal) {
     modal.dataset.boundOverlayClose = "1";
     modal.addEventListener("click", (event) => {
       if (event.target === modal) {
-        modal.style.display = "none";
+        closeTraderModal(modal);
       }
     });
+  }
+
+  const nativeClose = modal.querySelector(":scope > .modal-content > .close");
+  if (nativeClose && nativeClose.dataset.boundTraderClose !== "1") {
+    nativeClose.dataset.boundTraderClose = "1";
+    nativeClose.addEventListener("click", () => closeTraderModal(modal));
   }
 }
 
@@ -1493,16 +1646,21 @@ export async function openTraderModal(traderId) {
 
   const grouped = groupItemsByCategory(trader.items || []);
 
+  const traderTabsMarkup = buildTraderTabs(grouped, trader);
+
   modalContent.innerHTML = `
-    <div class="trader-modal-layout">
-      ${buildTraderHeader(trader)}
-      ${buildTraderTabs(grouped, trader)}
+    ${buildTraderModalChrome(trader)}
+    <div class="trader-modal-layout trader-modal-layout-round45">
+      ${buildTraderHeader(trader, traderTabsMarkup)}
     </div>
   `;
 
   modal.dataset.traderId = String(trader.id);
+  document.body.classList.add("trader-modal-open");
+  modal.classList.add("trader-modal-refined", "trader-modal-round31", "trader-modal-round32", "trader-modal-round45");
   modal.style.display = "block";
 
+  ensureTraderModalDocumentNavigation();
   bindTraderModal(modal);
 }
 

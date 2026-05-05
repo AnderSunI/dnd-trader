@@ -26,6 +26,7 @@ const LSS_STATE = {
   importPanelOpen: false,
   editPanelOpen: false,
   activeTab: "overview",
+  constructorMode: "quick",
   dicePanelOpen: false,
   diceType: "d20",
   lastRoll: null,
@@ -367,6 +368,71 @@ function buildBlankProfileFromCharacter(character = {}) {
     "notes-1": "",
     "notes-2": "",
   };
+}
+
+
+function buildStarterProfileFromForm(formData = {}) {
+  const name = String(formData.name || "").trim() || "Новый персонаж";
+  const charClass = String(formData.charClass || "").trim();
+  const race = String(formData.race || "").trim();
+  const background = String(formData.background || "").trim();
+  const level = Math.max(1, toNumber(formData.level, 1));
+
+  const profile = buildBlankProfileFromCharacter({
+    name,
+    class_name: charClass,
+    level,
+    race,
+    alignment: String(formData.alignment || "").trim(),
+  });
+
+  profile.name = name;
+  profile.info = profile.info || {};
+  profile.info.name = { name: "name", value: name };
+  profile.info.charClass = { name: "charClass", value: charClass };
+  profile.info.race = { name: "race", value: race };
+  profile.info.background = { name: "background", value: background };
+  profile.info.level = { name: "level", value: level };
+  profile.vitality = profile.vitality || {};
+  profile.vitality["hp-current"] = { value: toNumber(formData.hpCurrent, 10) };
+  profile.vitality["hp-max"] = { value: toNumber(formData.hpMax, 10) };
+  profile.vitality.ac = { value: toNumber(formData.ac, 10) };
+  profile.vitality.initiative = { value: toNumber(formData.initiative, 0) };
+  profile.vitality.speed = { value: safeText(formData.speed, "30") };
+  profile.__createdInDndTrader = true;
+
+  return profile;
+}
+
+function normalizeLssProfileForSave(profile) {
+  const next = cloneData(profile || {});
+  const name = String(unwrapValue(next?.name, "") || unwrapValue(next?.info?.name, "") || "Персонаж").trim() || "Персонаж";
+  next.name = name;
+  next.info = next.info || {};
+  next.info.name = { ...(typeof next.info.name === "object" ? next.info.name : {}), name: "name", value: name };
+  next.info.level = { ...(typeof next.info.level === "object" ? next.info.level : {}), name: "level", value: Math.max(1, toNumber(unwrapValue(next.info.level, 1), 1)) };
+  next.info.charClass = { ...(typeof next.info.charClass === "object" ? next.info.charClass : {}), name: "charClass", value: String(unwrapValue(next.info.charClass, "") || "").trim() };
+  next.info.race = { ...(typeof next.info.race === "object" ? next.info.race : {}), name: "race", value: String(unwrapValue(next.info.race, "") || "").trim() };
+  next.vitality = next.vitality || {};
+  next.stats = next.stats || {};
+  next.skills = next.skills || {};
+  next.updatedAt = new Date().toISOString();
+  return next;
+}
+
+function broadcastLssProfile(profile) {
+  try {
+    window.__LSS_EXPORT__ = cloneData(profile);
+    window.__PLAYER_LSS__ = cloneData(profile);
+    window.__sharedState = window.__sharedState || {};
+    window.__sharedState.lss = {
+      ...(window.__sharedState.lss || {}),
+      raw: cloneData(profile),
+      profile: cloneData(profile),
+      updatedAt: Date.now(),
+    };
+    window.dispatchEvent(new CustomEvent("dnd:lss:updated", { detail: { profile: cloneData(profile) } }));
+  } catch (_) {}
 }
 
 async function loadLssCharacterPool() {
@@ -787,7 +853,18 @@ function toggleSkillProficiency(skillKey, enabled) {
 
 function getSkillsByStat(profile, statKey) {
   const skills = profile?.skills || {};
-  return Object.entries(skills)
+  const merged = { ...skills };
+
+  Object.entries(SKILL_BASE_STATS).forEach(([skillKey, baseStat]) => {
+    if (String(baseStat || "") !== String(statKey || "")) return;
+    if (!merged[skillKey] || typeof merged[skillKey] !== "object") {
+      merged[skillKey] = { baseStat, isProf: 0 };
+    } else if (!merged[skillKey].baseStat) {
+      merged[skillKey] = { ...merged[skillKey], baseStat };
+    }
+  });
+
+  return Object.entries(merged)
     .filter(([, skill]) => String(skill?.baseStat || "") === statKey)
     .sort((a, b) => {
       const aLabel = SKILL_LABELS[a[0]] || capitalizeRu(a[0]);
@@ -1003,10 +1080,6 @@ async function tryLoadFromApi() {
 
   const urls = [
     "/player/profile",
-    "/player/lss",
-    "/lss/me",
-    "/character/me",
-    "/profile/me",
   ];
 
   for (const url of urls) {
@@ -1251,71 +1324,49 @@ function renderTopToolbar() {
   }[String(LSS_STATE.source || "empty").toLowerCase()] || String(LSS_STATE.source || "нет данных");
 
   const characterPool = getLssCharacterPool();
+  const hasProfile = Boolean(LSS_STATE.profile);
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px; padding:12px 14px;">
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-        <div style="min-width:0; flex:1 1 260px;">
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-            <h3 style="margin:0;">📖 Long Story Short</h3>
-            <span class="quality-badge" style="padding:3px 8px; min-height:auto;">источник: ${escapeHtml(sourceLabel)}</span>
-          </div>
-          <div class="muted" style="font-size:13px; line-height:1.35;">
-            Живой лист персонажа: обзор, навыки, черты, снаряжение и заклинания без лишней простыни.
-          </div>
-        </div>
-
-        <div class="cart-buttons" style="gap:6px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-start;">
-          ${
-            characterPool.length
-              ? `
-                <div class="filter-group" style="min-width:260px; margin:0;">
-                  <label style="margin-bottom:4px;">Пул персонажей</label>
-                  <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                    <select id="lssCharacterPoolSelect" style="min-width:220px;">
-                      ${characterPool.map((entry) => `
-                        <option value="${escapeHtml(String(entry.id))}" ${String(LSS_STATE.selectedCharacterId || "") === String(entry.id) ? "selected" : ""}>
-                          ${escapeHtml(entry.name || "Персонаж")}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}${entry.level ? ` • lvl ${escapeHtml(String(entry.level))}` : ""}
-                        </option>
-                      `).join("")}
-                    </select>
-                    <button class="btn btn-secondary" type="button" id="lssApplyCharacterPoolBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">
-                      Взять в LSS
-                    </button>
-                  </div>
-                </div>
-              `
-              : ""
-          }
-          <button class="btn btn-primary" type="button" id="lssToggleImportBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">
-            ${LSS_STATE.importPanelOpen ? "Скрыть импорт" : "Загрузить"}
-          </button>
-          <button class="btn btn-secondary" type="button" id="lssToggleEditBtn" ${LSS_STATE.profile ? "" : "disabled"} style="min-height:34px; padding:6px 10px; border-radius:12px;">
-            ${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : "🛠 Конструктор"}
-          </button>
-          <button class="btn btn-secondary" type="button" id="lssDiceToggleBtn" ${LSS_STATE.profile ? "" : "disabled"} style="min-height:34px; padding:6px 10px; border-radius:12px;">
-            ${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}
-          </button>
-          ${
-            LSS_STATE.profile
-              ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn" style="min-height:34px; padding:6px 10px; border-radius:12px;">Очистить</button>`
-              : ""
-          }
+    <div class="cabinet-block lss-ref-topbar">
+      <div class="lss-ref-brand">
+        <div class="lss-ref-mark">✦</div>
+        <div>
+          <div class="lss-ref-title">LSS</div>
+          <div class="lss-ref-subtitle">Long Story Short</div>
         </div>
       </div>
-      ${
-        LSS_STATE.profile
-          ? `
-            <div class="lss-jump-rail" style="margin-top:10px;">
-              <button class="btn btn-secondary" type="button" data-lss-jump="lssHeroSection">Портрет</button>
-              <button class="btn btn-secondary" type="button" data-lss-jump="lssTabsSection">Вкладки</button>
-              <button class="btn btn-secondary" type="button" data-lss-jump="lssActivePanel">Текущий блок</button>
-              <button class="btn btn-secondary" type="button" data-lss-jump="lssEditPanel">Конструктор</button>
-              <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх</button>
-            </div>
-          `
-          : ""
-      }
+
+      <div class="lss-ref-top-actions">
+        ${characterPool.length ? `
+          <div class="lss-ref-character-pool">
+            <label for="lssCharacterPoolSelect">Персонаж</label>
+            <select id="lssCharacterPoolSelect">
+              ${characterPool.map((entry) => `
+                <option value="${escapeHtml(String(entry.id))}" ${String(LSS_STATE.selectedCharacterId || "") === String(entry.id) ? "selected" : ""}>
+                  ${escapeHtml(entry.name || "Персонаж")}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}${entry.level ? ` • ур. ${escapeHtml(String(entry.level))}` : ""}
+                </option>
+              `).join("")}
+            </select>
+            <button class="btn btn-secondary" type="button" id="lssApplyCharacterPoolBtn">Взять</button>
+          </div>
+        ` : ""}
+        <button class="btn btn-primary" type="button" id="lssToggleImportBtn">${LSS_STATE.importPanelOpen ? "Скрыть загрузку" : "📁 Загрузить"}</button>
+        <button class="btn btn-secondary" type="button" id="lssToggleEditBtn">${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : hasProfile ? "🛠 Конструктор" : "✨ Создать"}</button>
+        <button class="btn btn-secondary" type="button" id="lssDiceToggleBtn" ${hasProfile ? "" : "disabled"}>${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}</button>
+        ${hasProfile ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn">Очистить</button>` : ""}
+      </div>
+
+      <div class="lss-ref-source-pill">Источник: ${escapeHtml(sourceLabel)}</div>
+
+      ${hasProfile ? `
+        <div class="lss-jump-rail lss-ref-jump-rail">
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssHeroSection">Портрет</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssTabsSection">Вкладки</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssActivePanel">Текущий блок</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditPanel">Конструктор</button>
+          <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх ↑</button>
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -1558,6 +1609,39 @@ function bindLssActions() {
   const applyPortraitBtn = getSection("lssApplyPortraitBtn");
   const clearImageBtn = getSection("lssClearImageBtn");
   const imageFileInput = getSection("lssImageFileInput");
+  const quickCreateBtn = getSection("lssQuickCreateBtn");
+  const emptyImportBtn = getSection("lssEmptyImportBtn");
+
+  if (quickCreateBtn && quickCreateBtn.dataset.bound !== "1") {
+    quickCreateBtn.dataset.bound = "1";
+    quickCreateBtn.addEventListener("click", () => {
+      const profile = normalizeLssProfileForSave(buildStarterProfileFromForm({
+        name: getSection("lssQuickCreateName")?.value,
+        charClass: getSection("lssQuickCreateClass")?.value,
+        race: getSection("lssQuickCreateRace")?.value,
+        level: getSection("lssQuickCreateLevel")?.value,
+        background: getSection("lssQuickCreateBackground")?.value,
+        hpCurrent: getSection("lssQuickCreateHp")?.value,
+        hpMax: getSection("lssQuickCreateHp")?.value,
+        ac: getSection("lssQuickCreateAc")?.value,
+        speed: getSection("lssQuickCreateSpeed")?.value,
+      }));
+      setLssData(profile, { persistLocal: true, source: "manual" });
+      LSS_STATE.editPanelOpen = true;
+      LSS_STATE.activeTab = "overview";
+      renderLSS();
+      showToast("Персонаж создан в LSS");
+    });
+  }
+
+  if (emptyImportBtn && emptyImportBtn.dataset.bound !== "1") {
+    emptyImportBtn.dataset.bound = "1";
+    emptyImportBtn.addEventListener("click", () => {
+      LSS_STATE.importPanelOpen = true;
+      renderLSS();
+      setTimeout(() => getSection("lssImportPanel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    });
+  }
 
   if (characterPoolSelect && characterPoolSelect.dataset.bound !== "1") {
     characterPoolSelect.dataset.bound = "1";
@@ -1586,7 +1670,7 @@ function bindLssActions() {
       nextProfile.info.race = { ...(nextProfile.info.race || {}), name: "race", value: character.race || "" };
       nextProfile.info.alignment = { ...(nextProfile.info.alignment || {}), name: "alignment", value: character.alignment || "" };
 
-      setLssData(nextProfile, { persistLocal: true, source: "manual" });
+      setLssData(normalizeLssProfileForSave(nextProfile), { persistLocal: true, source: "manual" });
       try {
         await updateAccount({ active_character_id: Number(character.id) });
       } catch (_) {}
@@ -1606,7 +1690,10 @@ function bindLssActions() {
   if (toggleEditBtn && toggleEditBtn.dataset.bound !== "1") {
     toggleEditBtn.dataset.bound = "1";
     toggleEditBtn.addEventListener("click", () => {
-      if (!LSS_STATE.profile) return;
+      if (!LSS_STATE.profile) {
+        const nextProfile = buildStarterProfileFromForm({ name: "Новый персонаж", level: 1, hpCurrent: 10, hpMax: 10, ac: 10, speed: "30" });
+        setLssData(nextProfile, { persistLocal: true, source: "manual" });
+      }
       LSS_STATE.editPanelOpen = !LSS_STATE.editPanelOpen;
       renderLSS();
       if (LSS_STATE.editPanelOpen) {
@@ -1691,12 +1778,17 @@ function bindLssActions() {
     saveEditBtn.dataset.bound = "1";
     saveEditBtn.addEventListener("click", () => {
       const formData = collectEditFormData();
-      const nextProfile = applyBasicFormToProfile(formData);
+      if (!String(formData.name || "").trim()) {
+        showToast("Укажи имя персонажа перед сохранением");
+        getSection("lssEdit_name")?.focus?.();
+        return;
+      }
+      const nextProfile = normalizeLssProfileForSave(applyBasicFormToProfile(formData));
 
       setLssData(nextProfile, { persistLocal: true, source: "manual" });
       LSS_STATE.editPanelOpen = false;
       renderLSS();
-      showToast("Поля LSS сохранены");
+      showToast("LSS сохранён локально");
     });
   }
 
@@ -1839,10 +1931,30 @@ function bindLssActions() {
 // ------------------------------------------------------------
 function renderEmptyState() {
   return `
-    <div class="cabinet-block">
-      <h3>📖 Long Story Short</h3>
-      <p>Данные персонажа пока не загружены.</p>
-      <div class="muted">Используй «Загрузить данные», чтобы вставить JSON или выбрать файл.</div>
+    <div class="cabinet-block lss-ref-empty-state">
+      <div class="lss-ref-empty-copy">
+        <div class="lss-ref-kicker">LSS constructor</div>
+        <h3>Создай персонажа или загрузи JSON</h3>
+        <p>Можно быстро создать базовый лист с именем, классом и стартовыми характеристиками, а потом открыть полный конструктор.</p>
+      </div>
+
+      <div class="lss-ref-starter-card">
+        <div class="lss-ref-starter-grid">
+          <div class="filter-group lss-ref-field-main"><label>Имя персонажа</label><input id="lssQuickCreateName" type="text" placeholder="Например: Вирен Теневой"></div>
+          <div class="filter-group"><label>Класс</label><input id="lssQuickCreateClass" type="text" placeholder="Следопыт"></div>
+          <div class="filter-group"><label>Раса</label><input id="lssQuickCreateRace" type="text" placeholder="Эльф"></div>
+          <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" type="number" min="1" value="1"></div>
+          <div class="filter-group"><label>Предыстория</label><input id="lssQuickCreateBackground" type="text" placeholder="Отшельник"></div>
+          <div class="filter-group"><label>HP</label><input id="lssQuickCreateHp" type="number" min="1" value="10"></div>
+          <div class="filter-group"><label>КБ</label><input id="lssQuickCreateAc" type="number" min="1" value="10"></div>
+          <div class="filter-group"><label>Скорость</label><input id="lssQuickCreateSpeed" type="text" value="30"></div>
+        </div>
+        <div class="modal-actions lss-ref-starter-actions">
+          <button class="btn btn-success" type="button" id="lssQuickCreateBtn">Создать персонажа</button>
+          <button class="btn btn-primary" type="button" id="lssEmptyImportBtn">Загрузить JSON</button>
+        </div>
+        <div class="muted">Создание сохраняет LSS локально в браузере и сразу открывает конструктор для дальнейшей настройки.</div>
+      </div>
     </div>
   `;
 }
@@ -1891,120 +2003,72 @@ function renderHero(profile) {
   const hpCurrent = unwrapValue(vitality["hp-current"], "—");
   const hpMax = unwrapValue(vitality["hp-max"], "—");
   const hpTemp = unwrapValue(vitality["hp-temp"], "0");
-  const hitDie = unwrapValue(vitality["hit-die"], "—");
-  const hitDiceCurrent = unwrapValue(vitality["hp-dice-current"], "0");
-  const deathSuccesses = unwrapValue(vitality?.deathSuccesses, 0);
-  const deathFails = unwrapValue(vitality?.deathFails, 0);
   const xp = getXpProgressData(profile);
   const spell = getSpellQuickSummary(profile);
+  const deathSuccesses = Math.max(0, toNumber(unwrapValue(vitality?.deathSuccesses, 0), 0));
+  const deathFails = Math.max(0, toNumber(unwrapValue(vitality?.deathFails, 0), 0));
   const conditions = joinNonEmpty([
     unwrapValue(profile?.conditions, ""),
     unwrapValue(vitality?.conditions, ""),
   ]);
-  const quickBadges = [
-    `КБ ${String(unwrapValue(vitality?.ac, "—"))}`,
-    `Иниц. ${formatSigned(unwrapValue(vitality?.initiative, 0))}`,
-    `Скорость ${String(unwrapValue(vitality?.speed, "—"))}`,
-    `Мастерство ${formatSigned(getProficiencyBonus(profile))}`,
-    `Пасс. воспр. ${String(getPassivePerception(profile))}`,
-    spell.totalSlots ? `Ячейки ${spell.freeSlots}/${spell.totalSlots}` : "Ячейки —",
-  ];
 
   return `
-    <div class="cabinet-block" style="padding:12px;">
-      <div style="display:grid; grid-template-columns:minmax(82px,96px) minmax(0,1fr); gap:12px; align-items:start;">
-        <div>
-          ${
-            portraitUrl
-              ? `
-                <div class="trader-modal-image-wrap" style="max-width:96px; border-radius:14px; overflow:hidden;">
-                  <img
-                    class="trader-modal-image"
-                    src="${escapeHtml(portraitUrl)}"
-                    alt="${escapeHtml(String(name))}"
-                    loading="lazy"
-                    referrerpolicy="no-referrer"
-                    onerror="this.closest('.trader-modal-image-wrap')?.insertAdjacentHTML('afterend','<div class=&quot;stat-box&quot; style=&quot;min-height:112px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:14px;&quot;>🧙</div>'); this.closest('.trader-modal-image-wrap')?.remove();"
-                  />
-                </div>
-              `
-              : `
-                <div class="stat-box" style="min-height:112px;display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:14px;">
-                  🧙
-                </div>
-              `
-          }
+    <section class="cabinet-block lss-ref-hero-card">
+      <div class="lss-ref-portrait-frame">
+        ${portraitUrl ? `
+          <img class="lss-ref-portrait" src="${escapeHtml(portraitUrl)}" alt="${escapeHtml(String(name))}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.closest('.lss-ref-portrait-frame')?.classList.add('lss-ref-portrait-empty');" />
+        ` : `<div class="lss-ref-portrait-fallback">🧙</div>`}
+        <button class="lss-ref-photo-btn" type="button" id="lssQuickEditBtnCompact" title="Открыть конструктор">📷</button>
+      </div>
+
+      <div class="lss-ref-identity-panel">
+        <div class="lss-ref-kicker">Персонаж</div>
+        <div class="lss-ref-name-row">
+          <h2>${escapeHtml(String(name))}</h2>
+          <button class="lss-ref-edit-name" type="button" id="lssQuickEditBtn" title="Редактировать персонажа">✎</button>
         </div>
-
-        <div style="min-width:0; display:flex; flex-direction:column; gap:10px;">
-          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
-            <div style="min-width:0; flex:1 1 280px;">
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
-                <h2 style="margin:0; line-height:1;">${escapeHtml(String(name))}</h2>
-                <span class="quality-badge" style="padding:3px 8px; min-height:auto;">ур. ${escapeHtml(String(unwrapValue(info?.level, "1")))}</span>
-              </div>
-              <div class="muted" style="font-size:14px; line-height:1.3;">
-                ${escapeHtml(String(unwrapValue(info?.race, "—")))} •
-                ${escapeHtml(String(unwrapValue(info?.charClass, "—")))}
-                ${unwrapValue(info?.charSubclass, "") ? `• ${escapeHtml(String(unwrapValue(info?.charSubclass, "")))}` : ""}
-              </div>
-              <div class="trader-meta" style="margin-top:8px; gap:6px;">
-                <span class="meta-item">${escapeHtml(String(unwrapValue(info?.background, "—")))}</span>
-                <span class="meta-item">${escapeHtml(normalizeSize(unwrapValue(info?.size, "medium")))}</span>
-                <span class="meta-item">магия ${escapeHtml(String(spell.ability))}</span>
-                ${conditions ? `<span class="meta-item">⚠️ ${escapeHtml(conditions)}</span>` : ""}
-              </div>
-            </div>
-
-            <div class="cart-buttons" style="gap:6px; justify-content:flex-end;">
-              <button class="btn btn-secondary" type="button" id="lssQuickEditBtnCompact" style="min-height:32px; padding:5px 9px; border-radius:10px;">
-                🛠 Конструктор
-              </button>
-            </div>
+        <div class="lss-ref-level-row">
+          <div class="lss-ref-level-badge"><span>Уровень</span><strong>${escapeHtml(String(unwrapValue(info?.level, "1")))}</strong></div>
+          <div class="lss-ref-xp-line">
+            <div class="lss-ref-xp-text">${escapeHtml(String(xp.xp))}${xp.next ? ` / ${escapeHtml(String(xp.next))} ОП` : " ОП"}</div>
+            <div class="lss-ref-xp-track"><i style="width:${escapeHtml(String(xp.percent.toFixed(2)))}%;"></i></div>
           </div>
-
-          <div class="stat-box" style="padding:10px 12px; min-height:auto;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
-              <div>
-                <div class="muted" style="font-size:12px;">Хиты</div>
-                <div style="font-size:26px; font-weight:900; line-height:1.05; margin-top:4px;">${escapeHtml(String(hpCurrent))} / ${escapeHtml(String(hpMax))}</div>
-              </div>
-              <div class="cart-buttons" style="gap:4px;">
-                <button class="btn btn-secondary" type="button" data-lss-hp-action="minus" style="min-height:28px; padding:4px 8px; border-radius:10px;">−1</button>
-                <button class="btn btn-secondary" type="button" data-lss-hp-action="plus" style="min-height:28px; padding:4px 8px; border-radius:10px;">+1</button>
-                <button class="btn btn-secondary" type="button" data-lss-hp-action="set" style="min-height:28px; padding:4px 8px; border-radius:10px;">✎</button>
-              </div>
-            </div>
-            <div class="inv-item-details" style="display:flex; flex-wrap:wrap; gap:8px;">
-              <span>временные ${escapeHtml(String(hpTemp))}</span>
-              <span>кость ${escapeHtml(String(hitDie))}</span>
-              <span>кости ${escapeHtml(String(hitDiceCurrent))}</span>
-              <span>смерть ${escapeHtml(String(deathSuccesses))}/${escapeHtml(String(deathFails))}</span>
-              <span>СЛ ${escapeHtml(String(spell.saveDc))}</span>
-              <span>атака ${escapeHtml(formatSigned(spell.attack))}</span>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px;">
-            ${quickBadges.map((badge) => `
-              <div class="stat-box" style="padding:8px 10px; min-height:auto; border-radius:12px;">
-                <div style="font-size:13px; font-weight:800; line-height:1.25;">${escapeHtml(String(badge))}</div>
-              </div>
-            `).join("")}
-          </div>
-
-          <div>
-            <div class="flex-between muted" style="font-size:12px; margin-bottom:6px; gap:10px;">
-              <span>Опыт: ${escapeHtml(String(xp.xp))}</span>
-              <span>${xp.next ? `до уровня: ${escapeHtml(String(Math.max(0, xp.next - xp.xp)))}` : "макс. уровень"}</span>
-            </div>
-            <div style="height:7px; border-radius:999px; background:rgba(255,255,255,0.08); overflow:hidden;">
-              <div style="height:100%; width:${escapeHtml(String(xp.percent.toFixed(2)))}%; background:linear-gradient(90deg, rgba(217,168,95,0.92), rgba(216,195,154,0.98));"></div>
-            </div>
-          </div>
+        </div>
+        <div class="lss-ref-tags">
+          <span>${escapeHtml(String(unwrapValue(info?.background, "—")))}</span>
+          <span>${escapeHtml(String(unwrapValue(info?.charClass, "—")))}</span>
+          <span>${escapeHtml(String(unwrapValue(info?.race, "—")))}</span>
+          ${unwrapValue(info?.alignment, "") ? `<span>${escapeHtml(String(unwrapValue(info?.alignment, "")))}</span>` : ""}
+          ${conditions ? `<span class="lss-ref-tag-warning">${escapeHtml(conditions)}</span>` : ""}
         </div>
       </div>
-    </div>
+
+      <div class="lss-ref-combat-panel">
+        <div class="lss-ref-combat-stat"><span>Класс защиты</span><strong>${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</strong></div>
+        <div class="lss-ref-combat-stat"><span>Инициатива</span><strong>${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</strong></div>
+        <div class="lss-ref-combat-stat"><span>Скорость</span><strong>${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</strong></div>
+        <div class="lss-ref-hp-block">
+          <div class="lss-ref-hp-title">Хиты</div>
+          <div class="lss-ref-hp-value">${escapeHtml(String(hpCurrent))} / ${escapeHtml(String(hpMax))}</div>
+          <div class="lss-ref-hp-track"><i style="width:${escapeHtml(String(Math.max(0, Math.min(100, (toNumber(hpCurrent,0) / Math.max(1,toNumber(hpMax,1))) * 100)).toFixed(2)))}%;"></i></div>
+          <div class="lss-ref-hp-actions">
+            <button class="btn btn-secondary" type="button" data-lss-hp-action="minus">−1</button>
+            <button class="btn btn-secondary" type="button" data-lss-hp-action="plus">+1</button>
+            <button class="btn btn-secondary" type="button" data-lss-hp-action="set">✎</button>
+          </div>
+        </div>
+        <div class="lss-ref-mini-row">
+          <span>Врем. HP <b>${escapeHtml(String(hpTemp))}</b></span>
+          <span>СЛ <b>${escapeHtml(String(spell.saveDc))}</b></span>
+          <span>Атака <b>${escapeHtml(formatSigned(spell.attack))}</b></span>
+        </div>
+        <div class="lss-ref-death-row">
+          <span>Спасброски смерти</span>
+          <span class="lss-ref-death-dots">${[0,1,2].map((i) => `<i class="${i < deathSuccesses ? "is-on" : ""}"></i>`).join("")}</span>
+          <span class="lss-ref-death-dots lss-ref-death-fails">${[0,1,2].map((i) => `<i class="${i < deathFails ? "is-on" : ""}"></i>`).join("")}</span>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -2256,14 +2320,15 @@ function renderAlliesAndGoals(profile) {
 
 
 const LSS_TAB_DEFS = [
-  { key: "overview", label: "Обзор" },
-  { key: "attacks", label: "Бой" },
-  { key: "abilities", label: "Черты" },
-  { key: "equipment", label: "Снаряжение" },
-  { key: "personality", label: "Личность" },
-  { key: "goals", label: "Цели" },
-  { key: "notes", label: "Заметки" },
-  { key: "spells", label: "Спеллы" },
+  { key: "overview", label: "Обзор", icon: "⌘" },
+  { key: "attacks", label: "Бой", icon: "⚔" },
+  { key: "skills", label: "Навыки", icon: "✦" },
+  { key: "abilities", label: "Черты", icon: "✹" },
+  { key: "equipment", label: "Снаряжение", icon: "◈" },
+  { key: "personality", label: "Личность", icon: "◌" },
+  { key: "goals", label: "Цели", icon: "◎" },
+  { key: "notes", label: "Заметки", icon: "✎" },
+  { key: "spells", label: "Заклинания", icon: "✧" },
 ];
 
 
@@ -2446,15 +2511,14 @@ function renderOverviewSupportGrid(profile) {
 
 function renderOverviewTab(profile) {
   return `
-    <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
-      ${renderQuickSummary(profile)}
-      <div style="display:grid; grid-template-columns:minmax(0,1.45fr) minmax(250px,0.9fr); gap:10px; align-items:start;">
-        <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
-          ${renderStatsCompact(profile)}
-          ${renderSkillsFlat(profile)}
-        </div>
-        ${renderOverviewSupportGrid(profile)}
+    <div class="lss-ref-overview-grid">
+      <div class="lss-ref-overview-main">
+        ${renderQuickSummary(profile)}
+        ${renderStatsCompact(profile)}
       </div>
+      <aside class="lss-ref-overview-side">
+        ${renderOverviewSupportGrid(profile)}
+      </aside>
     </div>
   `;
 }
@@ -2463,15 +2527,14 @@ function renderOverviewTab(profile) {
 function renderLssTabs() {
   const active = LSS_STATE.activeTab || "overview";
   return `
-    <div class="cabinet-block" style="padding:10px 12px;">
-      <div class="cart-buttons" style="justify-content:flex-start; gap:6px; flex-wrap:wrap;">
-        ${LSS_TAB_DEFS.map((tab) => `
-          <button class="btn ${tab.key === active ? "btn-primary active" : "btn-secondary"}" type="button" data-lss-tab="${escapeHtml(tab.key)}" style="min-height:32px; padding:5px 10px; border-radius:10px; font-size:12px; letter-spacing:0;">
-            ${escapeHtml(tab.label)}
-          </button>
-        `).join("")}
-      </div>
-    </div>
+    <nav class="cabinet-block lss-ref-tabs" aria-label="LSS tabs">
+      ${LSS_TAB_DEFS.map((tab) => `
+        <button class="lss-ref-tab ${tab.key === active ? "active" : ""}" type="button" data-lss-tab="${escapeHtml(tab.key)}" aria-selected="${tab.key === active ? "true" : "false"}">
+          <span class="lss-ref-tab-icon">${escapeHtml(tab.icon || "•")}</span>
+          <span>${escapeHtml(tab.label)}</span>
+        </button>
+      `).join("")}
+    </nav>
   `;
 }
 
@@ -2485,6 +2548,11 @@ function renderActiveLssTab(profile) {
           <h3>Атаки и боевые заметки</h3>
           <div class="lss-rich-block">${renderRichText(profile?.attacks, "Нет дополнительных заметок по атакам.")}</div>
         </div>
+      `;
+    case "skills":
+      return `
+        ${renderSkillsFlat(profile)}
+        ${renderPassiveSenses(profile)}
       `;
     case "abilities":
       return renderFeatures(profile);
@@ -2711,11 +2779,11 @@ export function renderLSS() {
     ${
       profile
         ? `
-          <div class="lss-root">
+          <div class="lss-root lss-ref-root">
             ${renderDiceDock()}
             <div id="lssHeroSection">${renderHero(profile)}</div>
             <div id="lssTabsSection">${renderLssTabs()}</div>
-            <div id="lssActivePanel">${renderActiveLssTab(profile)}</div>
+            <div id="lssActivePanel" class="lss-ref-active-panel">${renderActiveLssTab(profile)}</div>
           </div>
         `
         : renderEmptyState()
@@ -2761,9 +2829,11 @@ export function setLssData(raw, options = {}) {
     source = "manual",
   } = options || {};
 
-  LSS_STATE.raw = cloneData(raw);
-  LSS_STATE.profile = normalizeProfile(cloneData(raw));
+  const normalizedRaw = normalizeLssProfileForSave(normalizeProfile(cloneData(raw)) || cloneData(raw));
+  LSS_STATE.raw = cloneData(normalizedRaw);
+  LSS_STATE.profile = normalizeProfile(cloneData(normalizedRaw));
   LSS_STATE.source = source;
+  broadcastLssProfile(LSS_STATE.profile);
   if (!LSS_TAB_DEFS.some((tab) => tab.key === LSS_STATE.activeTab)) {
     LSS_STATE.activeTab = "overview";
   }

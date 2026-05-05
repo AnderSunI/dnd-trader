@@ -29,6 +29,11 @@ const MAPS_STATE = {
   ui: {
     createOpen: false,
     selectedMarkerId: null,
+    activeFilter: "all",
+    searchQuery: "",
+    pendingMarkerLabel: "",
+    pendingMarkerKind: "marker",
+    pendingMarkerColor: "#98dfe3",
   },
 
   view: {
@@ -284,6 +289,57 @@ async function readFileAsDataUrl(file) {
 // ------------------------------------------------------------
 // 🗺️ NORMALIZATION
 // ------------------------------------------------------------
+
+function normalizeMarkerKind(value, fallback = "event") {
+  const raw = String(value || fallback || "event").trim().toLowerCase();
+  const aliases = {
+    city: "city",
+    town: "city",
+    settlement: "city",
+    город: "city",
+    trader: "trader",
+    merchant: "trader",
+    торговец: "trader",
+    quest: "quest",
+    квест: "quest",
+    задание: "quest",
+    camp: "camp",
+    лагерь: "camp",
+    dungeon: "dungeon",
+    подземелье: "dungeon",
+    ruin: "dungeon",
+    event: "event",
+    событие: "event",
+    marker: "marker",
+    метка: "marker",
+  };
+  return aliases[raw] || (MAP_CATEGORY_FILTERS.some(([key]) => key === raw) ? raw : fallback || "event");
+}
+
+function normalizeStringList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (entry && typeof entry === "object") {
+          return safeText(entry.name || entry.title || entry.label || entry.text || "", "").trim();
+        }
+        return safeText(entry, "").trim();
+      })
+      .filter(Boolean);
+  }
+  return String(value)
+    .split(/[;,\n\r]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function serializeStringList(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((entry) => safeText(entry, "").trim())
+    .filter(Boolean)
+    .join(", ");
+}
 function normalizeMarker(marker, index = 0) {
   if (!marker || typeof marker !== "object") {
     return {
@@ -292,15 +348,36 @@ function normalizeMarker(marker, index = 0) {
       y: 50,
       label: safeText(marker, "Метка"),
       color: "#98dfe3",
+      kind: "marker",
+      description: "",
+      area: "",
+      threat: "Низкий",
+      reputation: "Неизвестно",
+      traders: [],
+      quests: [],
+      events: [],
+      notes: "",
     };
   }
+
+  const kind = normalizeMarkerKind(marker.kind || marker.type || marker.category, "marker");
 
   return {
     id: marker.id || makeId(`marker_${index}`),
     x: clampPercent(marker.x ?? 50),
     y: clampPercent(marker.y ?? 50),
-    label: safeText(marker.label || marker.name, "Метка"),
+    label: safeText(marker.label || marker.name || marker.title, "Метка"),
     color: safeText(marker.color, "#98dfe3") || "#98dfe3",
+    kind,
+    type: kind,
+    description: safeText(marker.description || marker.text || marker.note, ""),
+    area: safeText(marker.area || marker.region || marker.location || ""),
+    threat: safeText(marker.threat || marker.danger || "Низкий"),
+    reputation: safeText(marker.reputation || marker.reputation_label || "Неизвестно"),
+    traders: normalizeStringList(marker.traders || marker.merchants || marker.vendors),
+    quests: normalizeStringList(marker.quests || marker.tasks),
+    events: normalizeStringList(marker.events),
+    notes: safeText(marker.notes || marker.gm_notes || ""),
   };
 }
 
@@ -336,6 +413,18 @@ function normalizeMapList(list) {
   );
 }
 
+function buildDefaultMap() {
+  return normalizeMapItem({
+    id: "default_world_map",
+    name: "Карта мира",
+    description: "Долина Дессарин",
+    image: "",
+    markers: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }, 0);
+}
+
 function getActiveMap() {
   return MAPS_STATE.maps.find((map) => map.id === MAPS_STATE.activeMapId) || null;
 }
@@ -347,6 +436,17 @@ function getSelectedMarker() {
     active.markers.find((marker) => marker.id === MAPS_STATE.ui.selectedMarkerId) ||
     null
   );
+}
+
+function getSelectedDisplayMarker(active = getActiveMap(), markers = null) {
+  const real = getSelectedMarker();
+  if (real) return real;
+  const displayMarkers = markers || getDisplayMarkers(active);
+  return displayMarkers.find((marker) => marker.id === MAPS_STATE.ui.selectedMarkerId) || displayMarkers[0] || null;
+}
+
+function isFallbackMarker(marker) {
+  return String(marker?.id || "").startsWith("fallback_");
 }
 
 function ensureSelectedMarkerIsValid() {
@@ -380,6 +480,8 @@ function syncToSharedState() {
     panY: MAPS_STATE.view.panY,
     markerMode: MAPS_STATE.view.markerMode,
     selectedMarkerId: MAPS_STATE.ui.selectedMarkerId,
+    activeFilter: MAPS_STATE.ui.activeFilter,
+    searchQuery: MAPS_STATE.ui.searchQuery,
     activeLayer: "world",
   };
 }
@@ -405,17 +507,8 @@ function tryLoadFromWindow() {
 export async function loadMapData() {
   MAPS_STATE.role = getCurrentRole();
 
-  let data = await apiGet([
-    "/player/maps",
-    "/maps/me",
-    "/maps",
-  ]);
-  let source = "api";
-
-  if (!data) {
-    data = tryLoadFromWindow();
-    source = "window";
-  }
+  let data = tryLoadFromWindow();
+  let source = "window";
 
   if (!data) {
     data = loadLocalMaps();
@@ -433,6 +526,10 @@ export async function loadMapData() {
   }
 
   MAPS_STATE.maps = normalizeMapList(maps);
+  if (!MAPS_STATE.maps.length) {
+    MAPS_STATE.maps = [buildDefaultMap()];
+    source = "default";
+  }
   MAPS_STATE.loaded = true;
   MAPS_STATE.source = MAPS_STATE.maps.length ? source : "empty";
   MAPS_STATE.activeMapId = MAPS_STATE.maps[0]?.id || null;
@@ -452,13 +549,7 @@ export async function saveMapData() {
     maps: MAPS_STATE.maps,
   });
 
-  const result = await apiWrite(
-    ["/player/maps", "/maps/me", "/maps"],
-    { maps: MAPS_STATE.maps },
-    ["POST", "PUT", "PATCH"]
-  );
-
-  MAPS_STATE.source = result ? "api" : "local";
+  MAPS_STATE.source = "local";
   syncToSharedState();
   return true;
 }
@@ -684,7 +775,7 @@ export function zoomMap(delta) {
 }
 
 export function rotateMap(delta = 90) {
-  MAPS_STATE.view.rotation = (MAPS_STATE.view.rotation + delta) % 360;
+  MAPS_STATE.view.rotation = ((MAPS_STATE.view.rotation + delta) % 360 + 360) % 360;
   syncToSharedState();
   applyMapTransform();
   updateViewportStatus();
@@ -755,6 +846,12 @@ function applyMapTransform() {
 function updateViewportStatus() {
   const info = getEl("mapViewportInfo");
   const active = getActiveMap();
+
+  const rotateLabel = getEl("mapRotateBtn")?.querySelector("span");
+  if (rotateLabel) {
+    rotateLabel.textContent = `${MAPS_STATE.view.rotation}°`;
+  }
+
   if (!info || !active) return;
 
   info.textContent =
@@ -768,10 +865,9 @@ function buildMarkerStyle(marker, selected = false) {
   return `
     left:${marker.x}%;
     top:${marker.y}%;
-    border-color:${escapeHtml(marker.color)};
-    box-shadow:0 0 10px ${escapeHtml(marker.color)}55;
-    background:${selected ? "rgba(20,35,42,0.98)" : "rgba(7,16,20,0.95)"};
-    outline:${selected ? `2px solid ${escapeHtml(marker.color)}` : "none"};
+    color:${escapeHtml(marker.color)};
+    --marker-glow:${escapeHtml(marker.color)}66;
+    outline:${selected ? `2px solid ${escapeHtml(marker.color)}66` : "none"};
   `;
 }
 
@@ -890,61 +986,232 @@ async function commitDraggedMarker() {
 // ------------------------------------------------------------
 // 🎨 RENDER HELPERS
 // ------------------------------------------------------------
+const MAP_CATEGORY_FILTERS = [
+  ["all", "Все"],
+  ["city", "Города"],
+  ["trader", "Торговцы"],
+  ["quest", "Квесты"],
+  ["camp", "Лагеря"],
+  ["dungeon", "Подземелья"],
+  ["event", "События"],
+];
+
+const MAP_FALLBACK_MARKERS = [
+  { id: "fallback_city", x: 48, y: 48, label: "Аэрего Кейллин", color: "#d6b57a", kind: "city", description: "Крупный торговый и политический центр долины.", threat: "Низкий", reputation: "Дружественный (+40%)", traders: ["Лирана Торн", "Гримм Бочонок", "Мистра Вейн"], quests: ["Слухи о предателе", "Золотые контракты"], events: ["Ярмарка в Дессарине"] },
+  { id: "fallback_keep", x: 61, y: 22, label: "Крепость Северного Дозора", color: "#9bd7ef", kind: "city", description: "Северная сторожевая крепость и военный перевал.", threat: "Средний", reputation: "Нейтрально", traders: ["Интендант Варн"], quests: ["Патруль на перевале"], events: [] },
+  { id: "fallback_swamp", x: 52, y: 75, label: "Болотные топи", color: "#8ed58f", kind: "quest", description: "Затопленные тропы, где пропадают караваны.", threat: "Средний", reputation: "Неизвестно", traders: [], quests: ["Следы в тине", "Гнилой алтарь"], events: ["Туман сгущается"] },
+  { id: "fallback_dungeon", x: 38, y: 61, label: "Подземелье Тарн", color: "#b394ee", kind: "dungeon", description: "Руины старой башни и вход в нижние залы.", threat: "Высокий", reputation: "Опасная зона", traders: [], quests: ["Ключ подземелья"], events: ["Шёпот из глубины"] },
+  { id: "fallback_camp", x: 74, y: 30, label: "Лагерь на перевале", color: "#f0a765", kind: "camp", description: "Временная стоянка партии и караванщиков.", threat: "Низкий", reputation: "Безопасно", traders: ["Полевой снабженец"], quests: [], events: ["Ночной дозор"] },
+  { id: "fallback_trader", x: 82, y: 58, label: "Торговая застава", color: "#d6b57a", kind: "trader", description: "Малая застава с обменом припасов и слухов.", threat: "Низкий", reputation: "Дружественный", traders: ["Бродячий меняла", "Скупщик трофеев"], quests: ["Доставка ящиков"], events: [] },
+  { id: "fallback_event", x: 27, y: 39, label: "Мрачнолесье", color: "#8ed58f", kind: "event", description: "Граница леса, где часто меняются тропы.", threat: "Средний", reputation: "Тревожно", traders: [], quests: ["Пропавший следопыт"], events: ["Стая у дороги"] },
+];
+
+function getMarkerSearchBlob(marker, active = null) {
+  return [
+    marker?.label,
+    marker?.name,
+    marker?.kind,
+    marker?.type,
+    marker?.description,
+    marker?.area,
+    marker?.threat,
+    marker?.reputation,
+    active?.name,
+    active?.description,
+    ...(Array.isArray(marker?.traders) ? marker.traders : []),
+    ...(Array.isArray(marker?.quests) ? marker.quests : []),
+    ...(Array.isArray(marker?.events) ? marker.events : []),
+  ]
+    .map((entry) => safeText(entry, "").toLowerCase())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function filterDisplayMarkers(markers, active = null) {
+  const filter = MAPS_STATE.ui.activeFilter || "all";
+  const search = safeText(MAPS_STATE.ui.searchQuery, "").trim().toLowerCase();
+
+  return (Array.isArray(markers) ? markers : []).filter((marker) => {
+    const kind = normalizeMarkerKind(marker?.kind || marker?.type, "marker");
+    if (filter && filter !== "all" && kind !== filter) return false;
+    if (search && !getMarkerSearchBlob(marker, active).includes(search)) return false;
+    return true;
+  });
+}
+
+function getDisplayMarkers(active) {
+  const sourceMarkers = active?.markers?.length
+    ? active.markers.map((marker, index) => ({
+        ...marker,
+        kind: normalizeMarkerKind(marker.kind || marker.type, ["city", "trader", "quest", "camp", "dungeon", "event"][index % 6]),
+      }))
+    : MAP_FALLBACK_MARKERS;
+
+  return filterDisplayMarkers(sourceMarkers, active);
+}
+
+function getMarkerKindIcon(kind = "") {
+  const map = {
+    city: "⌂",
+    trader: "⚖",
+    quest: "✦",
+    camp: "⌁",
+    dungeon: "◆",
+    event: "✹",
+    marker: "✦",
+  };
+  return map[kind] || "✦";
+}
+
+function getMarkerKindLabel(kind = "") {
+  const map = {
+    city: "Город",
+    trader: "Торговая точка",
+    quest: "Задание",
+    camp: "Лагерь",
+    dungeon: "Руины / Подземелье",
+    event: "Событие",
+    marker: "Метка",
+  };
+  return map[normalizeMarkerKind(kind, "marker")] || "Метка";
+}
+
+function getActiveLocation(active, markers) {
+  const marker = getSelectedDisplayMarker(active, markers);
+  const name = marker?.label || active?.name || "Карта мира";
+
+  return {
+    name,
+    type: getMarkerKindLabel(marker?.kind || marker?.type),
+    area: marker?.area || active?.description || "Долина Дессарин",
+    reputation: marker?.reputation || (isGm() ? "Контролируется мастером" : "Неизвестно"),
+    threat: marker?.threat || (marker?.kind === "dungeon" || marker?.kind === "event" ? "Средний" : "Низкий"),
+    description: marker?.description || active?.description || "Выберите метку или создайте новую, чтобы заполнить детали локации.",
+    marker,
+  };
+}
+
+function renderMapCompass() {
+  return `
+    <div class="map-compass" aria-hidden="true">
+      <span>N</span>
+      <i></i>
+    </div>
+  `;
+}
+
+function renderFallbackMapTexture() {
+  return `
+    <div class="map-fallback-texture" aria-hidden="true">
+      <span class="map-region-label map-region-label-main">Долина Дессарин</span>
+      <span class="map-region-label map-region-label-west">Мрачнолесье</span>
+      <span class="map-region-label map-region-label-east">Сумеречный лес</span>
+      <span class="map-route map-route-a"></span>
+      <span class="map-route map-route-b"></span>
+      <span class="map-route map-route-c"></span>
+    </div>
+  `;
+}
+
+function renderMapMarkerButton(marker, selectedMarker) {
+  const isSelected = selectedMarker?.id === marker.id;
+  const isFallback = String(marker.id || "").startsWith("fallback_");
+
+  return `
+    <button
+      type="button"
+      class="map-marker-btn map-world-marker ${isSelected ? "map-world-marker-active" : ""} ${isFallback ? "map-world-marker-preview" : ""}"
+      data-marker-id="${escapeHtml(marker.id)}"
+      style="${buildMarkerStyle(marker, isSelected)}"
+      title="${escapeHtml(marker.label)}"
+    >
+      <span class="map-world-marker-icon">${escapeHtml(getMarkerKindIcon(marker.kind))}</span>
+      <span class="map-world-marker-label">${escapeHtml(marker.label)}</span>
+    </button>
+  `;
+}
+
 function renderSummaryBar() {
   const active = getActiveMap();
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:center; gap:12px; flex-wrap:wrap;">
-        <div class="trader-meta">
-          <span class="meta-item">Карт: ${MAPS_STATE.maps.length}</span>
-          <span class="meta-item">Источник: ${escapeHtml(MAPS_STATE.source)}</span>
-          <span class="meta-item">Роль: ${escapeHtml(MAPS_STATE.role)}</span>
-          ${
-            active
-              ? `<span class="meta-item">Активная: ${escapeHtml(active.name)}</span>`
-              : `<span class="meta-item">Активная: нет</span>`
-          }
+    <div class="map-reference-head">
+      <div class="map-title-block">
+        <h2>Карта мира <span>ⓘ</span></h2>
+        <p>Исследуйте мир, находите торговцев, выполняйте квесты и расширяйте влияние.</p>
+      </div>
+
+      <label class="map-search" for="mapSearchInput">
+        <span>⌕</span>
+        <input id="mapSearchInput" type="search" placeholder="Поиск локации, торговца, квеста..." value="${escapeHtml(MAPS_STATE.ui.searchQuery)}" />
+      </label>
+
+      <div class="map-head-actions">
+        <button class="btn" type="button" id="mapsRefreshBtn">Обновить</button>
+        <button class="btn btn-primary" type="button" id="mapsToggleCreateBtn">
+          ${MAPS_STATE.ui.createOpen ? "Скрыть" : "＋ Новая карта"}
+        </button>
+      </div>
+    </div>
+
+    <details class="map-control-drawer map-filter-drawer">
+      <summary>
+        <span>Фильтры и режимы карты</span>
+        <strong>${escapeHtml(MAPS_STATE.ui.activeFilter === "all" ? "Все метки" : getMarkerKindLabel(MAPS_STATE.ui.activeFilter))}</strong>
+      </summary>
+      <div class="map-filter-row">
+        <div class="map-filter-tabs">
+          ${MAP_CATEGORY_FILTERS.map(([key, label]) => `
+            <button class="map-filter-tab ${MAPS_STATE.ui.activeFilter === key ? "active" : ""}" type="button" data-map-filter="${escapeHtml(key)}">
+              <span>${escapeHtml(getMarkerKindIcon(key))}</span>
+              ${escapeHtml(label)}
+            </button>
+          `).join("")}
         </div>
 
-        <div class="cart-buttons">
-          <button class="btn" type="button" id="mapsRefreshBtn">Обновить</button>
-          <button class="btn btn-primary" type="button" id="mapsToggleCreateBtn">
-            ${MAPS_STATE.ui.createOpen ? "Скрыть форму" : "＋ Новая карта"}
+        <div class="map-filter-actions">
+          <button class="map-filter-tab" type="button" id="mapMarkerModeBtn">
+            <span>★</span>
+            ${MAPS_STATE.view.markerMode ? "Маркер: ВКЛ" : "Мой маркер"}
+          </button>
+          <button class="map-filter-tab" type="button" id="mapResetFiltersBtn">
+            <span>☷</span>
+            Сброс
           </button>
         </div>
       </div>
-    </div>
+    </details>
+
   `;
 }
 
 function renderCreateForm() {
   return `
     <div
-      class="cabinet-block"
+      class="map-create-panel"
       id="mapsCreateBlock"
-      style="${MAPS_STATE.ui.createOpen ? "" : "display:none;"} margin-bottom:12px;"
+      ${MAPS_STATE.ui.createOpen ? "" : "hidden"}
     >
-      <h3>Новая карта</h3>
+      <div class="map-panel-title">Новая карта</div>
 
-      <div class="collection-toolbar compact-collection-toolbar">
-        <div class="filter-group">
-          <label>Название</label>
+      <div class="map-create-grid">
+        <label class="filter-group">
+          <span>Название</span>
           <input id="mapFormName" type="text" placeholder="Например: Мир Торана" />
-        </div>
+        </label>
 
-        <div class="filter-group" style="min-width:260px; flex:1 1 260px;">
-          <label>Описание</label>
+        <label class="filter-group">
+          <span>Описание</span>
           <input id="mapFormDescription" type="text" placeholder="Краткое описание карты" />
-        </div>
+        </label>
 
-        <div class="filter-group">
-          <label>Изображение</label>
+        <label class="filter-group">
+          <span>Изображение</span>
           <input id="mapFormFile" type="file" accept="image/*" />
-        </div>
+        </label>
       </div>
 
-      <div class="modal-actions" style="margin-top:12px;">
+      <div class="map-create-actions">
         <button class="btn btn-success" type="button" id="mapFormSaveBtn">Сохранить</button>
         <button class="btn" type="button" id="mapFormCancelBtn">Скрыть</button>
       </div>
@@ -952,241 +1219,425 @@ function renderCreateForm() {
   `;
 }
 
-function renderMapViewer() {
-  const active = getActiveMap();
-
-  if (!active) {
-    return `
-      <div class="cabinet-block">
-        <h3>Просмотрщик карты</h3>
-        <p>Активная карта не выбрана.</p>
-      </div>
-    `;
-  }
-
-  if (!active.image) {
-    return `
-      <div class="cabinet-block">
-        <h3>${escapeHtml(active.name)}</h3>
-        <p>У карты пока нет изображения.</p>
-      </div>
-    `;
-  }
-
-  const selectedMarker = getSelectedMarker();
+function renderActiveMarkersDock(markers, selectedMarker) {
+  const visible = (Array.isArray(markers) ? markers : []).slice(0, 18);
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
-      <div class="flex-between" style="align-items:flex-start; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin-bottom:4px;">${escapeHtml(active.name)}</h3>
-          ${
-            active.description
-              ? `<div class="muted">${escapeHtml(active.description)}</div>`
-              : `<div class="muted">Без описания</div>`
-          }
-        </div>
-
-        <div
-          id="mapViewportInfo"
-          class="muted"
-          style="padding:8px 10px; border-radius:12px; background:rgba(7,16,20,0.54); border:1px solid rgba(152,223,227,0.10);"
-        >
-          Zoom: ${escapeHtml(MAPS_STATE.view.zoom.toFixed(2))}
-          • Rotate: ${escapeHtml(String(MAPS_STATE.view.rotation))}°
-          • Pan: ${escapeHtml(String(Math.round(MAPS_STATE.view.panX)))}, ${escapeHtml(String(Math.round(MAPS_STATE.view.panY)))}
-          • Метки: ${escapeHtml(String(active.markers.length))}
-        </div>
+    <div class="map-active-markers-dock">
+      <div class="map-active-markers-dock-head">
+        <span>Активные метки</span>
+        <strong>${escapeHtml(String(visible.length))}</strong>
       </div>
+      <div class="map-active-markers-scroll">
+        ${visible.length
+          ? visible.map((marker) => `
+            <button
+              type="button"
+              data-marker-select="${escapeHtml(marker.id)}"
+              class="map-active-marker-chip ${selectedMarker?.id === marker.id ? "active" : ""}"
+              title="${escapeHtml(marker.label)}"
+            >
+              <span>${escapeHtml(getMarkerKindIcon(marker.kind))}</span>
+              <strong>${escapeHtml(marker.label)}</strong>
+            </button>
+          `).join("")
+          : `<div class="muted">Метки не найдены</div>`}
+      </div>
+    </div>
+  `;
+}
 
+function renderMapStage(active, markers, selectedMarker) {
+  const hasImage = Boolean(active?.image);
+
+  return `
+    <div class="map-stage-shell">
       <div
-        class="map-stage-shell"
-        style="
-          position:relative;
-          width:100%;
-          border-radius:20px;
-          border:1px solid rgba(152,223,227,0.14);
-          background:
-            radial-gradient(circle at center, rgba(20,40,48,0.22), transparent 44%),
-            linear-gradient(180deg, rgba(7,16,20,0.90), rgba(4,10,14,0.96));
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-          padding:14px;
-        "
+        id="mapStageViewport"
+        class="map-stage-outer ${hasImage ? "map-stage-outer-image" : "map-stage-outer-fallback"}"
       >
-        <div
-          id="mapStageViewport"
-          class="map-stage-outer"
-          style="
-            position:relative;
-            overflow:hidden;
-            width:100%;
-            min-height:580px;
-            max-height:72vh;
-            border:1px solid rgba(152,223,227,0.10);
-            border-radius:18px;
-            background:
-              radial-gradient(circle at center, rgba(20,40,48,0.25), transparent 42%),
-              rgba(4,12,16,0.62);
-            padding:22px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            user-select:none;
-            touch-action:none;
-          "
-        >
-          <div
-            id="mapTransformLayer"
-            style="
-              position:relative;
-              width:max-content;
-              max-width:none;
-              transform-origin:center center;
-              will-change:transform;
-            "
-          >
-            <img
-              id="activeMapImage"
-              src="${escapeHtml(active.image)}"
-              alt="${escapeHtml(active.name)}"
-              draggable="false"
-              style="
-                display:block;
-                max-width:min(100%, 1320px);
-                max-height:62vh;
-                min-width:360px;
-                border-radius:14px;
-                user-select:none;
-                pointer-events:auto;
-                box-shadow:0 16px 36px rgba(0,0,0,0.32);
-              "
-            />
+        ${renderMapCompass()}
 
-            ${active.markers
-              .map((rawMarker) => {
-                const marker = getRenderableMarker(rawMarker);
-                const isSelected = selectedMarker?.id === marker.id;
+        <div id="mapTransformLayer" class="map-transform-layer">
+          ${
+            hasImage
+              ? `<img
+                  id="activeMapImage"
+                  class="map-active-image"
+                  src="${escapeHtml(active.image)}"
+                  alt="${escapeHtml(active.name)}"
+                  draggable="false"
+                />`
+              : `<div id="activeMapImage" class="map-fallback-board" role="img" aria-label="${escapeHtml(active?.name || "Карта мира")}">${renderFallbackMapTexture()}</div>`
+          }
 
-                return `
-                  <button
-                    type="button"
-                    class="map-marker-btn"
-                    data-marker-id="${escapeHtml(marker.id)}"
-                    style="
-                      position:absolute;
-                      transform:translate(-50%, -100%);
-                      ${buildMarkerStyle(marker, isSelected)}
-                      color:#e8f2f5;
-                      border-radius:999px;
-                      border:2px solid ${escapeHtml(marker.color)};
-                      padding:7px 11px;
-                      min-height:34px;
-                      font-size:13px;
-                      font-weight:700;
-                      cursor:${MAPS_STATE.view.markerMode ? "crosshair" : "grab"};
-                      touch-action:none;
-                      white-space:nowrap;
-                    "
-                    title="${escapeHtml(marker.label)}"
-                  >
-                    📍 ${escapeHtml(marker.label)}
-                  </button>
-                `;
-              })
-              .join("")}
-          </div>
+          ${markers.map((marker) => renderMapMarkerButton(getRenderableMarker(marker), selectedMarker)).join("")}
         </div>
 
-        <div class="collection-toolbar compact-collection-toolbar" style="margin-top:12px; gap:12px;">
-          <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
-            <label>Подсказка</label>
-            <div class="muted" style="padding:10px 12px; border-radius:12px; background:rgba(7,16,20,0.42); border:1px solid rgba(152,223,227,0.08);">
-              ${
-                MAPS_STATE.view.markerMode
-                  ? "Режим меток включён. Кликни по карте, чтобы поставить новую метку."
-                  : "Колёсико — zoom. ЛКМ по пустому месту — двигать карту. ЛКМ по метке — перетащить её."
-              }
-            </div>
-          </div>
+        ${renderActiveMarkersDock(markers, selectedMarker)}
 
-          <div class="filter-group">
-            <label>Масштаб</label>
-            <div class="cart-buttons">
-              <button class="btn" type="button" id="mapZoomOutBtn">−</button>
-              <button class="btn" type="button" id="mapZoomInBtn">＋</button>
-              <button class="btn" type="button" id="mapResetViewBtn">Сброс</button>
-            </div>
-          </div>
-
-          <div class="filter-group">
-            <label>Поворот</label>
-            <div class="cart-buttons">
-              <button class="btn" type="button" id="mapRotateBtn">↻ 90°</button>
-            </div>
-          </div>
-
-          <div class="filter-group">
-            <label>Метки</label>
-            <div class="cart-buttons">
-              <button class="btn ${MAPS_STATE.view.markerMode ? "btn-primary" : ""}" type="button" id="mapMarkerModeBtn">
-                ${MAPS_STATE.view.markerMode ? "Добавление: ВКЛ" : "Добавление: ВЫКЛ"}
-              </button>
-              ${
-                active.markers.length
-                  ? `<button class="btn btn-danger" type="button" id="mapClearMarkersBtn">Очистить все</button>`
-                  : ""
-              }
-            </div>
-          </div>
+        <div class="map-zoom-dock">
+          <button class="btn" type="button" id="mapZoomOutBtn">−</button>
+          <div class="map-zoom-track"><span style="left:${Math.round(((MAPS_STATE.view.zoom - 0.4) / 3.6) * 100)}%;"></span></div>
+          <button class="btn" type="button" id="mapZoomInBtn">＋</button>
         </div>
+
+        <button class="map-world-chip" type="button" id="mapResetViewBtn">Сброс вида</button>
+        <button class="map-legend-toggle" type="button" id="mapRotateBtn">Поворот <span>${escapeHtml(String(MAPS_STATE.view.rotation || 0))}°</span></button>
       </div>
+    </div>
+  `;
+}
+
+
+function getPendingMarkerDraft(active = getActiveMap()) {
+  const nameFromInput = safeText(getEl("mapQuickMarkerLabelInput")?.value, "").trim();
+  const kindFromInput = safeText(getEl("mapQuickMarkerKindInput")?.value, "").trim();
+  const colorFromInput = safeText(getEl("mapQuickMarkerColorInput")?.value, "").trim();
+
+  const label = nameFromInput || safeText(MAPS_STATE.ui.pendingMarkerLabel, "").trim() || `Метка ${(active?.markers?.length || 0) + 1}`;
+  const kind = normalizeMarkerKind(kindFromInput || MAPS_STATE.ui.pendingMarkerKind || "marker", "marker");
+  const color = colorFromInput || MAPS_STATE.ui.pendingMarkerColor || "#98dfe3";
+
+  return { label, kind, color };
+}
+
+function renderQuickMarkerCreate(active) {
+  const draft = getPendingMarkerDraft(active);
+  const modeText = MAPS_STATE.view.markerMode ? "Кликни по карте" : "Добавить метку";
+
+  return `
+    <section class="map-location-card map-quick-marker-panel">
+      <div class="map-card-heading">
+        <span>Быстрая метка</span>
+        <strong>${MAPS_STATE.view.markerMode ? "ожидает клика" : "готово"}</strong>
+      </div>
+      <div class="map-quick-marker-grid">
+        <label class="filter-group map-quick-marker-name">
+          <span>Название</span>
+          <input id="mapQuickMarkerLabelInput" type="text" value="${escapeHtml(MAPS_STATE.ui.pendingMarkerLabel || "")}" placeholder="Например: Тайный проход" />
+        </label>
+        <label class="filter-group">
+          <span>Тип</span>
+          <select id="mapQuickMarkerKindInput">
+            ${MAP_CATEGORY_FILTERS.filter(([key]) => key !== "all").map(([key, label]) => `<option value="${escapeHtml(key)}" ${draft.kind === key ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}
+            <option value="marker" ${draft.kind === "marker" ? "selected" : ""}>Своя метка</option>
+          </select>
+        </label>
+        <label class="filter-group map-quick-marker-color">
+          <span>Цвет</span>
+          <input id="mapQuickMarkerColorInput" type="color" value="${escapeHtml(draft.color)}" />
+        </label>
+      </div>
+      <div class="map-location-actions map-quick-marker-actions">
+        <button class="btn btn-primary" type="button" id="mapQuickAddMarkerBtn">${escapeHtml(modeText)}</button>
+        <button class="btn" type="button" id="mapQuickCancelMarkerBtn" ${MAPS_STATE.view.markerMode ? "" : "disabled"}>Отмена</button>
+      </div>
+      <div class="muted map-quick-marker-note">
+        Введи название, выбери тип/цвет, нажми «Добавить метку» и кликни по карте. Метка сразу откроется в редакторе справа.
+      </div>
+    </section>
+  `;
+}
+
+function renderSelectedMarkerQuickEditor(marker, realMarker) {
+  if (!marker) {
+    return `
+      <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-empty">
+        <div class="map-card-heading">
+          <span>Редактор метки</span>
+          <strong>нет выбора</strong>
+        </div>
+        <div class="muted">Выбери метку справа или создай новую через блок «Быстрая метка».</div>
+      </section>
+    `;
+  }
+
+  if (!realMarker) {
+    return `
+      <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-preview">
+        <div class="map-card-heading">
+          <span>Редактор метки</span>
+          <strong>demo</strong>
+        </div>
+        <div class="muted">Это демонстрационная точка. Чтобы редактировать название, цвет и связи, создай пользовательскую метку.</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="map-location-card map-marker-quick-editor">
+      <div class="map-card-heading">
+        <span>Редактор метки</span>
+        <strong>${escapeHtml(getMarkerKindLabel(marker.kind))}</strong>
+      </div>
+      <div class="map-marker-edit-grid map-marker-edit-grid-compact">
+        <label class="filter-group">
+          <span>Название</span>
+          <input id="mapMarkerLabelInput" type="text" value="${escapeHtml(marker.label)}" />
+        </label>
+        <label class="filter-group">
+          <span>Тип</span>
+          <select id="mapMarkerKindInput">
+            ${MAP_CATEGORY_FILTERS.filter(([key]) => key !== "all").map(([key, label]) => `<option value="${escapeHtml(key)}" ${normalizeMarkerKind(marker.kind) === key ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}
+            <option value="marker" ${normalizeMarkerKind(marker.kind) === "marker" ? "selected" : ""}>Своя метка</option>
+          </select>
+        </label>
+        <label class="filter-group">
+          <span>Цвет</span>
+          <input id="mapMarkerColorInput" type="color" value="${escapeHtml(marker.color || "#98dfe3")}" />
+        </label>
+        <label class="filter-group">
+          <span>Угроза</span>
+          <select id="mapMarkerThreatInput">
+            ${["Низкий", "Средний", "Высокий", "Критический"].map((value) => `<option value="${escapeHtml(value)}" ${String(marker.threat || "") === value ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <label class="filter-group map-marker-quick-full">
+        <span>Описание / заметка</span>
+        <textarea id="mapMarkerDescriptionInput" rows="3" placeholder="Что это за место, почему оно важно, что тут происходит...">${escapeHtml(marker.description || "")}</textarea>
+      </label>
+      <div class="map-marker-edit-grid map-marker-edit-grid-compact">
+        <label class="filter-group">
+          <span>Регион</span>
+          <input id="mapMarkerAreaInput" type="text" value="${escapeHtml(marker.area || "")}" placeholder="Например: Долина Дессарин" />
+        </label>
+        <label class="filter-group">
+          <span>Репутация</span>
+          <input id="mapMarkerReputationInput" type="text" value="${escapeHtml(marker.reputation || "")}" placeholder="Например: Дружественный" />
+        </label>
+      </div>
+      <details class="map-side-section map-marker-links-drawer">
+        <summary><span>Связи метки</span><strong>${escapeHtml(String((marker.traders || []).length + (marker.quests || []).length + (marker.events || []).length))}</strong></summary>
+        <div class="map-marker-edit-grid map-marker-edit-grid-compact">
+          <label class="filter-group">
+            <span>Торговцы</span>
+            <input id="mapMarkerTradersInput" type="text" value="${escapeHtml(serializeStringList(marker.traders))}" placeholder="через запятую" />
+          </label>
+          <label class="filter-group">
+            <span>Квесты</span>
+            <input id="mapMarkerQuestsInput" type="text" value="${escapeHtml(serializeStringList(marker.quests))}" placeholder="через запятую" />
+          </label>
+        </div>
+        <label class="filter-group map-marker-quick-full">
+          <span>События</span>
+          <input id="mapMarkerEventsInput" type="text" value="${escapeHtml(serializeStringList(marker.events))}" placeholder="через запятую" />
+        </label>
+      </details>
+      <div class="map-create-actions map-marker-quick-actions">
+        <button class="btn btn-success" type="button" id="mapMarkerSaveBtn">Сохранить</button>
+        <button class="btn" type="button" id="mapCenterSelectedBtnEditor">Центрировать</button>
+        <button class="btn btn-danger" type="button" id="mapMarkerDeleteBtn">Удалить</button>
+      </div>
+      <div class="map-marker-coords" id="mapMarkerCoordsInfo">X ${Math.round(marker.x)}% • Y ${Math.round(marker.y)}%</div>
+    </section>
+  `;
+}
+
+function renderLocationRail(active, markers) {
+  const location = getActiveLocation(active, markers);
+  const marker = location.marker;
+  const previewImage = active?.image || "/static/images/background.jpg";
+  const traders = Array.isArray(marker?.traders) ? marker.traders : [];
+  const quests = Array.isArray(marker?.quests) ? marker.quests : [];
+  const events = Array.isArray(marker?.events) ? marker.events : [];
+  const realMarker = marker && !isFallbackMarker(marker);
+  const eventMarkers = markers.filter((item) => normalizeMarkerKind(item.kind, "marker") === "event");
+
+  return `
+    <aside class="map-location-rail map-location-rail-clean">
+      <section class="map-location-card map-location-card-main map-combined-panel">
+        <div class="map-location-image">
+          <img src="${escapeHtml(previewImage)}" alt="${escapeHtml(location.name)}" />
+        </div>
+
+        <div class="map-location-title-row">
+          <h3>${escapeHtml(location.name)}</h3>
+          <span>${escapeHtml(location.type)}</span>
+        </div>
+
+        <div class="map-location-meta">
+          <p>◉ ${escapeHtml(location.area)}</p>
+          <p>✙ Репутация: <strong>${escapeHtml(location.reputation)}</strong></p>
+          <p>♢ Уровень угрозы: <strong>${escapeHtml(location.threat)}</strong></p>
+          ${marker ? `<p>⌖ Координаты: <strong>X ${Math.round(marker.x)}% • Y ${Math.round(marker.y)}%</strong></p>` : ""}
+        </div>
+
+        <p class="map-location-copy">${escapeHtml(location.description)}</p>
+
+        <div class="map-location-actions map-location-actions-clean">
+          <button class="btn" type="button" id="mapCenterSelectedBtn" ${marker ? "" : "disabled"}>Центрировать</button>
+          <button class="btn" type="button" id="mapShareLocationBtn" ${marker ? "" : "disabled"}>Скопировать</button>
+        </div>
+
+        ${renderQuickMarkerCreate(active)}
+        ${renderSelectedMarkerQuickEditor(marker, realMarker)}
+
+        ${!realMarker && marker ? `<div class="map-demo-note">Это демонстрационная точка. Чтобы редактировать детали, создай свою метку на карте.</div>` : ""}
+
+        <div class="map-side-stack-clean">
+          <details class="map-side-section">
+            <summary><span>Метки и события</span><strong>${markers.length}/${eventMarkers.length}</strong></summary>
+            <div class="map-compact-list map-compact-list-clean">
+              ${markers.length
+                ? markers.slice(0, 10).map((item) => `
+                  <button type="button" data-marker-select="${escapeHtml(item.id)}" class="map-side-marker-row ${marker?.id === item.id ? "active" : ""}">
+                    <span>${escapeHtml(getMarkerKindIcon(item.kind))}</span>
+                    <div>
+                      <strong>${escapeHtml(item.label)}</strong>
+                      <small>${escapeHtml(getMarkerKindLabel(item.kind))}${Array.isArray(item.events) && item.events.length ? ` • событий: ${item.events.length}` : ""}</small>
+                    </div>
+                  </button>
+                `).join("")
+                : `<div class="muted">По текущему фильтру меток нет.</div>`}
+            </div>
+          </details>
+
+          <details class="map-side-section">
+            <summary><span>Торговцы</span><strong>${traders.length}</strong></summary>
+            <div class="map-compact-list map-compact-list-clean">
+              ${traders.length
+                ? traders.map((name, index) => `
+                  <div class="map-compact-row">
+                    <img src="/static/images/${escapeHtml(["kaylessa", "grund", "minthra", "eldras"][index % 4])}.jpg" alt="${escapeHtml(name)}" />
+                    <div><strong>${escapeHtml(name)}</strong><small>${escapeHtml(index === 0 ? "Связанный торговец" : "Локационный NPC")}</small></div>
+                  </div>
+                `).join("")
+                : `<div class="muted">К этой точке торговцы пока не привязаны.</div>`}
+            </div>
+            <button class="map-card-link" type="button" id="mapAddTraderToMarkerBtn" ${realMarker ? "" : "disabled"}>Добавить торговца</button>
+          </details>
+
+          <details class="map-side-section">
+            <summary><span>Квесты</span><strong>${quests.length}</strong></summary>
+            <div class="map-quest-list">
+              ${quests.length
+                ? quests.map((quest, index) => `<div><span>${index % 2 ? "✧" : "✦"}</span><p>${escapeHtml(quest)}<small>${escapeHtml(marker?.kind === "quest" ? "Основная цель" : "Связанная запись")}</small></p></div>`).join("")
+                : `<div class="muted">Квесты пока не привязаны.</div>`}
+            </div>
+            <button class="map-card-link" type="button" id="mapAddQuestToMarkerBtn" ${realMarker ? "" : "disabled"}>Добавить квест</button>
+          </details>
+
+          <details class="map-side-section">
+            <summary><span>События выбранной точки</span><strong>${events.length}</strong></summary>
+            <div class="map-event-row map-event-row-clean">
+              ${events.length
+                ? events.map((eventName) => `<div><span>✹</span><strong>${escapeHtml(eventName)}</strong><small>активно</small></div>`).join("")
+                : `<div class="muted">Событий у выбранной точки пока нет.</div>`}
+            </div>
+            <button class="map-card-link" type="button" id="mapAddEventToMarkerBtn" ${realMarker ? "" : "disabled"}>Добавить событие</button>
+          </details>
+        </div>
+      </section>
+    </aside>
+  `;
+}
+
+function renderMapViewer() {
+  const active = getActiveMap();
+  const displayMap = active || {
+    id: "fallback-map",
+    name: "Карта мира",
+    description: "Долина Дессарин",
+    image: "",
+    markers: [],
+    updated_at: new Date().toISOString(),
+  };
+  const markers = getDisplayMarkers(active);
+  const selectedMarker = getSelectedDisplayMarker(active, markers);
+
+  return `
+    <div class="map-reference-layout">
+      <main class="map-main-panel">
+        ${renderSummaryBar()}
+        ${renderCreateForm()}
+        <div id="mapViewportInfo" class="map-viewport-info" hidden></div>
+        ${renderMapStage(displayMap, markers, selectedMarker)}
+        <details class="map-control-drawer map-marker-editor-drawer">
+          <summary>
+            <span>Настройки карт и меток</span>
+            <strong>${escapeHtml(String(active?.markers?.length || 0))}</strong>
+          </summary>
+          ${renderMarkerEditor()}
+        </details>
+      </main>
+
+      ${renderLocationRail(displayMap, markers)}
+    </div>
+  `;
+}
+
+function renderMapBottomPanels(markers) {
+  const active = getActiveMap();
+  const selected = getSelectedDisplayMarker(active, markers);
+  const questMarkers = markers.filter((marker) => normalizeMarkerKind(marker.kind, "marker") === "quest").slice(0, 4);
+  const eventMarkers = markers.filter((marker) => normalizeMarkerKind(marker.kind, "marker") === "event").slice(0, 3);
+  const visibleMarkers = questMarkers.length ? questMarkers : markers.slice(0, 4);
+
+  return `
+    <div class="map-bottom-grid">
+      <section class="map-bottom-card">
+        <div class="map-card-heading">
+          <span>Активные точки на карте</span>
+          <strong>${markers.length}</strong>
+        </div>
+        <div class="map-bottom-row">
+          ${visibleMarkers.length
+            ? visibleMarkers.map((marker) => `
+              <button type="button" data-marker-select="${escapeHtml(marker.id)}" class="${selected?.id === marker.id ? "active" : ""}">
+                <span>${escapeHtml(getMarkerKindIcon(marker.kind))}</span>
+                <strong>${escapeHtml(marker.label)}</strong>
+                <small>${escapeHtml(getMarkerKindLabel(marker.kind))}</small>
+              </button>
+            `).join("")
+            : `<div class="muted">По текущему фильтру точек нет.</div>`}
+        </div>
+      </section>
+
+      <section class="map-bottom-card">
+        <div class="map-card-heading">
+          <span>События</span>
+          <strong>${eventMarkers.length}</strong>
+        </div>
+        <div class="map-event-row">
+          ${eventMarkers.length
+            ? eventMarkers.map((marker) => `<button type="button" data-marker-select="${escapeHtml(marker.id)}"><span>${escapeHtml(getMarkerKindIcon(marker.kind))}</span><strong>${escapeHtml(marker.label)}</strong><small>${escapeHtml(marker.threat || "событие")}</small></button>`).join("")
+            : `<div><span>✹</span><strong>${escapeHtml(selected?.events?.[0] || "Нет активных событий")}</strong><small>${escapeHtml(selected ? selected.label : "выберите метку")}</small></div>`}
+          <button type="button" id="mapAddEventToMarkerBtnBottom" ${selected && !isFallbackMarker(selected) ? "" : "disabled"}>Добавить событие</button>
+        </div>
+      </section>
     </div>
   `;
 }
 
 function renderMarkerEditor() {
   const active = getActiveMap();
-  const marker = getSelectedMarker();
-  const preview = getDraggedMarkerPreview();
-
   if (!active) return "";
 
   return `
-    <div class="cabinet-layout" style="grid-template-columns: minmax(0, 1fr) 340px; gap:12px; margin-bottom:12px;">
-      <div class="cabinet-block">
-        <h3>Список карт</h3>
+    <div class="map-management-grid map-management-grid-compact">
+      <section class="map-location-card">
+        <div class="map-card-heading">
+          <span>Карты кампании</span>
+          <strong>${MAPS_STATE.maps.length}</strong>
+        </div>
         ${
           MAPS_STATE.maps.length
             ? `
-              <div class="quest-list">
+              <div class="map-list-stack">
                 ${MAPS_STATE.maps
                   .map((map) => {
                     const activeFlag = map.id === MAPS_STATE.activeMapId;
-
                     return `
-                      <div class="quest-item">
-                        <div class="flex-between" style="align-items:flex-start; gap:12px;">
-                          <div style="flex:1 1 auto;">
-                            <h4 style="margin-bottom:6px;">
-                              ${activeFlag ? "🟢" : "🗺️"} ${escapeHtml(map.name)}
-                            </h4>
-
-                            ${
-                              map.description
-                                ? `<div>${escapeHtml(map.description)}</div>`
-                                : `<div class="muted">Без описания</div>`
-                            }
-
-                            <div class="muted" style="margin-top:8px;">
-                              Меток: ${map.markers.length}
-                              • Обновлено: ${escapeHtml(formatDate(map.updated_at))}
-                            </div>
-                          </div>
-
-                          <div class="cart-buttons">
-                            <button class="btn" type="button" data-map-select="${escapeHtml(map.id)}">Открыть</button>
-                            <button class="btn btn-danger" type="button" data-map-delete="${escapeHtml(map.id)}">Удалить</button>
-                          </div>
+                      <div class="map-list-row ${activeFlag ? "map-list-row-active" : ""}">
+                        <div>
+                          <strong>${activeFlag ? "●" : "○"} ${escapeHtml(map.name)}</strong>
+                          <small>${escapeHtml(map.description || "Без описания")} • Меток: ${map.markers.length} • ${escapeHtml(formatDate(map.updated_at))}</small>
+                        </div>
+                        <div>
+                          <button class="btn" type="button" data-map-select="${escapeHtml(map.id)}">Открыть</button>
+                          <button class="btn btn-danger" type="button" data-map-delete="${escapeHtml(map.id)}" ${map.id === "default_world_map" ? "disabled" : ""}>Удалить</button>
                         </div>
                       </div>
                     `;
@@ -1194,76 +1645,19 @@ function renderMarkerEditor() {
                   .join("")}
               </div>
             `
-            : `<p>Карт пока нет.</p>`
+            : `<p class="muted">Карт пока нет. Добавь первую карту через кнопку сверху.</p>`
         }
-      </div>
-
-      <div class="cabinet-block">
-        <h3>Метки карты</h3>
-
-        ${
-          active.markers.length
-            ? `
-              <div style="max-height:240px; overflow:auto; margin-bottom:12px;">
-                ${active.markers
-                  .map((item) => {
-                    const selected = marker?.id === item.id;
-                    return `
-                      <button
-                        type="button"
-                        data-marker-select="${escapeHtml(item.id)}"
-                        class="btn ${selected ? "btn-primary" : ""}"
-                        style="width:100%; justify-content:flex-start; text-align:left; margin-bottom:8px; border-radius:12px;"
-                      >
-                        <span style="display:inline-flex; width:12px; height:12px; border-radius:999px; background:${escapeHtml(item.color)}; margin-right:8px;"></span>
-                        ${escapeHtml(item.label)}
-                      </button>
-                    `;
-                  })
-                  .join("")}
-              </div>
-            `
-            : `<p class="muted">На этой карте пока нет меток.</p>`
-        }
-
-        ${
-          marker
-            ? `
-              <div class="filter-group" style="margin-bottom:10px;">
-                <label>Название метки</label>
-                <input id="mapMarkerLabelInput" type="text" value="${escapeHtml(marker.label)}" />
-              </div>
-
-              <div class="filter-group" style="margin-bottom:10px;">
-                <label>Цвет метки</label>
-                <input
-                  id="mapMarkerColorInput"
-                  type="color"
-                  value="${escapeHtml(marker.color || "#98dfe3")}"
-                  style="height:42px; padding:6px;"
-                />
-              </div>
-
-              <div class="modal-actions">
-                <button class="btn btn-success" type="button" id="mapMarkerSaveBtn">Сохранить метку</button>
-                <button class="btn btn-danger" type="button" id="mapMarkerDeleteBtn">Удалить метку</button>
-              </div>
-
-              <div class="muted" style="margin-top:10px;">
-                Выдели метку в списке или перетащи её прямо по карте.
-              </div>
-
-              <div class="muted" id="mapMarkerCoordsInfo" style="margin-top:6px;">
-                Координаты: X ${Math.round((preview?.id === marker.id ? preview.x : marker.x) ?? marker.x)}% • Y ${Math.round((preview?.id === marker.id ? preview.y : marker.y) ?? marker.y)}%
-              </div>
-            `
-            : `
-              <div class="muted">
-                Выбери метку из списка или кликни по ней на карте. Для новой метки включи режим добавления и кликни по карте.
-              </div>
-            `
-        }
-      </div>
+      </section>
+      <section class="map-location-card">
+        <div class="map-card-heading">
+          <span>Очистка меток</span>
+          <strong>${active.markers.length}</strong>
+        </div>
+        <p class="muted">Редактирование выбранной метки теперь находится справа от карты, чтобы не листать вниз.</p>
+        <div class="map-create-actions">
+          <button class="btn btn-danger" type="button" id="mapClearMarkersBtn" ${active.markers.length ? "" : "disabled"}>Очистить все пользовательские метки</button>
+        </div>
+      </section>
     </div>
   `;
 }
@@ -1278,15 +1672,61 @@ export function renderMaps() {
   ensureSelectedMarkerIsValid();
 
   container.innerHTML = `
-    ${renderSummaryBar()}
-    ${renderCreateForm()}
     ${renderMapViewer()}
-    ${renderMarkerEditor()}
   `;
 
   applyMapTransform();
   bindMapActions();
   syncToSharedState();
+}
+
+// ------------------------------------------------------------
+// 🎛 ACTION HELPERS
+// ------------------------------------------------------------
+function centerOnMarker(marker = getSelectedDisplayMarker()) {
+  if (!marker) return;
+  const viewport = getEl("mapStageViewport");
+  const rect = viewport?.getBoundingClientRect();
+  if (!rect?.width || !rect?.height) {
+    MAPS_STATE.view.panX = 0;
+    MAPS_STATE.view.panY = 0;
+  } else {
+    MAPS_STATE.view.panX = (50 - safeNumber(marker.x, 50)) * (rect.width / 100) * MAPS_STATE.view.zoom;
+    MAPS_STATE.view.panY = (50 - safeNumber(marker.y, 50)) * (rect.height / 100) * MAPS_STATE.view.zoom;
+  }
+  MAPS_STATE.ui.selectedMarkerId = marker.id;
+  syncToSharedState();
+  applyMapTransform();
+  updateViewportStatus();
+  showToast("Карта центрирована по метке");
+}
+
+async function copySelectedLocation() {
+  const active = getActiveMap();
+  const marker = getSelectedDisplayMarker(active, getDisplayMarkers(active));
+  if (!marker) return;
+  const text = `${marker.label} • ${getMarkerKindLabel(marker.kind)} • X ${Math.round(marker.x)}% / Y ${Math.round(marker.y)}%`;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Локация скопирована");
+  } catch (_) {
+    showToast(text);
+  }
+}
+
+async function addValueToSelectedMarker(field, promptTitle) {
+  const active = getActiveMap();
+  const marker = getSelectedMarker();
+  if (!active || !marker) return;
+
+  const value = safeText(prompt(promptTitle, ""), "").trim();
+  if (!value) return;
+
+  const prev = Array.isArray(marker[field]) ? marker[field] : [];
+  await updateMarker(active.id, marker.id, {
+    [field]: [...prev, value],
+  });
+  showToast("Данные метки обновлены");
 }
 
 // ------------------------------------------------------------
@@ -1298,6 +1738,32 @@ function bindMapActions() {
     refreshBtn.onclick = async () => {
       await loadMapData();
       showToast("Карты обновлены");
+    };
+  }
+
+  const searchInput = getEl("mapSearchInput");
+  if (searchInput) {
+    searchInput.oninput = () => {
+      MAPS_STATE.ui.searchQuery = searchInput.value || "";
+      renderMaps();
+    };
+  }
+
+  document.querySelectorAll("[data-map-filter]").forEach((btn) => {
+    btn.onclick = () => {
+      MAPS_STATE.ui.activeFilter = btn.dataset.mapFilter || "all";
+      MAPS_STATE.ui.selectedMarkerId = null;
+      renderMaps();
+    };
+  });
+
+  const resetFiltersBtn = getEl("mapResetFiltersBtn");
+  if (resetFiltersBtn) {
+    resetFiltersBtn.onclick = () => {
+      MAPS_STATE.ui.activeFilter = "all";
+      MAPS_STATE.ui.searchQuery = "";
+      MAPS_STATE.ui.selectedMarkerId = null;
+      renderMaps();
     };
   }
 
@@ -1364,6 +1830,47 @@ function bindMapActions() {
 
   const markerModeBtn = getEl("mapMarkerModeBtn");
   if (markerModeBtn) markerModeBtn.onclick = () => toggleMarkerMode();
+
+  const quickLabelInput = getEl("mapQuickMarkerLabelInput");
+  if (quickLabelInput) {
+    quickLabelInput.oninput = () => {
+      MAPS_STATE.ui.pendingMarkerLabel = quickLabelInput.value || "";
+    };
+  }
+
+  const quickKindInput = getEl("mapQuickMarkerKindInput");
+  if (quickKindInput) {
+    quickKindInput.onchange = () => {
+      MAPS_STATE.ui.pendingMarkerKind = normalizeMarkerKind(quickKindInput.value || "marker", "marker");
+    };
+  }
+
+  const quickColorInput = getEl("mapQuickMarkerColorInput");
+  if (quickColorInput) {
+    quickColorInput.oninput = () => {
+      MAPS_STATE.ui.pendingMarkerColor = quickColorInput.value || "#98dfe3";
+    };
+  }
+
+  const quickAddMarkerBtn = getEl("mapQuickAddMarkerBtn");
+  if (quickAddMarkerBtn) {
+    quickAddMarkerBtn.onclick = () => {
+      const draft = getPendingMarkerDraft();
+      MAPS_STATE.ui.pendingMarkerLabel = draft.label;
+      MAPS_STATE.ui.pendingMarkerKind = draft.kind;
+      MAPS_STATE.ui.pendingMarkerColor = draft.color;
+      toggleMarkerMode(true);
+      showToast("Теперь кликни по карте, чтобы поставить метку");
+    };
+  }
+
+  const quickCancelMarkerBtn = getEl("mapQuickCancelMarkerBtn");
+  if (quickCancelMarkerBtn) {
+    quickCancelMarkerBtn.onclick = () => {
+      toggleMarkerMode(false);
+      showToast("Режим добавления метки выключен");
+    };
+  }
 
   const clearMarkersBtn = getEl("mapClearMarkersBtn");
   if (clearMarkersBtn) {
@@ -1459,10 +1966,27 @@ function bindMapActions() {
 
       const nextLabel = safeText(getEl("mapMarkerLabelInput")?.value, "").trim() || "Метка";
       const nextColor = safeText(getEl("mapMarkerColorInput")?.value, "#98dfe3") || "#98dfe3";
+      const nextKind = normalizeMarkerKind(getEl("mapMarkerKindInput")?.value || marker.kind, "marker");
+      const nextDescription = safeText(getEl("mapMarkerDescriptionInput")?.value, "");
+      const nextArea = safeText(getEl("mapMarkerAreaInput")?.value, "").trim();
+      const nextThreat = safeText(getEl("mapMarkerThreatInput")?.value, "Низкий") || "Низкий";
+      const nextReputation = safeText(getEl("mapMarkerReputationInput")?.value, "").trim();
+      const nextTraders = getEl("mapMarkerTradersInput") ? normalizeStringList(getEl("mapMarkerTradersInput")?.value || "") : marker.traders;
+      const nextQuests = getEl("mapMarkerQuestsInput") ? normalizeStringList(getEl("mapMarkerQuestsInput")?.value || "") : marker.quests;
+      const nextEvents = getEl("mapMarkerEventsInput") ? normalizeStringList(getEl("mapMarkerEventsInput")?.value || "") : marker.events;
 
       await updateMarker(active.id, marker.id, {
         label: nextLabel,
         color: nextColor,
+        kind: nextKind,
+        type: nextKind,
+        description: nextDescription,
+        area: nextArea,
+        threat: nextThreat,
+        reputation: nextReputation,
+        traders: nextTraders,
+        quests: nextQuests,
+        events: nextEvents,
       });
 
       showToast("Метка обновлена");
@@ -1483,6 +2007,26 @@ function bindMapActions() {
       showToast("Метка удалена");
     };
   }
+
+
+  [getEl("mapCenterSelectedBtn"), getEl("mapCenterSelectedBtnEditor")].filter(Boolean).forEach((btn) => {
+    btn.onclick = () => centerOnMarker();
+  });
+
+  const shareLocationBtn = getEl("mapShareLocationBtn");
+  if (shareLocationBtn) shareLocationBtn.onclick = () => copySelectedLocation();
+
+  [getEl("mapAddTraderToMarkerBtn")].filter(Boolean).forEach((btn) => {
+    btn.onclick = () => addValueToSelectedMarker("traders", "Название торговца для этой метки");
+  });
+
+  [getEl("mapAddQuestToMarkerBtn")].filter(Boolean).forEach((btn) => {
+    btn.onclick = () => addValueToSelectedMarker("quests", "Название квеста для этой метки");
+  });
+
+  [getEl("mapAddEventToMarkerBtn"), getEl("mapAddEventToMarkerBtnBottom")].filter(Boolean).forEach((btn) => {
+    btn.onclick = () => addValueToSelectedMarker("events", "Название события для этой метки");
+  });
 
   const viewport = getEl("mapStageViewport");
   const image = getEl("activeMapImage");
@@ -1594,15 +2138,27 @@ function bindMapActions() {
       const coords = getMarkerCoordsFromClick(event, image);
       if (!coords) return;
 
+      const draft = getPendingMarkerDraft(active);
       const marker = await addMarkerToActiveMap({
         x: coords.x,
         y: coords.y,
-        label: `Метка ${active.markers.length + 1}`,
-        color: "#98dfe3",
+        label: draft.label,
+        color: draft.color,
+        kind: draft.kind,
+        type: draft.kind,
+        description: "",
+        area: active.description || "",
+        threat: "Низкий",
+        reputation: "Неизвестно",
+        traders: [],
+        quests: [],
+        events: [],
       });
 
       if (marker) {
         MAPS_STATE.ui.selectedMarkerId = marker.id;
+        MAPS_STATE.view.markerMode = false;
+        MAPS_STATE.ui.pendingMarkerLabel = "";
         renderMaps();
         showToast("Метка добавлена");
       }

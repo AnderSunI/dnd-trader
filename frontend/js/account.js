@@ -441,7 +441,6 @@ function renderAccountHero() {
   }
 
   const avatar = getProfileAvatarUrl();
-  const banner = getProfileBannerUrl();
   const avatarMarkup = avatar
     ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.nickname || "avatar")}" class="account-hub-avatar-media">`
     : `<div class="account-hub-avatar-fallback">${escapeHtml((user.nickname || user.email || "U").slice(0, 1).toUpperCase())}</div>`;
@@ -449,75 +448,59 @@ function renderAccountHero() {
   const lssName = getCurrentLssCharacterName();
   const partiesCount = getCurrentParties().length;
   const charactersCount = getCurrentCharacters().length;
-  const showcase = getCurrentShowcase();
-  const heroBackdrop = banner
-    ? `linear-gradient(rgba(9,16,24,0.46), rgba(9,16,24,0.92)), url('${escapeHtml(banner)}') center/cover`
-    : "radial-gradient(circle at top left, rgba(214,181,122,0.22), transparent 28%), radial-gradient(circle at top right, rgba(105,153,171,0.28), transparent 24%), linear-gradient(135deg, rgba(25,31,42,0.98), rgba(9,13,19,0.99))";
+  const friendsCount = ACCOUNT_STATE.friends?.friends?.length || getCurrentShowcase().friends_count || 0;
+  const showcaseCount = (getProfileMedia().showcase || []).length;
 
   return `
-    <section class="cabinet-block account-hub-hero">
-      <div class="account-hub-hero-backdrop" style="--account-hero-backdrop:${heroBackdrop};">
-        <div class="account-hub-hero-layout">
-          <div class="account-hub-identity">
-            <div class="account-hub-avatar-wrap">${avatarMarkup}</div>
-            <div class="account-hub-copy">
-              <div class="account-hub-kicker">Игровой профиль</div>
-              <div class="account-hub-title">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
-              <div class="muted account-hub-subtitle">@${escapeHtml(user.nickname || user.username || "player")} • ${escapeHtml(user.email || "")}</div>
-              <div class="trader-meta account-hub-meta">
-              <span class="meta-item">role: ${escapeHtml(roleBadgeLabel(user))}</span>
-              <span class="meta-item">${user.is_online ? "online" : `last seen: ${escapeHtml(formatDateTime(user.last_seen_at))}`}</span>
-              <span class="meta-item">created: ${escapeHtml(formatDateTime(user.created_at))}</span>
-              ${lssName ? `<span class="meta-item">LSS: ${escapeHtml(lssName)}</span>` : ""}
-              </div>
-              <div class="account-hub-status">${escapeHtml(user.short_status || "Без статуса")}</div>
-              <div class="cart-buttons account-hub-actions">
-              <button class="btn ${isGm ? "btn-danger" : "btn-primary"}" type="button" id="accountToggleGmModeBtn">
-                ${isGm ? "Переключить в Player" : "Включить GM mode"}
-              </button>
-              <button class="btn" type="button" data-account-section-open="masterroom">Открыть Master Room</button>
-              <button class="btn" type="button" data-account-section="chat">Открыть чат</button>
-            </div>
+    <section class="cabinet-block account-hub-hero account-clean-hero">
+      <div class="account-clean-identity">
+        <div class="account-hub-avatar-wrap account-clean-avatar">${avatarMarkup}</div>
+        <div class="account-clean-main">
+          <div class="account-hub-kicker">Мой аккаунт</div>
+          <div class="account-hub-title account-clean-title">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
+          <div class="muted account-hub-subtitle account-clean-subtitle">
+            @${escapeHtml(user.nickname || user.username || "player")} • ${escapeHtml(user.email || "email не указан")}
           </div>
-          </div>
-          <div class="account-hub-sidepanel">
-            <div class="account-hub-sidepanel-header">
-              <div class="account-hub-kicker">Витрина профиля</div>
-              <div class="muted account-hub-sidepanel-note">Личные игровые маркеры</div>
-            </div>
-            <div class="account-hub-metrics-grid">
-              <div class="stat-box account-hub-metric-card">
-                <div class="muted">Персонажи</div>
-                <div class="account-hub-metric-value">${escapeHtml(String(charactersCount))}</div>
-              </div>
-              <div class="stat-box account-hub-metric-card">
-                <div class="muted">Партии</div>
-                <div class="account-hub-metric-value">${escapeHtml(String(partiesCount))}</div>
-              </div>
-              <div class="stat-box account-hub-metric-card">
-                <div class="muted">Друзья</div>
-                <div class="account-hub-metric-value">${escapeHtml(String(showcase.friends_count || 0))}</div>
-              </div>
-              <div class="stat-box account-hub-metric-card">
-                <div class="muted">Витрина</div>
-                <div class="account-hub-metric-value">${escapeHtml(String((getProfileMedia().showcase || []).length))}</div>
-              </div>
-            </div>
-            <div class="account-hub-featured-note">
-              ${escapeHtml(user.bio || "Профиль игрока, витрина персонажей и социальный хаб кампании.")}
-            </div>
+          <div class="account-clean-status-line">
+            <span class="meta-item">${escapeHtml(roleBadgeLabel(user))}</span>
+            <span class="meta-item">${user.is_online ? "online" : `last seen: ${escapeHtml(formatDateTime(user.last_seen_at))}`}</span>
+            ${lssName ? `<span class="meta-item">LSS: ${escapeHtml(lssName)}</span>` : ""}
           </div>
         </div>
+        <div class="account-clean-actions">
+          <button class="btn ${isGm ? "btn-danger" : "btn-primary"}" type="button" id="accountToggleGmModeBtn">
+            ${isGm ? "Player mode" : "GM mode"}
+          </button>
+          <button class="btn" type="button" data-account-section="chat">Чат</button>
+          <button class="btn" type="button" data-account-section-open="masterroom">Master Room</button>
+          <button class="btn btn-danger account-hub-logout-btn" type="button" data-account-logout="1">Выйти</button>
+        </div>
       </div>
+
+      <div class="account-clean-summary-grid">
+        <div class="account-clean-summary-card"><span>Персонажи</span><strong>${escapeHtml(String(charactersCount))}</strong></div>
+        <div class="account-clean-summary-card"><span>Партии</span><strong>${escapeHtml(String(partiesCount))}</strong></div>
+        <div class="account-clean-summary-card"><span>Друзья</span><strong>${escapeHtml(String(friendsCount))}</strong></div>
+        <div class="account-clean-summary-card"><span>Витрина</span><strong>${escapeHtml(String(showcaseCount))}</strong></div>
+      </div>
+
+      <details class="account-clean-details">
+        <summary>Коротко о профиле</summary>
+        <div>${escapeHtml(user.bio || user.short_status || "Профиль игрока, витрина персонажей и социальный хаб кампании.")}</div>
+      </details>
     </section>
   `;
 }
 
 function renderSectionNav() {
+  const primary = new Set(["profile", "friends", "chat", "parties", "characters", "settings"]);
+  const primarySections = ACCOUNT_SECTIONS.filter((section) => primary.has(section.key));
+  const extraSections = ACCOUNT_SECTIONS.filter((section) => !primary.has(section.key));
+
   return `
-    <div class="cabinet-block account-hub-nav account-hub-nav-shell">
-      <div class="account-hub-tab-row">
-        ${ACCOUNT_SECTIONS.map((section) => `
+    <div class="cabinet-block account-hub-nav account-hub-nav-shell account-clean-nav">
+      <div class="account-hub-tab-row account-clean-tab-row">
+        ${primarySections.map((section) => `
           <button
             class="btn ${ACCOUNT_STATE.section === section.key ? "active" : ""}"
             type="button"
@@ -527,6 +510,22 @@ function renderSectionNav() {
           </button>
         `).join("")}
       </div>
+      ${extraSections.length ? `
+        <details class="account-clean-details account-clean-extra-nav">
+          <summary>Дополнительно</summary>
+          <div class="account-clean-extra-nav-row">
+            ${extraSections.map((section) => `
+              <button
+                class="btn ${ACCOUNT_STATE.section === section.key ? "active" : ""}"
+                type="button"
+                data-account-section="${escapeHtml(section.key)}"
+              >
+                ${escapeHtml(section.label)}
+              </button>
+            `).join("")}
+          </div>
+        </details>
+      ` : ""}
     </div>
   `;
 }
@@ -1395,15 +1394,13 @@ export async function loadAccountModule() {
     return;
   }
 
-  let accountPayload = null;
-  let friendsPayload = null;
-  try {
-    [accountPayload, friendsPayload] = await Promise.all([
-      fetchAccount(),
-      fetchFriendsState(),
-    ]);
-  } catch (error) {
-    if (isAuthError(error)) {
+  const [accountResult, friendsResult] = await Promise.allSettled([
+    fetchAccount(),
+    fetchFriendsState(),
+  ]);
+
+  if (accountResult.status === "rejected") {
+    if (isAuthError(accountResult.reason)) {
       ACCOUNT_STATE.account = null;
       ACCOUNT_STATE.friends = {
         friends: [],
@@ -1417,12 +1414,19 @@ export async function loadAccountModule() {
       renderAccountModule();
       return;
     }
-    throw error;
+    ACCOUNT_STATE.account = { user: getCurrentUser() || {} };
+    ACCOUNT_STATE.source = "local";
+  } else {
+    ACCOUNT_STATE.account = accountResult.value || null;
+    ACCOUNT_STATE.source = "api";
   }
 
-  ACCOUNT_STATE.account = accountPayload || null;
-  syncAccountUser(accountPayload?.user || {});
-  ACCOUNT_STATE.friends = friendsPayload || {
+  if (friendsResult.status === "rejected") {
+    console.warn("Account friends unavailable:", friendsResult.reason);
+  }
+
+  syncAccountUser(ACCOUNT_STATE.account?.user || {});
+  ACCOUNT_STATE.friends = friendsResult.status === "fulfilled" && friendsResult.value ? friendsResult.value : {
     friends: [],
     incoming_requests: [],
     outgoing_requests: [],
@@ -1459,10 +1463,10 @@ export function renderAccountModule() {
   }
 
   root.innerHTML = `
-    <div class="account-hub-shell account-hub-shell-${escapeHtml(ACCOUNT_STATE.section)}">
+    <div class="account-hub-shell account-hub-shell-${escapeHtml(ACCOUNT_STATE.section)} account-clean-shell">
       ${renderAccountHero()}
       ${renderSectionNav()}
-      <div class="account-hub-section account-hub-section-${escapeHtml(ACCOUNT_STATE.section)}">
+      <div class="account-hub-section account-hub-section-${escapeHtml(ACCOUNT_STATE.section)} account-clean-section">
         ${renderCurrentSection()}
       </div>
     </div>
@@ -1960,6 +1964,17 @@ export function bindAccountModuleActions() {
     } catch (error) {
       showToast(error.message || "Не удалось переключить GM mode");
     }
+  });
+
+  document.querySelectorAll("[data-account-logout]").forEach((btn) => {
+    if (btn.dataset.boundAccountLogout === "1") return;
+    btn.dataset.boundAccountLogout = "1";
+    btn.addEventListener("click", () => {
+      try {
+        window.cabinetModule?.closeCabinet?.();
+      } catch (_) {}
+      document.getElementById("logoutBtn")?.click();
+    });
   });
 
   ["avatar", "banner", "showcase"].forEach((kind) => {

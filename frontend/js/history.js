@@ -32,6 +32,7 @@ const HISTORY_STATE = {
   source: "empty",
   loaded: false,
   runtimeBound: false,
+  selectedEntryId: "",
   filters: {
     scope: "all",
     search: "",
@@ -735,6 +736,24 @@ function ensureHistoryRuntime() {
 // ------------------------------------------------------------
 // 🔎 FILTERS / SUMMARY
 // ------------------------------------------------------------
+const HISTORY_SCOPE_FILTERS = [
+  { key: "all", label: "Все", shortLabel: "Все", icon: "✦" },
+  { key: "trade", label: "Торговля", shortLabel: "Торг", icon: "💰" },
+  { key: "inventory", label: "Инвентарь", shortLabel: "Инв.", icon: "🎒" },
+  { key: "quests", label: "Задания", shortLabel: "Квест", icon: "🧭" },
+  { key: "notes", label: "Заметки", shortLabel: "Заметки", icon: "📝" },
+  { key: "map", label: "Карта", shortLabel: "Карта", icon: "🗺️" },
+  { key: "files", label: "Файлы", shortLabel: "Файлы", icon: "📁" },
+  { key: "auth", label: "Входы", shortLabel: "Auth", icon: "🔐" },
+  { key: "gm", label: "ГМ", shortLabel: "GM", icon: "🛡️" },
+  { key: "system", label: "Система", shortLabel: "Сист.", icon: "⚙️" },
+  { key: "misc", label: "Прочее", shortLabel: "Другое", icon: "📜" },
+];
+
+function getScopeFilterMeta(scope) {
+  return HISTORY_SCOPE_FILTERS.find((entry) => entry.key === scope) || HISTORY_SCOPE_FILTERS[0];
+}
+
 function getFilteredEntries() {
   const scope = HISTORY_STATE.filters.scope || "all";
   const search = trimText(HISTORY_STATE.filters.search).toLowerCase();
@@ -790,152 +809,290 @@ function groupEntriesByDate(entries) {
   }));
 }
 
+function getSelectedEntry(entries = HISTORY_STATE.entries) {
+  return (
+    entries.find((entry) => String(entry.id) === String(HISTORY_STATE.selectedEntryId)) ||
+    entries[0] ||
+    null
+  );
+}
+
+function ensureSelectedEntry(filteredEntries) {
+  if (!filteredEntries.length) {
+    HISTORY_STATE.selectedEntryId = "";
+    return null;
+  }
+
+  const selected = getSelectedEntry(filteredEntries);
+  HISTORY_STATE.selectedEntryId = selected?.id || filteredEntries[0].id;
+  return selected || filteredEntries[0];
+}
+
+function getLastEventLabel() {
+  const first = HISTORY_STATE.entries[0];
+  if (!first) return "нет событий";
+  return formatDateTime(first.timestamp);
+}
+
+function getEntryAgeLabel(value) {
+  const date = normalizeDateInput(value);
+  if (!date) return "—";
+
+  const diff = Date.now() - date.getTime();
+  if (diff < 60_000) return "только что";
+  if (diff < 3_600_000) return `${Math.max(1, Math.round(diff / 60_000))} мин. назад`;
+  if (diff < 86_400_000) return `${Math.max(1, Math.round(diff / 3_600_000))} ч. назад`;
+  return `${Math.max(1, Math.round(diff / 86_400_000))} дн. назад`;
+}
+
+function buildRawDetailRows(entry) {
+  const raw = entry?.raw && typeof entry.raw === "object" ? entry.raw : {};
+  const keys = [
+    "action",
+    "type",
+    "item_name",
+    "trader_name",
+    "quest_name",
+    "map_name",
+    "marker_name",
+    "file_name",
+    "quantity",
+    "price_label",
+    "reward",
+    "previous_status",
+    "checkpoint",
+  ];
+
+  return keys
+    .map((key) => {
+      const value = raw?.[key];
+      if (value === null || value === undefined || value === "") return "";
+      return `
+        <div class="history-ref-detail-row">
+          <span>${escapeHtml(key)}</span>
+          <strong>${escapeHtml(String(value))}</strong>
+        </div>
+      `;
+    })
+    .filter(Boolean)
+    .join("");
+}
+
 // ------------------------------------------------------------
 // 🎨 RENDER HELPERS
 // ------------------------------------------------------------
 function renderEmptyState() {
   return `
-    <div class="cabinet-block">
-      <h3>Последние действия</h3>
-      <p>
-        Журнал пока пуст. Когда подключим запись действий сайта, здесь будут
-        покупки, продажи, изменения инвентаря, квестов, заметок, карты и файлов.
-      </p>
-    </div>
+    <section class="cabinet-block history-ref-empty">
+      <div class="history-ref-empty-icon">📜</div>
+      <div>
+        <h3>Журнал действий пока пуст</h3>
+        <p>
+          История собирает не рукописные заметки, а автоматические события сайта:
+          покупки, продажи, задания, карту, заметки, файлы, входы и действия ГМа.
+        </p>
+        <div class="history-ref-empty-hint">
+          Соверши действие в торговле, карте, заданиях или заметках — запись появится здесь.
+        </div>
+      </div>
+    </section>
   `;
 }
 
-function renderSummaryBar(entries) {
+function renderHero(entries) {
   const summary = getSummary(entries);
+  const activeScope = getScopeFilterMeta(HISTORY_STATE.filters.scope || "all");
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="trader-meta">
-        <span class="meta-item">Всего: ${summary.total}</span>
-        <span class="meta-item">💰 ${summary.trade}</span>
-        <span class="meta-item">🎒 ${summary.inventory}</span>
-        <span class="meta-item">🧭 ${summary.quests}</span>
-        <span class="meta-item">📝 ${summary.notes}</span>
-        <span class="meta-item">🗺️ ${summary.map}</span>
-        <span class="meta-item">📁 ${summary.files}</span>
-        <span class="meta-item">🛡️ ${summary.gm}</span>
+    <section class="cabinet-block history-ref-hero">
+      <div class="history-ref-hero-main">
+        <div class="history-ref-kicker">Activity log</div>
+        <h2>История действий</h2>
+        <p>
+          Автоматический журнал того, что происходило в проекте: покупки, продажи,
+          изменения заданий, карты, заметок, файлов и GM-события.
+        </p>
+        <div class="history-ref-hero-meta">
+          <span>Источник: <strong>${escapeHtml(HISTORY_STATE.source)}</strong></span>
+          <span>Фильтр: <strong>${escapeHtml(activeScope.label)}</strong></span>
+          <span>Последнее: <strong>${escapeHtml(getLastEventLabel())}</strong></span>
+        </div>
       </div>
 
-      <div class="muted" style="margin-top:8px;">
-        Источник: ${escapeHtml(HISTORY_STATE.source)}
+      <div class="history-ref-hero-stats">
+        <div class="history-ref-stat-card history-ref-stat-card-main">
+          <span>Всего событий</span>
+          <strong>${escapeHtml(String(summary.total))}</strong>
+        </div>
+        <div class="history-ref-stat-card"><span>Торговля</span><strong>${escapeHtml(String(summary.trade))}</strong></div>
+        <div class="history-ref-stat-card"><span>Задания</span><strong>${escapeHtml(String(summary.quests))}</strong></div>
+        <div class="history-ref-stat-card"><span>Карта</span><strong>${escapeHtml(String(summary.map))}</strong></div>
       </div>
-    </div>
+    </section>
+  `;
+}
+
+function renderScopeTabs(entries) {
+  const summary = getSummary(entries);
+  const activeScope = HISTORY_STATE.filters.scope || "all";
+
+  return `
+    <section class="cabinet-block history-ref-scope-panel">
+      <div class="history-ref-scope-tabs">
+        ${HISTORY_SCOPE_FILTERS.map((scope) => {
+          const count = scope.key === "all" ? summary.total : summary[scope.key] || 0;
+          const active = activeScope === scope.key;
+          return `
+            <button
+              type="button"
+              class="history-ref-scope-tab ${active ? "active" : ""}"
+              data-history-scope="${escapeHtml(scope.key)}"
+            >
+              <span class="history-ref-scope-icon">${escapeHtml(scope.icon)}</span>
+              <span class="history-ref-scope-label">${escapeHtml(scope.shortLabel || scope.label)}</span>
+              <strong>${escapeHtml(String(count))}</strong>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </section>
   `;
 }
 
 function renderFilters() {
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="collection-toolbar compact-collection-toolbar">
-        <div class="filter-group">
-          <label>Поиск</label>
-          <input
-            id="historySearchInput"
-            type="text"
-            placeholder="Поиск по журналу"
-            value="${escapeHtml(HISTORY_STATE.filters.search)}"
-          />
-        </div>
+    <section class="cabinet-block history-ref-toolbar">
+      <label class="history-ref-search" for="historySearchInput">
+        <span>⌕</span>
+        <input
+          id="historySearchInput"
+          type="search"
+          placeholder="Найти покупку, квест, метку, заметку, торговца..."
+          value="${escapeHtml(HISTORY_STATE.filters.search)}"
+        />
+      </label>
 
-        <div class="filter-group">
-          <label>Раздел</label>
-          <select id="historyScopeSelect">
-            <option value="all" ${HISTORY_STATE.filters.scope === "all" ? "selected" : ""}>Все</option>
-            <option value="trade" ${HISTORY_STATE.filters.scope === "trade" ? "selected" : ""}>Торговля</option>
-            <option value="inventory" ${HISTORY_STATE.filters.scope === "inventory" ? "selected" : ""}>Инвентарь</option>
-            <option value="quests" ${HISTORY_STATE.filters.scope === "quests" ? "selected" : ""}>Задания</option>
-            <option value="notes" ${HISTORY_STATE.filters.scope === "notes" ? "selected" : ""}>Заметки</option>
-            <option value="map" ${HISTORY_STATE.filters.scope === "map" ? "selected" : ""}>Карта</option>
-            <option value="files" ${HISTORY_STATE.filters.scope === "files" ? "selected" : ""}>Файлы</option>
-            <option value="auth" ${HISTORY_STATE.filters.scope === "auth" ? "selected" : ""}>Авторизация</option>
-            <option value="lss" ${HISTORY_STATE.filters.scope === "lss" ? "selected" : ""}>LSS</option>
-            <option value="gm" ${HISTORY_STATE.filters.scope === "gm" ? "selected" : ""}>ГМ</option>
-            <option value="system" ${HISTORY_STATE.filters.scope === "system" ? "selected" : ""}>Система</option>
-            <option value="misc" ${HISTORY_STATE.filters.scope === "misc" ? "selected" : ""}>Прочее</option>
-          </select>
-        </div>
+      <label class="history-ref-select-wrap" for="historyScopeSelect">
+        <span>Раздел</span>
+        <select id="historyScopeSelect">
+          ${HISTORY_SCOPE_FILTERS.map((scope) => `
+            <option value="${escapeHtml(scope.key)}" ${HISTORY_STATE.filters.scope === scope.key ? "selected" : ""}>
+              ${escapeHtml(scope.label)}
+            </option>
+          `).join("")}
+        </select>
+      </label>
 
-        <div class="filter-group">
-          <label>Действия</label>
-          <div class="cart-buttons">
-            <button class="btn" type="button" id="historyRefreshBtn">Обновить</button>
-            <button class="btn btn-danger" type="button" id="historyClearLocalBtn">Очистить local</button>
-          </div>
-        </div>
+      <div class="history-ref-actions">
+        <button class="btn" type="button" id="historyRefreshBtn">Обновить</button>
+        <button class="btn btn-danger" type="button" id="historyClearLocalBtn">Очистить local</button>
       </div>
-    </div>
+    </section>
   `;
 }
 
 function renderHistoryItem(entry) {
+  const active = String(entry.id) === String(HISTORY_STATE.selectedEntryId);
+  const scopeLabel = getScopeLabel(entry.scope);
+
   return `
-    <div class="quest-item">
-      <div class="flex-between" style="align-items:flex-start; gap:12px;">
-        <div style="flex:1 1 auto;">
-          <h4 style="margin-bottom:6px;">
-            ${escapeHtml(entry.icon)} ${escapeHtml(entry.title)}
-          </h4>
-
-          <div class="inv-item-details" style="margin-bottom:8px;">
-            <span>${escapeHtml(getScopeLabel(entry.scope))}</span>
-            ${
-              entry.status
-                ? `<span>${escapeHtml(entry.status)}</span>`
-                : ""
-            }
-            ${
-              entry.actor
-                ? `<span>Автор: ${escapeHtml(entry.actor)}</span>`
-                : ""
-            }
-          </div>
-
-          ${
-            entry.message
-              ? `<div>${escapeHtml(entry.message)}</div>`
-              : `<div class="muted">Без дополнительного описания.</div>`
-          }
-        </div>
-
-        <div class="muted" style="white-space:nowrap;">
-          ${escapeHtml(formatDateTime(entry.timestamp))}
-        </div>
-      </div>
-    </div>
+    <button
+      type="button"
+      class="history-ref-item ${active ? "active" : ""} history-ref-item-${escapeHtml(entry.scope)}"
+      data-history-entry="${escapeHtml(entry.id)}"
+    >
+      <span class="history-ref-item-node">${escapeHtml(entry.icon)}</span>
+      <span class="history-ref-item-body">
+        <span class="history-ref-item-topline">
+          <strong>${escapeHtml(entry.title)}</strong>
+          <em>${escapeHtml(getEntryAgeLabel(entry.timestamp))}</em>
+        </span>
+        <span class="history-ref-item-message">
+          ${entry.message ? escapeHtml(entry.message) : "Без дополнительного описания."}
+        </span>
+        <span class="history-ref-item-meta">
+          <span>${escapeHtml(scopeLabel)}</span>
+          ${entry.status ? `<span>${escapeHtml(entry.status)}</span>` : ""}
+          ${entry.actor ? `<span>${escapeHtml(entry.actor)}</span>` : ""}
+        </span>
+      </span>
+      <span class="history-ref-item-time">${escapeHtml(formatTime(entry.timestamp))}</span>
+    </button>
   `;
 }
 
 function renderTimeline(entries) {
   if (!entries.length) {
     return `
-      <div class="cabinet-block">
-        <p>По текущим фильтрам записей нет.</p>
-      </div>
+      <section class="cabinet-block history-ref-empty history-ref-empty-filtered">
+        <div class="history-ref-empty-icon">⌕</div>
+        <div>
+          <h3>По текущим фильтрам ничего нет</h3>
+          <p>Смени раздел или поисковый запрос, чтобы увидеть другие события журнала.</p>
+        </div>
+      </section>
     `;
   }
 
   const groups = groupEntriesByDate(entries);
 
   return `
-    <div class="quest-list">
+    <section class="history-ref-timeline">
       ${groups
         .map(
           (group) => `
-            <div class="cabinet-block">
-              <h3 style="margin-bottom:12px;">${escapeHtml(group.label)}</h3>
-              <div class="quest-list">
+            <div class="history-ref-date-group">
+              <div class="history-ref-date-label">${escapeHtml(group.label)}</div>
+              <div class="history-ref-list">
                 ${group.items.map(renderHistoryItem).join("")}
               </div>
             </div>
           `
         )
         .join("")}
-    </div>
+    </section>
+  `;
+}
+
+function renderDetailPanel(entry) {
+  if (!entry) {
+    return `
+      <aside class="cabinet-block history-ref-detail-panel">
+        <div class="history-ref-detail-empty">Выбери событие, чтобы увидеть детали.</div>
+      </aside>
+    `;
+  }
+
+  const rawRows = buildRawDetailRows(entry);
+
+  return `
+    <aside class="cabinet-block history-ref-detail-panel history-ref-detail-${escapeHtml(entry.scope)}">
+      <div class="history-ref-detail-head">
+        <div class="history-ref-detail-icon">${escapeHtml(entry.icon)}</div>
+        <div>
+          <div class="history-ref-kicker">${escapeHtml(getScopeLabel(entry.scope))}</div>
+          <h3>${escapeHtml(entry.title)}</h3>
+          <p>${escapeHtml(formatDateTime(entry.timestamp))}</p>
+        </div>
+      </div>
+
+      <div class="history-ref-detail-message">
+        ${entry.message ? escapeHtml(entry.message) : "Подробности события не переданы."}
+      </div>
+
+      <div class="history-ref-detail-grid">
+        <div class="history-ref-detail-row"><span>Раздел</span><strong>${escapeHtml(getScopeLabel(entry.scope))}</strong></div>
+        <div class="history-ref-detail-row"><span>Статус</span><strong>${escapeHtml(entry.status || "—")}</strong></div>
+        <div class="history-ref-detail-row"><span>Автор</span><strong>${escapeHtml(entry.actor || "—")}</strong></div>
+        <div class="history-ref-detail-row"><span>Источник</span><strong>${escapeHtml(HISTORY_STATE.source || "—")}</strong></div>
+        ${rawRows}
+      </div>
+
+      <details class="history-ref-raw-details">
+        <summary>Raw событие</summary>
+        <pre>${escapeHtml(JSON.stringify(entry.raw || {}, null, 2))}</pre>
+      </details>
+    </aside>
   `;
 }
 
@@ -961,6 +1118,24 @@ function bindHistoryActions() {
     });
   }
 
+  document.querySelectorAll("[data-history-scope]").forEach((btn) => {
+    if (btn.dataset.boundHistoryScopeTab === "1") return;
+    btn.dataset.boundHistoryScopeTab = "1";
+    btn.addEventListener("click", () => {
+      HISTORY_STATE.filters.scope = btn.dataset.historyScope || "all";
+      renderHistory();
+    });
+  });
+
+  document.querySelectorAll("[data-history-entry]").forEach((btn) => {
+    if (btn.dataset.boundHistoryEntry === "1") return;
+    btn.dataset.boundHistoryEntry = "1";
+    btn.addEventListener("click", () => {
+      HISTORY_STATE.selectedEntryId = btn.dataset.historyEntry || "";
+      renderHistory();
+    });
+  });
+
   const refreshBtn = getEl("historyRefreshBtn");
   if (refreshBtn && refreshBtn.dataset.boundHistoryRefresh !== "1") {
     refreshBtn.dataset.boundHistoryRefresh = "1";
@@ -975,16 +1150,13 @@ function bindHistoryActions() {
   if (clearBtn && clearBtn.dataset.boundHistoryClear !== "1") {
     clearBtn.dataset.boundHistoryClear = "1";
     clearBtn.addEventListener("click", () => {
+      const ok = confirm("Очистить локально сохранённую историю? Удалятся только local-записи в браузере.");
+      if (!ok) return;
+
       clearLocalHistoryStorage();
-
-      HISTORY_STATE.entries = HISTORY_STATE.entries.filter((entry) => {
-        return !entry.raw || typeof entry.raw !== "object" || entry.raw.__remote === true;
-      });
-
-      if (!HISTORY_STATE.entries.length) {
-        HISTORY_STATE.source = "empty";
-      }
-
+      HISTORY_STATE.entries = [];
+      HISTORY_STATE.source = "empty";
+      HISTORY_STATE.selectedEntryId = "";
       renderHistory();
       showToast("Local history очищена");
     });
@@ -1002,29 +1174,42 @@ export function renderHistory() {
 
   if (!HISTORY_STATE.loaded) {
     container.innerHTML = `
-      <div class="cabinet-block">
-        <h3>Последние действия</h3>
-        <p>Журнал ещё не загружен.</p>
-      </div>
+      <section class="cabinet-block history-ref-empty">
+        <div class="history-ref-empty-icon">📜</div>
+        <div>
+          <h3>История действий</h3>
+          <p>Журнал ещё не загружен.</p>
+        </div>
+      </section>
     `;
     return;
   }
 
   if (!HISTORY_STATE.entries.length) {
     container.innerHTML = `
-      ${renderFilters()}
-      ${renderEmptyState()}
+      <div class="history-ref-shell history-ref-shell-empty">
+        ${renderHero(HISTORY_STATE.entries)}
+        ${renderFilters()}
+        ${renderEmptyState()}
+      </div>
     `;
     bindHistoryActions();
     return;
   }
 
   const filtered = getFilteredEntries();
+  const selected = ensureSelectedEntry(filtered);
 
   container.innerHTML = `
-    ${renderSummaryBar(HISTORY_STATE.entries)}
-    ${renderFilters()}
-    ${renderTimeline(filtered)}
+    <div class="history-ref-shell">
+      ${renderHero(HISTORY_STATE.entries)}
+      ${renderScopeTabs(HISTORY_STATE.entries)}
+      ${renderFilters()}
+      <div class="history-ref-layout">
+        ${renderTimeline(filtered)}
+        ${renderDetailPanel(selected)}
+      </div>
+    </div>
   `;
 
   bindHistoryActions();

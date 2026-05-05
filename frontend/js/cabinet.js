@@ -10,7 +10,8 @@
 // - GM-only private notes прямо здесь, в cabinet.js
 // - инвентарь кабинета + рабочая форма кастомного предмета
 // - файлы игрока: local-first + попытка API + drag&drop сортировка
-// - canonical Master Room implementation lives here
+// - Master Room runtime is mounted from master-room.js; legacy/internal helpers remain only as fallback/reference
+// - Round 31: Master Room uses normal cabinet layout so user can exit/switch modules
 // ============================================================
 
 import {
@@ -63,6 +64,17 @@ import {
 } from "./bestiari.js";
 
 import {
+  bindCombatModule,
+  renderCombatModule,
+} from "./combat.js";
+
+import {
+  loadMasterRoom as loadMasterRoomRuntime,
+  renderMasterRoom as renderMasterRoomRuntime,
+  initMasterRoom as initMasterRoomRuntime,
+} from "./master-room.js";
+
+import {
   apiGet,
   apiWrite as sharedApiWrite,
   escapeHtml,
@@ -82,6 +94,7 @@ import {
 } from "./shared.js";
 
 const CABINET_UI_STORAGE_KEY = "dnd-trader-cabinet-ui";
+const CABINET_LAST_TAB_STORAGE_KEY = "dnd-trader-cabinet-last-tab";
 
 function readStoredCabinetUiState() {
   try {
@@ -99,6 +112,23 @@ function readStoredCabinetUiFlag(key, fallback = false) {
     return Boolean(STORED_CABINET_UI[key]);
   }
   return Boolean(fallback);
+}
+
+function readStoredCabinetActiveTab() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return "";
+    return String(window.localStorage.getItem(CABINET_LAST_TAB_STORAGE_KEY) || "").trim();
+  } catch (_) {
+    return "";
+  }
+}
+
+function persistCabinetActiveTab(tabName) {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    const value = String(tabName || "").trim();
+    if (value) window.localStorage.setItem(CABINET_LAST_TAB_STORAGE_KEY, value);
+  } catch (_) {}
 }
 
 // ------------------------------------------------------------
@@ -122,7 +152,10 @@ const GM_NOTES_STATE = {
 
 const CABINET_INVENTORY_STATE = {
   customFormOpen: false,
-  filtersVisible: true,
+  filtersVisible: false,
+  equipmentVisible: false,
+  searchRenderTimer: null,
+  customDraft: {},
 };
 
 const FILES_STATE = {
@@ -132,6 +165,17 @@ const FILES_STATE = {
   draggedIndex: null,
   isSaving: false,
   lastSavedAt: null,
+  selectedFileId: "",
+  filters: {
+    search: "",
+    category: "all",
+    visibility: "all",
+    sort: "newest",
+  },
+  ui: {
+    uploadOpen: true,
+    detailsOpen: true,
+  },
 };
 
 const MASTER_ROOM_STATE = {
@@ -141,7 +185,7 @@ const MASTER_ROOM_STATE = {
   activeTableId: "",
   createOpen: false,
   stageMode: "table",
-  railCollapsed: readStoredCabinetUiFlag("masterRoomRailCollapsed"),
+  railCollapsed: readStoredCabinetUiFlag("masterRoomRailCollapsedV2", true),
   heroCollapsed: readStoredCabinetUiFlag("masterRoomHeroCollapsed", true),
   sceneCollapsed: readStoredCabinetUiFlag("masterRoomSceneCollapsed"),
   journalCollapsed: readStoredCabinetUiFlag("masterRoomJournalCollapsed"),
@@ -166,6 +210,14 @@ const MASTER_ROOM_STATE = {
   combatEventType: "roll",
   activeSheetMemberId: "",
   pollTimer: null,
+  pollFailures: 0,
+  pollPausedUntil: 0,
+  pollInFlight: false,
+  inviteSearchTimer: null,
+  itemSearchTimer: null,
+  createDraft: {},
+  tableDrafts: {},
+  memberCharacterDrafts: {},
   combatDiceType: "d20",
   combatLastRoll: null,
 };
@@ -179,6 +231,8 @@ const CODEX_STATE = {
 const CABINET_RUNTIME = {
   refreshing: false,
   pendingRefresh: false,
+  floatingNavTimer: null,
+  floatingNavHideTimer: null,
 };
 
 // ------------------------------------------------------------
@@ -192,6 +246,7 @@ function persistCabinetUiState() {
       JSON.stringify({
         cabinetRailCollapsed: Boolean(CABINET_STATE.railCollapsed),
         masterRoomRailCollapsed: Boolean(MASTER_ROOM_STATE.railCollapsed),
+        masterRoomRailCollapsedV2: Boolean(MASTER_ROOM_STATE.railCollapsed),
         masterRoomHeroCollapsed: Boolean(MASTER_ROOM_STATE.heroCollapsed),
         masterRoomSceneCollapsed: Boolean(MASTER_ROOM_STATE.sceneCollapsed),
         masterRoomJournalCollapsed: Boolean(MASTER_ROOM_STATE.journalCollapsed),
@@ -222,6 +277,10 @@ function scrollCabinetAnchor(anchor) {
   }
 
   const target = document.querySelector(`[data-cabinet-anchor="${key}"]`);
+  if (target && typeof scrollCabinetTo === "function") {
+    scrollCabinetTo(target);
+    return;
+  }
   target?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -245,6 +304,10 @@ function clampText(value, maxLength = 120) {
 
 function getInventoryState() {
   if (Array.isArray(window.__appStateInventory)) {
+    window.__appStateInventory = mergeStoredCustomInventoryItems(window.__appStateInventory);
+    if (window.__appState && typeof window.__appState === "object") {
+      window.__appState.inventory = window.__appStateInventory;
+    }
     return window.__appStateInventory;
   }
 
@@ -252,13 +315,124 @@ function getInventoryState() {
     const raw = localStorage.getItem("dnd_inventory");
     const parsed = tryParseJson(raw);
     if (Array.isArray(parsed)) {
-      window.__appStateInventory = parsed;
+      window.__appStateInventory = mergeStoredCustomInventoryItems(parsed);
+      if (window.__appState && typeof window.__appState === "object") {
+        window.__appState.inventory = window.__appStateInventory;
+      }
       return window.__appStateInventory;
     }
   } catch (_) {}
 
-  window.__appStateInventory = [];
+  window.__appStateInventory = mergeStoredCustomInventoryItems([]);
+  if (window.__appState && typeof window.__appState === "object") {
+    window.__appState.inventory = window.__appStateInventory;
+  }
   return window.__appStateInventory;
+}
+
+function getCustomInventoryStorageKey() {
+  return getUserScopedKey("cabinetCustomInventory");
+}
+
+function getInventoryEntryKey(item) {
+  const localId = String(item?.local_id || "").trim();
+  if (localId) return `local:${localId}`;
+
+  const id = Number(item?.item_id ?? item?.id ?? 0);
+  const source = String(item?.source || "").trim().toLowerCase();
+  if (item?.is_custom || source === "cabinet_custom") return `custom:${id || item?.name || ""}`;
+  return `server:${id || item?.name || ""}`;
+}
+
+function normalizeCustomInventoryItem(item, index = 0) {
+  const source = item && typeof item === "object" ? item : {};
+  const rawId = Number(source.item_id ?? source.id ?? 0);
+  const id = Number.isFinite(rawId) && rawId > 0 ? rawId : 1000000 + index + 1;
+  const quantity = Math.max(1, Math.floor(safeNumber(source.quantity, 1)));
+
+  return {
+    ...source,
+    id,
+    item_id: id,
+    local_id: String(source.local_id || `custom_${id}`).trim(),
+    source: "cabinet_custom",
+    is_custom: true,
+    quantity,
+    stock: Math.max(quantity, Math.floor(safeNumber(source.stock, quantity))),
+  };
+}
+
+function loadCustomInventoryItemsLocal() {
+  const buckets = [];
+
+  try {
+    const scoped = tryParseJson(localStorage.getItem(getCustomInventoryStorageKey()));
+    if (Array.isArray(scoped)) buckets.push(...scoped);
+  } catch (_) {}
+
+  try {
+    const legacy = tryParseJson(localStorage.getItem("dnd_inventory"));
+    if (Array.isArray(legacy)) {
+      buckets.push(...legacy.filter((item) => Boolean(item?.is_custom)));
+    }
+  } catch (_) {}
+
+  const seen = new Set();
+  return buckets
+    .map((item, index) => normalizeCustomInventoryItem(item, index))
+    .filter((item) => {
+      const key = getInventoryEntryKey(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function mergeStoredCustomInventoryItems(items) {
+  const merged = Array.isArray(items) ? [...items] : [];
+  const seen = new Set(merged.map(getInventoryEntryKey));
+
+  loadCustomInventoryItemsLocal().forEach((item) => {
+    const key = getInventoryEntryKey(item);
+    if (seen.has(key)) return;
+    merged.push(item);
+    seen.add(key);
+  });
+
+  return merged;
+}
+
+function saveInventoryStateLocal(items = getInventoryState()) {
+  const inventory = Array.isArray(items) ? items : [];
+  const customItems = inventory
+    .filter((item) => Boolean(item?.is_custom))
+    .map((item, index) => normalizeCustomInventoryItem(item, index));
+
+  try {
+    localStorage.setItem("dnd_inventory", JSON.stringify(inventory));
+  } catch (_) {}
+
+  try {
+    localStorage.setItem(getCustomInventoryStorageKey(), JSON.stringify(customItems));
+  } catch (_) {}
+}
+
+function syncInventoryToUi(items = window.__appStateInventory) {
+  const inventory = Array.isArray(items) ? items : getInventoryState();
+  window.__appStateInventory = inventory;
+  if (window.__appState && typeof window.__appState === "object") {
+    window.__appState.inventory = inventory;
+  }
+  saveInventoryStateLocal(inventory);
+
+  try {
+    window.dispatchEvent(new CustomEvent("dnd:inventory:changed", { detail: { inventory } }));
+  } catch (_) {}
+}
+
+async function tryPersistInventoryToServer() {
+  saveInventoryStateLocal(getInventoryState());
+  return { status: "local", reason: "custom_inventory_local_first" };
 }
 
 function openModal(modal) {
@@ -419,6 +593,97 @@ function normalizeRarityValue(value) {
   return raw;
 }
 
+function stripKnownFieldPrefix(value, labels = []) {
+  let text = safeText(value, "").trim();
+  labels.forEach((label) => {
+    const escaped = String(label || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!escaped) return;
+    text = text.replace(new RegExp(`^${escaped}\\s*[:—-]\\s*`, "i"), "").trim();
+  });
+  return text;
+}
+
+function readCustomItemNumber(id, options = {}) {
+  const el = getEl(id);
+  const raw = String(el?.value ?? "").trim().replace(",", ".");
+  const fallback = options.fallback ?? 0;
+  const min = options.min ?? 0;
+  const label = options.label || "Значение";
+  const integer = options.integer !== false;
+  const disallowZero = Boolean(options.disallowZero);
+
+  if (!raw) return fallback;
+
+  const number = Number(raw);
+  if (!Number.isFinite(number) || number < min || (disallowZero && number === 0)) {
+    throw new Error(`${label} должно быть больше нуля`);
+  }
+
+  return integer ? Math.floor(number) : number;
+}
+
+function normalizeCustomNumberInputValue(input, options = {}) {
+  if (!input) return;
+  const allowDecimal = Boolean(options.allowDecimal);
+  const min = Number(options.min ?? input.min ?? 0);
+  const raw = String(input.value || "");
+  if (!raw) return;
+
+  let next = raw.replace(",", ".");
+  next = allowDecimal
+    ? next.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1")
+    : next.replace(/\D/g, "");
+
+  if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
+    next = next.replace(/^0+/, "") || "0";
+  }
+
+  if (Number.isFinite(min) && min > 0 && Number(next) < min) {
+    next = "";
+  }
+
+  if (options.disallowZero && Number(next) === 0) {
+    next = "";
+  }
+
+  if (input.value !== next) input.value = next;
+}
+
+function bindCustomItemNumberGuards() {
+  [
+    ["customItemQuantity", { min: 1, fallback: "1" }],
+    ["customItemPriceGold", { min: 0, disallowZero: true }],
+    ["customItemPriceSilver", { min: 0, disallowZero: true }],
+    ["customItemPriceCopper", { min: 0, disallowZero: true }],
+    ["customItemWeight", { min: 0, allowDecimal: true, disallowZero: true }],
+  ].forEach(([id, options]) => {
+    const input = getEl(id);
+    if (!input || input.dataset.boundCustomNumberGuard === "1") return;
+    input.dataset.boundCustomNumberGuard = "1";
+    input.addEventListener("input", () => normalizeCustomNumberInputValue(input, options));
+    input.addEventListener("blur", () => {
+      normalizeCustomNumberInputValue(input, options);
+      if (!String(input.value || "").trim() && options.fallback) {
+        input.value = options.fallback;
+      }
+      setCustomItemDraftValue(id, input.value || "");
+    });
+  });
+}
+
+function bindCustomItemDraftInputs() {
+  Object.keys(getCustomItemDraftDefaults()).forEach((id) => {
+    const input = getEl(id);
+    if (!input || input.dataset.boundCustomItemDraft === "1") return;
+    input.dataset.boundCustomItemDraft = "1";
+    const sync = () => {
+      setCustomItemDraftValue(id, input.type === "checkbox" ? Boolean(input.checked) : input.value || "");
+    };
+    input.addEventListener("input", sync);
+    input.addEventListener("change", sync);
+  });
+}
+
 async function readFileAsDataUrl(file) {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -449,27 +714,132 @@ function fileTypeLabel(type) {
 // ------------------------------------------------------------
 // 📑 TAB CONFIG
 // ------------------------------------------------------------
+function getCabinetTabMeta(tabName) {
+  const meta = {
+    myaccount: {
+      icon: "👤",
+      text: "Мой аккаунт",
+      headerTitle: "Мой аккаунт",
+      subtitle: "Профиль, друзья, чат, настройки, персонажи и social-слой без отдельного приложения.",
+      group: "account",
+    },
+    project: {
+      icon: "💛",
+      text: "О проекте",
+      headerTitle: "О проекте",
+      subtitle: "Короткая витрина D&D Trader и дорожная карта развития.",
+      group: "support",
+    },
+    inventory: {
+      icon: "🎒",
+      text: "Инвентарь",
+      headerTitle: "Инвентарь",
+      subtitle: "Предметы персонажа, экипировка, кастомные находки и локальные заметки по снаряжению.",
+      group: "player",
+    },
+    lss: {
+      icon: "📖",
+      text: "LSS",
+      headerTitle: "Long Story Short",
+      subtitle: "Лист персонажа, импорт, просмотр, быстрые правки и игровые броски.",
+      group: "player",
+    },
+    history: {
+      icon: "📜",
+      text: "История",
+      headerTitle: "История",
+      subtitle: "Хроника действий, торговли, заметок, карты, партии и событий кампании.",
+      group: "journal",
+    },
+    quests: {
+      icon: "🧭",
+      text: "Задания",
+      headerTitle: "Задания",
+      subtitle: "Задания, чекпоинты, ачивки и летопись кампании внутри кабинета.",
+      group: "journal",
+    },
+    map: {
+      icon: "🗺️",
+      text: "Карта",
+      headerTitle: "Карта мира",
+      subtitle: "Практический инструмент карты: изображение, маркеры, масштаб, панорама и заметки по локациям.",
+      group: "world",
+    },
+    bestiari: {
+      icon: "📚",
+      text: "Энциклопедия",
+      headerTitle: "Энциклопедия",
+      subtitle: "Справочник мира: сущности, монстры, лор, предметы и связанные записи.",
+      group: "world",
+    },
+    files: {
+      icon: "📁",
+      text: "Файлы",
+      headerTitle: "Файлы",
+      subtitle: "Архив партии и личные материалы кампании без превращения в облачную админку.",
+      group: "player",
+    },
+    playernotes: {
+      icon: "📝",
+      text: "Заметки",
+      headerTitle: "Заметки игрока",
+      subtitle: "Личные заметки, сообщение от ГМа и быстрый autosave для кампании.",
+      group: "journal",
+    },
+    masterroom: {
+      icon: "🛡️",
+      text: "Master Room",
+      headerTitle: "Master Room",
+      subtitle: "Главный GM-контур: столы, партия, доступы, торговцы, выдача, бой и журнал.",
+      group: "gm",
+      priority: "primary",
+    },
+    gmnotes: {
+      icon: "🛡️",
+      text: "Заметки ГМа",
+      headerTitle: "Заметки ГМа",
+      subtitle: "Приватные заметки мастера и служебные записи по столу.",
+      group: "gm",
+      priority: "gm-only",
+    },
+  };
+
+  return meta[tabName] || {
+    icon: "•",
+    text: "Раздел",
+    headerTitle: "Раздел",
+    subtitle: "Модуль кабинета D&D Trader.",
+    group: "misc",
+  };
+}
+
 function getVisibleTabsByRole(role) {
-  const tabs = [
-    { key: "myaccount", label: "👤 Мой аккаунт" },
-    { key: "project", label: "💛 О проекте" },
-    { key: "inventory", label: "🎒 Инвентарь" },
-    { key: "lss", label: "📖 LSS" },
-    { key: "history", label: "📜 История" },
-    { key: "quests", label: "🧭 Задания" },
-    { key: "map", label: "🗺️ Карта" },
-    { key: "bestiari", label: "📚 Энциклопедия" },
-    { key: "files", label: "📁 Файлы" },
-    { key: "playernotes", label: "📝 Заметки" },
+  const baseKeys = [
+    "myaccount",
+    "inventory",
+    "lss",
+    "history",
+    "quests",
+    "map",
+    "bestiari",
+    "files",
+    "playernotes",
+    "masterroom",
+    "project",
   ];
 
-  tabs.push({ key: "masterroom", label: "🛡️ Master Room" });
-
   if (role === "gm") {
-    tabs.push({ key: "gmnotes", label: "🛡️ Заметки ГМа" });
+    baseKeys.push("gmnotes");
   }
 
-  return tabs;
+  return baseKeys.map((key) => {
+    const meta = getCabinetTabMeta(key);
+    return {
+      key,
+      label: `${meta.icon} ${meta.text}`,
+      ...meta,
+    };
+  });
 }
 
 function getSectionIdForTab(tabName) {
@@ -552,7 +922,9 @@ function applyCabinetModalLayout() {
   const sidebar = modal.querySelector(".cabinet-sidebar");
   const main = modal.querySelector(".cabinet-main");
   const closeBtn = content?.querySelector(".close");
-  const isWorkspaceMode = CABINET_STATE.activeTab === "masterroom";
+  // Round 31: Master Room must not become a fullscreen trap.
+  // Keep the regular cabinet sidebar/header visible so the user can switch modules.
+  const isWorkspaceMode = false;
   const railCollapsed = Boolean(CABINET_STATE.railCollapsed);
 
   modal.dataset.cabinetLayoutMode = isWorkspaceMode ? "workspace" : "modal";
@@ -622,6 +994,7 @@ function updateCabinetViewState(isOpen = false) {
   if (!body) return;
 
   body.classList.toggle("cabinet-open", Boolean(isOpen));
+  body.dataset.cabinetActiveTab = isOpen && CABINET_STATE.activeTab ? CABINET_STATE.activeTab : "";
 
   [
     "cabinet-tab-inventory",
@@ -725,6 +1098,9 @@ function ensureCabinetStructure() {
   const modal = getEl("cabinetModal");
   if (!modal) return null;
 
+  modal.classList.add("dt-cabinet-shell");
+  modal.dataset.cabinetRuntime = "round9";
+
   const tabButtons = getEl("cabinetTabButtons");
   const header = getEl("cabinetHeader");
   const main = modal.querySelector(".cabinet-main");
@@ -779,33 +1155,14 @@ function renderCabinetHeader() {
   const header = getEl("cabinetHeader");
   if (!header) return;
 
-  const user = getCurrentUser();
-  const role = CABINET_STATE.role === "gm" ? "ГМ" : "Игрок";
-  const activeLabel = getCabinetActiveTabLabel();
-  const nickname = safeText(user?.nickname || user?.email?.split?.("@")?.[0] || "", "");
-  const displayName = safeText(user?.display_name || "", "");
-  const bio = safeText(user?.bio || "", "");
-
-  header.innerHTML = `
-    <div class="cabinet-header-inner cabinet-header-shell">
-      <div class="flex-between cabinet-header-layout">
-        <div class="cabinet-header-copy">
-          <div class="muted cabinet-header-kicker">Личный кабинет</div>
-          <h2 class="cabinet-header-title">Кабинет персонажа</h2>
-          <div class="muted cabinet-header-subtitle">
-            Роль: <strong>${escapeHtml(role)}</strong>
-            ${user?.email ? ` • ${escapeHtml(user.email)}` : ""}
-          </div>
-        </div>
-
-        <div class="trader-meta cabinet-header-meta">
-          <span class="meta-item">Раздел: ${escapeHtml(activeLabel)}</span>
-          ${user?.nickname ? `<span class="meta-item">@${escapeHtml(user.nickname)}</span>` : ""}
-          ${user?.display_name ? `<span class="meta-item">${escapeHtml(user.display_name)}</span>` : ""}
-        </div>
-      </div>
-    </div>
-  `;
+  // ROUND 41: the old generic cabinet section header duplicated every real module hero
+  // (for example: "Личный кабинет / Задания" above the actual quest journal).
+  // Reference-driven screens now own their title/context inside the module itself.
+  // The modal close button remains in the static modal chrome, so hiding this header
+  // does not trap the user inside the cabinet.
+  header.innerHTML = "";
+  header.hidden = true;
+  header.classList.add("cabinet-header-disabled");
 
   bindCabinetHeaderActions();
 }
@@ -823,12 +1180,15 @@ function renderCabinetTabs() {
 
       return `
         <button
-          class="btn cabinet-rail-btn ${active ? "active" : ""}"
+          class="btn cabinet-rail-btn cabinet-rail-btn-${escapeHtml(tab.key)} ${tab.priority ? `cabinet-rail-btn-${escapeHtml(tab.priority)}` : ""} ${active ? "active" : ""}"
           data-cabinet-tab="${escapeHtml(tab.key)}"
+          data-cabinet-tab-group="${escapeHtml(tab.group || "main")}"
+          title="${escapeHtml(tab.headerTitle || parts.text)}"
+          aria-current="${active ? "page" : "false"}"
         >
           <span class="cabinet-rail-btn-inner">
-            <span class="cabinet-rail-btn-icon">${escapeHtml(parts.icon)}</span>
-            <span>${escapeHtml(parts.text)}</span>
+            <span class="cabinet-rail-btn-icon">${escapeHtml(tab.icon || parts.icon)}</span>
+            <span class="cabinet-rail-btn-text">${escapeHtml(tab.text || parts.text)}</span>
           </span>
         </button>
       `;
@@ -848,17 +1208,6 @@ function renderCabinetTabs() {
     <div class="cabinet-tab-buttons-list">
       ${tabButtonsHtml}
     </div>
-    ${
-      getCurrentUser()
-        ? `
-          <div class="cabinet-sidebar-footer">
-            <button class="btn btn-danger" type="button" id="cabinetSidebarLogoutBtn">
-              Выйти из аккаунта
-            </button>
-          </div>
-        `
-        : ""
-    }
   `;
 
   bindCabinetHeaderActions();
@@ -877,61 +1226,207 @@ function bindCabinetHeaderActions() {
     });
   }
 
-  const logoutBtn = getEl("cabinetSidebarLogoutBtn");
-  if (logoutBtn && logoutBtn.dataset.boundCabinetLogout !== "1") {
+  document.querySelectorAll("[data-cabinet-logout]").forEach((logoutBtn) => {
+    if (logoutBtn.dataset.boundCabinetLogout === "1") return;
     logoutBtn.dataset.boundCabinetLogout = "1";
     logoutBtn.addEventListener("click", () => {
       closeCabinet();
       document.getElementById("logoutBtn")?.click();
     });
-  }
+  });
 }
 
 function renderProjectSupportTab() {
   const container = getEl("cabinet-project");
   if (!container) return;
 
+  const modules = [
+    {
+      icon: "⚖️",
+      title: "Торговцы",
+      text: "Репутация, цены, ассортимент, корзина и живые NPC-лавки.",
+      status: "Работает",
+      tab: "trader",
+    },
+    {
+      icon: "🎒",
+      title: "Инвентарь",
+      text: "Предметы, экипировка, кастомные находки и быстрые действия.",
+      status: "В работе",
+      tab: "inventory",
+    },
+    {
+      icon: "📖",
+      title: "LSS",
+      text: "Лист персонажа, ресурсы, кубы, портрет и игровые блоки.",
+      status: "В работе",
+      tab: "lss",
+    },
+    {
+      icon: "🛡️",
+      title: "Master Room",
+      text: "Столы, партия, доступы, выдача, бой и журнал мастера.",
+      status: "Активная сборка",
+      tab: "masterroom",
+    },
+  ];
+
+  const done = [
+    "Система торговли и репутации",
+    "Инвентарь и управление предметами",
+    "Кабинетные модули: карта, заметки, история, задания",
+    "Базовая энциклопедия / бестиарий",
+    "LSS как отдельный лист персонажа",
+  ];
+
+  const next = [
+    "Уплотнение масштаба UI под 15.6 / 1920×1080",
+    "Master Room и боевой экран без визуального перегруза",
+    "Нормальная связка LSS ↔ Бестиарий ↔ Бой",
+    "Чистка CSS от старых round-overrides",
+    "Больше данных, источников, предметов и существ",
+  ];
+
   container.innerHTML = `
-    <div class="cabinet-block" style="padding:16px 18px;">
-      <div class="flex-between" style="align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:14px;">
-        <div>
-          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Проект</div>
-          <h3 style="margin:4px 0 6px 0;">💛 Поддержать D&D Trader</h3>
-          <div class="muted" style="font-size:0.86rem; max-width:780px;">
-            D&D Trader растёт как companion-инструмент для стола: торговцы, кабинет, LSS, столы, бой и social-слой.
-            Если хочешь поддержать развитие проекта, ссылка здесь.
+    <section class="project-ref-shell" data-cabinet-anchor-section="О проекте">
+      <div class="project-ref-hero">
+        <div class="project-ref-hero-main">
+          <div class="project-ref-emblem" aria-hidden="true">✦</div>
+          <div class="project-ref-hero-copy">
+            <div class="project-ref-kicker">D&D Trader</div>
+            <h2>Игровая экосистема для торговли, партии и мастерского стола</h2>
+            <p>
+              Тёмный fantasy web-инструмент для D&D/BG3-подобного опыта: торговцы, инвентарь,
+              LSS, карта, задания, энциклопедия, заметки, история и Master Room.
+            </p>
+            <div class="project-ref-chip-row">
+              <span class="project-ref-chip">🛡 Основано на доверии</span>
+              <span class="project-ref-chip">🎲 Игроками для игроков</span>
+              <span class="project-ref-chip">⚒ Живой проект в разработке</span>
+            </div>
           </div>
         </div>
-        <a
-          class="btn btn-primary"
-          href="https://boosty.to/dnd_trader_undersuni"
-          target="_blank"
-          rel="noreferrer"
-          style="text-decoration:none;"
-        >
-          🚀 Перейти на Boosty
-        </a>
+        <aside class="project-ref-support-card">
+          <div class="project-ref-support-kicker">Поддержать развитие</div>
+          <h3>Boosty проекта</h3>
+          <p>
+            Подписка и фидбек помогают быстрее доводить интерфейс, данные, боевой модуль и инструменты ГМа.
+          </p>
+          <div class="project-ref-action-row">
+            <a
+              class="btn btn-primary project-ref-action-primary"
+              href="https://boosty.to/dnd_trader_undersuni"
+              target="_blank"
+              rel="noreferrer"
+            >
+              💛 Открыть Boosty
+            </a>
+            <button type="button" class="btn btn-secondary project-ref-action-soft" data-cabinet-tab="masterroom">
+              🛡 Master Room
+            </button>
+          </div>
+        </aside>
       </div>
 
-      <div class="profile-grid cabinet-support-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
-        <div class="stat-box" style="padding:14px; min-height:auto;">
-          <div class="muted">🧙 Что это</div>
-          <div style="font-size:15px; font-weight:800; margin-top:6px;">Компаньон для D&D / BG3</div>
-          <div class="muted" style="margin-top:8px; font-size:0.82rem;">Кабинет, столы, бой, LSS, торговцы и развитие в сторону живого party-tool.</div>
+      <div class="project-ref-modules" data-cabinet-anchor-section="Модули">
+        ${modules.map((module) => `
+          <article class="project-ref-module-card">
+            <div class="project-ref-module-icon">${escapeHtml(module.icon)}</div>
+            <div>
+              <div class="project-ref-module-status">${escapeHtml(module.status)}</div>
+              <h3>${escapeHtml(module.title)}</h3>
+              <p>${escapeHtml(module.text)}</p>
+              <button type="button" class="project-ref-link" data-cabinet-tab="${escapeHtml(module.tab)}">
+                Перейти →
+              </button>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+
+      <div class="project-ref-roadmap" data-cabinet-anchor-section="Дорожная карта">
+        <section class="project-ref-panel project-ref-roadmap-panel">
+          <div class="project-ref-section-head">
+            <div>
+              <div class="project-ref-kicker">Дорожная карта</div>
+              <h3>Куда движется проект</h3>
+            </div>
+            <span class="project-ref-pill">Этап 2 / активная сборка</span>
+          </div>
+          <div class="project-ref-steps">
+            <div class="project-ref-step project-ref-step-done">
+              <span>1</span>
+              <strong>Основа</strong>
+              <small>Торговля, кабинет, базовые модули</small>
+            </div>
+            <div class="project-ref-step project-ref-step-active">
+              <span>2</span>
+              <strong>Развитие</strong>
+              <small>Master Room, LSS, бой, карта</small>
+            </div>
+            <div class="project-ref-step">
+              <span>3</span>
+              <strong>Интеграции</strong>
+              <small>Связки данных, импорт, источники</small>
+            </div>
+            <div class="project-ref-step">
+              <span>4</span>
+              <strong>Сообщество</strong>
+              <small>Столы, права, обмен, совместная игра</small>
+            </div>
+            <div class="project-ref-step">
+              <span>5</span>
+              <strong>Мир и PvP</strong>
+              <small>События, аукционы, арены</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="project-ref-panel project-ref-list-panel">
+          <div class="project-ref-section-head project-ref-section-head-compact">
+            <h3>Что уже реализовано</h3>
+          </div>
+          <ul class="project-ref-check-list">
+            ${done.map((item) => `<li><span>✓</span>${escapeHtml(item)}</li>`).join("")}
+          </ul>
+        </section>
+
+        <section class="project-ref-panel project-ref-list-panel">
+          <div class="project-ref-section-head project-ref-section-head-compact">
+            <h3>Что дальше</h3>
+          </div>
+          <ul class="project-ref-next-list">
+            ${next.map((item) => `<li><span>✦</span>${escapeHtml(item)}</li>`).join("")}
+          </ul>
+        </section>
+      </div>
+
+      <div class="project-ref-footer-panel" data-cabinet-anchor-section="Связь и поддержка">
+        <div class="project-ref-footer-art" aria-hidden="true"></div>
+        <div class="project-ref-footer-copy">
+          <div class="project-ref-kicker">Спасибо, что тестируешь</div>
+          <h3>D&D Trader — живой инструмент, который собирается прямо по реальным сценариям игры.</h3>
+          <p>
+            Баг-репорты, скрины, идеи по UX и поддержка проекта помогают быстрее привести модули к единому виду:
+            меньше перегруза, больше понятности, стабильнее механики.
+          </p>
         </div>
-        <div class="stat-box" style="padding:14px; min-height:auto;">
-          <div class="muted">🛠 Сейчас в работе</div>
-          <div style="font-size:15px; font-weight:800; margin-top:6px;">Master Room, LSS, social</div>
-          <div class="muted" style="margin-top:8px; font-size:0.82rem;">Более удобный стол, синхронизация партии, боевой журнал и социальный слой.</div>
-        </div>
-        <div class="stat-box" style="padding:14px; min-height:auto;">
-          <div class="muted">🤝 Как помочь</div>
-          <div style="font-size:15px; font-weight:800; margin-top:6px;">Поддержка и фидбек</div>
-          <div class="muted" style="margin-top:8px; font-size:0.82rem;">Подписка, идеи, баг-репорты и реальное использование проекта помогают быстрее развивать систему.</div>
+        <div class="project-ref-footer-actions">
+          <a class="btn btn-primary" href="https://boosty.to/dnd_trader_undersuni" target="_blank" rel="noreferrer">💛 Поддержать</a>
+          <button type="button" class="btn btn-secondary" data-cabinet-tab="history">📜 История</button>
         </div>
       </div>
-    </div>
+    </section>
   `;
+
+  container.querySelectorAll("[data-cabinet-tab]").forEach((button) => {
+    if (button.dataset.boundProjectNavigation === "1") return;
+    button.dataset.boundProjectNavigation = "1";
+    button.addEventListener("click", () => {
+      const tab = button.dataset.cabinetTab;
+      if (tab) switchCabinetTab(tab);
+    });
+  });
 }
 
 // ------------------------------------------------------------
@@ -1248,32 +1743,76 @@ function bindCodexActions() {
 // 🎒 INVENTORY
 // ------------------------------------------------------------
 const EQUIPMENT_SLOT_CONFIG = [
-  { key: "main_hand", label: "🗡 Основная рука", aliases: ["main_hand", "weapon", "main hand"] },
-  { key: "off_hand", label: "🛡 Вторая рука", aliases: ["off_hand", "off hand", "shield"] },
-  { key: "ranged", label: "🏹 Дальний бой", aliases: ["ranged", "bow", "crossbow"] },
-  { key: "head", label: "⛑ Голова", aliases: ["head", "helmet", "helm", "hat"] },
-  { key: "cloak", label: "🧥 Плащ", aliases: ["cloak", "cape"] },
-  { key: "chest", label: "🛡 Броня", aliases: ["chest", "armor", "body", "torso"] },
-  { key: "gloves", label: "🧤 Перчатки", aliases: ["gloves", "hands", "gauntlets"] },
-  { key: "boots", label: "🥾 Обувь", aliases: ["boots", "feet", "shoes"] },
-  { key: "amulet", label: "📿 Амулет", aliases: ["amulet", "neck"] },
-  { key: "ring_1", label: "💍 Кольцо 1", aliases: ["ring", "ring_1", "ring1"] },
-  { key: "ring_2", label: "💍 Кольцо 2", aliases: ["ring", "ring_2", "ring2"] },
+  { key: "main_hand", label: "Основная рука", icon: "🗡", aliases: ["main_hand", "weapon", "main hand"] },
+  { key: "off_hand", label: "Вторая рука", icon: "🛡", aliases: ["off_hand", "off hand", "shield"] },
+  { key: "ranged", label: "Дальний бой", icon: "🏹", aliases: ["ranged", "bow", "crossbow"] },
+  { key: "head", label: "Голова", icon: "⛑", aliases: ["head", "helmet", "helm", "hat"] },
+  { key: "cloak", label: "Плащ", icon: "🧥", aliases: ["cloak", "cape"] },
+  { key: "chest", label: "Броня", icon: "🛡", aliases: ["chest", "armor", "body", "torso"] },
+  { key: "gloves", label: "Перчатки", icon: "🧤", aliases: ["gloves", "hands", "gauntlets"] },
+  { key: "boots", label: "Обувь", icon: "🥾", aliases: ["boots", "feet", "shoes"] },
+  { key: "belt", label: "Пояс", icon: "▣", aliases: ["belt", "waist", "пояс", "ремень"] },
+  { key: "amulet", label: "Амулет", icon: "📿", aliases: ["amulet", "neck"] },
+  { key: "ring_1", label: "Кольцо 1", icon: "💍", aliases: ["ring", "ring_1", "ring1"] },
+  { key: "ring_2", label: "Кольцо 2", icon: "💍", aliases: ["ring", "ring_2", "ring2"] },
+  { key: "quiver", label: "Колчан / стрелы", icon: "➶", aliases: ["quiver", "arrows", "arrow", "bolt", "ammo", "колчан", "стрелы", "болты"] },
+  { key: "instrument", label: "Инструмент", icon: "🛠", aliases: ["tool", "instrument", "tools", "инструмент"] },
+  { key: "quick_1", label: "Быстрый слот 1", icon: "🧪", aliases: ["quick_1", "quick1", "consumable", "potion"] },
+  { key: "quick_2", label: "Быстрый слот 2", icon: "🧪", aliases: ["quick_2", "quick2", "consumable", "potion"] },
+  { key: "quick_3", label: "Быстрый слот 3", icon: "📜", aliases: ["quick_3", "quick3", "scroll", "grenade"] },
 ];
 
 function ensureCabinetInventoryStateDefaults() {
   CABINET_INVENTORY_STATE.customFormOpen ??= false;
   CABINET_INVENTORY_STATE.filtersVisible ??= false;
+  CABINET_INVENTORY_STATE.customDraft ??= {};
   CABINET_INVENTORY_STATE.search ??= "";
   CABINET_INVENTORY_STATE.rarity ??= "";
   CABINET_INVENTORY_STATE.magic ??= "";
   CABINET_INVENTORY_STATE.category ??= "";
   CABINET_INVENTORY_STATE.equippedOnly ??= false;
   CABINET_INVENTORY_STATE.sort ??= "name";
-  CABINET_INVENTORY_STATE.viewMode ??= "table";
+  CABINET_INVENTORY_STATE.viewMode ??= "grid";
   CABINET_INVENTORY_STATE.equipmentVisible ??= false;
   CABINET_INVENTORY_STATE.slotSelections ??= {};
   CABINET_INVENTORY_STATE.equipment ??= loadEquipmentStateLocal();
+}
+
+function getCustomItemDraftDefaults() {
+  return {
+    customItemName: "",
+    customItemQuantity: "1",
+    customItemCategory: "прочее",
+    customItemRarity: "common",
+    customItemQuality: "стандартное",
+    customItemWeight: "",
+    customItemPriceGold: "",
+    customItemPriceSilver: "",
+    customItemPriceCopper: "",
+    customItemDescription: "",
+    customItemProperties: "",
+    customItemRequirements: "",
+    customItemEquipSlot: "",
+    customItemMagical: false,
+    customItemAttunement: false,
+  };
+}
+
+function getCustomItemDraft() {
+  CABINET_INVENTORY_STATE.customDraft = {
+    ...getCustomItemDraftDefaults(),
+    ...(CABINET_INVENTORY_STATE.customDraft || {}),
+  };
+  return CABINET_INVENTORY_STATE.customDraft;
+}
+
+function setCustomItemDraftValue(id, value) {
+  const draft = getCustomItemDraft();
+  draft[id] = value;
+}
+
+function clearCustomItemDraft() {
+  CABINET_INVENTORY_STATE.customDraft = getCustomItemDraftDefaults();
 }
 
 function getEquipmentStorageKey() {
@@ -1343,29 +1882,34 @@ function inferItemSlotOptions(item) {
     item?.tags,
     item?.properties,
     item?.requirements,
+    item?.description,
   ]
     .flat()
     .join(" ")
     .toLowerCase();
 
-  if (!blob) return ["main_hand"];
+  if (!blob) return [];
 
   if (/ring|кольц/.test(blob)) return ["ring_1", "ring_2"];
-  if (/amulet|neck|ожерел|амулет|кулон/.test(blob)) return ["amulet"];
-  if (/cloak|cape|плащ/.test(blob)) return ["cloak"];
+  if (/amulet|neck|ожерел|амулет|кулон|подвес/.test(blob)) return ["amulet"];
+  if (/belt|waist|пояс|ремен/.test(blob)) return ["belt"];
+  if (/cloak|cape|плащ|накид/.test(blob)) return ["cloak"];
   if (/boot|shoe|feet|сапог|ботин|обув/.test(blob)) return ["boots"];
   if (/glove|gauntlet|перчат|наруч/.test(blob)) return ["gloves"];
-  if (/helmet|helm|head|hood|шлем|капюш|маск/.test(blob)) return ["head"];
-  if (/armor|chest|robe|body|брон|доспех|кирас|одежд|мант/.test(blob)) return ["chest"];
+  if (/helmet|helm|head|hood|шлем|капюш|маск|голов/.test(blob)) return ["head"];
+  if (/armor|chest|robe|body|torso|брон|доспех|кирас|одежд|мант|robe/.test(blob)) return ["chest"];
   if (/shield|щит/.test(blob)) return ["off_hand"];
+  if (/arrow|bolt|ammo|quiver|стрел|болт|боеприп/.test(blob)) return ["quiver"];
   if (/bow|crossbow|longbow|shortbow|арбалет|лук/.test(blob)) return ["ranged"];
-  if (/staff|wand|dagger|sword|axe|mace|spear|hammer|weapon|посох|кинжал|меч|топор|булав|копь|молот/.test(blob)) {
+  if (/potion|elixir|poison|grenade|зель|эликс|яд|гранат|бомб/.test(blob)) return ["quick_1", "quick_2"];
+  if (/scroll|свит/.test(blob)) return ["quick_3"];
+  if (/tool|instrument|artisan|инструмент|набор|отмыч|молот|кист/.test(blob)) return ["instrument"];
+  if (/staff|wand|dagger|sword|axe|mace|spear|hammer|weapon|посох|жезл|кинжал|меч|топор|булав|копь|молот|оруж/.test(blob)) {
     return ["main_hand", "off_hand"];
   }
-
   if (/accessory|jewel|jewelry|аксессуар|украш/.test(blob)) return ["amulet", "ring_1", "ring_2"];
 
-  return ["main_hand"];
+  return [];
 }
 
 function getEquippedSlotForItem(itemId) {
@@ -1472,7 +2016,15 @@ function collectItemPassiveTexts(item) {
       Object.values(value).forEach((part) => pushValue(part, label));
       return;
     }
-    const text = String(value).trim();
+    const text = stripKnownFieldPrefix(String(value).trim(), [
+      label,
+      "Свойства",
+      "Описание",
+      "Требования",
+      "Properties",
+      "Description",
+      "Requirements",
+    ]);
     if (!text) return;
     pieces.push(label ? `${label}: ${text}` : text);
   };
@@ -1551,57 +2103,58 @@ function renderEquipmentPanel(items) {
     }
 
     return `
-      <div class="cabinet-block" style="padding:10px 12px; min-height:92px; display:flex; flex-direction:column; gap:6px; border-radius:16px;">
-        <div class="flex-between" style="align-items:flex-start; gap:8px;">
-          <strong style="font-size:0.86rem; line-height:1.15;">${escapeHtml(slot.label)}</strong>
-          <span class="meta-item ${item ? escapeHtml(rareClass) : ""}" style="font-size:0.72rem;">${item ? escapeHtml(rarityLabel(item?.rarity)) : "Пусто"}</span>
+      <div class="inventory-ref-slot ${item ? "inventory-ref-slot-filled" : ""}" data-slot-key="${escapeHtml(slot.key)}">
+        <div class="inventory-ref-slot-icon">${escapeHtml(slot.icon || "◇")}</div>
+        <div class="inventory-ref-slot-copy">
+          <div class="inventory-ref-slot-label">${escapeHtml(slot.label)}</div>
+          ${item
+            ? `<div class="inventory-ref-slot-item ${escapeHtml(rareClass)}">${escapeHtml(clampText(item?.name || "Предмет", 34))}</div>`
+            : `<div class="inventory-ref-slot-empty">Пусто</div>`}
         </div>
-
-        ${item ? `
-          <div class="${escapeHtml(rareClass)}" style="font-weight:800; line-height:1.2; font-size:0.86rem;">${escapeHtml(clampText(item?.name || "Предмет", 40))}</div>
-          <div class="muted" style="font-size:0.78rem; line-height:1.3;">${escapeHtml(clampText((passiveLines || []).join(" • ") || "Эффекты не заданы", 96))}</div>
-          <div class="cart-buttons" style="margin-top:auto; gap:6px; justify-content:flex-start;">
-            <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Описание</button>
-            <button class="btn btn-danger" type="button" data-cabinet-unequip-slot="${escapeHtml(slot.key)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Снять</button>
-          </div>
-        ` : `
-          <div class="muted" style="font-size:0.8rem; line-height:1.3;">Ничего не надето.</div>
-          <div class="muted" style="font-size:0.76rem; line-height:1.25; margin-top:auto;">Подходящий предмет можно надеть из списка ниже.</div>
-        `}
+        ${item ? `<button class="inventory-ref-slot-clear" type="button" title="Снять" data-cabinet-unequip-slot="${escapeHtml(slot.key)}">×</button>` : ""}
       </div>
     `;
   }).join("");
 
   const equipped = getEquippedEntries();
   const emptySlots = Math.max(0, EQUIPMENT_SLOT_CONFIG.length - equipped.length);
+  const totalSlots = EQUIPMENT_SLOT_CONFIG.length;
+  const filledPercent = totalSlots ? Math.round((equipped.length / totalSlots) * 100) : 0;
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-        <div>
-          <h3 style="margin:0 0 4px 0; font-size:1rem;">🧷 Экипировка</h3>
-          <div class="muted" style="font-size:0.8rem;">Сверху обычная текстовая сводка. Сами слоты открываются отдельным компактным блоком.</div>
+    <aside class="inventory-ref-rail">
+      <section class="inventory-ref-panel inventory-ref-equipment-panel">
+        <div class="inventory-ref-panel-head">
+          <div>
+            <div class="inventory-ref-kicker">Снаряжение</div>
+            <h3>Слоты персонажа</h3>
+          </div>
+          <span class="inventory-ref-count-pill">${escapeHtml(String(equipped.length))}/${escapeHtml(String(totalSlots))}</span>
         </div>
 
-        <div class="cart-buttons">
-          <button class="btn" type="button" id="cabinetToggleEquipmentBtn">${CABINET_INVENTORY_STATE.equipmentVisible ? "Скрыть слоты" : "Показать слоты"}</button>
+        <div class="inventory-ref-equipment-meter">
+          <span style="width:${escapeHtml(String(filledPercent))}%"></span>
         </div>
-      </div>
-    </div>
 
-    <div class="cabinet-block" style="margin-bottom:12px; padding:10px 12px;">
-      <h4 style="margin:0 0 8px 0; font-size:0.92rem;">✨ Что даёт надетое</h4>
-      ${renderEquippedEffectsTextSummary(effects, emptySlots)}
-    </div>
-
-    ${CABINET_INVENTORY_STATE.equipmentVisible ? `
-      <div class="cabinet-block" style="margin-bottom:12px; padding:10px 12px;">
-        <h4 style="margin:0 0 8px 0; font-size:0.92rem;">Слоты экипировки</h4>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+        <div class="inventory-ref-slot-grid ${CABINET_INVENTORY_STATE.equipmentVisible ? "" : "inventory-ref-slot-grid-compact"}">
           ${slotsMarkup}
         </div>
-      </div>
-    ` : ""}
+
+        <button class="btn inventory-ref-wide-btn" type="button" id="cabinetToggleEquipmentBtn">
+          ${CABINET_INVENTORY_STATE.equipmentVisible ? "Свернуть слоты" : "Показать все слоты"}
+        </button>
+      </section>
+
+      <section class="inventory-ref-panel inventory-ref-effects-panel">
+        <div class="inventory-ref-panel-head inventory-ref-panel-head-compact">
+          <div>
+            <div class="inventory-ref-kicker">Эффекты</div>
+            <h3>Что даёт надетое</h3>
+          </div>
+        </div>
+        ${renderEquippedEffectsTextSummary(effects, emptySlots)}
+      </section>
+    </aside>
   `;
 }
 
@@ -1664,64 +2217,197 @@ function getCabinetFilteredInventory(items) {
   return result;
 }
 
+
+function inventoryCategoryIcon(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (/weapon|оруж/.test(raw)) return "🗡";
+  if (/armor|брон|досп/.test(raw)) return "🛡";
+  if (/accessory|украш|кольц|амул/.test(raw)) return "💍";
+  if (/cloth|одеж|robe|cloak|плащ/.test(raw)) return "👕";
+  if (/arrow|bolt|grenade|стрел|гранат|ammo/.test(raw)) return "➶";
+  if (/tool|инструмент/.test(raw)) return "🛠";
+  if (/potion|elixir|poison|зель|яд|эликс/.test(raw)) return "🧪";
+  if (/alchemy|ingredient|ингреди|экстракт|алх/.test(raw)) return "⚗";
+  if (/book|note|книг|записк/.test(raw)) return "📘";
+  if (/scroll|свит/.test(raw)) return "📜";
+  if (/food|drink|припас|еда|напит/.test(raw)) return "🍖";
+  return "◇";
+}
+
+function getInventoryWeightValue(item) {
+  const qty = Math.max(1, safeNumber(item?.quantity, 1));
+  const raw = item?.weight ?? item?.weight_lb ?? item?.weight_lbs ?? item?.properties?.weight;
+  const weight = safeNumber(raw, 0);
+  return Math.max(0, weight * qty);
+}
+
+function formatInventoryWeight(value) {
+  const weight = safeNumber(value, 0);
+  if (!weight) return "0";
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
+}
+
+function getInventoryTotalWeight(items) {
+  return (Array.isArray(items) ? items : []).reduce((sum, item) => sum + getInventoryWeightValue(item), 0);
+}
+
+function getInventoryTotalValueCp(items) {
+  return (Array.isArray(items) ? items : []).reduce((sum, item) => {
+    const qty = Math.max(1, safeNumber(item?.quantity, 1));
+    const cp = moneyPartsToCp(
+      item?.price_gold ?? item?.base_price_gold ?? item?.sell_price_gold,
+      item?.price_silver ?? item?.base_price_silver ?? item?.sell_price_silver,
+      item?.price_copper ?? item?.base_price_copper ?? item?.sell_price_copper
+    );
+    return sum + cp * qty;
+  }, 0);
+}
+
+function formatCpCompact(cp) {
+  const parts = cpToMoneyParts(cp);
+  const result = [];
+  if (parts.gold) result.push(`${parts.gold}з`);
+  if (parts.silver) result.push(`${parts.silver}с`);
+  if (parts.copper) result.push(`${parts.copper}м`);
+  return result.length ? result.join(" ") : "—";
+}
+
+function getInventoryItemArtUrl(item) {
+  const raw = String(item?.image_url || item?.image || item?.icon || item?.thumbnail || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) return raw;
+  if (raw.startsWith("static/")) return `/${raw}`;
+  return `/static/images/${raw}`;
+}
+
+function getInventoryCategoryCounts(items) {
+  const counts = new Map();
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const category = String(item?.category || "misc").trim() || "misc";
+    counts.set(category, (counts.get(category) || 0) + Math.max(1, safeNumber(item?.quantity, 1)));
+  });
+  return counts;
+}
+
+function renderInventoryCategoryTabs(items) {
+  const counts = getInventoryCategoryCounts(items);
+  const categories = [...counts.keys()].sort((a, b) => inventoryCategoryLabel(a).localeCompare(inventoryCategoryLabel(b), "ru"));
+  const active = String(CABINET_INVENTORY_STATE.category || "").trim().toLowerCase();
+  const total = getInventoryCount(items);
+
+  return `
+    <div class="inventory-ref-category-tabs" role="tablist" aria-label="Категории инвентаря">
+      <button class="inventory-ref-category-tab ${!active ? "active" : ""}" type="button" data-cabinet-inventory-category-tab="">
+        <span>✦</span><strong>Все</strong><em>${escapeHtml(String(total))}</em>
+      </button>
+      ${categories.map((category) => {
+        const normalized = String(category || "").trim().toLowerCase();
+        const isActive = active === normalized;
+        return `
+          <button class="inventory-ref-category-tab ${isActive ? "active" : ""}" type="button" data-cabinet-inventory-category-tab="${escapeHtml(normalized)}">
+            <span>${escapeHtml(inventoryCategoryIcon(category))}</span>
+            <strong>${escapeHtml(inventoryCategoryLabel(category))}</strong>
+            <em>${escapeHtml(String(counts.get(category) || 0))}</em>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function getInventoryRaritySummary(items) {
+  const counts = (Array.isArray(items) ? items : []).reduce((acc, item) => {
+    const key = normalizeRarityValue(item?.rarity || "common");
+    acc[key] = (acc[key] || 0) + Math.max(1, safeNumber(item?.quantity, 1));
+    return acc;
+  }, {});
+  const important = ["legendary", "artifact", "very rare", "rare", "uncommon"]
+    .map((key) => [key, counts[key] || 0])
+    .filter(([, value]) => value > 0);
+  return important.length ? important : [["common", counts.common || 0]];
+}
+
+function renderInventoryMetric(label, value, note = "") {
+  return `
+    <div class="inventory-ref-metric">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      ${note ? `<small>${escapeHtml(note)}</small>` : ""}
+    </div>
+  `;
+}
+
 function renderInventorySummary(items) {
   const equippedEntries = getEquippedEntries();
   const magicalCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(item?.is_magical)).length;
   const customCount = (Array.isArray(items) ? items : []).filter((item) => Boolean(item?.is_custom)).length;
+  const totalCount = getInventoryCount(items);
+  const totalWeight = getInventoryTotalWeight(items);
+  const totalValue = getInventoryTotalValueCp(items);
+  const user = getCurrentUser() || window.__appUser || {};
+  const moneyLabel = user?.money_label || window.__appMoneyLabel || window.__playerMoneyLabel || "—";
+  const raritySummary = getInventoryRaritySummary(items)
+    .map(([key, count]) => `${rarityLabel(key)}: ${count}`)
+    .join(" • ");
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-        <div>
-          <h3 style="margin:0 0 4px 0; font-size:1rem;">Инвентарь игрока</h3>
-          <div class="muted" style="font-size:0.8rem;">Рабочий список предметов. Лишнее можно скрыть и оставить только нужные параметры.</div>
-        </div>
-
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-          <span class="meta-item">🎒 Предметов: ${getInventoryCount(items)}</span>
-          <span class="meta-item">✨ Магических: ${magicalCount}</span>
-          <span class="meta-item">🛠 Custom: ${customCount}</span>
+    <section class="cabinet-block inventory-ref-hero">
+      <div class="inventory-ref-hero-main">
+        <div class="inventory-ref-kicker">Character inventory</div>
+        <h2>Инвентарь</h2>
+        <p>Снаряжение, предметы, кастомные находки и быстрые слоты персонажа. Визуал ближе к RPG-инвентарю, но без перегруза карточками.</p>
+        <div class="inventory-ref-hero-tags">
+          <span>Категорий: ${escapeHtml(String(getInventoryCategories(items).length || 0))}</span>
+          <span>Магических: ${escapeHtml(String(magicalCount))}</span>
+          <span>Custom: ${escapeHtml(String(customCount))}</span>
+          <span>Надето: ${escapeHtml(String(equippedEntries.length))}</span>
         </div>
       </div>
 
-      <div>
-        <div class="muted" style="font-size:0.74rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Надето сейчас</div>
-        ${renderEquippedItemsInlineSummary()}
+      <div class="inventory-ref-resource-bar">
+        ${renderInventoryMetric("Золото", moneyLabel)}
+        ${renderInventoryMetric("Вес", formatInventoryWeight(totalWeight), "lb")}
+        ${renderInventoryMetric("Предметов", String(totalCount), "в сумке")}
+        ${renderInventoryMetric("Стоимость", formatCpCompact(totalValue), "оценка")}
       </div>
-    </div>
+
+      <div class="inventory-ref-rarity-line">${escapeHtml(raritySummary || "Редкости пока не определены")}</div>
+    </section>
   `;
 }
 
 function renderInventoryToolbar() {
   ensureCabinetInventoryStateDefaults();
+  const inventory = getInventoryState();
 
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-        <div class="cart-buttons" style="justify-content:flex-start; gap:6px;">
-          <button class="btn" type="button" id="cabinetRefreshInventoryBtn">Обновить</button>
-          <button class="btn" type="button" id="cabinetToggleInventoryFiltersBtn">${CABINET_INVENTORY_STATE.filtersVisible ? "Фильтры: скрыть" : "Фильтры: показать"}</button>
-          <button class="btn btn-primary" type="button" id="cabinetAddCustomItemBtn">
-            ${CABINET_INVENTORY_STATE.customFormOpen ? "Custom: скрыть" : "＋ Custom"}
-          </button>
+    <section class="cabinet-block inventory-ref-toolbar">
+      <div class="inventory-ref-toolbar-top">
+        <div>
+          <div class="inventory-ref-kicker">Навигация по вещам</div>
+          <h3>Фильтры и категории</h3>
         </div>
-
-        <div class="trader-meta" style="gap:6px; flex-wrap:wrap;">
-          <span class="meta-item">Вид: ${escapeHtml(CABINET_INVENTORY_STATE.viewMode === "table" ? "Таблица" : CABINET_INVENTORY_STATE.viewMode === "grid" ? "Карточки" : "Список")}</span>
-          ${CABINET_INVENTORY_STATE.equippedOnly ? `<span class="meta-item">Только надетое</span>` : ""}
-          ${CABINET_INVENTORY_STATE.filtersVisible ? `<span class="meta-item">Фильтры открыты</span>` : ""}
+        <div class="inventory-ref-toolbar-actions">
+          <button class="btn" type="button" id="cabinetRefreshInventoryBtn">Обновить</button>
+          <button class="btn" type="button" id="cabinetToggleInventoryFiltersBtn">${CABINET_INVENTORY_STATE.filtersVisible ? "Скрыть фильтры" : "Показать фильтры"}</button>
+          <button class="btn btn-primary" type="button" id="cabinetAddCustomItemBtn">
+            ${CABINET_INVENTORY_STATE.customFormOpen ? "Скрыть форму" : "＋ Добавить предмет"}
+          </button>
         </div>
       </div>
 
+      ${renderInventoryCategoryTabs(inventory)}
+
       ${CABINET_INVENTORY_STATE.filtersVisible ? `
-        <div class="collection-toolbar compact-collection-toolbar" style="margin-top:6px;">
-          <div class="filter-group">
-            <label>🔍 Поиск</label>
-            <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, свойства, описание" />
+        <div class="inventory-ref-filter-grid">
+          <div class="filter-group inventory-ref-search-field">
+            <label>Поиск</label>
+            <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, эффект, описание, свойство..." />
           </div>
 
           <div class="filter-group">
-            <label>🎖 Редкость</label>
+            <label>Редкость</label>
             <select id="cabinetInventoryRarity">
               <option value="">Любая</option>
               <option value="common" ${CABINET_INVENTORY_STATE.rarity === "common" ? "selected" : ""}>Обычный</option>
@@ -1734,7 +2420,7 @@ function renderInventoryToolbar() {
           </div>
 
           <div class="filter-group">
-            <label>✨ Магия</label>
+            <label>Магия</label>
             <select id="cabinetInventoryMagic">
               <option value="" ${CABINET_INVENTORY_STATE.magic === "" ? "selected" : ""}>Любая</option>
               <option value="magic" ${CABINET_INVENTORY_STATE.magic === "magic" ? "selected" : ""}>Только магические</option>
@@ -1743,22 +2429,20 @@ function renderInventoryToolbar() {
           </div>
 
           <div class="filter-group">
-            <label>📦 Категория</label>
+            <label>Категория</label>
             <select id="cabinetInventoryCategory">
-              <option value="">Любая</option>
-              ${getInventoryCategories(getInventoryState())
-                .map((category) => `<option value="${escapeHtml(category)}" ${String(CABINET_INVENTORY_STATE.category || "") === category ? "selected" : ""}>${escapeHtml(inventoryCategoryLabel(category))}</option>`)
+              <option value="">Все категории</option>
+              ${getInventoryCategories(inventory)
+                .map((category) => {
+                  const normalized = String(category || "").trim().toLowerCase();
+                  return `<option value="${escapeHtml(normalized)}" ${String(CABINET_INVENTORY_STATE.category || "") === normalized ? "selected" : ""}>${escapeHtml(inventoryCategoryLabel(category))}</option>`;
+                })
                 .join("")}
             </select>
           </div>
 
-          <label class="inline-checkbox compact-inline-checkbox" style="margin-top:20px;">
-            <input id="cabinetInventoryEquippedOnly" type="checkbox" ${CABINET_INVENTORY_STATE.equippedOnly ? "checked" : ""} />
-            Только надетое
-          </label>
-
           <div class="filter-group">
-            <label>↕ Сортировка</label>
+            <label>Сортировка</label>
             <select id="cabinetInventorySort">
               <option value="name" ${CABINET_INVENTORY_STATE.sort === "name" ? "selected" : ""}>Название</option>
               <option value="price_asc" ${CABINET_INVENTORY_STATE.sort === "price_asc" ? "selected" : ""}>Дешёвые</option>
@@ -1768,125 +2452,147 @@ function renderInventoryToolbar() {
           </div>
 
           <div class="filter-group">
-            <label>🧩 Вид</label>
+            <label>Вид</label>
             <select id="cabinetInventoryViewMode">
+              <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
               <option value="inventory" ${CABINET_INVENTORY_STATE.viewMode === "inventory" ? "selected" : ""}>Список</option>
               <option value="table" ${CABINET_INVENTORY_STATE.viewMode === "table" ? "selected" : ""}>Таблица</option>
-              <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
             </select>
           </div>
+
+          <label class="inline-checkbox compact-inline-checkbox inventory-ref-equipped-toggle">
+            <input id="cabinetInventoryEquippedOnly" type="checkbox" ${CABINET_INVENTORY_STATE.equippedOnly ? "checked" : ""} />
+            Только надетое
+          </label>
         </div>
       ` : ""}
-    </div>
+    </section>
   `;
 }
 
 function renderCustomItemForm() {
   if (!CABINET_INVENTORY_STATE.customFormOpen) return "";
+  const draft = getCustomItemDraft();
 
   return `
-    <div class="cabinet-block" id="cabinetCustomItemFormBlock" style="margin-bottom:12px;">
-      <h3 style="margin:0 0 10px 0;">Кастомный предмет</h3>
-
-      <div class="collection-toolbar compact-collection-toolbar">
-        <div class="filter-group">
-          <label>Название *</label>
-          <input id="customItemName" type="text" placeholder="Например: Флакон чёрной крови" />
+    <div class="cabinet-block custom-item-form" id="cabinetCustomItemFormBlock">
+      <div class="custom-item-form-head">
+        <div>
+          <div class="muted custom-item-form-kicker">Inventory builder</div>
+          <h3>Кастомный предмет</h3>
         </div>
-
-        <div class="filter-group">
-          <label>Количество</label>
-          <input id="customItemQuantity" type="number" min="1" step="1" value="1" />
-        </div>
-
-        <div class="filter-group">
-          <label>Категория</label>
-          <input id="customItemCategory" type="text" value="прочее" />
-        </div>
-
-        <div class="filter-group">
-          <label>Редкость</label>
-          <select id="customItemRarity">
-            <option value="common">common</option>
-            <option value="uncommon">uncommon</option>
-            <option value="rare">rare</option>
-            <option value="very rare">very rare</option>
-            <option value="legendary">legendary</option>
-            <option value="artifact">artifact</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>Качество</label>
-          <select id="customItemQuality">
-            <option value="стандартное">стандартное</option>
-            <option value="хорошее">хорошее</option>
-            <option value="идеальное">идеальное</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>Слот</label>
-          <select id="customItemEquipSlot">
-            <option value="">Без слота</option>
-            ${EQUIPMENT_SLOT_CONFIG.map((slot) => `<option value="${escapeHtml(slot.key)}">${escapeHtml(slot.label)}</option>`).join("")}
-          </select>
-        </div>
+        <span class="meta-item">local-first save</span>
       </div>
 
-      <div class="collection-toolbar compact-collection-toolbar">
-        <div class="filter-group">
-          <label>Цена (золото)</label>
-          <input id="customItemPriceGold" type="number" min="0" step="1" value="0" />
-        </div>
+      <div class="custom-item-form-sections">
+        <section class="custom-item-section custom-item-section-main">
+          <h4>Основа</h4>
+          <div class="custom-item-field-grid custom-item-field-grid-main">
+            <div class="filter-group custom-item-field-wide">
+              <label>Название *</label>
+              <input id="customItemName" type="text" value="${escapeHtml(draft.customItemName)}" placeholder="Флакон чёрной крови" />
+            </div>
 
-        <div class="filter-group">
-          <label>Цена (серебро)</label>
-          <input id="customItemPriceSilver" type="number" min="0" step="1" value="0" />
-        </div>
+            <div class="filter-group custom-item-field-qty">
+              <label>Кол-во</label>
+              <input id="customItemQuantity" type="number" min="1" step="1" inputmode="numeric" value="${escapeHtml(draft.customItemQuantity)}" />
+            </div>
 
-        <div class="filter-group">
-          <label>Цена (медь)</label>
-          <input id="customItemPriceCopper" type="number" min="0" step="1" value="0" />
-        </div>
+            <div class="filter-group">
+              <label>Категория</label>
+              <input id="customItemCategory" type="text" value="${escapeHtml(draft.customItemCategory)}" />
+            </div>
 
-        <div class="filter-group">
-          <label>Вес</label>
-          <input id="customItemWeight" type="number" min="0" step="0.1" value="0" />
-        </div>
+            <div class="filter-group">
+              <label>Редкость</label>
+              <select id="customItemRarity">
+                ${["common", "uncommon", "rare", "very rare", "legendary", "artifact"].map((rarity) => `
+                  <option value="${escapeHtml(rarity)}" ${draft.customItemRarity === rarity ? "selected" : ""}>${escapeHtml(rarity)}</option>
+                `).join("")}
+              </select>
+            </div>
 
-        <label class="inline-checkbox" style="margin-top:20px;">
-          <input id="customItemMagical" type="checkbox" />
-          <span>Магический</span>
-        </label>
+            <div class="filter-group">
+              <label>Качество</label>
+              <select id="customItemQuality">
+                ${["стандартное", "хорошее", "идеальное"].map((quality) => `
+                  <option value="${escapeHtml(quality)}" ${draft.customItemQuality === quality ? "selected" : ""}>${escapeHtml(quality)}</option>
+                `).join("")}
+              </select>
+            </div>
 
-        <label class="inline-checkbox" style="margin-top:20px;">
-          <input id="customItemAttunement" type="checkbox" />
-          <span>Требует настройку</span>
-        </label>
+            <div class="filter-group">
+              <label>Слот</label>
+              <select id="customItemEquipSlot">
+                <option value="">Без слота</option>
+                ${EQUIPMENT_SLOT_CONFIG.map((slot) => `<option value="${escapeHtml(slot.key)}" ${draft.customItemEquipSlot === slot.key ? "selected" : ""}>${escapeHtml(slot.label)}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="custom-item-section">
+          <h4>Цена и флаги</h4>
+          <div class="custom-item-field-grid custom-item-field-grid-economy">
+            <div class="filter-group">
+              <label>Золото</label>
+              <input id="customItemPriceGold" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(draft.customItemPriceGold)}" placeholder="пусто" />
+            </div>
+
+            <div class="filter-group">
+              <label>Серебро</label>
+              <input id="customItemPriceSilver" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(draft.customItemPriceSilver)}" placeholder="пусто" />
+            </div>
+
+            <div class="filter-group">
+              <label>Медь</label>
+              <input id="customItemPriceCopper" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(draft.customItemPriceCopper)}" placeholder="пусто" />
+            </div>
+
+            <div class="filter-group">
+              <label>Вес</label>
+              <input id="customItemWeight" type="number" min="0" step="0.1" inputmode="decimal" value="${escapeHtml(draft.customItemWeight)}" placeholder="пусто" />
+            </div>
+
+            <label class="inline-checkbox compact-inline-checkbox custom-item-check">
+              <input id="customItemMagical" type="checkbox" ${draft.customItemMagical ? "checked" : ""} />
+              <span>Магический</span>
+            </label>
+
+            <label class="inline-checkbox compact-inline-checkbox custom-item-check">
+              <input id="customItemAttunement" type="checkbox" ${draft.customItemAttunement ? "checked" : ""} />
+              <span>Настройка</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="custom-item-section custom-item-section-text">
+          <h4>Текст и механика</h4>
+          <div class="custom-item-text-grid">
+            <div class="filter-group">
+              <label>Описание</label>
+              <textarea id="customItemDescription" rows="4" placeholder="Краткое описание предмета">${escapeHtml(draft.customItemDescription)}</textarea>
+            </div>
+
+            <div class="filter-group">
+              <label>Пассивки / механика</label>
+              <textarea id="customItemProperties" rows="4" placeholder="+1 к инициативе • иммунитет к яду • бонус к скрытности">${escapeHtml(draft.customItemProperties)}</textarea>
+            </div>
+
+            <div class="filter-group">
+              <label>Требования</label>
+              <textarea id="customItemRequirements" rows="4" placeholder="Только волшебник, уровень 5+">${escapeHtml(draft.customItemRequirements)}</textarea>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Описание</label>
-        <textarea id="customItemDescription" rows="4" placeholder="Краткое описание предмета"></textarea>
-      </div>
-
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Свойства / пассивки / механика</label>
-        <textarea id="customItemProperties" rows="3" placeholder="Например: +1 к инициативе • иммунитет к яду • бонус к скрытности"></textarea>
-      </div>
-
-      <div class="filter-group" style="margin-top:12px;">
-        <label>Требования</label>
-        <textarea id="customItemRequirements" rows="2" placeholder="Например: только волшебник, уровень 5+"></textarea>
-      </div>
-
-      <div class="modal-actions" style="margin-top:12px; gap:8px; flex-wrap:wrap;">
+      <div class="modal-actions custom-item-form-actions">
         <button class="btn btn-success" type="button" id="cabinetSaveCustomItemBtn">Добавить предмет</button>
         <button class="btn" type="button" id="cabinetResetCustomItemBtn">Сбросить</button>
       </div>
 
-      <div class="muted" style="margin-top:10px;">
+      <div class="muted custom-item-form-note">
         Кастомные предметы сразу совместимы с инвентарём, описанием, продажей и новой системой экипировки.
       </div>
     </div>
@@ -1898,20 +2604,49 @@ function buildCustomItemFromForm() {
   const nextId = getNextCustomItemId(inventory);
 
   const name = safeText(getEl("customItemName")?.value, "").trim();
-  const quantity = Math.max(1, safeNumber(getEl("customItemQuantity")?.value, 1));
+  const quantity = readCustomItemNumber("customItemQuantity", {
+    fallback: 1,
+    min: 1,
+    integer: true,
+    label: "Количество",
+  });
   const category = safeText(getEl("customItemCategory")?.value, "прочее").trim() || "прочее";
   const rarity = normalizeRarityValue(getEl("customItemRarity")?.value || "common");
   const quality = normalizeQuality(getEl("customItemQuality")?.value || "стандартное");
-  const weight = Math.max(0, safeNumber(getEl("customItemWeight")?.value, 0));
+  const weight = readCustomItemNumber("customItemWeight", {
+    fallback: 0,
+    min: 0,
+    integer: false,
+    disallowZero: true,
+    label: "Вес",
+  });
   const slot = safeText(getEl("customItemEquipSlot")?.value, "").trim();
 
-  const priceGold = Math.max(0, safeNumber(getEl("customItemPriceGold")?.value, 0));
-  const priceSilver = Math.max(0, safeNumber(getEl("customItemPriceSilver")?.value, 0));
-  const priceCopper = Math.max(0, safeNumber(getEl("customItemPriceCopper")?.value, 0));
+  const priceGold = readCustomItemNumber("customItemPriceGold", {
+    fallback: 0,
+    min: 0,
+    integer: true,
+    disallowZero: true,
+    label: "Цена в золоте",
+  });
+  const priceSilver = readCustomItemNumber("customItemPriceSilver", {
+    fallback: 0,
+    min: 0,
+    integer: true,
+    disallowZero: true,
+    label: "Цена в серебре",
+  });
+  const priceCopper = readCustomItemNumber("customItemPriceCopper", {
+    fallback: 0,
+    min: 0,
+    integer: true,
+    disallowZero: true,
+    label: "Цена в меди",
+  });
 
-  const description = safeText(getEl("customItemDescription")?.value, "").trim();
-  const properties = safeText(getEl("customItemProperties")?.value, "").trim();
-  const requirements = safeText(getEl("customItemRequirements")?.value, "").trim();
+  const description = stripKnownFieldPrefix(getEl("customItemDescription")?.value, ["Описание", "Description"]);
+  const properties = stripKnownFieldPrefix(getEl("customItemProperties")?.value, ["Свойства", "Пассивки", "Механика", "Properties"]);
+  const requirements = stripKnownFieldPrefix(getEl("customItemRequirements")?.value, ["Требования", "Requirements"]);
 
   const isMagical = Boolean(getEl("customItemMagical")?.checked);
   const attunement = Boolean(getEl("customItemAttunement")?.checked);
@@ -1955,32 +2690,18 @@ function buildCustomItemFromForm() {
 }
 
 function resetCustomItemFormValues() {
-  const defaults = {
-    customItemName: "",
-    customItemQuantity: "1",
-    customItemCategory: "прочее",
-    customItemRarity: "common",
-    customItemQuality: "стандартное",
-    customItemWeight: "0",
-    customItemPriceGold: "0",
-    customItemPriceSilver: "0",
-    customItemPriceCopper: "0",
-    customItemDescription: "",
-    customItemProperties: "",
-    customItemRequirements: "",
-    customItemEquipSlot: "",
-  };
+  const defaults = getCustomItemDraftDefaults();
+  clearCustomItemDraft();
 
   Object.entries(defaults).forEach(([id, value]) => {
     const el = getEl(id);
-    if (el) el.value = value;
+    if (!el) return;
+    if (el.type === "checkbox") {
+      el.checked = Boolean(value);
+    } else {
+      el.value = value;
+    }
   });
-
-  const magical = getEl("customItemMagical");
-  if (magical) magical.checked = false;
-
-  const attune = getEl("customItemAttunement");
-  if (attune) attune.checked = false;
 }
 
 async function addCustomInventoryItem() {
@@ -2005,6 +2726,7 @@ async function addCustomInventoryItem() {
 
   syncInventoryToUi();
   await tryPersistInventoryToServer();
+  clearCustomItemDraft();
   renderCabinetInventory();
 
   emitCabinetHistory({
@@ -2090,7 +2812,13 @@ function openCabinetItemDescription(item) {
   if (!modal || !root) return;
 
   const rareClass = rarityClass(item?.rarity);
-  const effects = collectItemPassiveTexts(item);
+  const propertyText = stripKnownFieldPrefix(item?.properties, ["Свойства", "Properties"]);
+  const descriptionText = stripKnownFieldPrefix(item?.description, ["Описание", "Description"]);
+  const requirementsText = stripKnownFieldPrefix(item?.requirements, ["Требования", "Requirements"]);
+  const effects = collectItemPassiveTexts(item).filter((line) => {
+    const text = stripKnownFieldPrefix(line, ["Свойства", "Описание", "Требования", "Properties", "Description", "Requirements"]);
+    return text && ![propertyText, descriptionText, requirementsText].includes(text);
+  });
   const slotOptions = inferItemSlotOptions(item).map(resolveSlotLabel).join(", ");
 
   root.innerHTML = `
@@ -2108,9 +2836,9 @@ function openCabinetItemDescription(item) {
         ${item?.is_custom ? `<span>custom</span>` : ""}
       </div>
 
-      ${item?.description ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Описание</h4><p>${escapeHtml(item.description)}</p></div>` : ""}
-      ${item?.properties ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Свойства</h4><p>${escapeHtml(item.properties)}</p></div>` : ""}
-      ${item?.requirements ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Требования</h4><p>${escapeHtml(item.requirements)}</p></div>` : ""}
+      ${descriptionText ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Описание</h4><p>${escapeHtml(descriptionText)}</p></div>` : ""}
+      ${propertyText ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Свойства</h4><p>${escapeHtml(propertyText)}</p></div>` : ""}
+      ${requirementsText ? `<div class="lss-rich-block" style="margin-bottom:10px;"><h4>Требования</h4><p>${escapeHtml(requirementsText)}</p></div>` : ""}
       ${effects.length ? `<div class="lss-rich-block"><h4>Пассивки / эффекты</h4><p>${escapeHtml(effects.join(" • "))}</p></div>` : ""}
     </div>
   `;
@@ -2122,38 +2850,37 @@ function renderCabinetInventoryItemActions(item) {
   const itemId = getInventoryItemId(item);
   const equippedSlot = getEquippedSlotForItem(itemId);
   const allowedSlots = inferItemSlotOptions(item);
-  const selectedSlot = CABINET_INVENTORY_STATE.slotSelections[itemId] || equippedSlot || allowedSlots[0] || "main_hand";
+  const selectedSlot = CABINET_INVENTORY_STATE.slotSelections[itemId] || equippedSlot || allowedSlots[0] || "";
 
   const slotControl = allowedSlots.length > 1
     ? `
-      <div class="filter-group" style="min-width:180px;">
-        <label>Слот</label>
+      <label class="inventory-ref-slot-select">
+        <span>Слот</span>
         <select data-cabinet-slot-select="${escapeHtml(itemId)}">
           ${allowedSlots
             .map((slotKey) => `<option value="${escapeHtml(slotKey)}" ${selectedSlot === slotKey ? "selected" : ""}>${escapeHtml(resolveSlotLabel(slotKey))}</option>`)
             .join("")}
         </select>
-      </div>
+      </label>
     `
     : allowedSlots.length === 1
-      ? `<div class="muted" style="font-size:0.8rem;">Слот: ${escapeHtml(resolveSlotLabel(allowedSlots[0]))}</div>`
-      : `<div class="muted" style="font-size:0.8rem;">Без экипируемого слота</div>`;
+      ? `<div class="inventory-ref-slot-hint">Слот: ${escapeHtml(resolveSlotLabel(allowedSlots[0]))}</div>`
+      : `<div class="inventory-ref-slot-hint">Не экипируется</div>`;
 
   return `
-    <div class="collection-toolbar compact-collection-toolbar" style="margin-top:8px; gap:6px; align-items:flex-end;">
-      <div class="cart-buttons" style="gap:6px; justify-content:flex-start;">
-        <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Описание</button>
-        <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">−1</button>
-        <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">＋1</button>
-        <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Продать</button>
-        <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Удалить</button>
+    <div class="inventory-ref-item-actions">
+      <div class="inventory-ref-action-row">
+        <button class="btn" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">Описание</button>
+        <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
+        <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
+        <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">Продать</button>
+        <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">Удалить</button>
       </div>
 
-      ${slotControl}
-
-      <div class="cart-buttons" style="gap:6px;">
-        ${allowedSlots.length ? `<button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">${equippedSlot ? "Переэкипировать" : "Надеть"}</button>` : ""}
-        ${equippedSlot ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}" style="min-height:28px; padding:5px 8px; font-size:0.78rem;">Снять</button>` : ""}
+      <div class="inventory-ref-equip-row">
+        ${slotControl}
+        ${allowedSlots.length ? `<button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">${equippedSlot ? "Переодеть" : "Надеть"}</button>` : ""}
+        ${equippedSlot ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}">Снять</button>` : ""}
       </div>
     </div>
   `;
@@ -2164,60 +2891,70 @@ function renderCabinetInventoryCard(item) {
   const quantity = safeText(item?.quantity, "1");
   const rarity = rarityLabel(item?.rarity);
   const category = inventoryCategoryLabel(item?.category);
+  const categoryIcon = inventoryCategoryIcon(item?.category);
   const price = formatPriceLabel(item);
   const itemId = getInventoryItemId(item);
-  const customBadge = item?.is_custom ? `<span class="meta-item">custom</span>` : "";
   const equippedSlot = getEquippedSlotForItem(itemId);
   const passiveShort = collectItemPassiveTexts(item).slice(0, 2).join(" • ");
-  const shortDescription = clampText(item?.description, 120);
+  const shortDescription = clampText(item?.description, 118);
+  const imageUrl = getInventoryItemArtUrl(item);
+  const weight = getInventoryWeightValue(item);
 
   return `
-    <div class="inventory-item" style="padding:8px 0;">
-      <div class="inventory-item-info">
-        <div class="flex-between" style="align-items:flex-start; gap:8px; flex-wrap:wrap;">
-          <div>
-            <strong class="${escapeHtml(rareClass)}" style="font-size:0.92rem;">${escapeHtml(safeText(item?.name, "Без названия"))}</strong>
-            <div class="inv-item-details" style="margin-top:4px; font-size:0.78rem; gap:5px 8px;">
-              <span>Кол-во: ${escapeHtml(quantity)}</span>
-              <span class="${escapeHtml(rareClass)}">Редкость: ${escapeHtml(rarity)}</span>
-              <span>Категория: ${escapeHtml(category)}</span>
-              <span>Цена: ${escapeHtml(price)}</span>
-              ${item?.is_magical ? `<span>✨ магический</span>` : ""}
-              ${item?.attunement ? `<span>🔗 настройка</span>` : ""}
-              ${customBadge}
-              ${equippedSlot ? `<span>🧷 ${escapeHtml(resolveSlotLabel(equippedSlot))}</span>` : ""}
-            </div>
-          </div>
+    <article class="inventory-ref-card ${escapeHtml(rareClass)} ${equippedSlot ? "inventory-ref-card-equipped" : ""}" data-item-id-row="${escapeHtml(itemId)}">
+      <div class="inventory-ref-card-art ${imageUrl ? "inventory-ref-card-art-image" : ""}">
+        ${imageUrl
+          ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item?.name || "Предмет")}" loading="lazy">`
+          : `<span>${escapeHtml(categoryIcon)}</span>`}
+      </div>
 
-          <div class="trader-meta" style="gap:6px;">
-            ${equippedSlot ? `<span class="meta-item">Надето</span>` : ""}
-          </div>
+      <div class="inventory-ref-card-body">
+        <div class="inventory-ref-card-topline">
+          <span class="inventory-ref-rarity-label ${escapeHtml(rareClass)}">${escapeHtml(rarity)}</span>
+          ${equippedSlot ? `<span class="inventory-ref-equipped-badge">Надето</span>` : ""}
         </div>
 
-        ${passiveShort ? `<div class="muted" style="margin-top:4px; font-size:0.78rem; line-height:1.28;">${escapeHtml(clampText(passiveShort, 110))}</div>` : ""}
-        ${shortDescription ? `<div class="muted" style="margin-top:3px; font-size:0.78rem; line-height:1.28;">${escapeHtml(shortDescription)}</div>` : ""}
+        <h3 class="inventory-ref-card-title ${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.name, "Без названия"))}</h3>
+        <div class="inventory-ref-card-type">${escapeHtml(category)}</div>
+
+        <div class="inventory-ref-card-stats">
+          <span>Кол-во: ${escapeHtml(quantity)}</span>
+          <span>Цена: ${escapeHtml(price)}</span>
+          <span>Вес: ${escapeHtml(formatInventoryWeight(weight))}</span>
+          ${equippedSlot ? `<span>${escapeHtml(resolveSlotLabel(equippedSlot))}</span>` : ""}
+        </div>
+
+        ${passiveShort ? `<p class="inventory-ref-card-effect">${escapeHtml(clampText(passiveShort, 120))}</p>` : ""}
+        ${shortDescription ? `<p class="inventory-ref-card-desc">${escapeHtml(shortDescription)}</p>` : ""}
+
+        <div class="inventory-ref-card-tags">
+          ${item?.is_magical ? `<span>Магия</span>` : ""}
+          ${item?.attunement ? `<span>Настройка</span>` : ""}
+          ${item?.is_custom ? `<span>Custom</span>` : ""}
+        </div>
 
         ${renderCabinetInventoryItemActions(item)}
       </div>
-    </div>
+    </article>
   `;
 }
 
 function renderCabinetInventoryGrid(items) {
   return `
-    <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
-      ${items.map((item) => `<div class="cabinet-block" style="padding:10px 12px;">${renderCabinetInventoryCard(item)}</div>`).join("")}
+    <div class="inventory-ref-grid">
+      ${items.map((item) => renderCabinetInventoryCard(item)).join("")}
     </div>
   `;
 }
 
 function renderCabinetInventoryTable(items) {
   return `
-    <div class="table-wrap">
-      <table class="items-table">
+    <div class="inventory-ref-table-wrap">
+      <table class="items-table inventory-ref-table">
         <thead>
           <tr>
             <th>Предмет</th>
+            <th>Категория</th>
             <th>Редкость</th>
             <th>Кол-во</th>
             <th>Цена</th>
@@ -2231,27 +2968,17 @@ function renderCabinetInventoryTable(items) {
             const itemId = getInventoryItemId(item);
             const equippedSlot = getEquippedSlotForItem(itemId);
             return `
-              <tr>
+              <tr class="inventory-ref-table-row ${escapeHtml(rareClass)}">
                 <td>
                   <div class="item-name ${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.name, "Без названия"))}</div>
-                  ${item?.description ? `<div class="muted" style="margin-top:3px; font-size:0.76rem; line-height:1.22;">${escapeHtml(clampText(item.description, 96))}</div>` : ""}
+                  ${item?.description ? `<div class="muted inventory-ref-table-desc">${escapeHtml(clampText(item.description, 96))}</div>` : ""}
                 </td>
-                <td class="${escapeHtml(rareClass)}">${escapeHtml(safeText(item?.rarity, "—"))}</td>
+                <td>${escapeHtml(inventoryCategoryLabel(item?.category))}</td>
+                <td class="${escapeHtml(rareClass)}">${escapeHtml(rarityLabel(item?.rarity))}</td>
                 <td>${escapeHtml(safeText(item?.quantity, "1"))}</td>
                 <td>${escapeHtml(formatPriceLabel(item))}</td>
                 <td>${equippedSlot ? escapeHtml(resolveSlotLabel(equippedSlot)) : "—"}</td>
-                <td>
-                  <div class="item-actions item-actions-stack">
-                    <button class="btn js-cabinet-desc" type="button" data-cabinet-open-desc="${escapeHtml(itemId)}">Описание</button>
-                    <button class="btn" type="button" data-cabinet-item-minus="${escapeHtml(itemId)}">−1</button>
-                    <button class="btn" type="button" data-cabinet-item-plus="${escapeHtml(itemId)}">＋1</button>
-                    <button class="btn btn-success" type="button" data-cabinet-sell-item="${escapeHtml(itemId)}">Продать</button>
-                    ${equippedSlot
-                      ? `<button class="btn" type="button" data-cabinet-unequip-item="${escapeHtml(itemId)}">Снять</button>`
-                      : `<button class="btn btn-primary" type="button" data-cabinet-equip-item="${escapeHtml(itemId)}">Надеть</button>`}
-                    <button class="btn btn-danger" type="button" data-cabinet-item-remove="${escapeHtml(itemId)}">Удалить</button>
-                  </div>
-                </td>
+                <td>${renderCabinetInventoryItemActions(item)}</td>
               </tr>
             `;
           }).join("")}
@@ -2266,27 +2993,40 @@ function renderInventoryList(items) {
 
   if (!filtered.length) {
     return `
-      <div class="cabinet-block">
-        <p>Ничего не найдено. Попробуй изменить фильтры или добавить кастомный предмет.</p>
+      <div class="inventory-ref-empty">
+        <div class="inventory-ref-empty-icon">◇</div>
+        <h3>Ничего не найдено</h3>
+        <p>Измени фильтры, выбери другую категорию или добавь кастомный предмет.</p>
       </div>
     `;
   }
 
-  if (CABINET_INVENTORY_STATE.viewMode === "table") {
-    return `<div class="cabinet-block">${renderCabinetInventoryTable(filtered)}</div>`;
-  }
-
-  if (CABINET_INVENTORY_STATE.viewMode === "grid") {
-    return `<div class="cabinet-block">${renderCabinetInventoryGrid(filtered)}</div>`;
-  }
-
-  return `
-    <div class="cabinet-block">
-      <div class="inventory-list">
-        ${filtered.map((item) => renderCabinetInventoryCard(item)).join("")}
+  const header = `
+    <div class="inventory-ref-results-head">
+      <div>
+        <div class="inventory-ref-kicker">Найдено</div>
+        <h3>${escapeHtml(String(filtered.length))} записей</h3>
       </div>
+      <span>${escapeHtml(CABINET_INVENTORY_STATE.viewMode === "table" ? "Таблица" : CABINET_INVENTORY_STATE.viewMode === "inventory" ? "Список" : "Карточки")}</span>
     </div>
   `;
+
+  if (CABINET_INVENTORY_STATE.viewMode === "table") {
+    return `<section class="inventory-ref-results">${header}${renderCabinetInventoryTable(filtered)}</section>`;
+  }
+
+  if (CABINET_INVENTORY_STATE.viewMode === "inventory") {
+    return `
+      <section class="inventory-ref-results">
+        ${header}
+        <div class="inventory-ref-list">
+          ${filtered.map((item) => renderCabinetInventoryCard(item)).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  return `<section class="inventory-ref-results">${header}${renderCabinetInventoryGrid(filtered)}</section>`;
 }
 
 function renderCabinetInventory() {
@@ -2297,13 +3037,33 @@ function renderCabinetInventory() {
   const inventory = getInventoryState();
 
   container.innerHTML = `
-    ${renderInventorySummary(inventory)}
-    ${renderInventoryToolbar()}
-    ${renderEquipmentPanel(inventory)}
-    ${renderCustomItemForm()}
-    ${renderInventoryList(inventory)}
+    <div class="inventory-ref-shell">
+      ${renderInventorySummary(inventory)}
+      <div class="inventory-ref-workspace">
+        <main class="inventory-ref-main">
+          ${renderInventoryToolbar()}
+          ${renderCustomItemForm()}
+          <div id="cabinetInventoryResults">
+            ${renderInventoryList(inventory)}
+          </div>
+        </main>
+        ${renderEquipmentPanel(inventory)}
+      </div>
+    </div>
   `;
 
+  bindInventoryActions();
+}
+
+function patchCabinetInventoryResults() {
+  const container = getEl("cabinetInventoryResults");
+  if (!container) {
+    renderCabinetInventory();
+    finalizeCabinetActiveModule();
+    return;
+  }
+
+  container.innerHTML = renderInventoryList(getInventoryState());
   bindInventoryActions();
 }
 
@@ -2311,10 +3071,18 @@ function bindCabinetInventoryFilter(id, stateKey, normalizer = (value) => value)
   const el = getEl(id);
   if (!el || el.dataset.boundCabinetInventoryFilter === "1") return;
   el.dataset.boundCabinetInventoryFilter = "1";
-  el.addEventListener("input", () => {
-    CABINET_INVENTORY_STATE[stateKey] = normalizer(el.value);
-    renderCabinetInventory();
-  });
+
+  if (id === "cabinetInventorySearch") {
+    el.addEventListener("input", () => {
+      CABINET_INVENTORY_STATE[stateKey] = normalizer(el.value);
+      clearTimeout(CABINET_INVENTORY_STATE.searchRenderTimer);
+      CABINET_INVENTORY_STATE.searchRenderTimer = window.setTimeout(() => {
+        patchCabinetInventoryResults();
+      }, 80);
+    });
+    return;
+  }
+
   el.addEventListener("change", () => {
     CABINET_INVENTORY_STATE[stateKey] = normalizer(el.value);
     renderCabinetInventory();
@@ -2323,6 +3091,8 @@ function bindCabinetInventoryFilter(id, stateKey, normalizer = (value) => value)
 
 function bindInventoryActions() {
   ensureCabinetInventoryStateDefaults();
+  bindCustomItemNumberGuards();
+  bindCustomItemDraftInputs();
 
   const refreshBtn = getEl("cabinetRefreshInventoryBtn");
   if (refreshBtn && refreshBtn.dataset.boundRefreshInventory !== "1") {
@@ -2367,6 +3137,15 @@ function bindInventoryActions() {
   bindCabinetInventoryFilter("cabinetInventoryCategory", "category", (value) => String(value || "").trim().toLowerCase());
   bindCabinetInventoryFilter("cabinetInventorySort", "sort", (value) => String(value || "name"));
   bindCabinetInventoryFilter("cabinetInventoryViewMode", "viewMode", (value) => String(value || "inventory"));
+
+  document.querySelectorAll("[data-cabinet-inventory-category-tab]").forEach((btn) => {
+    if (btn.dataset.boundCabinetInventoryCategoryTab === "1") return;
+    btn.dataset.boundCabinetInventoryCategoryTab = "1";
+    btn.addEventListener("click", () => {
+      CABINET_INVENTORY_STATE.category = String(btn.dataset.cabinetInventoryCategoryTab || "").trim().toLowerCase();
+      renderCabinetInventory();
+    });
+  });
 
   const equippedOnly = getEl("cabinetInventoryEquippedOnly");
   if (equippedOnly && equippedOnly.dataset.boundCabinetInventoryEquippedOnly !== "1") {
@@ -2499,7 +3278,7 @@ function bindInventoryActions() {
 
 
 // ------------------------------------------------------------
-// 📁 FILES
+// 📁 FILES / PARTY ARCHIVE
 // ------------------------------------------------------------
 function getFilesStorageKey() {
   return getUserScopedKey("cabinetFiles");
@@ -2526,6 +3305,79 @@ function buildFileId() {
   return `file_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function normalizeFileCategory(type = "", name = "", fallback = "") {
+  const explicit = String(fallback || "").trim().toLowerCase();
+  if (["image", "map", "document", "handout", "audio", "archive", "other"].includes(explicit)) return explicit;
+
+  const mime = String(type || "").trim().toLowerCase();
+  const filename = String(name || "").trim().toLowerCase();
+
+  if (mime.startsWith("image/")) return filename.includes("map") || filename.includes("карта") ? "map" : "image";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.includes("pdf") || mime.includes("document") || mime.includes("text") || /\.(pdf|docx?|txt|md|rtf)$/i.test(filename)) return "document";
+  if (/\.(zip|rar|7z|tar|gz)$/i.test(filename)) return "archive";
+  if (filename.includes("handout") || filename.includes("раздат") || filename.includes("улика")) return "handout";
+  if (filename.includes("map") || filename.includes("карта")) return "map";
+
+  return "other";
+}
+
+function normalizeFileVisibility(value = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (["private", "party", "gm"].includes(raw)) return raw;
+  return "private";
+}
+
+function fileVisibilityLabel(value = "") {
+  const map = {
+    private: "Личное",
+    party: "Партия",
+    gm: "ГМ",
+  };
+  return map[normalizeFileVisibility(value)] || "Личное";
+}
+
+function fileCategoryLabel(category = "") {
+  const map = {
+    image: "Изображения",
+    map: "Карты",
+    document: "Документы",
+    handout: "Handouts",
+    audio: "Аудио",
+    archive: "Архивы",
+    other: "Прочее",
+  };
+  return map[normalizeFileCategory("", "", category)] || "Прочее";
+}
+
+function fileCategoryIcon(category = "", type = "", name = "") {
+  const normalized = normalizeFileCategory(type, name, category);
+  const map = {
+    image: "◈",
+    map: "⌖",
+    document: "☷",
+    handout: "✦",
+    audio: "♪",
+    archive: "▣",
+    other: "◇",
+  };
+  return map[normalized] || "◇";
+}
+
+function normalizeTags(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || "").trim()).filter(Boolean);
+  }
+  return String(value || "")
+    .split(/[;,\n\r]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function serializeTags(tags) {
+  return normalizeTags(tags).join(", ");
+}
+
 function normalizeCabinetFile(item, index = 0) {
   if (!item || typeof item !== "object") {
     return {
@@ -2534,27 +3386,106 @@ function normalizeCabinetFile(item, index = 0) {
       dataUrl: "",
       type: "",
       size: 0,
+      category: "other",
+      visibility: "private",
+      note: "",
+      tags: [],
+      is_pinned: false,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
   }
 
+  const name = safeText(item.name || item.filename || item.title, `file_${index + 1}`);
+  const type = safeText(item.type || item.mime_type || item.mime, "");
+  const category = normalizeFileCategory(type, name, item.category || item.kind || item.file_category);
+  const createdAt = safeText(item.created_at || item.createdAt, new Date().toISOString());
+
   return {
-    id: item.id || buildFileId(),
-    name: safeText(item.name, `file_${index + 1}`),
-    dataUrl: safeText(item.dataUrl || item.url || item.href || "", ""),
-    type: safeText(item.type, ""),
-    size: Math.max(0, safeNumber(item.size, 0)),
-    created_at: safeText(item.created_at || item.createdAt, new Date().toISOString()),
+    id: item.id || item.uuid || item._id || buildFileId(),
+    name,
+    dataUrl: safeText(item.dataUrl || item.data_url || item.url || item.href || item.src || "", ""),
+    type,
+    size: Math.max(0, safeNumber(item.size || item.size_bytes, 0)),
+    category,
+    visibility: normalizeFileVisibility(item.visibility || item.access || item.scope),
+    note: safeText(item.note || item.description || item.caption || item.comment || "", ""),
+    tags: normalizeTags(item.tags),
+    is_pinned: Boolean(item.is_pinned || item.pinned || item.favorite),
+    created_at: createdAt,
+    updated_at: safeText(item.updated_at || item.updatedAt, createdAt),
+  };
+}
+
+function getFileById(fileId) {
+  return FILES_STATE.items.find((file) => String(file.id) === String(fileId)) || null;
+}
+
+function ensureSelectedFileIsValid() {
+  if (FILES_STATE.selectedFileId && getFileById(FILES_STATE.selectedFileId)) return;
+  FILES_STATE.selectedFileId = FILES_STATE.items[0]?.id || "";
+}
+
+function getSelectedFile() {
+  ensureSelectedFileIsValid();
+  return getFileById(FILES_STATE.selectedFileId);
+}
+
+function fileSearchBlob(file) {
+  return [
+    file?.name,
+    file?.type,
+    file?.category,
+    file?.visibility,
+    file?.note,
+    ...(Array.isArray(file?.tags) ? file.tags : []),
+  ].join(" ").toLowerCase();
+}
+
+function getFilteredFiles() {
+  const search = String(FILES_STATE.filters.search || "").trim().toLowerCase();
+  const category = String(FILES_STATE.filters.category || "all");
+  const visibility = String(FILES_STATE.filters.visibility || "all");
+  const sort = String(FILES_STATE.filters.sort || "newest");
+
+  const filtered = FILES_STATE.items.filter((file) => {
+    if (category !== "all" && file.category !== category) return false;
+    if (visibility !== "all" && file.visibility !== visibility) return false;
+    if (search && !fileSearchBlob(file).includes(search)) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+    if (sort === "name") return String(a.name || "").localeCompare(String(b.name || ""), "ru");
+    if (sort === "size_desc") return Number(b.size || 0) - Number(a.size || 0);
+    if (sort === "size_asc") return Number(a.size || 0) - Number(b.size || 0);
+    if (sort === "oldest") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  return filtered;
+}
+
+function getFilesSummary() {
+  const byCategory = FILES_STATE.items.reduce((acc, file) => {
+    const key = file.category || "other";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const totalSize = FILES_STATE.items.reduce((sum, file) => sum + Math.max(0, Number(file.size || 0)), 0);
+  return {
+    total: FILES_STATE.items.length,
+    totalSize,
+    maps: byCategory.map || 0,
+    documents: byCategory.document || 0,
+    images: byCategory.image || 0,
+    pinned: FILES_STATE.items.filter((file) => file.is_pinned).length,
   };
 }
 
 async function loadFiles() {
-  let data = await apiGet([
-    "/player/profile",
-    "/profile/me",
-    "/player/files",
-    "/files",
-  ]);
+  let data = await apiGet("/player/profile");
   let source = "api";
 
   let items = [];
@@ -2585,6 +3516,7 @@ async function loadFiles() {
   FILES_STATE.loaded = true;
   FILES_STATE.source = FILES_STATE.items.length ? source : source === "api" ? "api" : "empty";
   FILES_STATE.draggedIndex = null;
+  ensureSelectedFileIsValid();
 
   renderFiles();
 }
@@ -2595,7 +3527,7 @@ async function saveFiles() {
 
   try {
     await apiWrite(
-      ["/player/profile", "/profile/me", "/player/files", "/files"],
+      "/player/profile",
       {
         files: FILES_STATE.items,
         cabinet_files: FILES_STATE.items,
@@ -2613,7 +3545,7 @@ async function saveFiles() {
   FILES_STATE.isSaving = false;
 }
 
-async function handleFileUpload(fileList) {
+async function handleFileUpload(fileList, defaults = {}) {
   const files = Array.from(fileList || []);
   if (!files.length) {
     showToast("Файлы не выбраны");
@@ -2632,12 +3564,18 @@ async function handleFileUpload(fileList) {
         dataUrl,
         type: file.type,
         size: file.size,
+        category: defaults.category || normalizeFileCategory(file.type, file.name),
+        visibility: defaults.visibility || "private",
+        tags: defaults.tags || [],
+        note: defaults.note || "",
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
     );
   }
 
-  FILES_STATE.items = [...FILES_STATE.items, ...prepared];
+  FILES_STATE.items = [...prepared, ...FILES_STATE.items];
+  FILES_STATE.selectedFileId = prepared[0]?.id || FILES_STATE.selectedFileId;
   await saveFiles();
   renderFiles();
 
@@ -2647,7 +3585,7 @@ async function handleFileUpload(fileList) {
       type: "file_upload",
       action: "file_upload",
       title: `Загружен файл: ${file.name}`,
-      message: `Тип: ${fileTypeLabel(file.type)} • Размер: ${formatBytes(file.size)}`,
+      message: `Тип: ${fileTypeLabel(file.type)} • Категория: ${fileCategoryLabel(file.category)} • Размер: ${formatBytes(file.size)}`,
       file_name: file.name,
       size: formatBytes(file.size),
     });
@@ -2656,14 +3594,53 @@ async function handleFileUpload(fileList) {
   showToast(`Загружено файлов: ${prepared.length}`);
 }
 
+async function updateCabinetFile(fileId, patch = {}) {
+  let changed = null;
+  FILES_STATE.items = FILES_STATE.items.map((file) => {
+    if (String(file.id) !== String(fileId)) return file;
+    changed = normalizeCabinetFile({
+      ...file,
+      ...patch,
+      updated_at: new Date().toISOString(),
+    });
+    return changed;
+  });
+
+  if (!changed) {
+    showToast("Файл не найден");
+    return null;
+  }
+
+  FILES_STATE.selectedFileId = changed.id;
+  await saveFiles();
+  renderFiles();
+
+  emitCabinetHistory({
+    scope: "files",
+    type: "file_update",
+    action: "file_update",
+    title: `Обновлён файл: ${changed.name}`,
+    message: `Категория: ${fileCategoryLabel(changed.category)} • Доступ: ${fileVisibilityLabel(changed.visibility)}`,
+    file_name: changed.name,
+    size: formatBytes(changed.size),
+  });
+
+  showToast("Файл обновлён");
+  return changed;
+}
+
 async function removeCabinetFile(fileId) {
-  const index = FILES_STATE.items.findIndex((file) => file.id === fileId);
+  const index = FILES_STATE.items.findIndex((file) => String(file.id) === String(fileId));
   if (index < 0) {
     showToast("Файл не найден");
     return;
   }
 
   const [removed] = FILES_STATE.items.splice(index, 1);
+  if (FILES_STATE.selectedFileId === removed.id) {
+    FILES_STATE.selectedFileId = FILES_STATE.items[0]?.id || "";
+  }
+
   await saveFiles();
   renderFiles();
 
@@ -2709,84 +3686,257 @@ async function moveCabinetFile(fromIndex, toIndex) {
   });
 }
 
-function renderFilesToolbar() {
+function renderFilesHero() {
+  const summary = getFilesSummary();
   return `
-    <div class="cabinet-block" style="margin-bottom:12px;">
-      <div class="flex-between" style="align-items:center; gap:12px; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin:0 0 4px 0;">Файлы игрока</h3>
-          <div class="muted">
-            Local-first модуль. Можно загружать, скачивать, удалять и перетаскивать файлы.
-          </div>
-        </div>
-
-        <div class="cart-buttons">
+    <section class="cabinet-block files-ref-hero">
+      <div class="files-ref-hero-main">
+        <div class="files-ref-kicker">Архив партии</div>
+        <h3>Файлы кампании</h3>
+        <p>Карты, handouts, изображения, документы и материалы стола. Модуль local-first: если API недоступен, архив остаётся в браузере.</p>
+        <div class="files-ref-hero-actions">
+          <button class="btn btn-primary" type="button" id="cabinetFilesUploadBtn">＋ Загрузить файлы</button>
           <button class="btn" type="button" id="cabinetFilesRefreshBtn">Обновить</button>
-          <button class="btn btn-primary" type="button" id="cabinetFilesUploadBtn">Загрузить</button>
-          <input type="file" id="cabinetFileInput" multiple style="display:none;" />
+          <button class="btn" type="button" id="cabinetFilesToggleUploadBtn">${FILES_STATE.ui.uploadOpen ? "Скрыть загрузку" : "Показать загрузку"}</button>
+          <input type="file" id="cabinetFileInput" multiple hidden />
         </div>
       </div>
 
-      <div class="muted" style="margin-top:10px;">
-        Источник: <strong>${escapeHtml(FILES_STATE.source)}</strong>
-        • Файлов: <strong>${escapeHtml(String(FILES_STATE.items.length))}</strong>
-        • Последнее сохранение: <strong>${escapeHtml(formatTime(FILES_STATE.lastSavedAt))}</strong>
+      <div class="files-ref-summary-grid">
+        <div class="files-ref-summary-card"><span>Всего</span><strong>${escapeHtml(String(summary.total))}</strong></div>
+        <div class="files-ref-summary-card"><span>Объём</span><strong>${escapeHtml(formatBytes(summary.totalSize))}</strong></div>
+        <div class="files-ref-summary-card"><span>Карты</span><strong>${escapeHtml(String(summary.maps))}</strong></div>
+        <div class="files-ref-summary-card"><span>Закреплено</span><strong>${escapeHtml(String(summary.pinned))}</strong></div>
       </div>
-    </div>
+    </section>
+  `;
+}
+
+function renderFilesDropzone() {
+  if (!FILES_STATE.ui.uploadOpen) return "";
+
+  return `
+    <section class="cabinet-block files-ref-upload" id="cabinetFilesDropzone">
+      <div class="files-ref-upload-icon">⇪</div>
+      <div>
+        <h4>Загрузка в архив</h4>
+        <p class="muted">Нажми «Загрузить файлы» или перетащи файлы в эту область. Категория определится автоматически, её можно изменить справа.</p>
+      </div>
+      <div class="files-ref-upload-meta">
+        <span>Источник: <strong>${escapeHtml(FILES_STATE.source)}</strong></span>
+        <span>Последнее сохранение: <strong>${escapeHtml(formatTime(FILES_STATE.lastSavedAt))}</strong></span>
+      </div>
+    </section>
+  `;
+}
+
+function renderFilesFilters() {
+  return `
+    <section class="cabinet-block files-ref-toolbar">
+      <label class="filter-group">
+        <span>Поиск</span>
+        <input id="cabinetFilesSearchInput" type="search" placeholder="Название, тег, заметка..." value="${escapeHtml(FILES_STATE.filters.search)}" />
+      </label>
+
+      <label class="filter-group">
+        <span>Тип</span>
+        <select id="cabinetFilesCategoryFilter">
+          <option value="all" ${FILES_STATE.filters.category === "all" ? "selected" : ""}>Все</option>
+          <option value="map" ${FILES_STATE.filters.category === "map" ? "selected" : ""}>Карты</option>
+          <option value="image" ${FILES_STATE.filters.category === "image" ? "selected" : ""}>Изображения</option>
+          <option value="document" ${FILES_STATE.filters.category === "document" ? "selected" : ""}>Документы</option>
+          <option value="handout" ${FILES_STATE.filters.category === "handout" ? "selected" : ""}>Handouts</option>
+          <option value="audio" ${FILES_STATE.filters.category === "audio" ? "selected" : ""}>Аудио</option>
+          <option value="archive" ${FILES_STATE.filters.category === "archive" ? "selected" : ""}>Архивы</option>
+          <option value="other" ${FILES_STATE.filters.category === "other" ? "selected" : ""}>Прочее</option>
+        </select>
+      </label>
+
+      <label class="filter-group">
+        <span>Доступ</span>
+        <select id="cabinetFilesVisibilityFilter">
+          <option value="all" ${FILES_STATE.filters.visibility === "all" ? "selected" : ""}>Любой</option>
+          <option value="private" ${FILES_STATE.filters.visibility === "private" ? "selected" : ""}>Личное</option>
+          <option value="party" ${FILES_STATE.filters.visibility === "party" ? "selected" : ""}>Партия</option>
+          <option value="gm" ${FILES_STATE.filters.visibility === "gm" ? "selected" : ""}>ГМ</option>
+        </select>
+      </label>
+
+      <label class="filter-group">
+        <span>Сортировка</span>
+        <select id="cabinetFilesSortSelect">
+          <option value="newest" ${FILES_STATE.filters.sort === "newest" ? "selected" : ""}>Новые сверху</option>
+          <option value="oldest" ${FILES_STATE.filters.sort === "oldest" ? "selected" : ""}>Старые сверху</option>
+          <option value="name" ${FILES_STATE.filters.sort === "name" ? "selected" : ""}>По имени</option>
+          <option value="size_desc" ${FILES_STATE.filters.sort === "size_desc" ? "selected" : ""}>Большие</option>
+          <option value="size_asc" ${FILES_STATE.filters.sort === "size_asc" ? "selected" : ""}>Маленькие</option>
+        </select>
+      </label>
+    </section>
   `;
 }
 
 function renderFilesList() {
+  const files = getFilteredFiles();
+
   if (!FILES_STATE.items.length) {
     return `
-      <div class="cabinet-block">
-        <p>Файлов пока нет.</p>
-      </div>
+      <section class="cabinet-block files-ref-empty">
+        <div class="files-ref-empty-icon">▣</div>
+        <h3>Архив пока пуст</h3>
+        <p>Загрузи карту, handout, изображение или документ — файл появится в списке и запишется в историю действий.</p>
+        <button class="btn btn-primary" type="button" data-files-trigger-upload="1">Загрузить первый файл</button>
+      </section>
+    `;
+  }
+
+  if (!files.length) {
+    return `
+      <section class="cabinet-block files-ref-empty">
+        <div class="files-ref-empty-icon">⌕</div>
+        <h3>Файлы не найдены</h3>
+        <p>Попробуй очистить поиск или сменить фильтр типа/доступа.</p>
+      </section>
     `;
   }
 
   return `
-    <div class="cabinet-block">
-      <div class="inventory-list" id="cabinetFilesList">
-        ${FILES_STATE.items
-          .map((file, index) => {
-            return `
-              <div
-                class="inventory-item cabinet-file-item"
-                draggable="true"
-                data-file-id="${escapeHtml(file.id)}"
-                data-file-index="${escapeHtml(index)}"
-              >
-                <div class="inventory-item-info">
-                  <strong>${escapeHtml(file.name)}</strong>
-
-                  <div class="inv-item-details">
-                    <span>Тип: ${escapeHtml(fileTypeLabel(file.type))}</span>
-                    <span>Размер: ${escapeHtml(formatBytes(file.size))}</span>
-                    <span>Добавлен: ${escapeHtml(formatDateTime(file.created_at))}</span>
-                  </div>
-                </div>
-
-                <div class="cart-buttons">
-                  <a
-                    class="btn"
-                    href="${escapeHtml(file.dataUrl)}"
-                    download="${escapeHtml(file.name)}"
-                  >
-                    Скачать
-                  </a>
-                  <button class="btn btn-danger" type="button" data-file-remove="${escapeHtml(file.id)}">Удалить</button>
-                </div>
-              </div>
-            `;
-          })
-          .join("")}
+    <section class="cabinet-block files-ref-list-card">
+      <div class="files-ref-list-head">
+        <div>
+          <h4>Содержимое архива</h4>
+          <p class="muted">Перетаскивай строки, чтобы менять порядок. Клик открывает детали справа.</p>
+        </div>
+        <span class="meta-item">Показано: ${escapeHtml(String(files.length))}</span>
       </div>
 
-      <div class="muted" style="margin-top:10px;">
-        Можно перетаскивать файлы мышью, чтобы менять порядок.
+      <div class="files-ref-list" id="cabinetFilesList">
+        ${files.map((file) => renderFileRow(file)).join("")}
       </div>
-    </div>
+    </section>
+  `;
+}
+
+function renderFileRow(file) {
+  const originalIndex = FILES_STATE.items.findIndex((entry) => String(entry.id) === String(file.id));
+  const selected = String(file.id) === String(FILES_STATE.selectedFileId);
+  return `
+    <button
+      type="button"
+      class="files-ref-row ${selected ? "files-ref-row-active" : ""} cabinet-file-item"
+      draggable="true"
+      data-file-select="${escapeHtml(file.id)}"
+      data-file-id="${escapeHtml(file.id)}"
+      data-file-index="${escapeHtml(String(originalIndex))}"
+    >
+      <span class="files-ref-row-icon">${escapeHtml(fileCategoryIcon(file.category, file.type, file.name))}</span>
+      <span class="files-ref-row-main">
+        <strong>${escapeHtml(file.name)}</strong>
+        <small>
+          ${escapeHtml(fileCategoryLabel(file.category))}
+          • ${escapeHtml(formatBytes(file.size))}
+          • ${escapeHtml(formatDateTime(file.created_at))}
+        </small>
+      </span>
+      <span class="files-ref-row-tags">
+        ${file.is_pinned ? `<i>Закреплено</i>` : ""}
+        <i>${escapeHtml(fileVisibilityLabel(file.visibility))}</i>
+      </span>
+    </button>
+  `;
+}
+
+function renderFilesDetailPanel() {
+  const file = getSelectedFile();
+
+  if (!file) {
+    return `
+      <aside class="cabinet-block files-ref-detail files-ref-detail-empty">
+        <div class="files-ref-detail-icon">◇</div>
+        <h3>Файл не выбран</h3>
+        <p class="muted">Выбери файл из архива, чтобы увидеть детали, скачать или изменить подпись.</p>
+      </aside>
+    `;
+  }
+
+  const isPreviewImage = String(file.type || "").startsWith("image/") || file.category === "image" || file.category === "map";
+  const tagsText = serializeTags(file.tags);
+
+  return `
+    <aside class="cabinet-block files-ref-detail">
+      <div class="files-ref-detail-head">
+        <span class="files-ref-detail-icon">${escapeHtml(fileCategoryIcon(file.category, file.type, file.name))}</span>
+        <div>
+          <div class="files-ref-kicker">Выбранный файл</div>
+          <h3>${escapeHtml(file.name)}</h3>
+        </div>
+      </div>
+
+      <div class="files-ref-preview">
+        ${isPreviewImage && file.dataUrl
+          ? `<img src="${escapeHtml(file.dataUrl)}" alt="${escapeHtml(file.name)}" />`
+          : `<div class="files-ref-preview-placeholder"><span>${escapeHtml(fileCategoryIcon(file.category, file.type, file.name))}</span><strong>${escapeHtml(fileCategoryLabel(file.category))}</strong></div>`}
+      </div>
+
+      <div class="files-ref-detail-meta">
+        <span>Тип: <strong>${escapeHtml(fileTypeLabel(file.type))}</strong></span>
+        <span>Размер: <strong>${escapeHtml(formatBytes(file.size))}</strong></span>
+        <span>Доступ: <strong>${escapeHtml(fileVisibilityLabel(file.visibility))}</strong></span>
+        <span>Добавлен: <strong>${escapeHtml(formatDateTime(file.created_at))}</strong></span>
+      </div>
+
+      <div class="files-ref-edit-grid">
+        <label class="filter-group">
+          <span>Название</span>
+          <input id="cabinetFileNameInput" type="text" value="${escapeHtml(file.name)}" />
+        </label>
+
+        <label class="filter-group">
+          <span>Категория</span>
+          <select id="cabinetFileCategoryInput">
+            <option value="map" ${file.category === "map" ? "selected" : ""}>Карта</option>
+            <option value="image" ${file.category === "image" ? "selected" : ""}>Изображение</option>
+            <option value="document" ${file.category === "document" ? "selected" : ""}>Документ</option>
+            <option value="handout" ${file.category === "handout" ? "selected" : ""}>Handout</option>
+            <option value="audio" ${file.category === "audio" ? "selected" : ""}>Аудио</option>
+            <option value="archive" ${file.category === "archive" ? "selected" : ""}>Архив</option>
+            <option value="other" ${file.category === "other" ? "selected" : ""}>Прочее</option>
+          </select>
+        </label>
+
+        <label class="filter-group">
+          <span>Доступ</span>
+          <select id="cabinetFileVisibilityInput">
+            <option value="private" ${file.visibility === "private" ? "selected" : ""}>Личное</option>
+            <option value="party" ${file.visibility === "party" ? "selected" : ""}>Партия</option>
+            <option value="gm" ${file.visibility === "gm" ? "selected" : ""}>ГМ</option>
+          </select>
+        </label>
+
+        <label class="inline-checkbox files-ref-pin-toggle">
+          <input id="cabinetFilePinnedInput" type="checkbox" ${file.is_pinned ? "checked" : ""} />
+          Закрепить
+        </label>
+
+        <label class="filter-group files-ref-full-span">
+          <span>Теги</span>
+          <input id="cabinetFileTagsInput" type="text" value="${escapeHtml(tagsText)}" placeholder="карта, город, улика" />
+        </label>
+
+        <label class="filter-group files-ref-full-span">
+          <span>Заметка / подпись</span>
+          <textarea id="cabinetFileNoteInput" rows="5" placeholder="Краткое описание, где используется и кому показывать...">${escapeHtml(file.note || "")}</textarea>
+        </label>
+      </div>
+
+      <div class="files-ref-detail-actions">
+        <button class="btn btn-success" type="button" id="cabinetFileSaveDetailsBtn" data-file-save-details="${escapeHtml(file.id)}">Сохранить детали</button>
+        ${file.dataUrl ? `<a class="btn" href="${escapeHtml(file.dataUrl)}" download="${escapeHtml(file.name)}">Скачать</a>` : ""}
+        ${file.dataUrl ? `<button class="btn" type="button" data-file-open="${escapeHtml(file.id)}">Открыть</button>` : ""}
+        <button class="btn" type="button" data-file-copy-name="${escapeHtml(file.id)}">Копировать имя</button>
+        <button class="btn btn-danger" type="button" data-file-remove="${escapeHtml(file.id)}">Удалить</button>
+      </div>
+    </aside>
   `;
 }
 
@@ -2796,8 +3946,8 @@ function renderFiles() {
 
   if (!FILES_STATE.loaded) {
     container.innerHTML = `
-      ${renderFilesToolbar()}
-      <div class="cabinet-block">
+      ${renderFilesHero()}
+      <div class="cabinet-block files-ref-empty">
         <p>Модуль файлов ещё не загружен.</p>
       </div>
     `;
@@ -2805,9 +3955,20 @@ function renderFiles() {
     return;
   }
 
+  ensureSelectedFileIsValid();
+
   container.innerHTML = `
-    ${renderFilesToolbar()}
-    ${renderFilesList()}
+    <div class="files-ref-shell">
+      ${renderFilesHero()}
+      ${renderFilesDropzone()}
+      ${renderFilesFilters()}
+      <div class="files-ref-layout">
+        <main class="files-ref-main">
+          ${renderFilesList()}
+        </main>
+        ${renderFilesDetailPanel()}
+      </div>
+    </div>
   `;
 
   bindFilesActions();
@@ -2833,6 +3994,21 @@ function bindFilesActions() {
     });
   }
 
+  document.querySelectorAll("[data-files-trigger-upload]").forEach((btn) => {
+    if (btn.dataset.boundFilesTriggerUpload === "1") return;
+    btn.dataset.boundFilesTriggerUpload = "1";
+    btn.addEventListener("click", () => input?.click());
+  });
+
+  const toggleUploadBtn = getEl("cabinetFilesToggleUploadBtn");
+  if (toggleUploadBtn && toggleUploadBtn.dataset.boundFilesToggleUpload !== "1") {
+    toggleUploadBtn.dataset.boundFilesToggleUpload = "1";
+    toggleUploadBtn.addEventListener("click", () => {
+      FILES_STATE.ui.uploadOpen = !FILES_STATE.ui.uploadOpen;
+      renderFiles();
+    });
+  }
+
   if (input && input.dataset.boundFilesInput !== "1") {
     input.dataset.boundFilesInput = "1";
     input.addEventListener("change", async () => {
@@ -2847,10 +4023,94 @@ function bindFilesActions() {
     });
   }
 
+  const dropzone = getEl("cabinetFilesDropzone");
+  if (dropzone && dropzone.dataset.boundFilesDropzone !== "1") {
+    dropzone.dataset.boundFilesDropzone = "1";
+    dropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      dropzone.classList.add("files-ref-upload-dragover");
+    });
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("files-ref-upload-dragover");
+    });
+    dropzone.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      dropzone.classList.remove("files-ref-upload-dragover");
+      try {
+        await handleFileUpload(event.dataTransfer?.files);
+      } catch (error) {
+        console.error(error);
+        showToast("Не удалось загрузить файлы");
+      }
+    });
+  }
+
+  const searchInput = getEl("cabinetFilesSearchInput");
+  if (searchInput && searchInput.dataset.boundFilesSearch !== "1") {
+    searchInput.dataset.boundFilesSearch = "1";
+    searchInput.addEventListener("input", () => {
+      FILES_STATE.filters.search = searchInput.value || "";
+      renderFiles();
+    });
+  }
+
+  const categoryFilter = getEl("cabinetFilesCategoryFilter");
+  if (categoryFilter && categoryFilter.dataset.boundFilesCategory !== "1") {
+    categoryFilter.dataset.boundFilesCategory = "1";
+    categoryFilter.addEventListener("change", () => {
+      FILES_STATE.filters.category = categoryFilter.value || "all";
+      renderFiles();
+    });
+  }
+
+  const visibilityFilter = getEl("cabinetFilesVisibilityFilter");
+  if (visibilityFilter && visibilityFilter.dataset.boundFilesVisibility !== "1") {
+    visibilityFilter.dataset.boundFilesVisibility = "1";
+    visibilityFilter.addEventListener("change", () => {
+      FILES_STATE.filters.visibility = visibilityFilter.value || "all";
+      renderFiles();
+    });
+  }
+
+  const sortSelect = getEl("cabinetFilesSortSelect");
+  if (sortSelect && sortSelect.dataset.boundFilesSort !== "1") {
+    sortSelect.dataset.boundFilesSort = "1";
+    sortSelect.addEventListener("change", () => {
+      FILES_STATE.filters.sort = sortSelect.value || "newest";
+      renderFiles();
+    });
+  }
+
+  document.querySelectorAll("[data-file-select]").forEach((btn) => {
+    if (btn.dataset.boundFileSelect === "1") return;
+    btn.dataset.boundFileSelect = "1";
+    btn.addEventListener("click", () => {
+      FILES_STATE.selectedFileId = btn.dataset.fileSelect || "";
+      renderFiles();
+    });
+  });
+
+  const saveDetailsBtn = getEl("cabinetFileSaveDetailsBtn");
+  if (saveDetailsBtn && saveDetailsBtn.dataset.boundFileSaveDetails !== "1") {
+    saveDetailsBtn.dataset.boundFileSaveDetails = "1";
+    saveDetailsBtn.addEventListener("click", async () => {
+      const fileId = saveDetailsBtn.dataset.fileSaveDetails;
+      await updateCabinetFile(fileId, {
+        name: safeText(getEl("cabinetFileNameInput")?.value, "Файл"),
+        category: normalizeFileCategory("", "", getEl("cabinetFileCategoryInput")?.value),
+        visibility: normalizeFileVisibility(getEl("cabinetFileVisibilityInput")?.value),
+        is_pinned: Boolean(getEl("cabinetFilePinnedInput")?.checked),
+        tags: normalizeTags(getEl("cabinetFileTagsInput")?.value),
+        note: safeText(getEl("cabinetFileNoteInput")?.value, ""),
+      });
+    });
+  }
+
   document.querySelectorAll("[data-file-remove]").forEach((btn) => {
     if (btn.dataset.boundFileRemove !== "1") {
       btn.dataset.boundFileRemove = "1";
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", async (event) => {
+        event.stopPropagation();
         const ok = confirm("Удалить файл?");
         if (!ok) return;
 
@@ -2858,6 +4118,35 @@ function bindFilesActions() {
         await removeCabinetFile(id);
       });
     }
+  });
+
+  document.querySelectorAll("[data-file-open]").forEach((btn) => {
+    if (btn.dataset.boundFileOpen === "1") return;
+    btn.dataset.boundFileOpen = "1";
+    btn.addEventListener("click", () => {
+      const file = getFileById(btn.dataset.fileOpen);
+      if (!file?.dataUrl) return;
+      try {
+        window.open(file.dataUrl, "_blank", "noopener,noreferrer");
+      } catch (_) {
+        showToast("Не удалось открыть файл");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-file-copy-name]").forEach((btn) => {
+    if (btn.dataset.boundFileCopyName === "1") return;
+    btn.dataset.boundFileCopyName = "1";
+    btn.addEventListener("click", async () => {
+      const file = getFileById(btn.dataset.fileCopyName);
+      if (!file) return;
+      try {
+        await navigator.clipboard?.writeText(file.name);
+        showToast("Имя файла скопировано");
+      } catch (_) {
+        showToast(file.name);
+      }
+    });
   });
 
   document.querySelectorAll(".cabinet-file-item").forEach((item) => {
@@ -2874,6 +4163,7 @@ function bindFilesActions() {
 
       item.addEventListener("dragend", () => {
         item.style.opacity = "";
+        item.style.outline = "";
         FILES_STATE.draggedIndex = null;
       });
 
@@ -2937,11 +4227,7 @@ async function loadGmNotes() {
     return "";
   }
 
-  let data = await apiGet([
-    "/player/notes",
-    "/notes/me",
-    "/notes",
-  ]);
+  let data = await apiGet("/player/notes");
   let source = "api";
 
   let text = "";
@@ -3000,7 +4286,7 @@ async function saveGmNotes() {
 
   try {
     await apiWrite(
-      ["/player/notes", "/notes/me", "/notes"],
+      "/player/notes",
       {
         gm_private_notes: nextText,
         gm_private: nextText,
@@ -3051,7 +4337,7 @@ async function clearGmNotes() {
 
   try {
     await apiWrite(
-      ["/player/notes", "/notes/me", "/notes"],
+      "/player/notes",
       {
         gm_private_notes: "",
         gm_private: "",
@@ -3830,7 +5116,7 @@ function renderMasterRoomSidebarPreview(table) {
   if (!table) {
     return `
       <div class="master-room-sidebar-preview-empty">
-        Создай первый стол, чтобы появился состав, состояние сессии и права управления.
+        После добавления стола здесь появятся состав, состояние сессии и права управления.
       </div>
     `;
   }
@@ -3890,6 +5176,7 @@ function renderMasterRoomUtilityBar(table, canManage, battleFocus, globalGmMode)
   const activeMode = normalizeMasterRoomStageMode(MASTER_ROOM_STATE.stageMode, canManage);
   const modeLabel = getMasterRoomStageModes(canManage).find((mode) => mode.key === activeMode)?.label || "Стол";
   const roleLabel = canManage || globalGmMode ? "GM layer" : "Player layer";
+  const canCreateTable = Boolean(canManage || globalGmMode);
   const nonBattleActions = table
     ? `
       <button class="btn ${activeMode === "table" ? "active" : ""}" type="button" data-master-room-stage-mode="table">Стол</button>
@@ -3897,11 +5184,12 @@ function renderMasterRoomUtilityBar(table, canManage, battleFocus, globalGmMode)
       <button class="btn ${activeMode === "lss" ? "active" : ""}" type="button" data-master-room-stage-mode="lss">LSS</button>
       <button class="btn ${activeMode === "combat" ? "active" : ""}" type="button" data-master-room-stage-mode="combat">Бой</button>
       <button class="btn ${activeMode === "journal" ? "active" : ""}" type="button" data-master-room-stage-mode="journal">Журнал</button>
+      ${canCreateTable && !MASTER_ROOM_STATE.createOpen ? `<button class="btn btn-primary" type="button" data-master-room-open-create="1">Новый</button>` : ""}
       <button class="btn" type="button" data-master-room-reload-inline="1">Обновить</button>
       <button class="btn" type="button" data-master-room-switch-tab="myaccount">Кабинет</button>
     `
     : `
-      <button class="btn btn-primary" type="button" data-master-room-scroll-anchor="create">Создать стол</button>
+      ${canCreateTable && !MASTER_ROOM_STATE.createOpen ? `<button class="btn btn-primary" type="button" data-master-room-open-create="1">Новый</button>` : ""}
       <button class="btn" type="button" data-master-room-reload-inline="1">Обновить</button>
       <button class="btn" type="button" data-master-room-switch-tab="myaccount">Кабинет</button>
     `;
@@ -3929,19 +5217,14 @@ function renderMasterRoomUtilityBar(table, canManage, battleFocus, globalGmMode)
 }
 
 function renderMasterRoomFloatingNav(battleFocus) {
-  return `
-    <div class="master-room-floating-nav">
-      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="top" title="Наверх" aria-label="Наверх">↑</button>
-      <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="${battleFocus ? "battle" : "scene"}" title="${battleFocus ? "К бою" : "К сцене"}" aria-label="${battleFocus ? "К бою" : "К сцене"}">${battleFocus ? "⚔" : "⌂"}</button>
-    </div>
-  `;
+  return "";
 }
 
 function renderMasterRoomCollapsedRail(table, canManage) {
   const membersCount = safeArray(table?.members).length;
   return `
     <div class="cabinet-block master-room-sidebar-panel master-room-rail-mini">
-      <button class="btn master-room-anchor-icon" type="button" data-master-room-toggle-ui="rail" title="Развернуть столы" aria-label="Развернуть столы">›</button>
+      <button class="btn master-room-rail-toggle-btn" type="button" data-master-room-toggle-ui="rail" title="Развернуть шторку" aria-label="Развернуть шторку">☰</button>
       <div class="master-room-rail-mini-mark">MR</div>
       <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="scene" title="Сцена" aria-label="Сцена">⌂</button>
       <button class="btn master-room-anchor-icon" type="button" data-master-room-scroll-anchor="modes" title="Режимы" aria-label="Режимы">☷</button>
@@ -4050,7 +5333,6 @@ function renderMasterRoomLiveOverview(table, canManage, options = {}) {
       </div>
     `
     : `
-      ${renderMasterRoomVisibilityBoard(table, canManage)}
       ${renderMasterRoomTableSurface(table, canManage)}
     `;
 
@@ -4167,6 +5449,7 @@ function renderMasterRoomCommandStrip(table, canManage) {
 
 function renderMasterRoomCommandPanel(table, canManage) {
   if (!table) return "";
+  const tableDraft = getMasterRoomTableDraft(table);
 
   if (!canManage) {
     return `
@@ -4230,15 +5513,15 @@ function renderMasterRoomCommandPanel(table, canManage) {
           <div class="profile-grid master-room-form-grid-compact">
             <div class="filter-group">
               <label>Название стола</label>
-              <input id="masterRoomTableTitle" type="text" value="${escapeHtml(table.title)}">
+              <input id="masterRoomTableTitle" type="text" value="${escapeHtml(tableDraft.title)}">
             </div>
             <div class="filter-group">
               <label>Статус</label>
-              <input id="masterRoomTableStatus" type="text" value="${escapeHtml(table.status)}">
+              <input id="masterRoomTableStatus" type="text" value="${escapeHtml(tableDraft.status)}">
             </div>
             <div class="filter-group master-room-form-span">
               <label>Заметки ГМа по столу</label>
-              <textarea id="masterRoomTableNotes" rows="4" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(table.notes || "")}</textarea>
+              <textarea id="masterRoomTableNotes" rows="4" placeholder="Секреты кампании, правила стола, доступы...">${escapeHtml(tableDraft.notes)}</textarea>
             </div>
           </div>
           <div class="cart-buttons master-room-action-row">
@@ -4284,33 +5567,36 @@ function renderMasterRoomCombatStage(table, canManage, globalGmMode = false) {
   const hasEntries = safeArray(combat.entries).length > 0;
 
   return `
-    <div class="master-room-combat-mode" data-cabinet-anchor="battle">
-      ${hasEntries ? renderMasterRoomBattleBar(table, canManage, globalGmMode) : ""}
-      <div class="master-room-combat-mode-grid">
-        <div class="master-room-combat-mode-primary">
-          ${renderMasterRoomDiceDock(table?.combat)}
-          ${canManage && !hasEntries ? renderMasterRoomEnemyPanel(table) : ""}
-          ${renderMasterRoomBattlePanel(table)}
+    <div class="master-room-combat-mode master-room-combat-mode-ref" data-cabinet-anchor="battle">
+      <div class="master-room-combat-ref-shell">
+        <div class="master-room-combat-ref-main">
+          ${hasEntries ? "" : `
+            <div class="cabinet-block master-room-stage-panel master-room-combat-setup-note">
+              <div class="master-room-panel-kicker">Подготовка боя</div>
+              <h4 class="master-room-section-title">Собери сцену перед инициативой</h4>
+              <div class="muted master-room-command-copy">Игроки подтягиваются из LSS через стол. Монстры добавляются мастером из Бестиария или вручную.</div>
+            </div>
+          `}
+          ${renderCombatModule({
+            table,
+            tableTitle: table?.title || "Battle",
+            combat,
+            canManage,
+            logFilter: MASTER_ROOM_STATE.combatLogFilter,
+            hideSecondary: MASTER_ROOM_STATE.combatHideSecondary,
+            diceType: MASTER_ROOM_STATE.combatDiceType,
+          })}
         </div>
-        <aside class="master-room-combat-mode-context">
-          ${canManage && hasEntries ? renderMasterRoomEnemyPanel(table) : ""}
+        <aside class="master-room-combat-ref-tools">
+          ${canManage ? renderMasterRoomEnemyPanel(table) : ""}
           <div class="cabinet-block master-room-stage-panel master-room-combat-context-card">
-            <div class="master-room-panel-kicker">Table context</div>
-            <h4 class="master-room-section-title">Сцена и партия</h4>
-            <div class="muted master-room-command-copy">Бой остаётся режимом стола: можно быстро вернуться к фишкам, LSS и журналу.</div>
+            <div class="master-room-panel-kicker">Связанные модули</div>
+            <h4 class="master-room-section-title">Бой внутри стола</h4>
+            <div class="muted master-room-command-copy">Боевая вкладка использует LSS, Бестиарий и журнал Master Room, но не ломает их как отдельные модули.</div>
             <div class="master-room-command-strip-grid master-room-command-strip-grid-compact">
-              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="table">
-                <strong>Стол</strong>
-                <span>сцена</span>
-              </button>
-              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="party">
-                <strong>Партия</strong>
-                <span>фишки</span>
-              </button>
-              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="journal">
-                <strong>Журнал</strong>
-                <span>лог</span>
-              </button>
+              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="table"><strong>Стол</strong><span>лобби</span></button>
+              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="party"><strong>Партия</strong><span>LSS</span></button>
+              <button class="btn master-room-command-strip-btn" type="button" data-master-room-stage-mode="journal"><strong>Журнал</strong><span>события</span></button>
             </div>
           </div>
         </aside>
@@ -4408,7 +5694,7 @@ function renderMasterRoomEmptyTabletop(canManage) {
         <div class="master-room-panel-kicker">Virtual tabletop</div>
         <h3 class="master-room-empty-tabletop-title">Стол ещё не выбран</h3>
         <div class="master-room-empty-tabletop-copy">
-          Создай комнату или открой существующую. Здесь появятся сцена, фишки игроков из LSS, слой видимости, бой, торговцы и выдачи предметов.
+          Открой существующий стол или добавь новый через верхнюю панель. Здесь появятся сцена, фишки игроков из LSS, слой видимости, бой, торговцы и выдачи предметов.
         </div>
         <div class="master-room-empty-map">
           <div class="master-room-empty-map-compass">✦</div>
@@ -4421,7 +5707,7 @@ function renderMasterRoomEmptyTabletop(canManage) {
       <aside class="master-room-empty-side">
         <div class="master-room-empty-step">
           <span>1</span>
-          <strong>Создать стол</strong>
+          <strong>Назвать стол</strong>
           <small>Название, token и базовый слой доступа.</small>
         </div>
         <div class="master-room-empty-step">
@@ -4709,6 +5995,47 @@ async function ensureMasterRoomEnemyCatalog() {
   return MASTER_ROOM_STATE.enemyCatalog;
 }
 
+async function warmMasterRoomReferenceData() {
+  const tasks = [];
+
+  if (!MASTER_ROOM_STATE.allTraders.length) {
+    tasks.push(
+      fetchTraders()
+        .then((payload) => {
+          MASTER_ROOM_STATE.allTraders = safeArray(payload?.traders).map((trader) => ({
+            id: Number(trader?.id || 0),
+            name: String(trader?.name || "").trim(),
+            type: String(trader?.type || "").trim(),
+            region: String(trader?.region || "").trim(),
+          })).filter((trader) => trader.id > 0);
+        })
+        .catch(() => {})
+    );
+  }
+
+  if (!MASTER_ROOM_STATE.enemyCatalog.length) {
+    tasks.push(ensureMasterRoomEnemyCatalog().catch(() => []));
+  }
+
+  if (!MASTER_ROOM_STATE.characterPool.length) {
+    tasks.push(
+      fetchAccount()
+        .then((payload) => {
+          MASTER_ROOM_STATE.characterPool = safeArray(payload?.characters);
+        })
+        .catch(() => {})
+    );
+  }
+
+  if (!tasks.length) return;
+
+  await Promise.allSettled(tasks);
+
+  if (CABINET_STATE.activeTab === "masterroom" && isCabinetOpen()) {
+    renderMasterRoom();
+  }
+}
+
 function getCurrentUserId() {
   return String(getCurrentUser()?.id || "").trim();
 }
@@ -4730,6 +6057,38 @@ function canManageMasterRoomTable(table) {
   if (String(table.owner_user_id || "") === currentUserId) return true;
   const membership = getMasterRoomCurrentMembership(table);
   return String(membership?.role_in_table || "") === "gm";
+}
+
+function getMasterRoomCreateDraft() {
+  MASTER_ROOM_STATE.createDraft = {
+    title: "",
+    token: "",
+    ...(MASTER_ROOM_STATE.createDraft || {}),
+  };
+  return MASTER_ROOM_STATE.createDraft;
+}
+
+function clearMasterRoomCreateDraft() {
+  MASTER_ROOM_STATE.createDraft = { title: "", token: "" };
+}
+
+function getMasterRoomTableDraft(table) {
+  if (!table) return { title: "", status: "", notes: "" };
+  MASTER_ROOM_STATE.tableDrafts ??= {};
+  const tableId = String(table.id || "");
+  const existing = MASTER_ROOM_STATE.tableDrafts[tableId] || {};
+  MASTER_ROOM_STATE.tableDrafts[tableId] = {
+    title: existing.title ?? String(table.title || ""),
+    status: existing.status ?? String(table.status || ""),
+    notes: existing.notes ?? String(table.notes || ""),
+  };
+  return MASTER_ROOM_STATE.tableDrafts[tableId];
+}
+
+function clearMasterRoomTableDraft(tableId) {
+  const key = String(tableId || "");
+  if (!key || !MASTER_ROOM_STATE.tableDrafts) return;
+  delete MASTER_ROOM_STATE.tableDrafts[key];
 }
 
 function applyMasterRoomTableResponse(payload) {
@@ -4762,20 +6121,31 @@ function stopMasterRoomPolling() {
   }
 }
 
+function isMasterRoomEditingElementActive() {
+  const active = document.activeElement;
+  if (!active || typeof active.closest !== "function") return false;
+  if (!active.closest("#cabinet-masterroom")) return false;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+}
+
 function ensureMasterRoomPolling() {
   stopMasterRoomPolling();
   if (CABINET_STATE.activeTab !== "masterroom" || !isCabinetOpen()) return;
   MASTER_ROOM_STATE.pollTimer = window.setInterval(async () => {
+    const now = Date.now();
+    if (MASTER_ROOM_STATE.pollInFlight || now < MASTER_ROOM_STATE.pollPausedUntil) return;
+    MASTER_ROOM_STATE.pollInFlight = true;
     try {
       const activeBefore = MASTER_ROOM_STATE.activeTableId;
-      await loadMasterRoom({ silent: true });
+      await loadMasterRoom({ silent: true, fromPoll: true });
       if (activeBefore) {
         MASTER_ROOM_STATE.activeTableId = activeBefore;
         ensureMasterRoomDefaults();
       }
-      renderMasterRoom();
-    } catch (_) {}
-  }, 7000);
+    } finally {
+      MASTER_ROOM_STATE.pollInFlight = false;
+    }
+  }, 15000);
 }
 
 async function loadMasterRoomUsers(query) {
@@ -4799,6 +6169,11 @@ async function loadMasterRoomTraders(query) {
 
 async function loadMasterRoomItems(query) {
   const needle = String(query || "").trim();
+  if (!needle) {
+    MASTER_ROOM_STATE.itemSearchResults = [];
+    return [];
+  }
+
   const data = await apiClientGet(`/gm/items/search?q=${encodeURIComponent(needle)}`);
   MASTER_ROOM_STATE.itemSearchResults = safeArray(data?.items);
   return MASTER_ROOM_STATE.itemSearchResults;
@@ -4806,42 +6181,39 @@ async function loadMasterRoomItems(query) {
 
 async function loadMasterRoom(options = {}) {
   const silent = Boolean(options?.silent);
+  const fromPoll = Boolean(options?.fromPoll);
   MASTER_ROOM_STATE.loaded = true;
   try {
     const data = await apiClientGet("/gm/master-room");
     MASTER_ROOM_STATE.tables = safeArray(data?.tables).map((table, index) => normalizeMasterRoomTable(table, index));
     MASTER_ROOM_STATE.source = "api";
+    MASTER_ROOM_STATE.pollFailures = 0;
+    MASTER_ROOM_STATE.pollPausedUntil = 0;
     ensureMasterRoomDefaults();
     MASTER_ROOM_STATE.createOpen = MASTER_ROOM_STATE.tables.length === 0;
-    if (!MASTER_ROOM_STATE.allTraders.length) {
-      const tradersPayload = await fetchTraders().catch(() => null);
-      MASTER_ROOM_STATE.allTraders = safeArray(tradersPayload?.traders).map((trader) => ({
-        id: Number(trader?.id || 0),
-        name: String(trader?.name || "").trim(),
-        type: String(trader?.type || "").trim(),
-        region: String(trader?.region || "").trim(),
-      })).filter((trader) => trader.id > 0);
-    }
-    if (!MASTER_ROOM_STATE.enemyCatalog.length) {
-      await ensureMasterRoomEnemyCatalog();
-    }
-    if (!MASTER_ROOM_STATE.characterPool.length) {
-      const accountPayload = await fetchAccount().catch(() => null);
-      MASTER_ROOM_STATE.characterPool = safeArray(accountPayload?.characters);
-    }
     if (!MASTER_ROOM_STATE.selectedCharacterPoolValue) {
       MASTER_ROOM_STATE.selectedCharacterPoolValue = "lss-current";
     }
   } catch (error) {
+    if (silent) {
+      MASTER_ROOM_STATE.pollFailures = Math.min(10, safeNumber(MASTER_ROOM_STATE.pollFailures, 0) + 1);
+      MASTER_ROOM_STATE.source = MASTER_ROOM_STATE.tables.length ? "stale" : "error";
+      if (MASTER_ROOM_STATE.pollFailures >= 2) {
+        MASTER_ROOM_STATE.pollPausedUntil = Date.now() + Math.min(120000, 30000 * MASTER_ROOM_STATE.pollFailures);
+      }
+      return MASTER_ROOM_STATE.tables;
+    }
+
     MASTER_ROOM_STATE.tables = [];
     MASTER_ROOM_STATE.source = "error";
     MASTER_ROOM_STATE.createOpen = true;
-    if (!silent) {
-      showToast(error.message || "Не удалось загрузить Master Room");
-    }
+    showToast(error.message || "Не удалось загрузить Master Room");
   }
-  ensureMasterRoomPolling();
-  renderMasterRoom();
+  if (!fromPoll) {
+    void warmMasterRoomReferenceData();
+  }
+  if (!fromPoll) ensureMasterRoomPolling();
+  if (!fromPoll || !isMasterRoomEditingElementActive()) renderMasterRoom();
   try {
     window.dispatchEvent(new CustomEvent("dnd:party:changed", { detail: { tables: MASTER_ROOM_STATE.tables } }));
   } catch (_) {}
@@ -4903,6 +6275,40 @@ function restoreMasterRoomInputCursor(inputId, cursor) {
   try {
     nextInput.setSelectionRange(cursor, cursor);
   } catch (_) {}
+}
+
+function bindMasterRoomDraftInputs() {
+  const createTitle = getEl("masterRoomCreateTitle");
+  if (createTitle && createTitle.dataset.boundMasterRoomCreateDraft !== "1") {
+    createTitle.dataset.boundMasterRoomCreateDraft = "1";
+    createTitle.addEventListener("input", () => {
+      getMasterRoomCreateDraft().title = createTitle.value || "";
+    });
+  }
+
+  const createToken = getEl("masterRoomCreateToken");
+  if (createToken && createToken.dataset.boundMasterRoomCreateDraft !== "1") {
+    createToken.dataset.boundMasterRoomCreateDraft = "1";
+    createToken.addEventListener("input", () => {
+      getMasterRoomCreateDraft().token = createToken.value || "";
+    });
+  }
+
+  const active = getMasterRoomActiveTable();
+  if (!active) return;
+  const draft = getMasterRoomTableDraft(active);
+  [
+    ["masterRoomTableTitle", "title"],
+    ["masterRoomTableStatus", "status"],
+    ["masterRoomTableNotes", "notes"],
+  ].forEach(([id, key]) => {
+    const input = getEl(id);
+    if (!input || input.dataset.boundMasterRoomTableDraft === "1") return;
+    input.dataset.boundMasterRoomTableDraft = "1";
+    input.addEventListener("input", () => {
+      draft[key] = input.value || "";
+    });
+  });
 }
 
 function getMasterRoomMemberById(table, memberId) {
@@ -5112,7 +6518,12 @@ function renderMasterRoomParticipants(table) {
     .map((entry) => `<option value="${escapeHtml(String(entry.id))}">${escapeHtml(entry.name)}${entry.class_name ? ` • ${escapeHtml(entry.class_name)}` : ""}${entry.level ? ` • lvl ${escapeHtml(String(entry.level))}` : ""}</option>`)
     .join("");
 
-  return table.members.map((member) => `
+  return table.members.map((member) => {
+    const characterDraft = Object.prototype.hasOwnProperty.call(MASTER_ROOM_STATE.memberCharacterDrafts, member.id)
+      ? MASTER_ROOM_STATE.memberCharacterDrafts[member.id]
+      : member.selected_character_name || "";
+
+    return `
     <div class="cabinet-block" style="padding:12px; margin-bottom:10px;">
       <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
         <div>
@@ -5147,7 +6558,7 @@ function renderMasterRoomParticipants(table) {
         </div>
         <div class="filter-group">
           <label>Персонаж</label>
-          <input type="text" value="${escapeHtml(member.selected_character_name || "")}" data-master-room-member-character="${escapeHtml(member.id)}" placeholder="Имя персонажа">
+          <input type="text" value="${escapeHtml(characterDraft)}" data-master-room-member-character="${escapeHtml(member.id)}" placeholder="Имя персонажа">
           <div class="muted" style="font-size:0.76rem; margin-top:6px;">Приоритет имени: ручное имя за столом → персонаж аккаунта → имя из LSS.</div>
           <div class="trader-meta" style="gap:6px; flex-wrap:wrap; margin-top:8px;">
             <span class="meta-item">${escapeHtml(member.selected_character_name_source || "fallback")}</span>
@@ -5181,7 +6592,8 @@ function renderMasterRoomParticipants(table) {
         </div>
       ` : ""}
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderMasterRoomTraderAccesses(table) {
@@ -6097,6 +7509,7 @@ function renderMasterRoom() {
   const active = getMasterRoomActiveTable();
   const canManageActive = canManageMasterRoomTable(active);
   const createOpen = Boolean(MASTER_ROOM_STATE.createOpen);
+  const createDraft = getMasterRoomCreateDraft();
   const globalGmMode = hasGlobalGmMode();
   const activeMembers = safeArray(active?.members);
   const activeGm = activeMembers.find((member) => member.role_in_table === "gm") || activeMembers[0] || null;
@@ -6126,7 +7539,7 @@ function renderMasterRoom() {
         </div>
       </div>
     `).join("")
-    : `<div class="cabinet-block"><p>Столов пока нет. Создай первый стол.</p></div>`;
+    : `<div class="cabinet-block"><p>Столов пока нет. Добавь новый через верхнюю панель.</p></div>`;
 
   container.innerHTML = `
     <div class="master-room-mode-shell ${battleFocus ? "master-room-mode-shell-battle" : ""} ${MASTER_ROOM_STATE.railCollapsed ? "master-room-rail-collapsed" : ""}" data-cabinet-anchor="top">
@@ -6134,19 +7547,18 @@ function renderMasterRoom() {
         <aside class="master-room-sidebar" data-cabinet-anchor="rail">
           ${MASTER_ROOM_STATE.railCollapsed ? renderMasterRoomCollapsedRail(active, canManageActive) : `
           <div class="cabinet-block master-room-sidebar-panel master-room-rail-panel">
-            <div class="master-room-sidebar-topline">VIRTUAL TABLE</div>
-            <div class="flex-between master-room-section-head master-room-section-head-tight">
+            <div class="master-room-rail-head">
               <div>
+                <div class="master-room-sidebar-topline">VIRTUAL TABLE</div>
                 <div class="muted master-room-section-kicker">Table rail</div>
                 <h4 class="master-room-section-title">Столы и сцены</h4>
               </div>
-              <span class="meta-item">${MASTER_ROOM_STATE.tables.length}</span>
+              <button class="btn master-room-rail-toggle-btn" type="button" data-master-room-toggle-ui="rail" title="Свернуть шторку" aria-label="Свернуть шторку">Скрыть</button>
             </div>
             <div class="master-room-sidebar-copy">
-              Выбери виртуальный стол: здесь живут партия, сцена, бой и слой информации, который мастер раскрывает игрокам.
+              Столы кампании, состав партии и состояние текущей сцены.
             </div>
             <div class="cart-buttons master-room-sidebar-actions">
-              <button class="btn" type="button" id="masterRoomToggleCreateBtn">${createOpen ? "Скрыть создание" : "Создать стол"}</button>
               <button class="btn" type="button" id="masterRoomReloadBtn">Обновить</button>
             </div>
             ${renderMasterRoomSidebarPreview(active)}
@@ -6160,7 +7572,7 @@ function renderMasterRoom() {
             <div class="master-room-sidebar-status-copy">
               ${active
                 ? `Активная карта: ${escapeHtml(active.title)}`
-                : "Сейчас нет активного стола. Создай комнату или открой существующую."}
+                : "Сейчас нет активного стола. Открой существующий или добавь новый через верхнюю панель."}
             </div>
             <div class="cabinet-block master-room-mode-note master-room-mode-state-${canManageActive || globalGmMode ? "control" : "lobby"}">
               ${
@@ -6225,18 +7637,25 @@ function renderMasterRoom() {
 
           ${createOpen ? `
             <div class="cabinet-block master-room-create-panel" data-cabinet-anchor="create">
+              <div class="master-room-create-head">
+                <div>
+                  <div class="master-room-panel-kicker">Table setup</div>
+                  <h4 class="master-room-section-title">Новый стол</h4>
+                </div>
+                <button class="btn" type="button" id="masterRoomToggleCreateBtn">Отмена</button>
+              </div>
               <div class="profile-grid master-room-form-grid">
                 <div class="filter-group">
                   <label>Название стола</label>
-                  <input id="masterRoomCreateTitle" type="text" placeholder="Например: Подземелье Арканума">
+                  <input id="masterRoomCreateTitle" type="text" value="${escapeHtml(createDraft.title)}" placeholder="Например: Подземелье Арканума">
                 </div>
                 <div class="filter-group">
                   <label>Token / код</label>
-                  <input id="masterRoomCreateToken" type="text" placeholder="arcanum-party">
+                  <input id="masterRoomCreateToken" type="text" value="${escapeHtml(createDraft.token)}" placeholder="arcanum-party">
                 </div>
               </div>
               <div class="cart-buttons master-room-action-row">
-                <button class="btn btn-primary" type="button" id="masterRoomCreateBtn">Создать стол</button>
+                <button class="btn btn-primary" type="button" id="masterRoomCreateBtn">Создать</button>
               </div>
             </div>
           ` : ""}
@@ -6283,6 +7702,7 @@ async function createMasterRoomTable(title, token) {
 
   applyMasterRoomTableResponse(payload);
   MASTER_ROOM_STATE.createOpen = false;
+  clearMasterRoomCreateDraft();
   const lssName = getCurrentLssCharacterName();
   const active = getMasterRoomActiveTable();
   const currentMembership = safeArray(active?.members).find((member) => String(member.user_id || "") === getCurrentUserId());
@@ -6470,7 +7890,138 @@ async function grantItemToMasterRoomMember(itemId) {
   applyAndRenderMasterRoom(result);
 }
 
+function getMasterRoomCombatEntryPatchTarget(entryId) {
+  const active = getMasterRoomActiveTable();
+  const entry = getMasterRoomCombatEntryById(active, entryId);
+  if (!entry) return null;
+
+  return {
+    active,
+    entry,
+    isEnemy: entry.entry_type === "enemy",
+    membershipId: entry.membership_id || "",
+  };
+}
+
+async function patchMasterRoomCombatEntryFromModule(entryId, patch) {
+  const target = getMasterRoomCombatEntryPatchTarget(entryId);
+  if (!target) {
+    showToast("Позиция боя не найдена");
+    return;
+  }
+
+  if (target.isEnemy) {
+    await patchMasterRoomCombatEntry(entryId, patch);
+    return;
+  }
+
+  if (!target.membershipId) {
+    showToast("Участник боя не связан с игроком");
+    return;
+  }
+
+  await patchMasterRoomCombatant(target.membershipId, patch);
+}
+
+function bindMasterRoomCombatModuleBridge() {
+  const root = document.querySelector("[data-combat-module]");
+  if (!root) return;
+
+  bindCombatModule(root, {
+    onNextTurn: async () => {
+      const active = getMasterRoomActiveTable();
+      const combat = normalizeMasterRoomCombat(active?.combat);
+      if (!combat.entries.length) {
+        showToast("Сначала собери боевой состав");
+        return;
+      }
+      const nextTurnIndex = (combat.turn_index + 1) % combat.entries.length;
+      const nextRound = nextTurnIndex === 0 ? combat.round + 1 : combat.round;
+      await patchMasterRoomCombatState({
+        round: nextRound,
+        turn_index: nextTurnIndex,
+        active: true,
+      });
+      showToast("Ход передан дальше");
+    },
+    onFocusTurn: async ({ turnIndex }) => {
+      const active = getMasterRoomActiveTable();
+      const combat = normalizeMasterRoomCombat(active?.combat);
+      await patchMasterRoomCombatState({
+        round: combat.round,
+        turn_index: Math.max(0, safeNumber(turnIndex, 0)),
+        active: combat.active,
+      });
+      showToast("Текущий ход обновлён");
+    },
+    onLogFilter: ({ filter }) => {
+      MASTER_ROOM_STATE.combatLogFilter = String(filter || "all").trim() || "all";
+      renderMasterRoom();
+    },
+    onToggleSecondary: () => {
+      MASTER_ROOM_STATE.combatHideSecondary = !MASTER_ROOM_STATE.combatHideSecondary;
+      renderMasterRoom();
+    },
+    onRoll: async (payload) => {
+      const dice = String(payload?.dice || MASTER_ROOM_STATE.combatDiceType || "d20").trim() || "d20";
+      MASTER_ROOM_STATE.combatDiceType = dice;
+      await rollMasterRoomCombat({
+        entry_id: payload?.entry_id || null,
+        target_entry_id: payload?.target_entry_id || null,
+        dice,
+        modifier: safeNumber(payload?.modifier, 0),
+        damage: Math.max(0, safeNumber(payload?.damage, 0)),
+        event_type: String(payload?.event_type || "roll").trim() || "roll",
+        reason: String(payload?.reason || "").trim(),
+      });
+      showToast("Бросок добавлен в лог боя");
+    },
+    onDamage: async ({ entryId, delta }) => {
+      const target = getMasterRoomCombatEntryPatchTarget(entryId);
+      if (!target) {
+        showToast("Позиция боя не найдена");
+        return;
+      }
+      const nextHp = Math.max(0, safeNumber(target.entry.hp_current, 0) - Math.max(1, safeNumber(delta, 1)));
+      await patchMasterRoomCombatEntryFromModule(entryId, { hp_current: nextHp });
+      showToast(`Урон применён: -${Math.max(1, safeNumber(delta, 1))}`);
+    },
+    onHeal: async ({ entryId, delta }) => {
+      const target = getMasterRoomCombatEntryPatchTarget(entryId);
+      if (!target) {
+        showToast("Позиция боя не найдена");
+        return;
+      }
+      const amount = Math.max(1, safeNumber(delta, 1));
+      const hpMax = Math.max(0, safeNumber(target.entry.hp_max, 0));
+      const nextHp = hpMax > 0
+        ? Math.min(hpMax, safeNumber(target.entry.hp_current, 0) + amount)
+        : safeNumber(target.entry.hp_current, 0) + amount;
+      await patchMasterRoomCombatEntryFromModule(entryId, { hp_current: nextHp });
+      showToast(`Лечение применено: +${amount}`);
+    },
+    onSaveCombatant: async ({ entryId, patch }) => {
+      await patchMasterRoomCombatEntryFromModule(entryId, {
+        name: String(patch?.name || "").trim(),
+        hp_current: Math.max(0, safeNumber(patch?.hp_current, 0)),
+        hp_max: Math.max(0, safeNumber(patch?.hp_max, 0)),
+        ac: Math.max(0, safeNumber(patch?.ac, 0)),
+        initiative: safeNumber(patch?.initiative, 0),
+        status: String(patch?.status || "").trim(),
+      });
+      showToast("Позиция боя обновлена");
+    },
+    onRemoveEntry: async ({ entryId }) => {
+      await removeMasterRoomCombatEntry(entryId);
+      showToast("Позиция убрана из боя");
+    },
+  });
+}
+
 function bindMasterRoomActions() {
+  bindMasterRoomCombatModuleBridge();
+  bindMasterRoomDraftInputs();
+
   const toggleCreateBtn = getEl("masterRoomToggleCreateBtn");
   if (toggleCreateBtn && toggleCreateBtn.dataset.boundMasterRoomToggleCreate !== "1") {
     toggleCreateBtn.dataset.boundMasterRoomToggleCreate = "1";
@@ -6479,6 +8030,19 @@ function bindMasterRoomActions() {
       renderMasterRoom();
     });
   }
+
+  document.querySelectorAll("[data-master-room-open-create]").forEach((btn) => {
+    if (btn.dataset.boundMasterRoomOpenCreate === "1") return;
+    btn.dataset.boundMasterRoomOpenCreate = "1";
+    btn.addEventListener("click", () => {
+      MASTER_ROOM_STATE.createOpen = true;
+      renderMasterRoom();
+      window.setTimeout(() => {
+        const titleInput = getEl("masterRoomCreateTitle");
+        if (titleInput) titleInput.focus();
+      }, 0);
+    });
+  });
 
   const reloadBtn = getEl("masterRoomReloadBtn");
   if (reloadBtn && reloadBtn.dataset.boundMasterRoomReload !== "1") {
@@ -6540,8 +8104,9 @@ function bindMasterRoomActions() {
   if (createBtn && createBtn.dataset.boundMasterRoomCreate !== "1") {
     createBtn.dataset.boundMasterRoomCreate = "1";
     createBtn.addEventListener("click", async () => {
-      const title = String(getEl("masterRoomCreateTitle")?.value || "").trim();
-      const token = String(getEl("masterRoomCreateToken")?.value || "").trim();
+      const draft = getMasterRoomCreateDraft();
+      const title = String(getEl("masterRoomCreateTitle")?.value || draft.title || "").trim();
+      const token = String(getEl("masterRoomCreateToken")?.value || draft.token || "").trim();
       if (!title) {
         showToast("Укажи название стола");
         return;
@@ -6557,13 +8122,20 @@ function bindMasterRoomActions() {
   const inviteInput = getEl("masterRoomInviteQuery");
   if (inviteInput && inviteInput.dataset.boundMasterRoomInviteQuery !== "1") {
     inviteInput.dataset.boundMasterRoomInviteQuery = "1";
-    inviteInput.addEventListener("input", async () => {
+    inviteInput.addEventListener("input", () => {
       const cursor = inviteInput.selectionStart ?? String(inviteInput.value || "").length;
       MASTER_ROOM_STATE.inviteQuery = inviteInput.value || "";
-      await loadMasterRoomUsers(MASTER_ROOM_STATE.inviteQuery);
-      const active = getMasterRoomActiveTable();
-      patchMasterRoomResults("masterRoomUserSearchResults", renderMasterRoomUserSearchResults(active));
-      restoreMasterRoomInputCursor("masterRoomInviteQuery", cursor);
+      clearTimeout(MASTER_ROOM_STATE.inviteSearchTimer);
+      MASTER_ROOM_STATE.inviteSearchTimer = window.setTimeout(async () => {
+        try {
+          await loadMasterRoomUsers(MASTER_ROOM_STATE.inviteQuery);
+          const active = getMasterRoomActiveTable();
+          patchMasterRoomResults("masterRoomUserSearchResults", renderMasterRoomUserSearchResults(active));
+          restoreMasterRoomInputCursor("masterRoomInviteQuery", cursor);
+        } catch (error) {
+          console.warn("Master Room user search failed:", error);
+        }
+      }, 250);
     });
   }
 
@@ -6572,12 +8144,15 @@ function bindMasterRoomActions() {
     saveTableBtn.dataset.boundMasterRoomSaveTable = "1";
     saveTableBtn.addEventListener("click", async () => {
       try {
+        const active = getMasterRoomActiveTable();
+        const draft = getMasterRoomTableDraft(active);
         await patchMasterRoomTable({
-          title: String(getEl("masterRoomTableTitle")?.value || "").trim(),
-          status: String(getEl("masterRoomTableStatus")?.value || "").trim(),
-          notes: String(getEl("masterRoomTableNotes")?.value || "").trim(),
+          title: String(getEl("masterRoomTableTitle")?.value || draft.title || "").trim(),
+          status: String(getEl("masterRoomTableStatus")?.value || draft.status || "").trim(),
+          notes: String(getEl("masterRoomTableNotes")?.value ?? draft.notes ?? "").trim(),
           trader_access_mode: String(getEl("masterRoomTraderAccessMode")?.value || "open").trim(),
         });
+        clearMasterRoomTableDraft(active?.id);
         showToast("Стол обновлён");
       } catch (error) {
         showToast(error?.message || "Не удалось обновить стол");
@@ -6613,15 +8188,22 @@ function bindMasterRoomActions() {
   const itemSearchInput = getEl("masterRoomItemSearchInput");
   if (itemSearchInput && itemSearchInput.dataset.boundMasterRoomItemSearch !== "1") {
     itemSearchInput.dataset.boundMasterRoomItemSearch = "1";
-    itemSearchInput.addEventListener("input", async () => {
+    itemSearchInput.addEventListener("input", () => {
       const cursor = itemSearchInput.selectionStart ?? String(itemSearchInput.value || "").length;
       MASTER_ROOM_STATE.itemSearchQuery = itemSearchInput.value || "";
-      await loadMasterRoomItems(MASTER_ROOM_STATE.itemSearchQuery);
-      const active = getMasterRoomActiveTable();
-      if (active) {
-        patchMasterRoomResults("masterRoomItemSearchResults", renderMasterRoomItemSearchResults());
-      }
-      restoreMasterRoomInputCursor("masterRoomItemSearchInput", cursor);
+      clearTimeout(MASTER_ROOM_STATE.itemSearchTimer);
+      MASTER_ROOM_STATE.itemSearchTimer = window.setTimeout(async () => {
+        try {
+          await loadMasterRoomItems(MASTER_ROOM_STATE.itemSearchQuery);
+          const active = getMasterRoomActiveTable();
+          if (active) {
+            patchMasterRoomResults("masterRoomItemSearchResults", renderMasterRoomItemSearchResults());
+          }
+          restoreMasterRoomInputCursor("masterRoomItemSearchInput", cursor);
+        } catch (error) {
+          console.warn("Master Room item search failed:", error);
+        }
+      }, 250);
     });
   }
 
@@ -6748,11 +8330,15 @@ function bindMasterRoomActions() {
   document.querySelectorAll("[data-master-room-member-character]").forEach((input) => {
     if (input.dataset.boundMasterRoomCharacter === "1") return;
     input.dataset.boundMasterRoomCharacter = "1";
+    input.addEventListener("input", () => {
+      const memberId = input.dataset.masterRoomMemberCharacter || "";
+      if (!memberId) return;
+      MASTER_ROOM_STATE.memberCharacterDrafts[memberId] = input.value || "";
+    });
     input.addEventListener("change", async () => {
-      await patchMasterRoomMember(
-        input.dataset.masterRoomMemberCharacter || "",
-        { selected_character_name: String(input.value || "").trim() }
-      );
+      const memberId = input.dataset.masterRoomMemberCharacter || "";
+      await patchMasterRoomMember(memberId, { selected_character_name: String(input.value || "").trim() });
+      delete MASTER_ROOM_STATE.memberCharacterDrafts[memberId];
       showToast("Персонаж участника обновлён");
     });
   });
@@ -7238,6 +8824,560 @@ function bindMasterRoomActions() {
 }
 
 
+
+// ------------------------------------------------------------
+// 🧭 CABINET UX CLEANUP / LOCAL NAVIGATION
+// ------------------------------------------------------------
+function getActiveCabinetSectionRoot() {
+  const targetId = getSectionIdForTab(CABINET_STATE.activeTab);
+  return targetId ? getEl(targetId) : null;
+}
+
+function getCabinetScrollContainer() {
+  const modal = getEl("cabinetModal");
+  const activeRoot = getActiveCabinetSectionRoot();
+  const candidates = [
+    activeRoot?.closest(".cabinet-main"),
+    modal?.querySelector(".cabinet-main"),
+    modal?.querySelector(".cabinet-modal-content"),
+    modal?.querySelector(".modal-content"),
+    document.scrollingElement,
+    document.documentElement,
+  ].filter(Boolean);
+
+  return (
+    candidates.find((entry) => {
+      try {
+        return entry.scrollHeight > entry.clientHeight + 8;
+      } catch (_) {
+        return false;
+      }
+    }) ||
+    candidates[0] ||
+    null
+  );
+}
+
+function getLastVisibleCabinetPanel(root) {
+  if (!root) return null;
+  const candidates = collectCabinetAnchorPanels(root).filter((entry) => {
+    try {
+      const style = window.getComputedStyle(entry);
+      return style.display !== "none" && style.visibility !== "hidden" && entry.offsetHeight > 0;
+    } catch (_) {
+      return true;
+    }
+  });
+  return candidates[candidates.length - 1] || root.lastElementChild || root;
+}
+
+function scrollCabinetEdge(mode = "top") {
+  const normalized = String(mode || "top").trim().toLowerCase();
+  const activeRoot = getActiveCabinetSectionRoot();
+  const scroller = getCabinetScrollContainer();
+  const target = normalized === "bottom" ? getLastVisibleCabinetPanel(activeRoot) : activeRoot;
+
+  if (target && typeof target.scrollIntoView === "function") {
+    try {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: normalized === "bottom" ? "end" : "start",
+        inline: "nearest",
+      });
+    } catch (_) {}
+  }
+
+  if (scroller && "scrollTo" in scroller) {
+    try {
+      const top = normalized === "bottom" ? Math.max(0, scroller.scrollHeight - scroller.clientHeight) : 0;
+      scroller.scrollTo({ top, behavior: "smooth" });
+      return;
+    } catch (_) {}
+  }
+
+  window.scrollTo({
+    top: normalized === "bottom" ? document.documentElement.scrollHeight : 0,
+    behavior: "smooth",
+  });
+}
+
+function getPanelLabel(panel, index = 0) {
+  const title =
+    panel.querySelector?.("h1,h2,h3,h4,.account-hub-module-title,.quest-ref-title,.history-ref-entry-title,.notes-ref-title,.files-ref-title,.inventory-ref-title")?.textContent ||
+    panel.getAttribute?.("aria-label") ||
+    panel.dataset?.label ||
+    `Блок ${index + 1}`;
+
+  return String(title || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 42) || `Блок ${index + 1}`;
+}
+
+function collectCabinetAnchorPanels(root) {
+  if (!root) return [];
+
+  const candidates = Array.from(
+    root.querySelectorAll(
+      ":scope > .cabinet-block, :scope > .collection-wrapper, :scope > .inventory-ref-shell, :scope > .quest-ref-shell, :scope > .notes-ref-shell, :scope > .history-ref-shell, :scope > .files-ref-shell, :scope > .map-reference-layout, :scope > .account-hub-shell, :scope > .codex-ref-shell, :scope > .bestiari-ref-shell, :scope > .cabinet-ux-disclosure"
+    )
+  );
+
+  const filtered = candidates.filter((child) => {
+    if (!child || child.nodeType !== 1) return false;
+    if (child.classList.contains("cabinet-ux-toolbar")) return false;
+    return !child.classList.contains("tab-hidden");
+  });
+
+  if (filtered.length) return filtered;
+
+  return Array.from(root.children || []).filter((child) => {
+    if (!child || child.nodeType !== 1) return false;
+    if (child.classList.contains("cabinet-ux-toolbar")) return false;
+    return !child.classList.contains("tab-hidden");
+  });
+}
+
+
+function getCabinetDisclosureTitleFor(panel, index = 0) {
+  const explicit = panel?.dataset?.cabinetDisclosureTitle;
+  if (explicit) return explicit;
+
+  const classMap = [
+    ["inventory-ref-toolbar", "Фильтры и категории"],
+    ["inventory-ref-rail", "Слоты, эффекты и экипировка"],
+    ["custom-item-form", "Добавление предмета"],
+    ["files-ref-upload", "Загрузка файлов"],
+    ["files-ref-toolbar", "Фильтры файлов"],
+    ["files-ref-detail", "Детали и редактирование файла"],
+    ["notes-ref-gm-panel", "Сообщение от ГМа"],
+    ["notes-ref-toolbar", "Действия заметок"],
+    ["notes-ref-preview-panel", "Предпросмотр"],
+    ["quest-ref-controls", "Фильтры и создание"],
+    ["quest-ref-filter-panel", "Фильтры заданий"],
+    ["quest-ref-form", "Создание / редактирование задания"],
+    ["quest-ref-detail", "Детали выбранного задания"],
+    ["history-ref-toolbar", "Фильтры истории"],
+    ["history-ref-detail", "Детали события"],
+    ["map-reference-controls", "Фильтры и режимы карты"],
+    ["map-reference-sidebar", "Метки, события и детали"],
+    ["map-active-markers-dock", "Активные метки"],
+    ["account-hub-edit-panel", "Редактирование профиля"],
+    ["account-media-slot", "Медиа профиля"],
+    ["account-showcase-upload", "Загрузка витрины"],
+    ["account-social-search", "Поиск игроков"],
+    ["account-trade-console", "Передача предметов"],
+    ["account-messenger-info", "Информация о диалоге"],
+    ["master-room-create-panel", "Создание стола"],
+    ["master-room-tools-panel", "Инструменты ГМа"],
+    ["master-room-visibility-board", "Видимость и доступы"],
+  ];
+
+  for (const [className, title] of classMap) {
+    if (panel?.classList?.contains(className)) return title;
+  }
+
+  return getPanelLabel(panel, index);
+}
+
+function isInsideCabinetDisclosure(element) {
+  return Boolean(element?.closest?.("details.cabinet-ux-disclosure, details.cabinet-ux-subdisclosure"));
+}
+
+function unwrapCabinetSubDisclosures(root) {
+  if (!root) return;
+
+  Array.from(root.querySelectorAll("details.cabinet-ux-subdisclosure")).forEach((details) => {
+    const content = details.querySelector(":scope > .cabinet-ux-disclosure-content");
+    const children = content ? Array.from(content.children) : [];
+    if (!children.length) {
+      details.remove();
+      return;
+    }
+    details.replaceWith(...children);
+  });
+}
+
+function collectCabinetConfigPanels(root) {
+  if (!root || shouldSkipProgressiveDisclosure()) return [];
+
+  const selectors = [
+    ".inventory-ref-toolbar",
+    ".inventory-ref-rail",
+    ".custom-item-form",
+    ".files-ref-upload",
+    ".files-ref-toolbar",
+    ".files-ref-detail",
+    ".notes-ref-gm-panel",
+    ".notes-ref-toolbar",
+    ".notes-ref-preview-panel",
+    ".quest-ref-controls",
+    ".quest-ref-filter-panel",
+    ".quest-ref-form",
+    ".quest-ref-detail",
+    ".history-ref-toolbar",
+    ".history-ref-detail",
+    ".map-reference-controls",
+    ".map-reference-sidebar",
+    ".map-active-markers-dock",
+    ".account-hub-edit-panel",
+    ".account-media-slot",
+    ".account-showcase-upload",
+    ".account-social-search",
+    ".account-trade-console",
+    ".account-messenger-info",
+    ".master-room-create-panel",
+    ".master-room-tools-panel",
+    ".master-room-visibility-board",
+  ];
+
+  const seen = new Set();
+  return selectors.flatMap((selector) => Array.from(root.querySelectorAll(selector)))
+    .filter((panel) => {
+      if (!panel || panel.nodeType !== 1) return false;
+      if (seen.has(panel)) return false;
+      if (panel.classList.contains("cabinet-ux-toolbar")) return false;
+      if (panel.closest("#cabinet-lss")) return false;
+      if (isInsideCabinetDisclosure(panel)) return false;
+      if (panel.dataset.cabinetNoDisclosure === "1") return false;
+      seen.add(panel);
+      return true;
+    });
+}
+
+function wrapCabinetConfigPanels(root) {
+  if (!root || shouldSkipProgressiveDisclosure()) return;
+
+  const compact = readCabinetCompactMode(CABINET_STATE.activeTab);
+  const panels = collectCabinetConfigPanels(root);
+
+  panels.forEach((panel, index) => {
+    const details = document.createElement("details");
+    details.className = "cabinet-ux-disclosure cabinet-ux-subdisclosure cabinet-ux-config-disclosure";
+    details.dataset.cabinetDisclosure = panel.id || `cabinet-config-${CABINET_STATE.activeTab}-${index}`;
+    if (!panel.id) panel.id = details.dataset.cabinetDisclosure;
+    details.dataset.cabinetAnchor = panel.id;
+    details.open = !compact;
+
+    const summaryWrapper = document.createElement("div");
+    summaryWrapper.innerHTML = `
+      <summary class="cabinet-ux-disclosure-summary cabinet-ux-config-summary">
+        <span>${escapeHtml(getCabinetDisclosureTitleFor(panel, index))}</span>
+        <strong>${details.open ? "Скрыть" : "Открыть"}</strong>
+      </summary>
+    `.trim();
+    const summary = summaryWrapper.firstElementChild;
+
+    const content = document.createElement("div");
+    content.className = "cabinet-ux-disclosure-content";
+
+    panel.before(details);
+    content.appendChild(panel);
+    details.append(summary, content);
+  });
+}
+
+function readCabinetCompactMode(tabName = CABINET_STATE.activeTab) {
+  try {
+    const raw = localStorage.getItem(`dndTrader.cabinet.compact.${tabName}`);
+    if (raw === null) return true;
+    return raw !== "0";
+  } catch (_) {
+    return true;
+  }
+}
+
+function writeCabinetCompactMode(tabName, enabled) {
+  try {
+    localStorage.setItem(`dndTrader.cabinet.compact.${tabName}`, enabled ? "1" : "0");
+  } catch (_) {}
+}
+
+function scrollCabinetTo(target) {
+  if (!target) return;
+
+  const root = getActiveCabinetSectionRoot();
+  if (target === root) {
+    scrollCabinetEdge("top");
+    return;
+  }
+
+  const scroller = getCabinetScrollContainer();
+  if (scroller && "scrollTo" in scroller) {
+    try {
+      const containerRect = scroller.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const nextTop = scroller.scrollTop + targetRect.top - containerRect.top - 18;
+      scroller.scrollTo({ top: Math.max(0, nextTop), behavior: "smooth" });
+      return;
+    } catch (_) {}
+  }
+
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function unwrapCabinetDisclosures(root) {
+  if (!root) return;
+
+  unwrapCabinetSubDisclosures(root);
+
+  Array.from(root.querySelectorAll(":scope > details.cabinet-ux-disclosure")).forEach((details) => {
+    const content = details.querySelector(":scope > .cabinet-ux-disclosure-content");
+    const children = content ? Array.from(content.children) : [];
+    if (!children.length) {
+      details.remove();
+      return;
+    }
+    details.replaceWith(...children);
+  });
+}
+
+function shouldSkipProgressiveDisclosure() {
+  // ROUND 41: generic cabinet drawers are removed globally.
+  // Each module must decide what is primary, what is secondary, and what belongs
+  // to its own local drawer. The automatic wrapper created duplicate empty
+  // "шторки" and made reference-driven screens read like admin pages.
+  return true;
+}
+
+function shouldSkipCabinetUxToolbar() {
+  // ROUND 41: remove the temporary "Навигация раздела" toolbar globally.
+  // It consumed the first screen and duplicated the real module navigation.
+  return true;
+}
+
+function isCabinetPanelEssential(panel, index) {
+  if (!panel) return false;
+  if (panel.dataset?.cabinetAlwaysOpen === "1") return true;
+  if (panel.classList?.contains("cabinet-ux-toolbar")) return true;
+
+  // First visual block stays open as the module summary / game essence.
+  if (index === 0) return true;
+
+  // Map stage and inventory shell are already purpose-built layouts; their internal settings are handled by the module.
+  if (CABINET_STATE.activeTab === "map" && panel.classList?.contains("map-reference-layout")) return true;
+  if (CABINET_STATE.activeTab === "inventory" && panel.classList?.contains("inventory-ref-shell")) return true;
+
+  return false;
+}
+
+function buildDisclosureSummary(panel, index) {
+  const label = getPanelLabel(panel, index);
+  return `
+    <summary class="cabinet-ux-disclosure-summary">
+      <span>${escapeHtml(label)}</span>
+      <strong>Открыть</strong>
+    </summary>
+  `;
+}
+
+function applyCabinetProgressiveDisclosure(root) {
+  if (!root) return;
+
+  unwrapCabinetDisclosures(root);
+
+  const compact = readCabinetCompactMode(CABINET_STATE.activeTab);
+  root.classList.toggle("cabinet-ux-compact-mode", compact);
+
+  const panels = collectCabinetAnchorPanels(root).filter((panel) => !panel.classList?.contains("cabinet-ux-toolbar"));
+
+  if (shouldSkipProgressiveDisclosure()) {
+    panels.forEach((panel, index) => {
+      panel.classList.remove("cabinet-ux-secondary");
+      if (!panel.id) panel.id = `cabinet-anchor-${CABINET_STATE.activeTab}-${index}`;
+    });
+    return;
+  }
+
+  panels.forEach((panel, index) => {
+    if (!panel.id) {
+      panel.id = `cabinet-anchor-${CABINET_STATE.activeTab}-${index}`;
+    }
+
+    const essential = isCabinetPanelEssential(panel, index);
+    panel.classList.toggle("cabinet-ux-secondary", !essential);
+
+    if (essential) return;
+
+    const details = document.createElement("details");
+    details.className = "cabinet-ux-disclosure";
+    details.dataset.cabinetDisclosure = panel.id;
+    details.dataset.cabinetAnchor = panel.id;
+    if (!compact) details.open = true;
+
+    const summaryWrapper = document.createElement("div");
+    summaryWrapper.innerHTML = buildDisclosureSummary(panel, index).trim();
+    const summary = summaryWrapper.firstElementChild;
+
+    const content = document.createElement("div");
+    content.className = "cabinet-ux-disclosure-content";
+
+    panel.before(details);
+    content.appendChild(panel);
+    details.append(summary, content);
+  });
+
+  wrapCabinetConfigPanels(root);
+}
+
+function renderCabinetUxToolbar(root) {
+  if (!root) return;
+
+  root.querySelector(".cabinet-ux-toolbar")?.remove();
+  if (shouldSkipCabinetUxToolbar()) return;
+
+  const panels = collectCabinetAnchorPanels(root);
+  const compact = readCabinetCompactMode(CABINET_STATE.activeTab);
+  const toolbar = document.createElement("div");
+  toolbar.className = "cabinet-ux-toolbar cabinet-ux-toolbar-clean";
+
+  const anchors = panels.slice(0, 6).map((panel, index) => {
+    if (!panel.id) panel.id = `cabinet-anchor-${CABINET_STATE.activeTab}-${index}`;
+    return `
+      <button type="button" class="cabinet-ux-anchor" data-cabinet-anchor-target="${escapeHtml(panel.id)}">
+        ${escapeHtml(getPanelLabel(panel, index))}
+      </button>
+    `;
+  }).join("");
+
+  toolbar.innerHTML = `
+    <div class="cabinet-ux-toolbar-main">
+      <span class="cabinet-ux-toolbar-label">Навигация раздела</span>
+      <button type="button" class="cabinet-ux-anchor cabinet-ux-collapse-toggle" data-cabinet-toggle-compact="1">
+        ${compact ? "Открыть все шторки" : "Свернуть шторки"}
+      </button>
+    </div>
+    <div class="cabinet-ux-toolbar-anchors">${anchors}</div>
+  `;
+
+  root.prepend(toolbar);
+}
+
+function bindCabinetUxToolbar(root) {
+  if (!root || root.dataset.boundCabinetUxToolbar === "1") return;
+  root.dataset.boundCabinetUxToolbar = "1";
+
+  root.addEventListener("click", (event) => {
+    const scrollBtn = event.target.closest("[data-cabinet-scroll]");
+    if (scrollBtn) {
+      const mode = scrollBtn.dataset.cabinetScroll;
+      if (mode === "top" || mode === "bottom") {
+        scrollCabinetEdge(mode);
+      }
+      return;
+    }
+
+    const anchorBtn = event.target.closest("[data-cabinet-anchor-target]");
+    if (anchorBtn) {
+      const target = getEl(anchorBtn.dataset.cabinetAnchorTarget || "");
+      scrollCabinetTo(target);
+      return;
+    }
+
+    const compactBtn = event.target.closest("[data-cabinet-toggle-compact]");
+    if (compactBtn) {
+      const next = !readCabinetCompactMode(CABINET_STATE.activeTab);
+      writeCabinetCompactMode(CABINET_STATE.activeTab, next);
+      finalizeCabinetActiveModule();
+    }
+  });
+
+  root.querySelectorAll("details.cabinet-ux-disclosure, details.cabinet-ux-subdisclosure").forEach((details) => {
+    const label = details.querySelector(".cabinet-ux-disclosure-summary strong");
+    if (label) label.textContent = details.open ? "Скрыть" : "Открыть";
+    if (details.dataset.boundDisclosureToggle === "1") return;
+    details.dataset.boundDisclosureToggle = "1";
+    details.addEventListener("toggle", () => {
+      const nextLabel = details.querySelector(".cabinet-ux-disclosure-summary strong");
+      if (nextLabel) nextLabel.textContent = details.open ? "Скрыть" : "Открыть";
+    });
+  });
+}
+
+function setCabinetFloatingNavVisible(nav, visible = true) {
+  if (!nav) return;
+  nav.classList.toggle("is-visible", Boolean(visible));
+  nav.classList.toggle("is-idle-visible", Boolean(visible));
+}
+
+function renderCabinetFloatingScroll() {
+  const modal = getEl("cabinetModal");
+  if (!modal) return;
+
+  let nav = modal.querySelector(".cabinet-floating-scroll");
+  if (!nav) {
+    nav = document.createElement("div");
+    nav.className = "cabinet-floating-scroll cabinet-floating-scroll-clean cabinet-floating-scroll-bottom";
+    nav.innerHTML = `
+      <button type="button" data-cabinet-floating="top" title="К началу раздела" aria-label="К началу раздела">↑</button>
+      <button type="button" data-cabinet-floating="bottom" title="В конец раздела" aria-label="В конец раздела">↓</button>
+    `;
+    modal.appendChild(nav);
+  }
+
+  const scroller = getCabinetScrollContainer();
+
+  if (nav.dataset.boundFloatingScroll !== "1") {
+    nav.dataset.boundFloatingScroll = "1";
+    nav.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-cabinet-floating]");
+      if (!btn) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setCabinetFloatingNavVisible(nav, true);
+      scrollCabinetEdge(btn.dataset.cabinetFloating === "bottom" ? "bottom" : "top");
+    });
+  }
+
+  if (scroller && scroller.dataset.boundCabinetBottomFloating !== "1") {
+    scroller.dataset.boundCabinetBottomFloating = "1";
+    scroller.addEventListener(
+      "scroll",
+      () => {
+        window.clearTimeout(CABINET_RUNTIME.floatingNavTimer);
+        window.clearTimeout(CABINET_RUNTIME.floatingNavHideTimer);
+        nav.classList.add("is-scrolling");
+        setCabinetFloatingNavVisible(nav, false);
+        CABINET_RUNTIME.floatingNavTimer = window.setTimeout(() => {
+          nav.classList.remove("is-scrolling");
+          setCabinetFloatingNavVisible(nav, true);
+          CABINET_RUNTIME.floatingNavHideTimer = window.setTimeout(() => {
+            setCabinetFloatingNavVisible(nav, false);
+          }, 2600);
+        }, 520);
+      },
+      { passive: true }
+    );
+  }
+}
+
+
+
+function applyCabinetRound21Cleanup(root) {
+  if (!root) return;
+  root.classList.add("cabinet-round21-cleanup", `cabinet-round21-${CABINET_STATE.activeTab}`);
+  const modal = getEl("cabinetModal");
+  if (modal) {
+    modal.dataset.round21Cleanup = "1";
+    modal.dataset.activeCabinetTab = CABINET_STATE.activeTab;
+  }
+}
+
+function finalizeCabinetActiveModule() {
+  const root = getActiveCabinetSectionRoot();
+  if (!root) return;
+
+  window.setTimeout(() => {
+    const activeRoot = getActiveCabinetSectionRoot();
+    if (!activeRoot) return;
+    applyCabinetRound21Cleanup(activeRoot);
+    applyCabinetProgressiveDisclosure(activeRoot);
+    renderCabinetUxToolbar(activeRoot);
+    bindCabinetUxToolbar(activeRoot);
+    renderCabinetFloatingScroll();
+  }, 0);
+}
+
 // ------------------------------------------------------------
 // 🚪 OPEN / CLOSE
 // ------------------------------------------------------------
@@ -7253,19 +9393,19 @@ export async function openCabinet() {
   } catch (_) {}
 
   CABINET_STATE.role = getCurrentRole();
+  CABINET_STATE.activeTab = readStoredCabinetActiveTab() || CABINET_STATE.activeTab || "myaccount";
   normalizeActiveTabForRole();
+  persistCabinetActiveTab(CABINET_STATE.activeTab);
   renderCabinetHeader();
   renderCabinetTabs();
   bindCabinetTabs();
   bindCabinetActions();
   updateCabinetViewState(true);
   openModal(modal);
-  try {
-    await refreshCurrentCabinetTab();
-  } catch (error) {
+  void refreshCurrentCabinetTab().catch((error) => {
     console.error(error);
     showToast(error?.message || "Кабинет открыт с ошибкой загрузки модуля");
-  }
+  });
 }
 
 export function closeCabinet() {
@@ -7279,10 +9419,15 @@ export function closeCabinet() {
 // 📑 TABS
 // ------------------------------------------------------------
 export async function switchCabinetTab(tabName) {
-  CABINET_STATE.activeTab = tabName;
-  if (tabName !== "masterroom") {
+  CABINET_STATE.activeTab = String(tabName || "myaccount").trim() || "myaccount";
+  normalizeActiveTabForRole();
+  persistCabinetActiveTab(CABINET_STATE.activeTab);
+
+  if (CABINET_STATE.activeTab !== "masterroom") {
     stopMasterRoomPolling();
   }
+  tabName = CABINET_STATE.activeTab;
+
   updateCabinetViewState(isCabinetOpen());
   applyCabinetModalLayout();
   renderCabinetHeader();
@@ -7303,65 +9448,76 @@ export async function switchCabinetTab(tabName) {
   if (tabName === "myaccount") {
     await loadAccountModule();
     renderAccountModule();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "project") {
     renderProjectSupportTab();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "lss") {
     await loadLSS();
     renderLSS();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "history") {
     await loadHistory();
     renderHistory();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "quests") {
     await loadQuests();
     renderQuests();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "map") {
     await loadMapData();
     renderMaps();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "bestiari") {
     await loadBestiari();
     renderBestiari();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "files") {
     await loadFiles();
     renderFiles();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "playernotes") {
     await loadPlayerNotes();
     renderNotes();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "masterroom") {
-    await loadMasterRoom();
-    renderMasterRoom();
+    await loadMasterRoomRuntime();
+    renderMasterRoomRuntime();
+    finalizeCabinetActiveModule();
     return;
   }
 
   if (tabName === "gmnotes") {
     await loadGmNotes();
     renderGmNotes();
+    finalizeCabinetActiveModule();
   }
 }
 
@@ -7391,6 +9547,7 @@ function normalizeActiveTabForRole() {
   if (!visible.includes(CABINET_STATE.activeTab)) {
     CABINET_STATE.activeTab = "myaccount";
   }
+  persistCabinetActiveTab(CABINET_STATE.activeTab);
 }
 
 async function refreshCurrentCabinetTab() {
@@ -7463,8 +9620,8 @@ export function bindCabinetActions() {
       }
 
       if (CABINET_STATE.activeTab === "masterroom") {
-        await loadMasterRoom();
-        renderMasterRoom();
+        await loadMasterRoomRuntime();
+        renderMasterRoomRuntime();
         return;
       }
 
@@ -7478,6 +9635,7 @@ export function bindCabinetActions() {
 
 export async function loadCabinetAll() {
   CABINET_STATE.role = getCurrentRole();
+  CABINET_STATE.activeTab = readStoredCabinetActiveTab() || CABINET_STATE.activeTab || "myaccount";
   normalizeActiveTabForRole();
 
   renderCabinetHeader();
@@ -7511,8 +9669,8 @@ export async function loadCabinetAll() {
   renderFiles();
 
   if (CABINET_STATE.role === "gm") {
-    await loadMasterRoom();
-    renderMasterRoom();
+    await loadMasterRoomRuntime();
+    renderMasterRoomRuntime();
     await loadGmNotes();
   }
   renderGmNotes();
@@ -7523,6 +9681,7 @@ export function initCabinet() {
   if (!modal) return;
 
   CABINET_STATE.role = getCurrentRole();
+  CABINET_STATE.activeTab = readStoredCabinetActiveTab() || CABINET_STATE.activeTab || "myaccount";
   normalizeActiveTabForRole();
 
   renderCabinetHeader();
@@ -7531,7 +9690,7 @@ export function initCabinet() {
   renderBestiari();
   renderFiles();
   if (CABINET_STATE.role === "gm") {
-    renderMasterRoom();
+    void initMasterRoomRuntime();
   }
   renderAccountModule();
   renderGmNotes();

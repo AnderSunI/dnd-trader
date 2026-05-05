@@ -1032,11 +1032,16 @@ def create_gm_router(*, get_db) -> APIRouter:
 
     @router.get("/gm/users/search")
     def search_users(
-        q: str = Query(default="", min_length=1, max_length=80),
+        q: str = Query(default="", max_length=80),
         current_user: User = Depends(get_current_active_user),
         db: Session = Depends(get_db),
     ):
         needle = str(q or "").strip().lower()
+        if not needle:
+            return {
+                "status": "ok",
+                "users": [],
+            }
 
         rows = (
             db.query(User)

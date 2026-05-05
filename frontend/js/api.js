@@ -30,10 +30,7 @@ function normalizeBaseUrl(value) {
 }
 
 function detectDefaultApiBase() {
-  const explicit =
-    normalizeBaseUrl(window.__API_BASE__) ||
-    normalizeBaseUrl(getStoredApiBase());
-
+  const explicit = normalizeBaseUrl(window.__API_BASE__);
   if (explicit) return explicit;
 
   const protocol = String(window.location?.protocol || "").toLowerCase();
@@ -41,12 +38,21 @@ function detectDefaultApiBase() {
   const port = String(window.location?.port || "");
 
   const isFile = protocol === "file:";
+  const isBackendServedFrontend =
+    (protocol === "http:" || protocol === "https:") &&
+    (hostname === "127.0.0.1" || hostname === "localhost") &&
+    port === "8000";
   const isLiveServer =
     port === "5500" ||
     port === "5501" ||
-    port === "5502" ||
-    hostname === "127.0.0.1" ||
-    hostname === "localhost";
+    port === "5502";
+
+  if (isBackendServedFrontend) {
+    return "";
+  }
+
+  const stored = normalizeBaseUrl(getStoredApiBase());
+  if (stored) return stored;
 
   if (isFile || isLiveServer) {
     return "http://127.0.0.1:8000";
@@ -242,43 +248,23 @@ export async function loginUser(email, password) {
     throw new Error("Введите email и пароль");
   }
 
-  const attempts = [
-    () =>
-      apiRequest(
-        `/auth/login?email=${encodeURIComponent(normalizedEmail)}&password=${encodeURIComponent(normalizedPassword)}`,
-        { method: "POST" }
-      ),
-    () =>
-      apiPost("/auth/login", {
-        email: normalizedEmail,
-        password: normalizedPassword,
-      }),
-  ];
+  const payload = await apiPost("/auth/login", {
+    email: normalizedEmail,
+    password: normalizedPassword,
+  });
 
-  let lastError = null;
+  const token =
+    payload?.access_token ||
+    payload?.token ||
+    payload?.jwt ||
+    payload?.data?.access_token ||
+    "";
 
-  for (const attempt of attempts) {
-    try {
-      const payload = await attempt();
-
-      const token =
-        payload?.access_token ||
-        payload?.token ||
-        payload?.jwt ||
-        payload?.data?.access_token ||
-        "";
-
-      if (token) {
-        setAuthToken(token);
-      }
-
-      return payload;
-    } catch (error) {
-      lastError = error;
-    }
+  if (token) {
+    setAuthToken(token);
   }
 
-  throw lastError || new Error("Не удалось выполнить вход");
+  return payload;
 }
 
 export async function registerUser(email, password) {
@@ -289,50 +275,22 @@ export async function registerUser(email, password) {
     throw new Error("Введите email и пароль");
   }
 
-  const attempts = [
-    () =>
-      apiRequest(
-        `/auth/register?email=${encodeURIComponent(normalizedEmail)}&password=${encodeURIComponent(normalizedPassword)}`,
-        { method: "POST" }
-      ),
-    () =>
-      apiPost("/auth/register", {
-        email: normalizedEmail,
-        password: normalizedPassword,
-      }),
-  ];
-
-  let lastError = null;
-
-  for (const attempt of attempts) {
-    try {
-      return await attempt();
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error("Не удалось выполнить регистрацию");
+  return apiPost("/auth/register", {
+    email: normalizedEmail,
+    password: normalizedPassword,
+  });
 }
 
 export async function fetchMe() {
-  const attempts = ["/auth/me", "/me", "/users/me"];
-
-  for (const url of attempts) {
-    try {
-      const payload = await apiGet(url);
-      if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
-        return payload.user;
-      }
-      return payload;
-    } catch (_) {}
+  const payload = await apiGet("/auth/me");
+  if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
+    return payload.user;
   }
-
-  throw new Error("Не удалось получить профиль пользователя");
+  return payload;
 }
 
 export async function fetchProfile() {
-  const payload = await apiGet("/profile/me");
+  const payload = await apiGet("/auth/me");
   if (payload && typeof payload === "object" && payload.user && typeof payload.user === "object") {
     return payload.user;
   }
@@ -474,6 +432,26 @@ export async function restockTrader(traderId, { reroll = false } = {}) {
   throw lastError || new Error("Не удалось выполнить restock торговца");
 }
 
+
+function getClientMoneyCpTotal() {
+  try {
+    const direct = Number(window.__appMoneyCpTotal);
+    if (Number.isFinite(direct) && direct >= 0) return Math.floor(direct);
+
+    const state = window.__appState || {};
+    const userMoney = Number(state?.user?.money_cp_total);
+    if (Number.isFinite(userMoney) && userMoney >= 0) return Math.floor(userMoney);
+
+    const guestMoney = Number(state?.guestMoneyCp);
+    if (Number.isFinite(guestMoney) && guestMoney >= 0) return Math.floor(guestMoney);
+
+    const bridgeUserMoney = Number(window.__appUser?.money_cp_total);
+    if (Number.isFinite(bridgeUserMoney) && bridgeUserMoney >= 0) return Math.floor(bridgeUserMoney);
+  } catch (_) {}
+
+  return null;
+}
+
 // ------------------------------------------------------------
 // 🎒 INVENTORY / TRADE
 // ------------------------------------------------------------
@@ -488,11 +466,18 @@ export async function fetchPlayerInventory(traderId = null) {
 }
 
 export async function buyItem(itemId, traderId, quantity = 1) {
-  return apiPost("/inventory/buy", {
+  const payload = {
     trader_id: Number(traderId),
     item_id: Number(itemId),
     quantity: Math.max(1, Number(quantity || 1)),
-  });
+  };
+
+  const clientMoneyCpTotal = getClientMoneyCpTotal();
+  if (clientMoneyCpTotal !== null) {
+    payload.client_money_cp_total = clientMoneyCpTotal;
+  }
+
+  return apiPost("/inventory/buy", payload);
 }
 
 export async function sellItem(itemId, traderId, quantity = 1) {
@@ -503,58 +488,46 @@ export async function sellItem(itemId, traderId, quantity = 1) {
   });
 }
 
+export async function updatePlayerMoney(moneyCpTotal) {
+  const cp = Math.max(0, Math.floor(Number(moneyCpTotal || 0)));
+  const payload = { money_cp_total: cp };
+
+  const attempts = [
+    () => apiPost("/inventory/money", payload),
+    () => apiPatch("/inventory/money", payload),
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      return await attempt();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("Не удалось синхронизировать золото");
+}
+
 // ------------------------------------------------------------
 // 📖 LSS / PROFILE
 // ------------------------------------------------------------
 export async function fetchPlayerProfile() {
-  const attempts = [
-    "/player/profile",
-    "/player/lss",
-    "/lss/me",
-    "/character/me",
-    "/profile/me",
-  ];
-
-  for (const url of attempts) {
-    try {
-      return await apiGet(url);
-    } catch (_) {}
-  }
-
-  return {};
+  return apiGet("/player/profile");
 }
 
 // ------------------------------------------------------------
 // 🧭 QUESTS
 // ------------------------------------------------------------
 export async function fetchPlayerQuests() {
-  const attempts = ["/player/quests", "/quests/me", "/quests"];
-
-  for (const url of attempts) {
-    try {
-      return await apiGet(url);
-    } catch (_) {}
-  }
-
-  return { quests: [] };
+  return apiGet("/player/quests");
 }
 
 // ------------------------------------------------------------
 // 📝 NOTES
 // ------------------------------------------------------------
 export async function fetchPlayerNotes() {
-  const attempts = ["/player/notes", "/notes/me", "/notes"];
-
-  for (const url of attempts) {
-    try {
-      return await apiGet(url);
-    } catch (_) {}
-  }
-
-  return {
-    notes: "",
-    history: [],
-  };
+  return apiGet("/player/notes");
 }
 
 export async function savePlayerNotes(notes) {
@@ -567,12 +540,6 @@ export async function savePlayerNotes(notes) {
     () => apiPost("/player/notes", payload),
     () => apiPut("/player/notes", payload),
     () => apiPatch("/player/notes", payload),
-    () => apiPost("/notes/me", payload),
-    () => apiPut("/notes/me", payload),
-    () => apiPatch("/notes/me", payload),
-    () => apiPost("/notes", payload),
-    () => apiPut("/notes", payload),
-    () => apiPatch("/notes", payload),
   ];
 
   let lastError = null;
@@ -592,23 +559,7 @@ export async function savePlayerNotes(notes) {
 // 🗺 MAP
 // ------------------------------------------------------------
 export async function fetchWorldMap() {
-  const attempts = [
-    "/world/map",
-    "/player/map",
-    "/map",
-    "/maps/current",
-    "/player/maps",
-    "/maps/me",
-    "/maps",
-  ];
-
-  for (const url of attempts) {
-    try {
-      return await apiGet(url);
-    } catch (_) {}
-  }
-
-  return {};
+  return apiGet("/world/map");
 }
 
 // ------------------------------------------------------------
@@ -659,6 +610,7 @@ window.apiModule = {
   fetchPlayerInventory,
   buyItem,
   sellItem,
+  updatePlayerMoney,
   fetchPlayerProfile,
   fetchPlayerQuests,
   fetchPlayerNotes,

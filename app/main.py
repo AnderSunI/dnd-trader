@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -128,7 +128,32 @@ class JsonAuthRequest(BaseModel):
 
 
 class PlayerNotesRequest(BaseModel):
-    notes: str
+    # Принимаем не только строку, но и rich-text/doc-подобные значения.
+    # Старый фронт иногда отправляет дополнительные поля, их не валим.
+    notes: Any = ""
+    player_notes: Any | None = None
+    gm_notes: Any | None = None
+    gm_overlay: Any | None = None
+    gmMessage: Any | None = None
+
+
+class PlayerQuestsRequest(BaseModel):
+    quests: list[Any] = []
+    history: list[Any] | None = None
+
+
+def normalize_text_payload(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    try:
+        import json
+        return json.dumps(value, ensure_ascii=False)
+    except Exception:
+        return str(value)
 
 app.include_router(create_auth_router())
 app.include_router(create_inventory_router(get_db))
@@ -319,6 +344,33 @@ def player_quests(
     }
 
 
+@app.post("/player/quests")
+@app.put("/player/quests")
+@app.patch("/player/quests")
+def save_player_quests_endpoint(
+    payload: PlayerQuestsRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    character = ensure_default_character(db, current_user)
+    data = get_character_data_block(character)
+
+    data["quests"] = payload.quests if isinstance(payload.quests, list) else []
+    if isinstance(payload.history, list):
+        data["history"] = payload.history
+
+    set_character_data_block(character, data)
+
+    db.add(character)
+    db.commit()
+    db.refresh(character)
+
+    return {
+        "status": "ok",
+        "quests": data["quests"],
+    }
+
+
 @app.get("/player/notes")
 def player_notes(
     current_user: User = Depends(get_current_active_user),
@@ -339,6 +391,8 @@ def player_notes(
 
 
 @app.post("/player/notes")
+@app.put("/player/notes")
+@app.patch("/player/notes")
 def save_player_notes_endpoint(
     payload: PlayerNotesRequest,
     current_user: User = Depends(get_current_active_user),
@@ -347,7 +401,15 @@ def save_player_notes_endpoint(
     character = ensure_default_character(db, current_user)
     data = get_character_data_block(character)
 
-    data["player_notes"] = payload.notes or ""
+    player_notes = payload.player_notes if payload.player_notes is not None else payload.notes
+    gm_notes = payload.gm_notes
+    if gm_notes is None:
+        gm_notes = payload.gm_overlay if payload.gm_overlay is not None else payload.gmMessage
+
+    data["player_notes"] = normalize_text_payload(player_notes)
+    if gm_notes is not None:
+        data["gm_notes"] = normalize_text_payload(gm_notes)
+
     set_character_data_block(character, data)
 
     db.add(character)
@@ -357,6 +419,8 @@ def save_player_notes_endpoint(
     return {
         "status": "ok",
         "notes": data["player_notes"],
+        "player_notes": data["player_notes"],
+        "gm_notes": data.get("gm_notes", ""),
     }
 
 
@@ -397,3 +461,8 @@ def index():
         raise HTTPException(status_code=404, detail="frontend/index.html не найден")
 
     return FileResponse(INDEX_HTML_PATH)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)

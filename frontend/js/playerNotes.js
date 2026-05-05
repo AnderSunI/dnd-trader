@@ -298,11 +298,7 @@ function normalizeLoadedData(data) {
 export async function loadPlayerNotes() {
   PLAYER_NOTES_STATE.role = getCurrentRole();
 
-  let data = await apiGet([
-    "/player/notes",
-    "/notes/me",
-    "/notes",
-  ]);
+  let data = await apiGet("/player/notes");
   let source = "api";
 
   if (!data) {
@@ -427,7 +423,7 @@ export async function savePlayerNotes(options = {}) {
 
   try {
     await apiWrite(
-      ["/player/notes", "/notes/me", "/notes"],
+      "/player/notes",
       {
         notes: PLAYER_NOTES_STATE.notesRaw,
         player_notes: PLAYER_NOTES_STATE.notesRaw,
@@ -498,97 +494,80 @@ function queueAutosave() {
 // ------------------------------------------------------------
 // 🧱 RENDER HELPERS
 // ------------------------------------------------------------
-function renderStatsBar() {
+function getNotesSummary() {
   const notesLength = getPlainTextLength(PLAYER_NOTES_STATE.notesRaw);
   const gmLength = getPlainTextLength(PLAYER_NOTES_STATE.gmOverlayRaw);
+  const noteLines = docToPlainText(PLAYER_NOTES_STATE.notesRaw)
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+  const hasGmMessage = Boolean(trimText(PLAYER_NOTES_STATE.gmOverlayText || PLAYER_NOTES_STATE.gmOverlayRaw));
 
+  return {
+    notesLength,
+    gmLength,
+    noteLines,
+    hasGmMessage,
+    role: PLAYER_NOTES_STATE.role,
+    source: PLAYER_NOTES_STATE.source,
+    lastSaved: formatTime(PLAYER_NOTES_STATE.lastSavedAt),
+  };
+}
+
+function getSaveStateLabel() {
+  if (PLAYER_NOTES_STATE.isSaving) return "Сохранение...";
+  if (PLAYER_NOTES_STATE.lastSavedAt) return `Сохранено ${formatTime(PLAYER_NOTES_STATE.lastSavedAt)}`;
+  if (PLAYER_NOTES_STATE.source === "local") return "Локальная копия";
+  if (PLAYER_NOTES_STATE.source === "api") return "Синхронизировано";
+  return "Черновик";
+}
+
+function renderNotesMetric(label, value, hint = "") {
   return `
-    <div class="muted" style="margin-bottom:10px;">
-      Источник: <strong>${escapeHtml(PLAYER_NOTES_STATE.source)}</strong>
-      • Символов игрока: <strong>${escapeHtml(String(notesLength))}</strong>
-      • Сообщение ГМа: <strong>${escapeHtml(String(gmLength))}</strong>
-      • Роль: <strong>${escapeHtml(PLAYER_NOTES_STATE.role)}</strong>
-      • Последнее сохранение: <strong>${escapeHtml(formatTime(PLAYER_NOTES_STATE.lastSavedAt))}</strong>
+    <div class="notes-ref-metric">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value))}</strong>
+      ${hint ? `<small>${escapeHtml(hint)}</small>` : ""}
     </div>
   `;
 }
 
-function renderPlayerPreviewBlock() {
-  const hasRich =
-    typeof PLAYER_NOTES_STATE.notesRaw === "object" ||
-    parseTipTapDoc(PLAYER_NOTES_STATE.notesRaw);
-
-  if (!hasRich) return "";
+function renderNotesHero() {
+  const summary = getNotesSummary();
+  const roleLabel = PLAYER_NOTES_STATE.role === "gm" ? "GM-доступ" : "Игрок";
+  const syncLabel = getSaveStateLabel();
 
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4>Предпросмотр форматированных заметок игрока</h4>
-      <div class="lss-rich-block">
-        ${renderRichText(PLAYER_NOTES_STATE.notesRaw, "—")}
+    <section class="cabinet-block notes-ref-hero">
+      <div class="notes-ref-hero-main">
+        <div class="notes-ref-kicker">Журнал игрока</div>
+        <h3>Заметки кампании</h3>
+        <p>
+          Личный блок для планов, подозрений, контактов и улик. ГМ может добавить отдельное сообщение,
+          которое увидит игрок, не ломая личные заметки.
+        </p>
+        <div class="notes-ref-hero-meta">
+          <span>Источник: ${escapeHtml(summary.source)}</span>
+          <span>Роль: ${escapeHtml(roleLabel)}</span>
+          <span>${escapeHtml(syncLabel)}</span>
+        </div>
       </div>
-    </div>
-  `;
-}
-
-function renderGmPreviewBlock() {
-  const hasRich =
-    typeof PLAYER_NOTES_STATE.gmOverlayRaw === "object" ||
-    parseTipTapDoc(PLAYER_NOTES_STATE.gmOverlayRaw);
-
-  if (!hasRich) return "";
-
-  return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4>Предпросмотр сообщения ГМа</h4>
-      <div class="lss-rich-block">
-        ${renderRichText(PLAYER_NOTES_STATE.gmOverlayRaw, "—")}
+      <div class="notes-ref-hero-grid">
+        ${renderNotesMetric("Символов", summary.notesLength, "личные заметки")}
+        ${renderNotesMetric("Строк", summary.noteLines, "рабочие пункты")}
+        ${renderNotesMetric("GM", summary.gmLength, summary.hasGmMessage ? "есть сообщение" : "пусто")}
+        ${renderNotesMetric("Режим", roleLabel, "доступ")}
       </div>
-    </div>
+    </section>
   `;
 }
 
-function renderGmOverlayBlock() {
-  const hasContent = Boolean(trimText(PLAYER_NOTES_STATE.gmOverlayText || PLAYER_NOTES_STATE.gmOverlayRaw));
-  const editable = PLAYER_NOTES_STATE.role === "gm";
-
+function renderEditorToolbar() {
   return `
-    <div class="cabinet-block" style="margin-top:12px;">
-      <h4>Сообщение / заметка от ГМа</h4>
-
-      ${
-        editable
-          ? `
-            <div class="muted" style="margin-bottom:8px;">
-              Этот блок видят и игрок, и ГМ. Редактировать может только ГМ.
-            </div>
-
-            <textarea
-              id="gmOverlayTextarea"
-              rows="7"
-              placeholder="Здесь ГМ может оставить сообщение, подсказку, предупреждение или скрытую рамку для игрока"
-            >${escapeHtml(PLAYER_NOTES_STATE.gmOverlayText || PLAYER_NOTES_STATE.gmOverlayRaw || "")}</textarea>
-          `
-          : hasContent
-            ? `
-              <div class="lss-rich-block">
-                ${renderRichText(PLAYER_NOTES_STATE.gmOverlayRaw, "—")}
-              </div>
-            `
-            : `
-              <div class="muted">ГМ пока ничего не оставил.</div>
-            `
-      }
-    </div>
-  `;
-}
-
-function renderToolbar() {
-  return `
-    <div class="modal-actions" style="margin-top:12px; gap:8px; flex-wrap:wrap;">
+    <div class="notes-ref-toolbar">
       <button id="savePlayerNotesBtn" class="btn btn-success" ${PLAYER_NOTES_STATE.isSaving ? "disabled" : ""}>
         ${PLAYER_NOTES_STATE.isSaving ? "Сохраняю..." : "Сохранить"}
       </button>
-
       <button id="reloadPlayerNotesBtn" class="btn">Обновить</button>
       <button id="clearPlayerNotesBtn" class="btn btn-danger">Очистить заметки игрока</button>
       ${
@@ -600,6 +579,143 @@ function renderToolbar() {
   `;
 }
 
+function renderPlayerEditorPanel() {
+  return `
+    <section class="cabinet-block notes-ref-panel notes-ref-editor-panel">
+      <div class="notes-ref-panel-head">
+        <div>
+          <div class="notes-ref-kicker">Личный блок</div>
+          <h4>Заметки игрока</h4>
+          <p class="muted">Игрок всегда может редактировать эту часть. Автосохранение включается после ввода.</p>
+        </div>
+        <span class="notes-ref-status-pill">${escapeHtml(getSaveStateLabel())}</span>
+      </div>
+
+      <div class="notes-ref-editor-shell">
+        <textarea
+          id="playerNotesTextarea"
+          rows="16"
+          placeholder="Планы, подозрения, контакты, улики, маршруты, договорённости, обещания NPC..."
+        >${escapeHtml(PLAYER_NOTES_STATE.notesText || PLAYER_NOTES_STATE.notesRaw || "")}</textarea>
+      </div>
+
+      ${renderEditorToolbar()}
+    </section>
+  `;
+}
+
+function renderGmOverlayPanel() {
+  const hasContent = Boolean(trimText(PLAYER_NOTES_STATE.gmOverlayText || PLAYER_NOTES_STATE.gmOverlayRaw));
+  const editable = PLAYER_NOTES_STATE.role === "gm";
+
+  return `
+    <section class="cabinet-block notes-ref-panel notes-ref-gm-panel ${hasContent ? "has-gm-message" : "is-empty"}">
+      <div class="notes-ref-panel-head">
+        <div>
+          <div class="notes-ref-kicker">Сообщение мастера</div>
+          <h4>Заметка от ГМа</h4>
+          <p class="muted">
+            ${editable
+              ? "Этот блок видят и игрок, и ГМ. Редактировать может только ГМ."
+              : "Этот блок содержит сообщение, подсказку или рамку от мастера."
+            }
+          </p>
+        </div>
+        <span class="notes-ref-status-pill ${hasContent ? "is-active" : ""}">
+          ${hasContent ? "Есть сообщение" : "Пусто"}
+        </span>
+      </div>
+
+      ${
+        editable
+          ? `
+            <textarea
+              id="gmOverlayTextarea"
+              rows="10"
+              placeholder="Сообщение от ГМа: подсказка, предупреждение, секретный контекст, рамка сцены..."
+            >${escapeHtml(PLAYER_NOTES_STATE.gmOverlayText || PLAYER_NOTES_STATE.gmOverlayRaw || "")}</textarea>
+          `
+          : hasContent
+            ? `
+              <div class="notes-ref-gm-message">
+                ${renderRichText(PLAYER_NOTES_STATE.gmOverlayRaw, "—")}
+              </div>
+            `
+            : `
+              <div class="notes-ref-empty-mini">
+                <strong>ГМ пока ничего не оставил.</strong>
+                <span>Когда появится подсказка или сообщение мастера, оно будет здесь.</span>
+              </div>
+            `
+      }
+    </section>
+  `;
+}
+
+function renderPreviewPanel(title, content, fallback, className = "") {
+  return `
+    <section class="cabinet-block notes-ref-panel notes-ref-preview-panel ${escapeHtml(className)}">
+      <div class="notes-ref-panel-head">
+        <div>
+          <div class="notes-ref-kicker">Предпросмотр</div>
+          <h4>${escapeHtml(title)}</h4>
+        </div>
+      </div>
+      <div class="notes-ref-rich-preview">
+        ${renderRichText(content, fallback)}
+      </div>
+    </section>
+  `;
+}
+
+function renderPlayerPreviewBlock() {
+  const hasRich =
+    typeof PLAYER_NOTES_STATE.notesRaw === "object" ||
+    parseTipTapDoc(PLAYER_NOTES_STATE.notesRaw);
+
+  if (!hasRich) return "";
+
+  return renderPreviewPanel(
+    "Форматированные заметки игрока",
+    PLAYER_NOTES_STATE.notesRaw,
+    "—",
+    "notes-ref-player-preview"
+  );
+}
+
+function renderGmPreviewBlock() {
+  const hasRich =
+    typeof PLAYER_NOTES_STATE.gmOverlayRaw === "object" ||
+    parseTipTapDoc(PLAYER_NOTES_STATE.gmOverlayRaw);
+
+  if (!hasRich) return "";
+
+  return renderPreviewPanel(
+    "Форматированное сообщение ГМа",
+    PLAYER_NOTES_STATE.gmOverlayRaw,
+    "—",
+    "notes-ref-gm-preview"
+  );
+}
+
+function renderNotesEmptyHint() {
+  const hasNotes = Boolean(trimText(PLAYER_NOTES_STATE.notesText || PLAYER_NOTES_STATE.notesRaw));
+  if (hasNotes) return "";
+
+  return `
+    <aside class="cabinet-block notes-ref-panel notes-ref-empty-hint">
+      <div class="notes-ref-kicker">Быстрый старт</div>
+      <h4>С чего начать?</h4>
+      <ul>
+        <li>Кто дал задание или слух?</li>
+        <li>Что партия обещала сделать?</li>
+        <li>Какие NPC, места или предметы важны?</li>
+        <li>Что скрыто от остальных игроков?</li>
+      </ul>
+    </aside>
+  `;
+}
+
 // ------------------------------------------------------------
 // 🧱 MAIN RENDER
 // ------------------------------------------------------------
@@ -608,26 +724,22 @@ export function renderNotes() {
   if (!container) return;
 
   container.innerHTML = `
-    <div class="cabinet-block">
-      <h3>Заметки игрока</h3>
-      ${renderStatsBar()}
+    <div class="notes-ref-shell" data-notes-role="${escapeHtml(PLAYER_NOTES_STATE.role)}">
+      ${renderNotesHero()}
 
-      <div class="muted" style="margin-bottom:8px;">
-        Личный блок игрока. Игрок всегда может редактировать эту часть.
+      <div class="notes-ref-layout">
+        <main class="notes-ref-main-column">
+          ${renderPlayerEditorPanel()}
+          ${renderPlayerPreviewBlock()}
+        </main>
+
+        <aside class="notes-ref-side-column">
+          ${renderGmOverlayPanel()}
+          ${renderNotesEmptyHint()}
+          ${renderGmPreviewBlock()}
+        </aside>
       </div>
-
-      <textarea
-        id="playerNotesTextarea"
-        rows="12"
-        placeholder="Сюда можно писать свои заметки, планы, подозрения, контакты, улики и всё полезное по кампании"
-      >${escapeHtml(PLAYER_NOTES_STATE.notesText || PLAYER_NOTES_STATE.notesRaw || "")}</textarea>
-
-      ${renderToolbar()}
     </div>
-
-    ${renderGmOverlayBlock()}
-    ${renderPlayerPreviewBlock()}
-    ${renderGmPreviewBlock()}
   `;
 
   bindNotesActions();

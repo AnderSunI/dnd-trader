@@ -159,6 +159,97 @@ def create_traders_router(
             "gold": safe_int(trader.gold, 0),
         }
 
+
+    def serialize_broken_item_payload(slot: TraderItem | None, error: Exception) -> dict:
+        """
+        Dev-safe fallback: если один предмет у торговца битый,
+        не валим весь /traders 500, а отдаём безопасную заглушку.
+        Это не скрывает проблему полностью — в payload остаётся _serialize_error.
+        """
+        item = getattr(slot, "item", None) if slot else None
+        item_id = safe_int(getattr(item, "id", None) or getattr(slot, "item_id", None), 0)
+        quantity = safe_int(getattr(slot, "quantity", 0), 0)
+
+        return {
+            "id": item_id,
+            "item_id": item_id,
+            "name": safe_str(getattr(item, "name", "Битая запись предмета"), "Битая запись предмета"),
+            "category": safe_str(getattr(item, "category", "misc"), "misc"),
+            "subcategory": safe_str(getattr(item, "subcategory", "")),
+            "rarity": safe_str(getattr(item, "rarity", "common"), "common"),
+            "rarity_tier": 0,
+            "quality": safe_str(getattr(item, "quality", "standard"), "standard"),
+            "description": "Предмет не удалось сериализовать. Проверь данные item/trader_item в БД.",
+            "weight": 0,
+            "properties": {},
+            "requirements": {},
+            "source": safe_str(getattr(item, "source", "")),
+            "is_magical": False,
+            "attunement": False,
+            "stock": max(0, quantity),
+            "quantity": max(0, quantity),
+            "stock_orig": max(0, quantity),
+            "base_price_gold": safe_int(getattr(slot, "price_gold", 0), 0),
+            "base_price_silver": safe_int(getattr(slot, "price_silver", 0), 0),
+            "base_price_copper": safe_int(getattr(slot, "price_copper", 0), 0),
+            "price_gold": safe_int(getattr(slot, "price_gold", 0), 0),
+            "price_silver": safe_int(getattr(slot, "price_silver", 0), 0),
+            "price_copper": safe_int(getattr(slot, "price_copper", 0), 0),
+            "price_label": format_split_price(
+                safe_int(getattr(slot, "price_gold", 0), 0),
+                safe_int(getattr(slot, "price_silver", 0), 0),
+                safe_int(getattr(slot, "price_copper", 0), 0),
+            ),
+            "buy_price_gold": safe_int(getattr(slot, "price_gold", 0), 0),
+            "buy_price_silver": safe_int(getattr(slot, "price_silver", 0), 0),
+            "buy_price_copper": safe_int(getattr(slot, "price_copper", 0), 0),
+            "buy_price_label": format_split_price(
+                safe_int(getattr(slot, "price_gold", 0), 0),
+                safe_int(getattr(slot, "price_silver", 0), 0),
+                safe_int(getattr(slot, "price_copper", 0), 0),
+            ),
+            "sell_price_gold": 0,
+            "sell_price_silver": 0,
+            "sell_price_copper": 0,
+            "sell_price_label": "—",
+            "_serialize_error": safe_str(error, "unknown serialization error"),
+        }
+
+    def serialize_broken_trader_payload(trader: Trader, error: Exception) -> dict:
+        """
+        Dev-safe fallback для торговца, чтобы один битый торговец не убивал весь список.
+        """
+        return {
+            "id": safe_int(getattr(trader, "id", 0), 0),
+            "name": safe_str(getattr(trader, "name", "Битый торговец"), "Битый торговец"),
+            "type": safe_str(getattr(trader, "type", "unknown"), "unknown"),
+            "specialization": [],
+            "reputation": safe_int(getattr(trader, "reputation", 0), 0),
+            "skill_label": "Ошибка данных",
+            "discount_percent": 0,
+            "region": safe_str(getattr(trader, "region", "")),
+            "settlement": safe_str(getattr(trader, "settlement", "")),
+            "level_min": safe_int(getattr(trader, "level_min", 1), 1),
+            "level_max": safe_int(getattr(trader, "level_max", 1), 1),
+            "restock_days": safe_int(getattr(trader, "restock_days", 0), 0),
+            "last_restock": safe_str(getattr(trader, "last_restock", "")),
+            "currency": safe_str(getattr(trader, "currency", "gold"), "gold"),
+            "description": "Торговец не удалось сериализовать полностью. Проверь traceback backend и данные БД.",
+            "image_url": safe_str(getattr(trader, "image_url", "")),
+            "personality": safe_str(getattr(trader, "personality", "")),
+            "possessions": [],
+            "rumors": safe_str(getattr(trader, "rumors", "")),
+            "race": safe_str(getattr(trader, "race", "")),
+            "class_name": safe_str(getattr(trader, "class_name", "")),
+            "trader_level": safe_int(getattr(trader, "trader_level", 1), 1),
+            "stats": {},
+            "abilities": [],
+            **build_trader_money_payload(trader),
+            "items": [],
+            "inventory_count": 0,
+            "_serialize_error": safe_str(error, "unknown serialization error"),
+        }
+
     # ========================================================
     # 🧾 SERIALIZERS
     # ========================================================
@@ -300,21 +391,30 @@ def create_traders_router(
         slots = trader.trader_items or []
 
         items: list[dict] = []
+        item_errors: list[dict] = []
         for slot in slots:
             if not slot.item:
                 continue
 
-            items.append(
-                serialize_item(
-                    slot.item,
-                    trader_slot=slot,
-                    trader=trader,
+            try:
+                items.append(
+                    serialize_item(
+                        slot.item,
+                        trader_slot=slot,
+                        trader=trader,
+                    )
                 )
-            )
+            except Exception as error:
+                item_errors.append({
+                    "trader_id": safe_int(getattr(slot, "trader_id", getattr(trader, "id", 0)), 0),
+                    "item_id": safe_int(getattr(slot, "item_id", 0), 0),
+                    "error": safe_str(error, "unknown item serialization error"),
+                })
+                items.append(serialize_broken_item_payload(slot, error))
 
         money_payload = build_trader_money_payload(trader)
 
-        return {
+        payload = {
             "id": trader.id,
             "name": safe_str(trader.name),
             "type": safe_str(trader.type),
@@ -351,6 +451,11 @@ def create_traders_router(
             "inventory_count": len(items),
         }
 
+        if item_errors:
+            payload["_item_errors"] = item_errors
+
+        return payload
+
     def get_allowed_trader_ids_for_user(
         db: Session,
         current_user: User | None,
@@ -362,38 +467,43 @@ def create_traders_router(
         if role in {"gm", "admin"}:
             return None
 
-        memberships = (
-            db.query(PartyMembership)
-            .join(PartyTable, PartyTable.id == PartyMembership.table_id)
-            .filter(
-                PartyMembership.user_id == current_user.id,
-                PartyMembership.status == "active",
-                PartyTable.status == "active",
+        try:
+            memberships = (
+                db.query(PartyMembership)
+                .join(PartyTable, PartyTable.id == PartyMembership.table_id)
+                .filter(
+                    PartyMembership.user_id == current_user.id,
+                    PartyMembership.status == "active",
+                    PartyTable.status == "active",
+                )
+                .all()
             )
-            .all()
-        )
 
-        if not memberships:
-            return None
+            if not memberships:
+                return None
 
-        restricted_table_ids = {
-            int(membership.table_id)
-            for membership in memberships
-            if membership.table and str(membership.table.trader_access_mode or "open") == "restricted"
-        }
+            restricted_table_ids = {
+                int(membership.table_id)
+                for membership in memberships
+                if membership.table and str(getattr(membership.table, "trader_access_mode", "open") or "open") == "restricted"
+            }
 
-        if not restricted_table_ids:
-            return None
+            if not restricted_table_ids:
+                return None
 
-        rows = (
-            db.query(PartyTraderAccess)
-            .filter(
-                PartyTraderAccess.table_id.in_(restricted_table_ids),
-                PartyTraderAccess.is_enabled.is_(True),
+            rows = (
+                db.query(PartyTraderAccess)
+                .filter(
+                    PartyTraderAccess.table_id.in_(restricted_table_ids),
+                    PartyTraderAccess.is_enabled.is_(True),
+                )
+                .all()
             )
-            .all()
-        )
-        return {int(row.trader_id) for row in rows}
+            return {int(row.trader_id) for row in rows}
+        except Exception:
+            # В dev/legacy DB лучше временно открыть список торговцев,
+            # чем валить /traders 500 из-за недомигрированной party-схемы.
+            return None
 
     # ========================================================
     # 🏪 LIST ALL TRADERS
@@ -435,7 +545,10 @@ def create_traders_router(
             if allowed_trader_ids is not None and trader.id not in allowed_trader_ids:
                 continue
 
-            serialized = serialize_trader(trader)
+            try:
+                serialized = serialize_trader(trader)
+            except Exception as error:
+                serialized = serialize_broken_trader_payload(trader, error)
 
             if normalized_region and normalized_region != "all":
                 if safe_str(serialized.get("region")).strip().lower() != normalized_region:
@@ -518,9 +631,14 @@ def create_traders_router(
                 "detail": "Торговец не найден",
             }
 
+        try:
+            serialized = serialize_trader(trader)
+        except Exception as error:
+            serialized = serialize_broken_trader_payload(trader, error)
+
         return {
             "status": "ok",
-            "trader": serialize_trader(trader),
+            "trader": serialized,
         }
 
     # ========================================================

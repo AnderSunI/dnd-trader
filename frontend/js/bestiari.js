@@ -690,46 +690,290 @@ async function applyImportJson(rawJson) {
   showToast("📥 Bestiari импортирован");
 }
 
+
+function getCategoryIcon(category) {
+  const icons = {
+    all: "◆",
+    monsters: "☠",
+    gods: "✦",
+    lore: "✥",
+    mechanics: "⚙",
+    spells: "✧",
+    items: "◈",
+    classes: "⚔",
+    subclasses: "◇",
+    races: "◎",
+    factions: "♜",
+    locations: "⌖",
+    events: "✹",
+    conditions: "◌",
+  };
+  return icons[category] || "◆";
+}
+
+function getEntryPrimaryImage(entry) {
+  return String(
+    entry?.image_url ||
+      entry?.image ||
+      entry?.portrait ||
+      entry?.art ||
+      entry?.media?.image ||
+      entry?.media?.portrait ||
+      ""
+  ).trim();
+}
+
+function getEntryCrLabel(entry) {
+  return String(
+    entry?.statblock?.level_like ||
+      entry?.statblock?.cr ||
+      entry?.cr ||
+      entry?.spell_data?.level ||
+      entry?.item_data?.rarity ||
+      entry?.class_data?.hit_die ||
+      "—"
+  ).trim();
+}
+
+function getEntryTypeLabel(entry) {
+  return String(
+    entry?.statblock?.type ||
+      entry?.item_data?.type ||
+      entry?.spell_data?.school ||
+      entry?.class_data?.primary_ability ||
+      entry?.subtitle ||
+      BESTIARI_CATEGORY_LABELS[entry?.category] ||
+      entry?.category ||
+      "Запись"
+  ).trim();
+}
+
+function getEntryAlignmentLabel(entry) {
+  return String(
+    entry?.statblock?.alignment ||
+      entry?.spell_data?.save ||
+      entry?.item_data?.attunement ||
+      entry?.source ||
+      "—"
+  ).trim();
+}
+
+function getEntryTags(entry, limit = 5) {
+  return Array.isArray(entry?.tags) ? entry.tags.slice(0, limit) : [];
+}
+
+function getStatblockMetric(entry, key, fallback = "—") {
+  const sb = entry?.statblock || {};
+  const value = sb[key];
+  if (Array.isArray(value)) return value.join(", ") || fallback;
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
+}
+
+function getKnowledgeProgress(entries) {
+  const total = Array.isArray(entries) ? entries.length : 0;
+  const visible = (entries || []).filter((entry) => entry?.player_visible !== false).length;
+  if (!total) return 0;
+  return Math.max(0, Math.min(100, Math.round((visible / total) * 100)));
+}
+
+function renderBestiariDrawer(title, content, options = {}) {
+  if (!content) return "";
+  const openAttr = options.open ? " open" : "";
+  const icon = options.icon || "✦";
+  const meta = options.meta ? `<span class="bestiari-ref-drawer-meta">${escapeHtml(options.meta)}</span>` : "";
+  return `
+    <details class="bestiari-ref-drawer ${options.className || ""}"${openAttr}>
+      <summary>
+        <span class="bestiari-ref-drawer-icon">${escapeHtml(icon)}</span>
+        <span class="bestiari-ref-drawer-title">${escapeHtml(title)}</span>
+        ${meta}
+      </summary>
+      <div class="bestiari-ref-drawer-body">
+        ${content}
+      </div>
+    </details>
+  `;
+}
+
+function renderBestiariInfoGrid(items, className = "") {
+  const safeItems = (items || []).filter((item) => item && item.value !== undefined && item.value !== null && item.value !== "");
+  if (!safeItems.length) return "";
+  return `
+    <div class="bestiari-ref-info-grid ${className}">
+      ${safeItems.map((item) => `
+        <div class="bestiari-ref-info-tile">
+          <span>${escapeHtml(item.label || "—")}</span>
+          <strong>${escapeHtml(item.value || "—")}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderBestiariTags(entry, limit = 8) {
+  const tags = getEntryTags(entry, limit);
+  if (!tags.length) return "";
+  return `<div class="bestiari-ref-tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`;
+}
+
+function renderEntryImage(entry) {
+  const imageUrl = getEntryPrimaryImage(entry);
+  const icon = getCategoryIcon(entry?.category);
+  if (imageUrl) {
+    return `
+      <div class="bestiari-ref-portrait bestiari-ref-portrait-image">
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(entry.title || "codex image")}">
+        <span class="bestiari-ref-portrait-badge">${escapeHtml(icon)}</span>
+      </div>
+    `;
+  }
+  return `
+    <div class="bestiari-ref-portrait bestiari-ref-portrait-fallback">
+      <span class="bestiari-ref-portrait-rune">${escapeHtml(icon)}</span>
+      <span class="bestiari-ref-portrait-label">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry?.category] || "Codex")}</span>
+    </div>
+  `;
+}
+
+function renderSideStatPanel(entry) {
+  if (!entry) return "";
+  const sb = entry.statblock || {};
+  const abilityItems = sb.abilities ? [
+    ["СИЛ", sb.abilities.str ?? 10],
+    ["ЛОВ", sb.abilities.dex ?? 10],
+    ["ТЕЛ", sb.abilities.con ?? 10],
+    ["ИНТ", sb.abilities.int ?? 10],
+    ["МДР", sb.abilities.wis ?? 10],
+    ["ХАР", sb.abilities.cha ?? 10],
+  ] : [];
+
+  const core = [];
+  if (sb.ac) core.push({ label: "Класс брони", value: sb.ac });
+  if (sb.hp) core.push({ label: "Хиты", value: sb.hp });
+  if (sb.speed) core.push({ label: "Скорость", value: sb.speed });
+  if (sb.initiative) core.push({ label: "Инициатива", value: sb.initiative });
+  if (entry.spell_data) {
+    core.push(
+      { label: "Круг", value: entry.spell_data.level || "—" },
+      { label: "Школа", value: entry.spell_data.school || "—" },
+      { label: "Дистанция", value: entry.spell_data.range || "—" },
+      { label: "Спасбросок", value: entry.spell_data.save || "—" }
+    );
+  }
+  if (entry.item_data) {
+    core.push(
+      { label: "Тип", value: entry.item_data.type || "—" },
+      { label: "Редкость", value: entry.item_data.rarity || "—" },
+      { label: "Слот", value: entry.item_data.slot || "—" },
+      { label: "Настройка", value: entry.item_data.attunement || "—" }
+    );
+  }
+
+  return `
+    <aside class="bestiari-ref-right-rail">
+      <section class="bestiari-ref-rail-card">
+        <div class="bestiari-ref-rail-title">Игровые характеристики</div>
+        ${abilityItems.length ? `
+          <div class="bestiari-ref-ability-mini-grid">
+            ${abilityItems.map(([label, score]) => `
+              <div>
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(String(score))}</strong>
+                <small>${escapeHtml(getAbilityMod(score))}</small>
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+        ${renderBestiariInfoGrid(core.slice(0, 8), "bestiari-ref-rail-info")}
+      </section>
+
+      ${renderSideLootPanel(entry)}
+      ${renderSideSourcesPanel(entry)}
+    </aside>
+  `;
+}
+
+function renderSideLootPanel(entry) {
+  const loot = Array.isArray(entry?.loot) ? entry.loot : [];
+  const rewards = Array.isArray(entry?.rewards) ? entry.rewards : [];
+  const itemProps = Array.isArray(entry?.item_data?.properties) ? entry.item_data.properties.slice(0, 4) : [];
+  const combined = [...loot, ...rewards, ...itemProps].slice(0, 6);
+  if (!combined.length && !entry?.item_data) return "";
+  return `
+    <section class="bestiari-ref-rail-card">
+      <div class="bestiari-ref-rail-title">Добыча / свойства</div>
+      <div class="bestiari-ref-loot-grid">
+        ${(combined.length ? combined : ["Нет данных"])
+          .map((item) => `<span>${escapeHtml(typeof item === "string" ? item : item?.name || item?.title || "Трофей")}</span>`)
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderSideSourcesPanel(entry) {
+  const sources = [entry?.source, ...(Array.isArray(entry?.sources) ? entry.sources : [])].filter(Boolean);
+  const related = Array.isArray(entry?.related) ? entry.related.slice(0, 4) : [];
+  return `
+    <section class="bestiari-ref-rail-card">
+      <div class="bestiari-ref-rail-title">Источники знаний</div>
+      <div class="bestiari-ref-source-list">
+        ${(sources.length ? sources : ["Локальная база"])
+          .map((source) => `<div><span>◈</span><strong>${escapeHtml(source)}</strong></div>`)
+          .join("")}
+      </div>
+      ${related.length ? `<div class="bestiari-ref-related-mini">${related.map((item) => `<button type="button" data-bestiari-related="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join("")}</div>` : ""}
+    </section>
+  `;
+}
+
 function renderCategoryButtons(entries) {
   const stats = countByCategory(entries);
-  return Object.entries(BESTIARI_CATEGORY_LABELS)
-    .map(([key, label]) => {
+  const categoryOrder = ["monsters", "gods", "events", "items", "spells", "locations", "lore", "mechanics", "classes", "races", "factions", "conditions"];
+  const allButton = `
+    <button
+      class="bestiari-ref-category ${BESTIARI_STATE.category === "all" ? "active" : ""}"
+      type="button"
+      data-bestiari-category="all"
+    >
+      <span>${escapeHtml(getCategoryIcon("all"))}</span>
+      <strong>Все</strong>
+      <em>${entries.length}</em>
+    </button>
+  `;
+  const buttons = categoryOrder
+    .filter((key) => BESTIARI_CATEGORY_LABELS[key])
+    .map((key) => {
       const active = BESTIARI_STATE.category === key ? "active" : "";
-      const count = key === "all" ? entries.length : stats[key] || 0;
+      const count = stats[key] || 0;
       return `
         <button
-          class="btn ${active}"
+          class="bestiari-ref-category ${active}"
           type="button"
           data-bestiari-category="${escapeHtml(key)}"
-          style="min-height:34px; padding:7px 11px; border-radius:10px;"
         >
-          ${escapeHtml(label)} <span style="opacity:.78;">${count}</span>
+          <span>${escapeHtml(getCategoryIcon(key))}</span>
+          <strong>${escapeHtml(BESTIARI_CATEGORY_LABELS[key])}</strong>
+          <em>${count}</em>
         </button>
       `;
     })
     .join("");
+  return `${allButton}${buttons}`;
 }
+
 
 function renderEditorPanel() {
   if (!BESTIARI_STATE.editorOpen || !BESTIARI_STATE.draft) return "";
   const d = BESTIARI_STATE.draft;
 
-  return `
-    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
-        <div>
-          <h4 style="margin:0 0 4px 0;">🛠 Редактор записи</h4>
-          <div class="muted">Компактная форма для ручного добавления или правки записи.</div>
-        </div>
-        <div class="cart-buttons">
-          <button class="btn btn-success" type="button" id="bestiariSaveDraftBtn">Сохранить</button>
-          <button class="btn" type="button" id="bestiariCancelDraftBtn">Отмена</button>
-        </div>
-      </div>
-
+  return renderBestiariDrawer(
+    BESTIARI_STATE.editorMode === "edit" ? "Редактор записи" : "Новая запись",
+    `
       <input id="bestiariDraftId" type="hidden" value="${escapeHtml(d.id)}">
 
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px;">
+      <div class="bestiari-ref-editor-grid">
         <div class="filter-group">
           <label>Категория</label>
           <select id="bestiariDraftCategory">
@@ -739,21 +983,18 @@ function renderEditorPanel() {
               .join("")}
           </select>
         </div>
-        <div class="filter-group">
+        <div class="filter-group bestiari-ref-editor-wide">
           <label>Название</label>
           <input id="bestiariDraftTitle" type="text" value="${escapeHtml(d.title)}">
-        </div>
-        <div class="filter-group">
-          <label>Подзаголовок</label>
-          <input id="bestiariDraftSubtitle" type="text" value="${escapeHtml(d.subtitle)}">
         </div>
         <div class="filter-group">
           <label>Источник</label>
           <input id="bestiariDraftSource" type="text" value="${escapeHtml(d.source)}">
         </div>
-      </div>
-
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:10px;">
+        <div class="filter-group bestiari-ref-editor-wide">
+          <label>Подзаголовок</label>
+          <input id="bestiariDraftSubtitle" type="text" value="${escapeHtml(d.subtitle)}">
+        </div>
         <div class="filter-group">
           <label>Теги</label>
           <input id="bestiariDraftTags" type="text" value="${escapeHtml(d.tags)}" placeholder="монстр, огонь, магия">
@@ -762,14 +1003,10 @@ function renderEditorPanel() {
           <label>Связанные ID</label>
           <input id="bestiariDraftRelated" type="text" value="${escapeHtml(d.related)}" placeholder="spell-fireball, class-wizard">
         </div>
-      </div>
-
-      <div class="filter-group" style="margin-top:10px;">
-        <label>Краткая сводка</label>
-        <textarea id="bestiariDraftSummary" rows="3">${escapeHtml(d.summary)}</textarea>
-      </div>
-
-      <div class="profile-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <div class="filter-group bestiari-ref-editor-full">
+          <label>Краткая сводка</label>
+          <textarea id="bestiariDraftSummary" rows="3">${escapeHtml(d.summary)}</textarea>
+        </div>
         <div class="filter-group">
           <label>Основное описание</label>
           <textarea id="bestiariDraftBody" rows="6">${escapeHtml(d.body)}</textarea>
@@ -778,12 +1015,9 @@ function renderEditorPanel() {
           <label>Полное описание</label>
           <textarea id="bestiariDraftFullDescription" rows="6">${escapeHtml(d.full_description)}</textarea>
         </div>
-      </div>
-
-      <div class="profile-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
         <div class="filter-group">
           <label>Статблок (key: value)</label>
-          <textarea id="bestiariDraftStatblock" rows="8" placeholder="ac: 15&#10;hp: 120 (16к10+32)&#10;speed: 30 фт, полёт 60 фт&#10;str: 18&#10;dex: 14&#10;con: 15&#10;int: 10&#10;wis: 12&#10;cha: 16">${escapeHtml(d.statblock_text)}</textarea>
+          <textarea id="bestiariDraftStatblock" rows="8" placeholder="ac: 15&#10;hp: 120 (16к10+32)&#10;speed: 30 фт&#10;str: 18">${escapeHtml(d.statblock_text)}</textarea>
         </div>
         <div class="filter-group">
           <label>Доп. механики / JSON</label>
@@ -791,68 +1025,69 @@ function renderEditorPanel() {
         </div>
       </div>
 
-      <div class="trader-meta" style="margin-top:10px; gap:10px;">
+      <div class="bestiari-ref-editor-footer">
         <label class="inline-checkbox"><input id="bestiariDraftPlayerVisible" type="checkbox" ${d.player_visible ? "checked" : ""}> Видно игроку</label>
         <label class="inline-checkbox"><input id="bestiariDraftGmOnly" type="checkbox" ${d.gm_only ? "checked" : ""}> GM-only</label>
+        <span class="bestiari-ref-editor-spacer"></span>
+        <button class="btn btn-success" type="button" id="bestiariSaveDraftBtn">Сохранить</button>
+        <button class="btn" type="button" id="bestiariCancelDraftBtn">Отмена</button>
       </div>
-    </div>
-  `;
+    `,
+    { open: true, icon: "✎", className: "bestiari-ref-editor-drawer", meta: BESTIARI_STATE.editorMode === "edit" ? "правка" : "создание" }
+  );
 }
+
 
 function renderImportPanel() {
   if (!BESTIARI_STATE.importOpen) return "";
-  return `
-    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <div>
-          <h4 style="margin:0 0 4px 0;">Импорт базы знаний</h4>
-          <div class="muted">Поддерживается массив записей или объект вида { entries: [...] }.</div>
-        </div>
-      </div>
+  return renderBestiariDrawer(
+    "Импорт базы знаний",
+    `
       <div class="filter-group">
         <label>Вставь JSON</label>
-        <textarea id="bestiariImportTextarea" rows="10" placeholder="{\"entries\":[...]}"></textarea>
+        <textarea id="bestiariImportTextarea" rows="10" placeholder="{&quot;entries&quot;:[...]}"></textarea>
       </div>
-      <div class="modal-actions" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+      <div class="modal-actions bestiari-ref-import-actions">
         <button class="btn btn-success" type="button" id="bestiariApplyImportBtn">Применить JSON</button>
         <button class="btn" type="button" id="bestiariCloseImportBtn">Закрыть</button>
       </div>
-    </div>
-  `;
+    `,
+    { open: true, icon: "⇩", className: "bestiari-ref-import-drawer", meta: "JSON" }
+  );
 }
+
 
 function renderEntryList(entries, selected) {
   if (!entries.length) {
-    return `<div class="cabinet-block"><p>Ничего не найдено. Попробуй другой запрос или категорию.</p></div>`;
+    return `
+      <div class="bestiari-ref-empty">
+        <div class="bestiari-ref-empty-icon">◇</div>
+        <strong>Ничего не найдено</strong>
+        <span>Попробуй другой запрос, категорию или импортируй записи.</span>
+      </div>
+    `;
   }
 
   return `
-    <div style="display:flex; flex-direction:column; gap:8px;">
+    <div class="bestiari-ref-list">
       ${entries
         .map((entry) => {
           const active = entry.id === selected?.id ? "active" : "";
-          const tags = (entry.tags || [])
-            .slice(0, 3)
-            .map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`)
-            .join("");
-          const summary = truncateText(entry.summary || entry.body?.[0] || "", 110);
-
+          const icon = getCategoryIcon(entry.category);
+          const summary = truncateText(entry.summary || entry.body?.[0] || "", 80);
+          const cr = getEntryCrLabel(entry);
           return `
             <button
-              class="btn ${active}"
+              class="bestiari-ref-row ${active}"
               type="button"
               data-bestiari-entry="${escapeHtml(entry.id)}"
-              style="width:100%; justify-content:flex-start; text-align:left; padding:9px 10px; border-radius:10px; min-height:auto;"
             >
-              <div style="display:flex; flex-direction:column; gap:5px; width:100%; min-width:0;">
-                <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
-                  <div style="font-weight:800; line-height:1.2;">${escapeHtml(entry.title)}</div>
-                  <span class="meta-item" style="white-space:nowrap;">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry.category] || entry.category)}</span>
-                </div>
-                ${entry.subtitle ? `<div class="muted" style="font-size:12px; line-height:1.25;">${escapeHtml(entry.subtitle)}</div>` : ""}
-                ${summary ? `<div class="muted" style="font-size:12px; line-height:1.3;">${escapeHtml(summary)}</div>` : ""}
-                ${tags ? `<div class="trader-meta" style="gap:6px;">${tags}</div>` : ""}
-              </div>
+              <span class="bestiari-ref-row-icon">${escapeHtml(icon)}</span>
+              <span class="bestiari-ref-row-copy">
+                <span class="bestiari-ref-row-title">${escapeHtml(entry.title)}</span>
+                <span class="bestiari-ref-row-subtitle">${escapeHtml(cr)} • ${escapeHtml(getEntryTypeLabel(entry))}</span>
+                ${summary ? `<span class="bestiari-ref-row-summary">${escapeHtml(summary)}</span>` : ""}
+              </span>
             </button>
           `;
         })
@@ -860,6 +1095,7 @@ function renderEntryList(entries, selected) {
     </div>
   `;
 }
+
 
 function renderInfoPanels(entry) {
   const panels = Array.isArray(entry.info_panels) ? entry.info_panels : [];
@@ -891,30 +1127,18 @@ function renderInfoPanels(entry) {
   }
   if (entry.statblock) {
     extraPanels.push(
-      { label: "КБ", value: entry.statblock.ac || "—" },
-      { label: "HP", value: entry.statblock.hp || "—" },
-      { label: "Скорость", value: entry.statblock.speed || "—" },
-      { label: "CR / уровень", value: entry.statblock.level_like || "—" }
+      { label: "Среда обитания", value: entry.habitat || entry.statblock.habitat || entry.statblock.environment || "—" },
+      { label: "Размер", value: entry.statblock.size || "—" },
+      { label: "Тип брони", value: entry.statblock.armor_type || "Нет брони" },
+      { label: "Чувства", value: (entry.statblock.senses || []).join(", ") || "—" },
+      { label: "Языки", value: (entry.statblock.languages || []).join(", ") || "—" }
     );
   }
 
   const merged = [...panels, ...extraPanels].filter((item) => item && item.value);
-  if (!merged.length) return "";
-
-  return `
-    <div class="profile-grid" style="margin-top:10px; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;">
-      ${merged
-        .slice(0, 8)
-        .map((item) => `
-          <div class="stat-box" style="min-height:auto; padding:10px;">
-            <div class="muted" style="font-size:11px;">${escapeHtml(item.label)}</div>
-            <div style="margin-top:4px; font-weight:700; font-size:13px; line-height:1.25;">${escapeHtml(item.value)}</div>
-          </div>
-        `)
-        .join("")}
-    </div>
-  `;
+  return renderBestiariInfoGrid(merged.slice(0, 8));
 }
+
 
 function renderAbilities(statblock) {
   if (!statblock?.abilities) return "";
@@ -927,45 +1151,43 @@ function renderAbilities(statblock) {
     ["cha", "ХАР"],
   ];
   return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">Характеристики</h4>
-      <div class="stats-grid" style="gap:8px; grid-template-columns:repeat(6,minmax(0,1fr));">
-        ${labels.map(([key, label]) => {
-          const score = statblock.abilities[key] ?? 10;
-          return `
-            <div class="stat-box" style="min-height:auto; padding:10px 8px;">
-              <div style="font-size:11px;"><b>${label}</b></div>
-              <div style="font-size:18px; margin-top:3px; font-weight:800;">${score}</div>
-              <div class="muted" style="font-size:11px;">${getAbilityMod(score)}</div>
-            </div>
-          `;
-        }).join("")}
-      </div>
+    <div class="bestiari-ref-ability-grid">
+      ${labels.map(([key, label]) => {
+        const score = statblock.abilities[key] ?? 10;
+        return `
+          <div>
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(String(score))}</strong>
+            <small>${escapeHtml(getAbilityMod(score))}</small>
+          </div>
+        `;
+      }).join("")}
     </div>
   `;
 }
 
+
 function renderNamedList(title, items) {
   if (!items || !items.length) return "";
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">${escapeHtml(title)}</h4>
-      <div class="lss-rich-block" style="padding:10px 12px;">
-        ${items.map((item) => {
-          if (typeof item === "string") {
-            return `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`;
-          }
-          return `
-            <div style="margin-bottom:8px; line-height:1.35;">
-              <div style="font-weight:700; margin-bottom:3px;">${escapeHtml(item.name || "Элемент")}</div>
-              <div>${escapeHtml(item.text || "")}</div>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    </div>
-  `;
+  return renderBestiariDrawer(
+    title,
+    `<div class="bestiari-ref-named-list">
+      ${items.map((item) => {
+        if (typeof item === "string") {
+          return `<div><span>•</span><p>${escapeHtml(item)}</p></div>`;
+        }
+        return `
+          <div>
+            <span>✦</span>
+            <p><strong>${escapeHtml(item.name || "Элемент")}</strong>${item.text ? `<br>${escapeHtml(item.text)}` : ""}</p>
+          </div>
+        `;
+      }).join("")}
+    </div>`,
+    { icon: "☰", meta: String(items.length) }
+  );
 }
+
 
 function renderStatblock(entry) {
   const sb = entry.statblock;
@@ -980,52 +1202,43 @@ function renderStatblock(entry) {
     sb.languages?.length ? `Языки: ${sb.languages.join(", ")}` : "",
   ].filter(Boolean);
 
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
-        <div>
-          <h4 style="margin:0 0 4px 0;">Статблок</h4>
-          <div class="muted">Краткая боевая сводка и разворот по кнопке.</div>
-        </div>
-        <div class="cart-buttons">
-          <button class="btn" type="button" id="bestiariToggleStatsBtn">${expanded ? "Скрыть детали" : "Полные статы"}</button>
-        </div>
-      </div>
-
-      ${baseMeta.length ? `<div class="trader-meta" style="margin-top:8px; gap:6px;">${baseMeta.map((item) => `<span class="meta-item">${escapeHtml(item)}</span>`).join("")}</div>` : ""}
-      ${renderAbilities(sb)}
-
-      ${expanded ? `
-        ${renderNamedList("Спасброски", sb.saves || [])}
-        ${renderNamedList("Навыки", sb.skills || [])}
-        ${renderNamedList("Сопротивления", sb.resistances || [])}
-        ${renderNamedList("Иммунитеты", sb.immunities || [])}
-        ${renderNamedList("Уязвимости", sb.vulnerabilities || [])}
-        ${renderNamedList("Иммунитеты к состояниям", sb.conditions_immunity || [])}
-        ${renderNamedList("Особенности", sb.traits || [])}
-        ${renderNamedList("Действия", sb.actions || [])}
-        ${renderNamedList("Бонусные действия", sb.bonus_actions || [])}
-        ${renderNamedList("Реакции", sb.reactions || [])}
-        ${renderNamedList("Легендарные действия", sb.legendary_actions || [])}
-        ${renderNamedList("Действия логова", sb.lair_actions || [])}
-      ` : ""}
+  const content = `
+    ${baseMeta.length ? `<div class="bestiari-ref-meta-line">${baseMeta.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>` : ""}
+    ${renderAbilities(sb)}
+    ${expanded ? `
+      ${renderNamedList("Спасброски", sb.saves || [])}
+      ${renderNamedList("Навыки", sb.skills || [])}
+      ${renderNamedList("Сопротивления", sb.resistances || [])}
+      ${renderNamedList("Иммунитеты", sb.immunities || [])}
+      ${renderNamedList("Уязвимости", sb.vulnerabilities || [])}
+      ${renderNamedList("Иммунитеты к состояниям", sb.conditions_immunity || [])}
+      ${renderNamedList("Особенности", sb.traits || [])}
+      ${renderNamedList("Действия", sb.actions || [])}
+      ${renderNamedList("Бонусные действия", sb.bonus_actions || [])}
+      ${renderNamedList("Реакции", sb.reactions || [])}
+      ${renderNamedList("Легендарные действия", sb.legendary_actions || [])}
+      ${renderNamedList("Действия логова", sb.lair_actions || [])}
+    ` : ""}
+    <div class="bestiari-ref-inline-actions">
+      <button class="btn" type="button" id="bestiariToggleStatsBtn">${expanded ? "Скрыть полный статблок" : "Показать полный статблок"}</button>
     </div>
   `;
+
+  return renderBestiariDrawer("Статблок", content, { open: true, icon: "☠", meta: getEntryCrLabel(entry), className: "bestiari-ref-statblock-drawer" });
 }
+
 
 function renderMechanics(entry) {
   if (!entry.mechanics) return "";
   const shortRules = Array.isArray(entry.mechanics.short_rules) ? entry.mechanics.short_rules : [];
   const examples = Array.isArray(entry.mechanics.examples) ? entry.mechanics.examples : [];
-
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">Механика</h4>
-      ${shortRules.length ? `<div class="lss-rich-block" style="padding:10px 12px;">${shortRules.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-      ${examples.length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><div style="font-weight:700; margin-bottom:6px;">Примеры</div>${examples.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-    </div>
+  const content = `
+    ${shortRules.length ? `<div class="bestiari-ref-named-list">${shortRules.map((item) => `<div><span>•</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
+    ${examples.length ? renderBestiariDrawer("Примеры", `<div class="bestiari-ref-named-list">${examples.map((item) => `<div><span>◇</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>`, { icon: "◇", meta: String(examples.length) }) : ""}
   `;
+  return renderBestiariDrawer("Механика", content, { open: false, icon: "⚙", meta: String(shortRules.length || 0) });
 }
+
 
 function renderFullDescription(entry) {
   const mainBody = entry.body || [];
@@ -1041,134 +1254,133 @@ function renderFullDescription(entry) {
         : [];
 
   const textHtml = textToRender.length
-    ? textToRender
-        .map((paragraph) => `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>${escapeHtml(paragraph)}</p></div>`)
-        .join("")
-    : `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>Описание пока не заполнено.</p></div>`;
+    ? `<div class="bestiari-ref-description-flow">${textToRender
+        .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+        .join("")}</div>`
+    : `<div class="bestiari-ref-description-flow"><p>Описание пока не заполнено.</p></div>`;
 
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
-        <div>
-          <h4 style="margin:0 0 4px 0;">Описание</h4>
-          <div class="muted">Краткая подача по умолчанию, полный текст по кнопке.</div>
-        </div>
-        ${hasLong ? `<div class="cart-buttons"><button class="btn" type="button" id="bestiariToggleDescriptionBtn">${expanded ? "Свернуть" : "Развернуть"}</button></div>` : ""}
-      </div>
-      ${textHtml}
-    </div>
-  `;
+  const action = hasLong
+    ? `<div class="bestiari-ref-inline-actions"><button class="btn" type="button" id="bestiariToggleDescriptionBtn">${expanded ? "Свернуть описание" : "Полное описание"}</button></div>`
+    : "";
+
+  return renderBestiariDrawer("Описание", `${textHtml}${action}`, { open: true, icon: "✥", meta: hasLong ? "есть полный текст" : "кратко" });
 }
+
 
 function renderSpellSection(entry) {
   const data = entry.spell_data;
   if (!data) return "";
-
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">Параметры заклинания</h4>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
-        <div><b>Время:</b> ${escapeHtml(data.casting_time || "—")}</div>
-        <div><b>Дистанция:</b> ${escapeHtml(data.range || "—")}</div>
-        <div><b>Компоненты:</b> ${escapeHtml(data.components || "—")}</div>
-        <div><b>Длительность:</b> ${escapeHtml(data.duration || "—")}</div>
-        <div><b>Концентрация:</b> ${escapeHtml(data.concentration ? "Да" : "Нет")}</div>
-        <div><b>Ритуал:</b> ${escapeHtml(data.ritual ? "Да" : "Нет")}</div>
-        <div><b>Урон / эффект:</b> ${escapeHtml(data.damage || "—")}</div>
-        <div><b>Спасбросок:</b> ${escapeHtml(data.save || "—")}</div>
-      </div>
-      ${(data.classes || []).length ? `<div class="trader-meta" style="margin-top:8px; gap:6px;">${data.classes.map((c) => `<span class="meta-item">${escapeHtml(c)}</span>`).join("")}</div>` : ""}
-      ${data.higher_levels ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>${escapeHtml(data.higher_levels)}</p></div>` : ""}
-    </div>
+  const content = `
+    ${renderBestiariInfoGrid([
+      { label: "Время", value: data.casting_time || "—" },
+      { label: "Дистанция", value: data.range || "—" },
+      { label: "Компоненты", value: data.components || "—" },
+      { label: "Длительность", value: data.duration || "—" },
+      { label: "Концентрация", value: data.concentration ? "Да" : "Нет" },
+      { label: "Ритуал", value: data.ritual ? "Да" : "Нет" },
+      { label: "Урон / эффект", value: data.damage || "—" },
+      { label: "Спасбросок", value: data.save || "—" },
+    ])}
+    ${(data.classes || []).length ? `<div class="bestiari-ref-tags">${data.classes.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>` : ""}
+    ${data.higher_levels ? `<div class="bestiari-ref-description-flow"><p>${escapeHtml(data.higher_levels)}</p></div>` : ""}
   `;
+  return renderBestiariDrawer("Параметры заклинания", content, { icon: "✧", meta: data.level || "spell" });
 }
+
 
 function renderItemSection(entry) {
   const data = entry.item_data;
   if (!data) return "";
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">Параметры предмета</h4>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
-        <div><b>Тип:</b> ${escapeHtml(data.type || "—")}</div>
-        <div><b>Редкость:</b> ${escapeHtml(data.rarity || "—")}</div>
-        <div><b>Слот:</b> ${escapeHtml(data.slot || "—")}</div>
-        <div><b>Настройка:</b> ${escapeHtml(data.attunement || "—")}</div>
-        <div><b>Вес (lb):</b> ${escapeHtml(data.weight_lb || "—")}</div>
-        <div><b>Стоимость:</b> ${escapeHtml(data.value_gp || "—")}</div>
-      </div>
-      ${(data.properties || []).length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;">${data.properties.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-    </div>
+  const content = `
+    ${renderBestiariInfoGrid([
+      { label: "Тип", value: data.type || "—" },
+      { label: "Редкость", value: data.rarity || "—" },
+      { label: "Слот", value: data.slot || "—" },
+      { label: "Настройка", value: data.attunement || "—" },
+      { label: "Вес (lb)", value: data.weight_lb || "—" },
+      { label: "Стоимость", value: data.value_gp || "—" },
+    ])}
+    ${(data.properties || []).length ? `<div class="bestiari-ref-named-list">${data.properties.map((item) => `<div><span>•</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
   `;
+  return renderBestiariDrawer("Параметры предмета", content, { icon: "◈", meta: data.rarity || "item" });
 }
+
 
 function renderClassSection(entry) {
   const data = entry.class_data;
   if (!data) return "";
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">Параметры класса</h4>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
-        <div><b>Кость хитов:</b> ${escapeHtml(data.hit_die || "—")}</div>
-        <div><b>Осн. характеристика:</b> ${escapeHtml(data.primary_ability || "—")}</div>
-      </div>
-      ${(data.proficiencies || []).length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><div style="font-weight:700; margin-bottom:6px;">Владения</div>${data.proficiencies.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-      ${(data.core_features || []).length ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><div style="font-weight:700; margin-bottom:6px;">Ключевые черты</div>${data.core_features.map((item) => `<div style="margin-bottom:6px; line-height:1.35;">• ${escapeHtml(item)}</div>`).join("")}</div>` : ""}
-    </div>
+  const content = `
+    ${renderBestiariInfoGrid([
+      { label: "Кость хитов", value: data.hit_die || "—" },
+      { label: "Осн. характеристика", value: data.primary_ability || "—" },
+    ])}
+    ${(data.proficiencies || []).length ? renderBestiariDrawer("Владения", `<div class="bestiari-ref-named-list">${data.proficiencies.map((item) => `<div><span>•</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>`, { icon: "◇", meta: String(data.proficiencies.length) }) : ""}
+    ${(data.core_features || []).length ? renderBestiariDrawer("Ключевые черты", `<div class="bestiari-ref-named-list">${data.core_features.map((item) => `<div><span>✦</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>`, { icon: "✦", meta: String(data.core_features.length) }) : ""}
   `;
+  return renderBestiariDrawer("Параметры класса", content, { icon: "⚔", meta: data.hit_die || "class" });
 }
+
 
 function renderRelated(entry) {
   if (!entry.related?.length) return "";
-  return `
-    <div class="cabinet-block" style="margin-top:10px; padding:12px;">
-      <h4 style="margin:0 0 8px 0;">Связанные сущности</h4>
-      <div class="trader-meta" style="gap:6px;">
-        ${entry.related.map((rel) => `<span class="meta-item">${escapeHtml(rel)}</span>`).join("")}
-      </div>
-    </div>
-  `;
+  return renderBestiariDrawer(
+    "Связанные сущности",
+    `<div class="bestiari-ref-related-list">${entry.related.map((rel) => `<button type="button" data-bestiari-related="${escapeHtml(rel)}">${escapeHtml(rel)}</button>`).join("")}</div>`,
+    { icon: "⇄", meta: String(entry.related.length) }
+  );
 }
+
 
 function renderEntryDetail(entry) {
   if (!entry) {
-    return `<div class="cabinet-block"><p>Выбери запись слева, чтобы открыть её карточку.</p></div>`;
+    return `
+      <div class="bestiari-ref-detail-empty">
+        <div class="bestiari-ref-empty-icon">◇</div>
+        <strong>Выбери запись</strong>
+        <span>Карточка сущности откроется здесь: краткое описание, игровые данные, источники и связи.</span>
+      </div>
+    `;
   }
 
   return `
-    <div class="cabinet-block" style="padding:14px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
-        <div style="min-width:0;">
-          <h3 style="margin:0 0 4px 0; line-height:1.15;">${escapeHtml(entry.title)}</h3>
-          ${entry.subtitle ? `<div class="muted" style="font-size:13px;">${escapeHtml(entry.subtitle)}</div>` : ""}
+    <div class="bestiari-ref-entry-shell">
+      <section class="bestiari-ref-main-card">
+        <div class="bestiari-ref-main-head">
+          ${renderEntryImage(entry)}
+          <div class="bestiari-ref-main-copy">
+            <div class="bestiari-ref-kicker">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry.category] || entry.category || "Codex")}</div>
+            <h3>${escapeHtml(entry.title)}</h3>
+            ${entry.subtitle ? `<p class="muted">${escapeHtml(entry.subtitle)}</p>` : ""}
+            <div class="bestiari-ref-main-badges">
+              <span>${escapeHtml(getEntryCrLabel(entry))}</span>
+              <span>${escapeHtml(getEntryTypeLabel(entry))}</span>
+              <span>${escapeHtml(getEntryAlignmentLabel(entry))}</span>
+              ${entry.gm_only ? `<span>GM-only</span>` : ""}
+              ${entry.player_visible === false ? `<span>Скрыто от игрока</span>` : ""}
+            </div>
+            ${renderBestiariTags(entry, 8)}
+          </div>
+          <div class="bestiari-ref-main-actions">
+            <button class="btn" type="button" id="bestiariEditEntryBtn">Редактировать</button>
+            <button class="btn btn-danger" type="button" id="bestiariDeleteEntryBtn">Удалить</button>
+          </div>
         </div>
-        <div class="cart-buttons">
-          <button class="btn" type="button" id="bestiariEditEntryBtn">Редактировать</button>
-          <button class="btn btn-danger" type="button" id="bestiariDeleteEntryBtn">Удалить</button>
-        </div>
-      </div>
 
-      <div class="trader-meta" style="margin-top:8px; gap:6px;">
-        <span class="meta-item">${escapeHtml(BESTIARI_CATEGORY_LABELS[entry.category] || entry.category)}</span>
-        ${entry.source ? `<span class="meta-item">Источник: ${escapeHtml(entry.source)}</span>` : ""}
-        ${entry.gm_only ? `<span class="meta-item">GM-only</span>` : ""}
-        ${entry.player_visible === false ? `<span class="meta-item">Скрыто от игрока</span>` : ""}
-      </div>
-
-      ${(entry.tags || []).length ? `<div class="trader-meta" style="margin-top:8px; gap:6px;">${entry.tags.map((tag) => `<span class="quality-badge">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
-      ${entry.summary ? `<div class="lss-rich-block" style="margin-top:8px; padding:10px 12px;"><p>${escapeHtml(entry.summary)}</p></div>` : ""}
-
-      ${renderInfoPanels(entry)}
-      ${renderStatblock(entry)}
-      ${renderSpellSection(entry)}
-      ${renderItemSection(entry)}
-      ${renderClassSection(entry)}
-      ${renderMechanics(entry)}
-      ${renderFullDescription(entry)}
-      ${renderRelated(entry)}
+        ${entry.summary ? `<div class="bestiari-ref-summary-text">${escapeHtml(entry.summary)}</div>` : ""}
+        ${renderInfoPanels(entry)}
+        ${renderFullDescription(entry)}
+        ${renderStatblock(entry)}
+        ${renderSpellSection(entry)}
+        ${renderItemSection(entry)}
+        ${renderClassSection(entry)}
+        ${renderMechanics(entry)}
+        ${renderRelated(entry)}
+      </section>
+      ${renderSideStatPanel(entry)}
     </div>
   `;
 }
+
 
 function bindActions() {
   const searchInput = getEl("bestiariSearchInput");
@@ -1298,34 +1510,37 @@ function bindActions() {
       renderCodex();
     });
   }
+
+  document.querySelectorAll("[data-bestiari-related]").forEach((btn) => {
+    if (btn.dataset.boundBestiariRelated === "1") return;
+    btn.dataset.boundBestiariRelated = "1";
+    btn.addEventListener("click", () => {
+      const targetId = btn.dataset.bestiariRelated || "";
+      const target = BESTIARI_STATE.entries.find((entry) => entry.id === targetId || entry.title === targetId);
+      if (!target) {
+        BESTIARI_STATE.query = targetId;
+      } else {
+        BESTIARI_STATE.selectedId = target.id;
+        BESTIARI_STATE.category = "all";
+      }
+      BESTIARI_STATE.showFullDescription = false;
+      BESTIARI_STATE.showFullStats = false;
+      renderCodex();
+    });
+  });
 }
 
 export async function loadCodex() {
   BESTIARI_STATE.role = getCurrentRole();
 
-  const apiData = await apiGet([
-    "/bestiari",
-    "/codex",
-    "/api/bestiari",
-    "/api/codex",
-  ]);
-
-  if (Array.isArray(apiData?.entries)) {
-    BESTIARI_STATE.entries = apiData.entries.map(normalizeEntry);
-    BESTIARI_STATE.source = "api";
-  } else if (Array.isArray(apiData)) {
-    BESTIARI_STATE.entries = apiData.map(normalizeEntry);
-    BESTIARI_STATE.source = "api";
+  const localEntries = loadLocalEntries();
+  if (Array.isArray(localEntries) && localEntries.length) {
+    BESTIARI_STATE.entries = localEntries.map(normalizeEntry);
+    BESTIARI_STATE.source = "local";
   } else {
-    const localEntries = loadLocalEntries();
-    if (Array.isArray(localEntries) && localEntries.length) {
-      BESTIARI_STATE.entries = localEntries.map(normalizeEntry);
-      BESTIARI_STATE.source = "local";
-    } else {
-      BESTIARI_STATE.entries = BESTIARI_DEFAULT_ENTRIES.map(normalizeEntry);
-      BESTIARI_STATE.source = "seed";
-      saveLocalEntries();
-    }
+    BESTIARI_STATE.entries = BESTIARI_DEFAULT_ENTRIES.map(normalizeEntry);
+    BESTIARI_STATE.source = "seed";
+    saveLocalEntries();
   }
 
   BESTIARI_STATE.loaded = true;
@@ -1343,54 +1558,69 @@ export function renderCodex() {
 
   const visibleCount = entries.length;
   const totalCount = Array.isArray(BESTIARI_STATE.entries) ? BESTIARI_STATE.entries.length : 0;
+  const stats = countByCategory(BESTIARI_STATE.entries || []);
+  const progress = getKnowledgeProgress(BESTIARI_STATE.entries || []);
 
   container.innerHTML = `
-    <div class="cabinet-block" style="margin-bottom:12px; padding:14px;">
-      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap;">
-        <div>
-          <h3 style="margin:0 0 4px 0;">📚 Энциклопедия</h3>
-          <div class="muted">Компактный справочник по монстрам, лору, механикам, предметам и заклинаниям.</div>
+    <div class="bestiari-ref-shell" data-cabinet-anchor="top">
+      <section class="bestiari-ref-topbar">
+        <div class="bestiari-ref-title-block">
+          <div class="bestiari-ref-kicker">Энциклопедия</div>
+          <h3>Справочник мира</h3>
         </div>
-        <div class="cart-buttons">
-          <button class="btn btn-primary" type="button" id="bestiariNewEntryBtn">＋ Запись</button>
-          <button class="btn" type="button" id="bestiariImportBtn">Импорт</button>
-          <button class="btn" type="button" id="bestiariExportBtn">Экспорт</button>
+        <label class="bestiari-ref-global-search">
+          <span>⌕</span>
+          <input id="bestiariSearchInput" type="text" value="${escapeHtml(BESTIARI_STATE.query)}" placeholder="Поиск по энциклопедии...">
+          <kbd>Ctrl + K</kbd>
+        </label>
+        <div class="bestiari-ref-top-metrics">
+          <span><strong>${visibleCount} / ${totalCount}</strong><small>записей</small></span>
+          <span><strong>${progress}%</strong><small>знаний</small></span>
+          <span><strong>${Object.keys(stats).length}</strong><small>категорий</small></span>
         </div>
-      </div>
+      </section>
 
-      <div class="collection-toolbar compact-collection-toolbar" style="gap:10px; align-items:flex-end; margin:12px 0 0 0;">
-        <div class="filter-group" style="min-width:240px; flex:1 1 240px;">
-          <label>Поиск по справочнику</label>
-          <input id="bestiariSearchInput" type="text" value="${escapeHtml(BESTIARI_STATE.query)}" placeholder="Монстр, бог, предмет, механика...">
-        </div>
-        <div class="cart-buttons" style="align-items:flex-end; gap:6px; flex-wrap:wrap;">
-          ${renderCategoryButtons(entries)}
-        </div>
-      </div>
+      <section class="bestiari-ref-category-bar" data-cabinet-anchor="filters">
+        ${renderCategoryButtons(BESTIARI_STATE.entries || [])}
+      </section>
 
-      <div class="trader-meta" style="margin-top:10px; gap:6px;">
-        <span class="meta-item">Показано: ${visibleCount}</span>
-        <span class="meta-item">Всего: ${totalCount}</span>
-        <span class="meta-item">Источник: ${escapeHtml(BESTIARI_STATE.source)}</span>
-        <span class="meta-item">Роль: ${escapeHtml(BESTIARI_STATE.role)}</span>
-      </div>
-    </div>
+      <section class="bestiari-ref-tools-drawer">
+        ${renderBestiariDrawer(
+          "Управление базой",
+          `<div class="bestiari-ref-tools-row">
+            <button class="btn btn-primary" type="button" id="bestiariNewEntryBtn">＋ Новая запись</button>
+            <button class="btn" type="button" id="bestiariImportBtn">Импорт</button>
+            <button class="btn" type="button" id="bestiariExportBtn">Экспорт</button>
+            <span class="bestiari-ref-tool-note">Источник: ${escapeHtml(BESTIARI_STATE.source)} • роль: ${escapeHtml(BESTIARI_STATE.role)}</span>
+          </div>`,
+          { icon: "⚙", meta: "редактирование" }
+        )}
+      </section>
 
-    ${renderImportPanel()}
-    ${renderEditorPanel()}
+      ${renderImportPanel()}
+      ${renderEditorPanel()}
 
-    <div class="profile-grid" style="align-items:start; grid-template-columns:minmax(260px, 0.82fr) minmax(0, 1.38fr); gap:12px;">
-      <div class="cabinet-block" style="padding:10px; display:flex; flex-direction:column; gap:8px; max-height:72vh; overflow:auto;">
-        ${renderEntryList(entries, selected)}
-      </div>
-      <div>
-        ${renderEntryDetail(selected)}
-      </div>
+      <section class="bestiari-ref-layout" data-cabinet-anchor="list">
+        <aside class="bestiari-ref-sidebar">
+          <div class="bestiari-ref-sidebar-head">
+            <div>
+              <div class="bestiari-ref-kicker">${escapeHtml(BESTIARI_CATEGORY_LABELS[BESTIARI_STATE.category] || "Записи")}</div>
+              <strong>${visibleCount} записей</strong>
+            </div>
+            <span>${escapeHtml(BESTIARI_STATE.query ? "поиск" : "каталог")}</span>
+          </div>
+          ${renderEntryList(entries, selected)}
+        </aside>
+        <main class="bestiari-ref-detail" data-cabinet-anchor="details">
+          ${renderEntryDetail(selected)}
+        </main>
+      </section>
     </div>
   `;
 
   bindActions();
 }
+
 
 export function getCodexState() {
   return BESTIARI_STATE;

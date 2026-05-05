@@ -18,6 +18,7 @@ import {
   fetchPlayerInventory,
   buyItem as apiBuyItem,
   sellItem as apiSellItem,
+  updatePlayerMoney as apiUpdatePlayerMoney,
   logoutUser,
 } from "./api.js";
 
@@ -549,6 +550,23 @@ function setTestMoneyFromGold(goldValue) {
   syncGlobalStateBridges();
 }
 
+async function syncPlayerMoneyToServer({ silent = false } = {}) {
+  if (!STATE.token || !STATE.user) return null;
+
+  try {
+    const payload = await apiUpdatePlayerMoney(getCurrentMoneyCp());
+    updateUserMoneyFromPayload(payload);
+    syncGlobalStateBridges();
+    return payload;
+  } catch (error) {
+    console.warn("Не удалось синхронизировать золото с сервером:", error);
+    if (!silent) {
+      showToast("Золото изменено локально, но сервер не принял синхронизацию");
+    }
+    return null;
+  }
+}
+
 function getTraderMoneyCp(trader) {
   if (!trader) return 0;
 
@@ -640,6 +658,8 @@ function syncGlobalStateBridges() {
   window.__appStateTraders = STATE.traders;
   window.__appUser = STATE.user;
   window.__appUserRole = effectiveRole;
+  window.__appMoneyCpTotal = getCurrentMoneyCp();
+  window.__appMoneyLabel = getCurrentMoneyLabel();
   window.__userRole = effectiveRole;
 
   document.body.dataset.role = effectiveRole;
@@ -677,7 +697,7 @@ function syncMoneyControls() {
   }
 }
 
-function applyGuestMoneyUpdateFromInput() {
+async function applyGuestMoneyUpdateFromInput() {
   if (!canEditTestMoney()) {
     showToast("Тестовое золото доступно только гостю или авторизованному GM");
     syncMoneyControls();
@@ -689,6 +709,7 @@ function applyGuestMoneyUpdateFromInput() {
 
   const inputGold = Math.max(0, Math.floor(safeNumber(playerGoldInput.value, GUEST_START_GOLD)));
   setTestMoneyFromGold(inputGold);
+  await syncPlayerMoneyToServer({ silent: true });
   renderAllLocalState();
   syncMoneyControls();
 
@@ -701,7 +722,7 @@ function applyGuestMoneyUpdateFromInput() {
   showToast(`Ваше золото обновлено: ${getCurrentMoneyLabel()}`);
 }
 
-function resetGuestMoney() {
+async function resetGuestMoney() {
   if (!canEditTestMoney()) {
     showToast("Сброс тестового золота доступен только гостю или авторизованному GM");
     syncMoneyControls();
@@ -709,6 +730,7 @@ function resetGuestMoney() {
   }
 
   setTestMoneyFromGold(GUEST_START_GOLD);
+  await syncPlayerMoneyToServer({ silent: true });
   renderAllLocalState();
   syncMoneyControls();
 
