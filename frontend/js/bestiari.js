@@ -7,6 +7,8 @@
 // - подробные карточки, кнопка полного описания и полного статблока
 // ============================================================
 
+let bestiariKeyboardShortcutsBound = false;
+
 const BESTIARI_STATE = {
   loaded: false,
   source: "empty",
@@ -485,8 +487,9 @@ function ensureEntries() {
 function getVisibleEntries() {
   ensureEntries();
   const role = BESTIARI_STATE.role;
-  const query = BESTIARI_STATE.query.trim().toLowerCase();
+  const query = normalizeBestiariSearch(BESTIARI_STATE.query);
   const category = BESTIARI_STATE.category;
+  const tokens = query ? query.split(" ").filter(Boolean) : [];
 
   return BESTIARI_STATE.entries
     .filter((entry) => {
@@ -495,21 +498,10 @@ function getVisibleEntries() {
         if (entry.player_visible === false) return false;
       }
       if (category !== "all" && entry.category !== category) return false;
-      if (!query) return true;
+      if (!tokens.length) return true;
 
-      const haystack = [
-        entry.title,
-        entry.subtitle,
-        entry.summary,
-        ...(entry.body || []),
-        ...(entry.full_description || []),
-        ...(entry.tags || []),
-        ...(entry.related || []),
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(query);
+      const haystack = buildBestiariSearchHaystack(entry);
+      return tokens.every((token) => haystack.includes(token));
     })
     .sort((a, b) => a.title.localeCompare(b.title, "ru"));
 }
@@ -540,6 +532,69 @@ function truncateText(value, maxLength = 160) {
   if (!text) return "";
   if (text.length <= maxLength) return text;
   return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function normalizeBestiariSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[.,:;!?()[\]{}"«»'`~_+=\\/|<>-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildBestiariSearchHaystack(entry) {
+  const sb = entry?.statblock || {};
+  const mechanics = entry?.mechanics || {};
+  const values = [
+    entry?.title,
+    entry?.subtitle,
+    entry?.summary,
+    BESTIARI_CATEGORY_LABELS[entry?.category],
+    entry?.category,
+    entry?.source,
+    sb.cr,
+    sb.type,
+    sb.size,
+    sb.alignment,
+    sb.ac,
+    sb.hp,
+    sb.speed,
+    ...(entry?.body || []),
+    ...(entry?.full_description || []),
+    ...(entry?.tags || []),
+    ...(entry?.related || []),
+    ...(entry?.sources || []),
+    ...(Array.isArray(sb.senses) ? sb.senses : []),
+    ...(Array.isArray(sb.languages) ? sb.languages : []),
+    ...(Array.isArray(sb.vulnerabilities) ? sb.vulnerabilities : []),
+    ...(Array.isArray(sb.resistances) ? sb.resistances : []),
+    ...(Array.isArray(sb.immunities) ? sb.immunities : []),
+    ...(Array.isArray(mechanics.actions) ? mechanics.actions.map((item) => `${item?.name || ""} ${item?.description || ""}`) : []),
+    ...(Array.isArray(mechanics.traits) ? mechanics.traits.map((item) => `${item?.name || ""} ${item?.description || ""}`) : []),
+  ];
+
+  return normalizeBestiariSearch(values.filter(Boolean).join(" "));
+}
+
+function focusBestiariSearchAfterRender(caretPosition = null) {
+  requestAnimationFrame(() => {
+    const field = getEl("bestiariSearchInput");
+    if (!field) return;
+
+    field.focus({ preventScroll: true });
+
+    const length = field.value.length;
+    const pos = Number.isFinite(Number(caretPosition))
+      ? Math.max(0, Math.min(length, Number(caretPosition)))
+      : length;
+
+    try {
+      field.setSelectionRange(pos, pos);
+    } catch {
+      // Some browsers can reject selection on non-text inputs; harmless.
+    }
+  });
 }
 
 function compactMetaChip(label, value) {
@@ -1387,9 +1442,39 @@ function bindActions() {
   if (searchInput && searchInput.dataset.boundBestiariSearch !== "1") {
     searchInput.dataset.boundBestiariSearch = "1";
     searchInput.addEventListener("input", () => {
+      const caret = searchInput.selectionStart ?? searchInput.value.length;
       BESTIARI_STATE.query = searchInput.value || "";
-      renderCodex();
+      BESTIARI_STATE.showFullDescription = false;
+      BESTIARI_STATE.showFullStats = false;
+      BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || "";
+      renderCodex({ preserveSearchFocus: true, searchCaret: caret });
     });
+  }
+
+  const clearSearchBtn = getEl("bestiariSearchClearBtn");
+  if (clearSearchBtn && clearSearchBtn.dataset.boundBestiariSearchClear !== "1") {
+    clearSearchBtn.dataset.boundBestiariSearchClear = "1";
+    clearSearchBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      BESTIARI_STATE.query = "";
+      BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || "";
+      renderCodex({ preserveSearchFocus: true, searchCaret: 0 });
+    });
+  }
+
+  if (!bestiariKeyboardShortcutsBound) {
+    document.addEventListener("keydown", (event) => {
+      const isSearchHotkey = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
+      if (!isSearchHotkey) return;
+
+      const container = getEl("cabinet-bestiari") || getEl("cabinet-codex");
+      if (!container || container.offsetParent === null) return;
+
+      event.preventDefault();
+      focusBestiariSearchAfterRender();
+    });
+    bestiariKeyboardShortcutsBound = true;
   }
 
   const newBtn = getEl("bestiariNewEntryBtn");
@@ -1548,7 +1633,7 @@ export async function loadCodex() {
   return BESTIARI_STATE;
 }
 
-export function renderCodex() {
+export function renderCodex(options = {}) {
   const container = getEl("cabinet-bestiari") || getEl("cabinet-codex");
   if (!container) return;
 
@@ -1570,7 +1655,14 @@ export function renderCodex() {
         </div>
         <label class="bestiari-ref-global-search">
           <span>⌕</span>
-          <input id="bestiariSearchInput" type="text" value="${escapeHtml(BESTIARI_STATE.query)}" placeholder="Поиск по энциклопедии...">
+          <input id="bestiariSearchInput" type="search" value="${escapeHtml(BESTIARI_STATE.query)}" placeholder="Поиск: гоблин, CR, заклинание, источник...">
+          <button
+            class="bestiari-ref-search-clear"
+            type="button"
+            id="bestiariSearchClearBtn"
+            title="Очистить поиск"
+            ${BESTIARI_STATE.query ? "" : "hidden"}
+          >×</button>
           <kbd>Ctrl + K</kbd>
         </label>
         <div class="bestiari-ref-top-metrics">
@@ -1619,6 +1711,10 @@ export function renderCodex() {
   `;
 
   bindActions();
+
+  if (options.preserveSearchFocus) {
+    focusBestiariSearchAfterRender(options.searchCaret);
+  }
 }
 
 

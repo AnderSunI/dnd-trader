@@ -46,6 +46,39 @@ const PLAYER_NOTES_STATE = {
   lastSavedSnapshot: "",
 };
 
+const NOTES_QUICK_TEMPLATES = [
+  {
+    key: "quest",
+    icon: "🎯",
+    label: "Квест",
+    text: "🎯 Квест / цель\n- Кто выдал:\n- Что нужно сделать:\n- Где искать:\n- Награда / риск:\n",
+  },
+  {
+    key: "npc",
+    icon: "👤",
+    label: "NPC",
+    text: "👤 NPC\n- Имя:\n- Где встретили:\n- Что хочет:\n- Чем полезен / опасен:\n",
+  },
+  {
+    key: "clue",
+    icon: "🔎",
+    label: "Улика",
+    text: "🔎 Улика\n- Что нашли:\n- К чему относится:\n- Кто может знать больше:\n",
+  },
+  {
+    key: "place",
+    icon: "🗺️",
+    label: "Место",
+    text: "🗺️ Локация\n- Где находится:\n- Что важно:\n- Связанные NPC / квесты:\n",
+  },
+  {
+    key: "todo",
+    icon: "✅",
+    label: "План",
+    text: "✅ План партии\n- Срочно:\n- Потом:\n- Проверить у ГМа / NPC:\n",
+  },
+];
+
 // ------------------------------------------------------------
 // 🧰 HELPERS
 // ------------------------------------------------------------
@@ -384,6 +417,29 @@ function updateInputValuesFromState() {
   }
 }
 
+function insertTextIntoTextarea(textarea, insertText) {
+  if (!textarea || !insertText) return;
+
+  const currentValue = textarea.value || "";
+  const start = textarea.selectionStart ?? currentValue.length;
+  const end = textarea.selectionEnd ?? currentValue.length;
+  const before = currentValue.slice(0, start);
+  const after = currentValue.slice(end);
+  const needsLeadingBreak = before && !before.endsWith("\n") ? "\n\n" : "";
+  const needsTrailingBreak = after && !after.startsWith("\n") ? "\n\n" : "";
+
+  const nextValue = `${before}${needsLeadingBreak}${insertText}${needsTrailingBreak}${after}`;
+  const nextCaret = before.length + needsLeadingBreak.length + insertText.length;
+
+  textarea.value = nextValue;
+  try {
+    textarea.setSelectionRange(nextCaret, nextCaret);
+  } catch (_) {}
+
+  textarea.focus({ preventScroll: true });
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function persistLocalSnapshot() {
   saveLocalState({
     notesRaw: PLAYER_NOTES_STATE.notesRaw,
@@ -538,14 +594,11 @@ function renderNotesHero() {
   const syncLabel = getSaveStateLabel();
 
   return `
-    <section class="cabinet-block notes-ref-hero">
+    <section class="cabinet-block notes-ref-hero notes-ref-hero-round106">
       <div class="notes-ref-hero-main">
         <div class="notes-ref-kicker">Журнал игрока</div>
         <h3>Заметки кампании</h3>
-        <p>
-          Личный блок для планов, подозрений, контактов и улик. ГМ может добавить отдельное сообщение,
-          которое увидит игрок, не ломая личные заметки.
-        </p>
+        <p>Планы, подозрения, NPC, улики и рабочие пункты партии. Личный текст отдельно, сообщение мастера отдельно.</p>
         <div class="notes-ref-hero-meta">
           <span>Источник: ${escapeHtml(summary.source)}</span>
           <span>Роль: ${escapeHtml(roleLabel)}</span>
@@ -553,9 +606,9 @@ function renderNotesHero() {
         </div>
       </div>
       <div class="notes-ref-hero-grid">
-        ${renderNotesMetric("Символов", summary.notesLength, "личные заметки")}
-        ${renderNotesMetric("Строк", summary.noteLines, "рабочие пункты")}
-        ${renderNotesMetric("GM", summary.gmLength, summary.hasGmMessage ? "есть сообщение" : "пусто")}
+        ${renderNotesMetric("Символов", summary.notesLength, "личные")}
+        ${renderNotesMetric("Строк", summary.noteLines, "пункты")}
+        ${renderNotesMetric("GM", summary.gmLength, summary.hasGmMessage ? "есть" : "пусто")}
         ${renderNotesMetric("Режим", roleLabel, "доступ")}
       </div>
     </section>
@@ -564,29 +617,44 @@ function renderNotesHero() {
 
 function renderEditorToolbar() {
   return `
-    <div class="notes-ref-toolbar">
-      <button id="savePlayerNotesBtn" class="btn btn-success" ${PLAYER_NOTES_STATE.isSaving ? "disabled" : ""}>
-        ${PLAYER_NOTES_STATE.isSaving ? "Сохраняю..." : "Сохранить"}
-      </button>
-      <button id="reloadPlayerNotesBtn" class="btn">Обновить</button>
-      <button id="clearPlayerNotesBtn" class="btn btn-danger">Очистить заметки игрока</button>
-      ${
-        PLAYER_NOTES_STATE.role === "gm"
-          ? `<button id="clearGmOverlayBtn" class="btn btn-danger">Очистить сообщение ГМа</button>`
-          : ""
-      }
+    <div class="notes-ref-toolbar notes-ref-toolbar-round106">
+      <div class="notes-ref-save-actions">
+        <button id="savePlayerNotesBtn" class="btn btn-success" ${PLAYER_NOTES_STATE.isSaving ? "disabled" : ""}>
+          ${PLAYER_NOTES_STATE.isSaving ? "Сохраняю..." : "Сохранить"}
+        </button>
+        <button id="reloadPlayerNotesBtn" class="btn">Обновить</button>
+        <button id="clearPlayerNotesBtn" class="btn btn-danger">Очистить</button>
+        ${
+          PLAYER_NOTES_STATE.role === "gm"
+            ? `<button id="clearGmOverlayBtn" class="btn btn-danger">Очистить GM</button>`
+            : ""
+        }
+      </div>
+      <div class="notes-ref-template-actions" aria-label="Быстрые шаблоны заметок">
+        ${NOTES_QUICK_TEMPLATES.map((template) => `
+          <button
+            class="notes-ref-template-chip"
+            type="button"
+            data-notes-insert-template="${escapeHtml(template.key)}"
+            title="Вставить шаблон: ${escapeHtml(template.label)}"
+          >
+            <span>${escapeHtml(template.icon)}</span>
+            ${escapeHtml(template.label)}
+          </button>
+        `).join("")}
+      </div>
     </div>
   `;
 }
 
 function renderPlayerEditorPanel() {
   return `
-    <section class="cabinet-block notes-ref-panel notes-ref-editor-panel">
+    <section class="cabinet-block notes-ref-panel notes-ref-editor-panel notes-ref-editor-panel-round106">
       <div class="notes-ref-panel-head">
         <div>
           <div class="notes-ref-kicker">Личный блок</div>
           <h4>Заметки игрока</h4>
-          <p class="muted">Игрок всегда может редактировать эту часть. Автосохранение включается после ввода.</p>
+          <p class="muted">Автосохранение после ввода. Шаблоны ниже — чтобы быстро фиксировать квесты, NPC и улики.</p>
         </div>
         <span class="notes-ref-status-pill">${escapeHtml(getSaveStateLabel())}</span>
       </div>
@@ -594,7 +662,7 @@ function renderPlayerEditorPanel() {
       <div class="notes-ref-editor-shell">
         <textarea
           id="playerNotesTextarea"
-          rows="16"
+          rows="14"
           placeholder="Планы, подозрения, контакты, улики, маршруты, договорённости, обещания NPC..."
         >${escapeHtml(PLAYER_NOTES_STATE.notesText || PLAYER_NOTES_STATE.notesRaw || "")}</textarea>
       </div>
@@ -703,14 +771,14 @@ function renderNotesEmptyHint() {
   if (hasNotes) return "";
 
   return `
-    <aside class="cabinet-block notes-ref-panel notes-ref-empty-hint">
+    <aside class="cabinet-block notes-ref-panel notes-ref-empty-hint notes-ref-empty-hint-round106">
       <div class="notes-ref-kicker">Быстрый старт</div>
       <h4>С чего начать?</h4>
       <ul>
-        <li>Кто дал задание или слух?</li>
-        <li>Что партия обещала сделать?</li>
-        <li>Какие NPC, места или предметы важны?</li>
-        <li>Что скрыто от остальных игроков?</li>
+        <li>Квест / слух / обещание</li>
+        <li>NPC: кто, где, что хочет</li>
+        <li>Улики, предметы, места</li>
+        <li>Что проверить перед сессией</li>
       </ul>
     </aside>
   `;
@@ -724,10 +792,10 @@ export function renderNotes() {
   if (!container) return;
 
   container.innerHTML = `
-    <div class="notes-ref-shell" data-notes-role="${escapeHtml(PLAYER_NOTES_STATE.role)}">
+    <div class="notes-ref-shell notes-ref-shell-round106" data-notes-role="${escapeHtml(PLAYER_NOTES_STATE.role)}">
       ${renderNotesHero()}
 
-      <div class="notes-ref-layout">
+      <div class="notes-ref-layout notes-ref-layout-round106">
         <main class="notes-ref-main-column">
           ${renderPlayerEditorPanel()}
           ${renderPlayerPreviewBlock()}
@@ -830,6 +898,23 @@ function bindNotesActions() {
       });
     });
   }
+
+  document.querySelectorAll("[data-notes-insert-template]").forEach((btn) => {
+    if (btn.dataset.boundNotesTemplate === "1") return;
+    btn.dataset.boundNotesTemplate = "1";
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+
+      const key = btn.dataset.notesInsertTemplate;
+      const template = NOTES_QUICK_TEMPLATES.find((item) => item.key === key);
+      const textarea = getEl("playerNotesTextarea");
+
+      if (!template || !textarea) return;
+
+      insertTextIntoTextarea(textarea, template.text);
+      showToast(`Добавлен шаблон: ${template.label}`);
+    });
+  });
 }
 
 // ------------------------------------------------------------

@@ -710,8 +710,10 @@ function handleExternalHistoryEvent(event) {
   const detail = event?.detail;
   if (!detail || typeof detail !== "object") return;
 
+  const shouldRerender = Boolean(getSection("cabinet-history"));
+
   appendHistoryEntry(detail, {
-    rerender: false,
+    rerender: shouldRerender,
     persistLocal: true,
     prepend: true,
   });
@@ -725,8 +727,9 @@ function ensureHistoryRuntime() {
   window.addEventListener("dnd:history:add", handleExternalHistoryEvent);
 
   window.addHistoryEntry = function addHistoryEntry(entry) {
+    const shouldRerender = Boolean(getSection("cabinet-history"));
     return appendHistoryEntry(entry, {
-      rerender: false,
+      rerender: shouldRerender,
       persistLocal: true,
       prepend: true,
     });
@@ -790,6 +793,105 @@ function getSummary(entries) {
   });
 
   return summary;
+}
+
+
+const HISTORY_ANALYTICS_COLORS = {
+  trade: "#2ecf91",
+  inventory: "#56b7ff",
+  quests: "#d79a46",
+  notes: "#b58cff",
+  map: "#60d3c2",
+  files: "#cfa86a",
+  auth: "#8aa2ff",
+  gm: "#7aa7ff",
+  system: "#9aa7ae",
+  misc: "#b8a178",
+};
+
+const HISTORY_FAST_FILTERS = ["trade", "inventory", "quests", "gm", "map", "notes"];
+
+function getAnalyticsScopes(summary) {
+  return HISTORY_SCOPE_FILTERS
+    .filter((scope) => scope.key !== "all")
+    .map((scope) => ({
+      ...scope,
+      count: summary[scope.key] || 0,
+      color: HISTORY_ANALYTICS_COLORS[scope.key] || HISTORY_ANALYTICS_COLORS.misc,
+    }));
+}
+
+function buildDonutGradient(summary) {
+  const scopes = getAnalyticsScopes(summary).filter((scope) => scope.count > 0);
+  const total = scopes.reduce((acc, scope) => acc + scope.count, 0);
+
+  if (!total) {
+    return "conic-gradient(rgba(125,197,213,0.18) 0deg 360deg)";
+  }
+
+  let cursor = 0;
+  const parts = scopes.map((scope) => {
+    const start = cursor;
+    const size = Math.max(2, (scope.count / total) * 360);
+    cursor += size;
+    return `${scope.color} ${start.toFixed(1)}deg ${Math.min(cursor, 360).toFixed(1)}deg`;
+  });
+
+  return `conic-gradient(${parts.join(", ")})`;
+}
+
+function getTopAnalyticsScopes(summary, limit = 5) {
+  return getAnalyticsScopes(summary)
+    .filter((scope) => scope.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+function getRecentActors(entries, limit = 4) {
+  const map = new Map();
+
+  entries.forEach((entry) => {
+    const actor = trimText(entry.actor) || "Система";
+    if (!map.has(actor)) {
+      map.set(actor, {
+        name: actor,
+        count: 0,
+        last: entry.timestamp,
+        icon: entry.icon || "•",
+      });
+    }
+
+    const item = map.get(actor);
+    item.count += 1;
+
+    const current = normalizeDateInput(item.last)?.getTime() || 0;
+    const next = normalizeDateInput(entry.timestamp)?.getTime() || 0;
+    if (next > current) item.last = entry.timestamp;
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => {
+      const ta = normalizeDateInput(a.last)?.getTime() || 0;
+      const tb = normalizeDateInput(b.last)?.getTime() || 0;
+      return tb - ta;
+    })
+    .slice(0, limit);
+}
+
+function getTimeInGameLabel(entries) {
+  if (!entries.length) return "—";
+
+  const timestamps = entries
+    .map((entry) => normalizeDateInput(entry.timestamp)?.getTime() || 0)
+    .filter(Boolean);
+
+  if (!timestamps.length) return "—";
+
+  const diff = Math.max(...timestamps) - Math.min(...timestamps);
+  if (diff < 60_000) return "меньше минуты";
+  if (diff < 3_600_000) return `${Math.max(1, Math.round(diff / 60_000))} мин`;
+  if (diff < 86_400_000) return `${Math.max(1, Math.round(diff / 3_600_000))} ч`;
+  return `${Math.max(1, Math.round(diff / 86_400_000))} дн`;
 }
 
 function groupEntriesByDate(entries) {
@@ -907,10 +1009,9 @@ function renderHero(entries) {
     <section class="cabinet-block history-ref-hero">
       <div class="history-ref-hero-main">
         <div class="history-ref-kicker">Activity log</div>
-        <h2>История действий</h2>
+        <h2>История</h2>
         <p>
-          Автоматический журнал того, что происходило в проекте: покупки, продажи,
-          изменения заданий, карты, заметок, файлов и GM-события.
+          Хронология действий: торговля, задания, карта, заметки, файлы, auth и GM-события.
         </p>
         <div class="history-ref-hero-meta">
           <span>Источник: <strong>${escapeHtml(HISTORY_STATE.source)}</strong></span>
@@ -921,12 +1022,12 @@ function renderHero(entries) {
 
       <div class="history-ref-hero-stats">
         <div class="history-ref-stat-card history-ref-stat-card-main">
-          <span>Всего событий</span>
+          <span>Событий</span>
           <strong>${escapeHtml(String(summary.total))}</strong>
         </div>
-        <div class="history-ref-stat-card"><span>Торговля</span><strong>${escapeHtml(String(summary.trade))}</strong></div>
-        <div class="history-ref-stat-card"><span>Задания</span><strong>${escapeHtml(String(summary.quests))}</strong></div>
-        <div class="history-ref-stat-card"><span>Карта</span><strong>${escapeHtml(String(summary.map))}</strong></div>
+        <div class="history-ref-stat-card"><span>Торг</span><strong>${escapeHtml(String(summary.trade))}</strong></div>
+        <div class="history-ref-stat-card"><span>Квесты</span><strong>${escapeHtml(String(summary.quests))}</strong></div>
+        <div class="history-ref-stat-card"><span>GM</span><strong>${escapeHtml(String(summary.gm))}</strong></div>
       </div>
     </section>
   `;
@@ -1001,6 +1102,7 @@ function renderHistoryItem(entry) {
       class="history-ref-item ${active ? "active" : ""} history-ref-item-${escapeHtml(entry.scope)}"
       data-history-entry="${escapeHtml(entry.id)}"
     >
+      <span class="history-ref-item-time">${escapeHtml(formatTime(entry.timestamp))}</span>
       <span class="history-ref-item-node">${escapeHtml(entry.icon)}</span>
       <span class="history-ref-item-body">
         <span class="history-ref-item-topline">
@@ -1016,7 +1118,6 @@ function renderHistoryItem(entry) {
           ${entry.actor ? `<span>${escapeHtml(entry.actor)}</span>` : ""}
         </span>
       </span>
-      <span class="history-ref-item-time">${escapeHtml(formatTime(entry.timestamp))}</span>
     </button>
   `;
 }
@@ -1054,12 +1155,83 @@ function renderTimeline(entries) {
   `;
 }
 
+
+function renderAnalyticsPanel(entries, filteredEntries) {
+  const summary = getSummary(entries);
+  const topScopes = getTopAnalyticsScopes(summary, 5);
+  const actors = getRecentActors(entries, 4);
+  const donut = buildDonutGradient(summary);
+
+  return `
+    <section class="cabinet-block history-ref-analytics-panel">
+      <div class="history-ref-side-head">
+        <div>
+          <div class="history-ref-kicker">Сводка активности</div>
+          <h3>За выбранный период</h3>
+        </div>
+      </div>
+
+      <div class="history-ref-analytics-stats">
+        <div><strong>${escapeHtml(String(summary.total))}</strong><span>событий</span></div>
+        <div><strong>${escapeHtml(getTimeInGameLabel(entries))}</strong><span>разброс</span></div>
+        <div><strong>${escapeHtml(String(filteredEntries.length))}</strong><span>в фильтре</span></div>
+      </div>
+
+      <div class="history-ref-fast-filter-panel">
+        <div class="history-ref-side-title">Быстрые фильтры</div>
+        <div class="history-ref-fast-filters">
+          <button type="button" class="history-ref-fast-filter" data-history-scope="all">Все</button>
+          ${HISTORY_FAST_FILTERS.map((scopeKey) => {
+            const scope = getScopeFilterMeta(scopeKey);
+            return `
+              <button type="button" class="history-ref-fast-filter" data-history-scope="${escapeHtml(scope.key)}">
+                ${escapeHtml(scope.icon)} ${escapeHtml(scope.shortLabel || scope.label)}
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </div>
+
+      <div class="history-ref-donut-panel">
+        <div class="history-ref-donut" style="--history-donut-gradient: ${escapeHtml(donut)}"></div>
+        <div class="history-ref-donut-legend">
+          <div class="history-ref-side-title">Топ активностей</div>
+          ${topScopes.length
+            ? topScopes.map((scope) => {
+                const percent = summary.total ? Math.round((scope.count / summary.total) * 100) : 0;
+                return `
+                  <div class="history-ref-donut-row">
+                    <span><i style="--history-dot-color: ${escapeHtml(scope.color)}"></i>${escapeHtml(scope.label)}</span>
+                    <strong>${escapeHtml(String(scope.count))} (${escapeHtml(String(percent))}%)</strong>
+                  </div>
+                `;
+              }).join("")
+            : `<div class="history-ref-side-muted">Данных пока нет.</div>`}
+        </div>
+      </div>
+
+      <div class="history-ref-recent-panel">
+        <div class="history-ref-side-title">Недавние участники</div>
+        ${actors.length
+          ? actors.map((actor) => `
+            <div class="history-ref-recent-row">
+              <span>${escapeHtml(actor.icon)}</span>
+              <div><strong>${escapeHtml(actor.name)}</strong><small>${escapeHtml(getEntryAgeLabel(actor.last))}</small></div>
+              <em>${escapeHtml(String(actor.count))}</em>
+            </div>
+          `).join("")
+          : `<div class="history-ref-side-muted">Пока нет участников в журнале.</div>`}
+      </div>
+    </section>
+  `;
+}
+
 function renderDetailPanel(entry) {
   if (!entry) {
     return `
-      <aside class="cabinet-block history-ref-detail-panel">
+      <section class="cabinet-block history-ref-detail-panel">
         <div class="history-ref-detail-empty">Выбери событие, чтобы увидеть детали.</div>
-      </aside>
+      </section>
     `;
   }
 
@@ -1092,7 +1264,7 @@ function renderDetailPanel(entry) {
         <summary>Raw событие</summary>
         <pre>${escapeHtml(JSON.stringify(entry.raw || {}, null, 2))}</pre>
       </details>
-    </aside>
+    </section>
   `;
 }
 
@@ -1185,20 +1357,30 @@ export function renderHistory() {
     return;
   }
 
+  const filtered = getFilteredEntries();
+  const selected = ensureSelectedEntry(filtered);
+
   if (!HISTORY_STATE.entries.length) {
     container.innerHTML = `
-      <div class="history-ref-shell history-ref-shell-empty">
+      <div class="history-ref-shell history-ref-shell-empty history-ref-shell-reference">
         ${renderHero(HISTORY_STATE.entries)}
+        ${renderScopeTabs(HISTORY_STATE.entries)}
         ${renderFilters()}
-        ${renderEmptyState()}
+        <div class="history-ref-layout history-ref-layout-empty">
+          <div class="history-ref-main-column">
+            ${renderEmptyState()}
+          </div>
+          <aside class="history-ref-side-column">
+            ${renderAnalyticsPanel(HISTORY_STATE.entries, filtered)}
+            ${renderDetailPanel(selected)}
+          </aside>
+        </div>
       </div>
     `;
     bindHistoryActions();
     return;
   }
 
-  const filtered = getFilteredEntries();
-  const selected = ensureSelectedEntry(filtered);
 
   container.innerHTML = `
     <div class="history-ref-shell">
@@ -1206,8 +1388,13 @@ export function renderHistory() {
       ${renderScopeTabs(HISTORY_STATE.entries)}
       ${renderFilters()}
       <div class="history-ref-layout">
-        ${renderTimeline(filtered)}
-        ${renderDetailPanel(selected)}
+        <div class="history-ref-main-column">
+          ${renderTimeline(filtered)}
+        </div>
+        <aside class="history-ref-side-column">
+          ${renderAnalyticsPanel(HISTORY_STATE.entries, filtered)}
+          ${renderDetailPanel(selected)}
+        </aside>
       </div>
     </div>
   `;

@@ -162,7 +162,8 @@ function closeTraderModal(modal = getEl("traderModal")) {
   if (!modal) return;
   modal.style.display = "none";
   document.body.classList.remove("trader-modal-open");
-  modal.classList.remove("trader-modal-refined", "trader-modal-round31", "trader-modal-round32", "trader-modal-round45");
+  modal.querySelectorAll(":scope > .trader-modal-scroll-controls").forEach((node) => node.remove());
+  modal.classList.remove("trader-modal-refined", "trader-modal-round31", "trader-modal-round32", "trader-modal-round45", "trader-modal-round63", "trader-modal-round64", "trader-modal-round65", "trader-modal-round66", "trader-modal-round67", "trader-modal-round68", "trader-modal-round71", "trader-modal-round72", "trader-modal-round73", "trader-modal-round82", "trader-modal-round83");
 }
 
 function buildTraderModalChrome(trader) {
@@ -173,33 +174,206 @@ function buildTraderModalChrome(trader) {
 
   return `
     <div class="trader-modal-chrome trader-modal-chrome-unified" role="navigation" aria-label="Навигация торговца">
-      <button
-        class="trader-modal-nav-btn trader-modal-nav-prev"
-        type="button"
-        data-trader-nav="prev"
-        data-trader-id="${escapeHtml(prevId)}"
-        ${hasNav ? "" : "disabled"}
-        aria-label="Предыдущий торговец"
-      >‹</button>
-
-      <div class="trader-modal-nav-copy">
-        <span>Торговец</span>
-        <strong>${escapeHtml(trader?.name || "Торговец")}</strong>
-        <small>${escapeHtml(nav.label)} • текущий список</small>
+      <div class="trader-modal-nav-left">
+        <button
+          class="trader-modal-nav-btn trader-modal-nav-prev"
+          type="button"
+          data-trader-nav="prev"
+          data-trader-id="${escapeHtml(prevId)}"
+          ${hasNav ? "" : "disabled"}
+          aria-label="Предыдущий торговец"
+        >‹</button>
       </div>
 
-      <button
-        class="trader-modal-nav-btn trader-modal-nav-next"
-        type="button"
-        data-trader-nav="next"
-        data-trader-id="${escapeHtml(nextId)}"
-        ${hasNav ? "" : "disabled"}
-        aria-label="Следующий торговец"
-      >›</button>
+      <div class="trader-modal-nav-right">
+        <button
+          class="trader-modal-nav-btn trader-modal-nav-next"
+          type="button"
+          data-trader-nav="next"
+          data-trader-id="${escapeHtml(nextId)}"
+          ${hasNav ? "" : "disabled"}
+          aria-label="Следующий торговец"
+        >›</button>
 
-      <button class="trader-modal-close-btn" type="button" data-trader-modal-close="1" aria-label="Закрыть торговца">×</button>
+        <button class="trader-modal-close-btn" type="button" data-trader-modal-close="1" aria-label="Закрыть торговца">×</button>
+      </div>
     </div>
   `;
+}
+
+
+function buildTraderModalScrollControls() {
+  return `
+    <div class="trader-modal-scroll-controls trader-modal-scroll-controls-bottom" aria-label="Прокрутка модалки торговца">
+      <button type="button" data-trader-scroll="top" title="Наверх" aria-label="Наверх">↑</button>
+      <button type="button" data-trader-scroll="bottom" title="Вниз" aria-label="Вниз">↓</button>
+    </div>
+  `;
+}
+
+function getTraderModalScrollContainer(modal = getEl("traderModal")) {
+  const content = getTraderModalContent();
+  const shell = modal?.querySelector?.(".modal-content") || null;
+
+  // Round 82: в текущей разметке #modalContent — реальная область с содержимым
+  // торговца. Раньше стрелки пытались скроллить .modal-content, а сам контент
+  // мог быть зажат overflow-правилами CSS. Поэтому сначала используем
+  // #modalContent, а shell оставляем fallback для старой схемы.
+  return content || shell;
+}
+
+function scrollTraderModalViewport(direction = "top", modal = getEl("traderModal")) {
+  const scrollHost = getTraderModalScrollContainer(modal);
+  if (!scrollHost) return;
+
+  if (direction === "bottom") {
+    scrollHost.scrollTo({ top: scrollHost.scrollHeight, behavior: "smooth" });
+    return;
+  }
+
+  scrollHost.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function buildTraderPageScrollControls() {
+  return `
+    <div class="traders-page-scroll-controls" aria-label="Прокрутка страницы торговцев">
+      <button type="button" data-trader-page-scroll="top" title="Наверх" aria-label="Наверх">↑</button>
+      <button type="button" data-trader-page-scroll="bottom" title="Вниз" aria-label="Вниз">↓</button>
+    </div>
+  `;
+}
+
+function setTraderFloatingControlsVisible(controls, visible = true) {
+  if (!controls) return;
+  controls.classList.toggle("is-visible", Boolean(visible));
+  controls.classList.toggle("is-idle-visible", Boolean(visible));
+}
+
+function getTraderPageScrollMax() {
+  return Math.max(
+    0,
+    document.documentElement.scrollHeight - window.innerHeight,
+    document.body.scrollHeight - window.innerHeight
+  );
+}
+
+function updateTraderPageScrollControlsVisibility() {
+  const controls = document.querySelector(".traders-page-scroll-controls");
+  if (!controls) return;
+  const canScroll = getTraderPageScrollMax() > 80;
+  controls.hidden = !canScroll;
+  if (!canScroll) setTraderFloatingControlsVisible(controls, false);
+}
+
+function ensureTraderPageScrollControls() {
+  const controls = document.querySelector(".traders-page-scroll-controls");
+  if (!controls) return;
+
+  updateTraderPageScrollControlsVisibility();
+
+  if (!window.__traderPageScrollControlsBound) {
+    window.__traderPageScrollControlsBound = true;
+
+    document.addEventListener("click", (event) => {
+      const scrollBtn = event.target.closest?.("[data-trader-page-scroll]");
+      if (!scrollBtn) return;
+
+      const direction = String(scrollBtn.dataset.traderPageScroll || "top");
+      const targetTop = direction === "bottom" ? getTraderPageScrollMax() : 0;
+
+      setTraderFloatingControlsVisible(document.querySelector(".traders-page-scroll-controls"), true);
+      window.scrollTo({ top: targetTop, behavior: "smooth" });
+    });
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        const nav = document.querySelector(".traders-page-scroll-controls");
+        if (!nav) return;
+        updateTraderPageScrollControlsVisibility();
+        window.clearTimeout(window.__traderPageFloatingTimer);
+        window.clearTimeout(window.__traderPageFloatingHideTimer);
+        nav.classList.add("is-scrolling");
+        setTraderFloatingControlsVisible(nav, false);
+        window.__traderPageFloatingTimer = window.setTimeout(() => {
+          nav.classList.remove("is-scrolling");
+          setTraderFloatingControlsVisible(nav, true);
+          window.__traderPageFloatingHideTimer = window.setTimeout(() => {
+            setTraderFloatingControlsVisible(nav, false);
+          }, 2600);
+        }, 420);
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("resize", updateTraderPageScrollControlsVisibility, { passive: true });
+  }
+}
+
+function ensureTraderModalScrollControls(modal = getEl("traderModal")) {
+  if (!modal) return;
+  const scroller = getTraderModalScrollContainer(modal);
+  if (!scroller) return;
+
+  const getControls = () =>
+    modal.querySelector(":scope > .trader-modal-scroll-controls") ||
+    modal.querySelector(".trader-modal-scroll-controls");
+
+  const update = () => {
+    const controls = getControls();
+    if (!controls) return false;
+
+    const canScroll = (scroller.scrollHeight - scroller.clientHeight) > 80;
+    controls.hidden = !canScroll;
+    if (!canScroll) {
+      setTraderFloatingControlsVisible(controls, false);
+      return false;
+    }
+    return true;
+  };
+
+  const canScrollOnOpen = update();
+  const initialControls = getControls();
+  if (canScrollOnOpen && initialControls && initialControls.dataset.initialHintShown !== "1") {
+    initialControls.dataset.initialHintShown = "1";
+    setTraderFloatingControlsVisible(initialControls, true);
+    window.clearTimeout(window.__traderModalFloatingHideTimer);
+    window.__traderModalFloatingHideTimer = window.setTimeout(() => {
+      setTraderFloatingControlsVisible(getControls(), false);
+    }, 2400);
+  }
+
+  if (scroller.dataset.boundTraderModalFloatingScroll === "1") {
+    window.setTimeout(update, 80);
+    return;
+  }
+  scroller.dataset.boundTraderModalFloatingScroll = "1";
+
+  scroller.addEventListener(
+    "scroll",
+    () => {
+      update();
+      const controls = getControls();
+      if (!controls) return;
+
+      window.clearTimeout(window.__traderModalFloatingTimer);
+      window.clearTimeout(window.__traderModalFloatingHideTimer);
+      controls.classList.add("is-scrolling");
+      setTraderFloatingControlsVisible(controls, false);
+      window.__traderModalFloatingTimer = window.setTimeout(() => {
+        const currentControls = getControls();
+        if (!currentControls) return;
+        currentControls.classList.remove("is-scrolling");
+        setTraderFloatingControlsVisible(currentControls, true);
+        window.__traderModalFloatingHideTimer = window.setTimeout(() => {
+          setTraderFloatingControlsVisible(getControls(), false);
+        }, 2600);
+      }, 420);
+    },
+    { passive: true }
+  );
+
+  window.setTimeout(update, 80);
 }
 
 function ensureTraderModalDocumentNavigation() {
@@ -329,6 +503,8 @@ function normalizeRarity(value) {
     epic: "Эпический",
     legendary: "Легендарный",
     artifact: "Артефакт",
+    unique: "Уникальный",
+    уникальный: "Уникальный",
     trash: "Мусор",
     junk: "Мусор",
     мусор: "Мусор",
@@ -357,7 +533,7 @@ function rarityClass(value) {
   if (raw === "veryrare" || raw === "оченьредкий") return "rarity-veryrare";
   if (raw === "epic" || raw === "эпический") return "rarity-epic";
   if (raw === "legendary" || raw === "легендарный") return "rarity-legendary";
-  if (raw === "artifact" || raw === "артефакт") return "rarity-artifact";
+  if (raw === "artifact" || raw === "артефакт" || raw === "unique" || raw === "уникальный") return "rarity-artifact";
   return "rarity-common";
 }
 
@@ -973,7 +1149,7 @@ function handleCollectionActionClick(event, traderFallback = null) {
 
   if (actionRoot.classList.contains("js-sell-item")) {
     const qty = getQtyFromButton(actionRoot, 1);
-    window.sellItem?.(itemId, qty);
+    window.sellItem?.(itemId, qty, { traderId });
     return true;
   }
 
@@ -1016,12 +1192,15 @@ function renderItemsTable(items, context, contextId) {
   const amountLabel = context === "inventory" ? "Кол-во" : "Остаток";
 
   return `
-    <div class="items-table-container compact-items-table trader-items-compact-container-v48">
-      <table class="items-table items-table-compact-v48">
+    <div class="items-table-container compact-items-table trader-items-table-round65">
+      <table class="items-table items-table-compact-v48 items-table-round65">
         <thead>
           <tr>
             <th>Предмет</th>
-            <th>Параметры</th>
+            <th>Цена</th>
+            <th>Редкость</th>
+            <th>Качество</th>
+            <th>${escapeHtml(amountLabel)}</th>
             <th>Кратко</th>
             <th>Шт</th>
             <th>Действия</th>
@@ -1042,28 +1221,26 @@ function renderItemsTable(items, context, contextId) {
               const rarityLabel = normalizeRarity(item?.rarity);
               const qualityLabel = normalizeQuality(item?.quality);
               const category = categoryLabel(item?.category_clean || item?.category || "misc");
-              const shortDescription = getItemShortDescription(item, 96) || getItemCharacteristics(item) || "—";
+              const shortDescription = getItemShortDescription(item, 120) || getItemCharacteristics(item) || "—";
               const titleText = `${itemEmoji} ${item?.name || "Без названия"}`;
 
               return `
-                <tr data-item-id-row="${itemId}" class="${escapeHtml(rareClass)} trader-item-row-v48">
-                  <td class="item-main-cell-v48">
-                    <div class="item-title-v48 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")} title="${escapeHtml(titleText)}">
+                <tr data-item-id-row="${itemId}" class="${escapeHtml(rareClass)} trader-item-row-v48 trader-item-row-round65">
+                  <td class="item-main-cell-v48 item-main-cell-round65">
+                    <div class="item-title-v48 item-title-round65 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")} title="${escapeHtml(titleText)}">
                       ${escapeHtml(itemEmoji)} <span>${escapeHtml(item?.name || "Без названия")}</span>
                     </div>
-                    <div class="item-category-v48" title="${escapeHtml(category)}">${escapeHtml(category)}</div>
+                    <div class="item-category-v48 item-category-round65" title="${escapeHtml(category)}">${escapeHtml(category)}</div>
                   </td>
-                  <td class="item-meta-cell-v48">
-                    <span class="item-meta-pill-v48 item-price-v48 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")} title="Цена">${escapeHtml(priceText)}</span>
-                    <span class="item-meta-pill-v48 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)} title="Редкость">${escapeHtml(rarityLabel)}</span>
-                    <span class="item-meta-pill-v48" title="Качество">${escapeHtml(qualityLabel)}</span>
-                    <span class="item-meta-pill-v48" title="${escapeHtml(amountLabel)}">${escapeHtml(amountLabel)}: ${escapeHtml(String(amount))}</span>
-                  </td>
-                  <td class="item-desc-cell-v48">
+                  <td class="item-price-cell-round65 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:800;")} title="Цена">${escapeHtml(priceText)}</td>
+                  <td class="item-rarity-cell-round65 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity)} title="Редкость">${escapeHtml(rarityLabel)}</td>
+                  <td class="item-quality-cell-round65 ${escapeHtml(rareClass)}" ${rarityTextStyle(item?.rarity, "font-weight:700;")} title="Качество: ${escapeHtml(qualityLabel)} • Редкость: ${escapeHtml(rarityLabel)}">${escapeHtml(qualityLabel)}</td>
+                  <td class="item-stock-cell-round65" title="${escapeHtml(amountLabel)}">${escapeHtml(String(amount))}</td>
+                  <td class="item-desc-cell-v48 item-desc-cell-round65">
                     <span title="${escapeHtml(getItemFullDescription(item) || shortDescription)}">${escapeHtml(shortDescription)}</span>
                   </td>
-                  <td class="item-qty-cell-v48">${renderQtyInput(maxQty, itemId, 1, qtyDisabled)}</td>
-                  <td class="add-cell item-actions-cell-v48">${renderItemActions(item, context, contextId)}</td>
+                  <td class="item-qty-cell-v48 item-qty-cell-round65">${renderQtyInput(maxQty, itemId, 1, qtyDisabled)}</td>
+                  <td class="add-cell item-actions-cell-v48 item-actions-cell-round65">${renderItemActions(item, context, contextId)}</td>
                 </tr>
               `;
             })
@@ -1255,100 +1432,93 @@ function buildTraderHeader(trader, tabsMarkup = "") {
   const currentDiscount = Number.isFinite(Number(trader?.discount_percent))
     ? Number(trader?.discount_percent)
     : getTraderDiscountPercent(trader?.reputation);
-  const sellBonus = getTraderSellBonusPercent(trader?.reputation);
   const traderEmoji = getTraderEmoji(trader?.type);
   const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
   const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
-  const reputationTone = getTraderReputationTone(trader?.reputation);
   const reputationValue = Math.max(0, Math.min(100, Number(trader?.reputation ?? 0) || 0));
   const portraitQuote = trader?.quote || trader?.motto || trader?.personality || "Честная сделка держится на доверии, золоте и правильном моменте.";
+  const walletLabel = trader?.money_label || trader?.gold_label || trader?.gold || "—";
 
   return `
-    <div class="trader-modal-header">
-      ${
-        hasImage
-          ? `
-        <aside class="trader-modal-portrait-panel">
-          <div class="trader-modal-image-wrap">
-            <img class="trader-modal-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
-                trader?.name || "Торговец"
-              )}" loading="eager" decoding="async" />
-          </div>
-          <div class="trader-modal-portrait-caption">«${escapeHtml(String(portraitQuote))}»</div>
-          <div class="trader-modal-reputation-card">
-            <div class="trader-modal-reputation-head">
-              <strong>Репутация</strong>
-              <span>${escapeHtml(String(trader?.reputation ?? 0))}</span>
+    <div class="trader-modal-header trader-modal-header-round64">
+      <div class="trader-modal-profile-row">
+        ${
+          hasImage
+            ? `
+          <aside class="trader-modal-portrait-panel">
+            <div class="trader-modal-image-wrap">
+              <img class="trader-modal-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
+                  trader?.name || "Торговец"
+                )}" loading="eager" decoding="async" />
             </div>
-            <progress value="${escapeHtml(String(reputationValue))}" max="100"></progress>
-            <div class="muted">До следующего уровня: ${escapeHtml(String(Math.max(0, 100 - reputationValue)))} / 100</div>
-          </div>
-        </aside>
-      `
-          : ""
-      }
+            <div class="trader-modal-portrait-caption">«${escapeHtml(String(portraitQuote))}»</div>
+            <div class="trader-modal-reputation-card">
+              <div class="trader-modal-reputation-head">
+                <strong>Репутация</strong>
+                <span>${escapeHtml(String(trader?.reputation ?? 0))}%</span>
+              </div>
+              <div class="trader-modal-relation-line">
+                <strong>${escapeHtml(repTitle)}</strong>
+                <span>отношение к торговцу</span>
+              </div>
+              <progress value="${escapeHtml(String(reputationValue))}" max="100"></progress>
+              <div class="muted">До следующего уровня: ${escapeHtml(String(Math.max(0, 100 - reputationValue)))} / 100</div>
+            </div>
+          </aside>
+        `
+            : ""
+        }
 
-      <section class="trader-modal-main-column">
-        <div class="trader-modal-info">
-          <div class="trader-header-title-row">
-          <h2>${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</h2>
-          <span class="trader-quality">${escapeHtml(getTraderLevelLabel(traderLevel))}</span>
-        </div>
+        <section class="trader-modal-main-column">
+          <div class="trader-modal-info">
+            <div class="trader-header-title-row">
+              <h2>${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</h2>
+            </div>
 
-        <div class="trader-meta trader-modal-meta">
-          <span class="meta-item">${escapeHtml(traderEmoji)} ${escapeHtml(trader?.type || "—")}</span>
-          <span class="meta-item">${getRegionEmoji()} ${escapeHtml(trader?.region || "—")}</span>
-          <span class="meta-item">${getSettlementEmoji()} ${escapeHtml(trader?.settlement || "—")}</span>
-          <span class="meta-item">⭐ ${escapeHtml(repStars)}</span>
-        </div>
+            <div class="trader-meta trader-modal-meta">
+              <span class="meta-item">${escapeHtml(traderEmoji)} ${escapeHtml(trader?.type || "—")}</span>
+              <span class="meta-item">${getRegionEmoji()} ${escapeHtml(trader?.region || "—")}</span>
+              <span class="meta-item">${getSettlementEmoji()} ${escapeHtml(trader?.settlement || "—")}</span>
+              <span class="meta-item">⭐ ${escapeHtml(repStars)}</span>
+            </div>
 
-        <div class="trader-economy-strip">
-          <div class="trader-economy-cell">
-            <span>Репутация</span>
-            <strong class="trader-reputation-value trader-reputation-value-${escapeHtml(reputationTone)}">${escapeHtml(String(trader?.reputation ?? 0))}%</strong>
-            <small>${escapeHtml(repTitle)}</small>
-          </div>
-          <div class="trader-economy-cell">
-            <span>Покупка</span>
-            <strong>-${escapeHtml(String(currentDiscount))}%</strong>
-            <small>от базовой цены</small>
-          </div>
-          <div class="trader-economy-cell">
-            <span>Продажа</span>
-            <strong>+${escapeHtml(String(sellBonus))}%</strong>
-            <small>к выкупу</small>
-          </div>
-          <div class="trader-economy-cell">
-            <span>Кошелёк</span>
-            <strong>${escapeHtml(String(trader?.money_label || trader?.gold_label || trader?.gold || "—"))}</strong>
-            <small>золото торговца</small>
-          </div>
-        </div>
+            <div class="trader-modal-summary-grid">
+              <div class="trader-summary-card">
+                <span>🧭 Уровень</span>
+                <strong>${escapeHtml(skillTitle)}</strong>
+                <small>lvl ${escapeHtml(String(traderLevel))}</small>
+              </div>
+              <div class="trader-summary-card">
+                <span>🏷️ Скидка</span>
+                <strong>${escapeHtml(String(currentDiscount))}%</strong>
+                <small>учтена в ценах</small>
+              </div>
+              <div class="trader-summary-card trader-summary-card-wide">
+                <span>🧰 Специализация</span>
+                <strong>${escapeHtml(specialization)}</strong>
+                <small>основной ассортимент</small>
+              </div>
+              <div class="trader-summary-card">
+                <span>🪙 Золото</span>
+                <strong>${escapeHtml(String(walletLabel))}</strong>
+                <small>кошелёк NPC</small>
+              </div>
+            </div>
 
-        <div class="trader-detail-section trader-reputation-box">
-          <div class="trader-meta trader-reputation-summary-meta">
-            <span class="meta-item">lvl ${escapeHtml(String(traderLevel))}</span>
-            <span class="meta-item">${escapeHtml(skillTitle)}</span>
-            <span class="meta-item">${escapeHtml(repTitle)}</span>
-          </div>
-          <div class="trader-reputation-summary-grid">
-            <span><strong>Репутация</strong>${escapeHtml(String(trader?.reputation ?? 0))}% • ${escapeHtml(repStars)}</span>
-            <span><strong>Покупка</strong>скидка ${escapeHtml(String(currentDiscount))}%</span>
-            <span><strong>Продажа</strong>бонус +${escapeHtml(String(sellBonus))}%</span>
-            <span><strong>Специализация</strong>${escapeHtml(specialization)}</span>
-          </div>
-          <div class="muted trader-reputation-note">Цена в списках товаров уже учитывает репутацию. В продаже игроку показывается твоя цена, а не сухая база.</div>
-          ${restockButtonsMarkup}
-        </div>
+            ${restockButtonsMarkup}
 
-        <div class="trader-detail-section trader-modal-description-section">
-          <p><strong>📜 Описание:</strong> ${escapeHtml(trader?.description || "—")}</p>
-        </div>
+            <div class="trader-detail-section trader-modal-description-section">
+              <p><strong>📜 Описание:</strong> ${escapeHtml(trader?.description || "—")}</p>
+            </div>
+          </div>
+        </section>
       </div>
+    </div>
+
+    <div class="trader-modal-workline trader-modal-workline-fullwidth">
       <div class="trader-modal-tabs-flow">
         ${tabsMarkup}
       </div>
-      </section>
     </div>
   `;
 }
@@ -1458,6 +1628,19 @@ function buildTraderInfo(trader) {
   `;
 }
 
+
+function buildTraderFilterDrawerMarkup(context = "trader", title = "Фильтры и вид", countLabel = "") {
+  return `
+    <details class="trader-filter-drawer" open>
+      <summary>
+        <span>⚙️ ${escapeHtml(title)}</span>
+        ${countLabel ? `<strong>${escapeHtml(countLabel)}</strong>` : ""}
+      </summary>
+      ${getCompactCollectionFiltersMarkup(context)}
+    </details>
+  `;
+}
+
 function buildTraderTabs(grouped, trader) {
   const categoryNames = Object.keys(grouped);
 
@@ -1480,7 +1663,7 @@ function buildTraderTabs(grouped, trader) {
         category
       )}" ${index === 0 ? "" : 'style="display:none" hidden'}>
         <div class="collection-wrapper">
-          ${getCompactCollectionFiltersMarkup("trader")}
+          ${buildTraderFilterDrawerMarkup("trader", "Фильтры и вид", `${(grouped[category] || []).length} шт.`)}
           <div class="collection-items-container"></div>
         </div>
       </div>
@@ -1508,7 +1691,7 @@ function buildTraderTabs(grouped, trader) {
       <div id="sellSection">
         <h3>💰 Продажа торговцу</h3>
         <div class="collection-wrapper">
-          ${getCompactCollectionFiltersMarkup("inventory")}
+          ${buildTraderFilterDrawerMarkup("inventory", "Фильтры продажи", "инвентарь")}
           <div class="collection-items-container" id="sellItemsContainer"></div>
         </div>
       </div>
@@ -1569,6 +1752,13 @@ function bindTraderModal(modal) {
         if (Number.isFinite(targetTraderId) && targetTraderId > 0 && typeof window.openTraderModal === "function") {
           await window.openTraderModal(targetTraderId);
         }
+        return;
+      }
+
+      const scrollBtn = event.target.closest("[data-trader-scroll]");
+      if (scrollBtn) {
+        setTraderFloatingControlsVisible(modal.querySelector(".trader-modal-scroll-controls"), true);
+        scrollTraderModalViewport(String(scrollBtn.dataset.traderScroll || "top"), modal);
         return;
       }
 
@@ -1648,6 +1838,8 @@ export async function openTraderModal(traderId) {
 
   const traderTabsMarkup = buildTraderTabs(grouped, trader);
 
+  modal.querySelectorAll(":scope > .trader-modal-scroll-controls").forEach((node) => node.remove());
+
   modalContent.innerHTML = `
     ${buildTraderModalChrome(trader)}
     <div class="trader-modal-layout trader-modal-layout-round45">
@@ -1655,13 +1847,21 @@ export async function openTraderModal(traderId) {
     </div>
   `;
 
+  // Round 82: стрелки прокрутки живут рядом с .modal-content, а не внутри
+  // #modalContent. Так они не зажимаются таблицей/overflow и всегда плавают
+  // поверх модалки, как нижние стрелки кабинета.
+  modal.insertAdjacentHTML("beforeend", buildTraderModalScrollControls());
+
   modal.dataset.traderId = String(trader.id);
   document.body.classList.add("trader-modal-open");
-  modal.classList.add("trader-modal-refined", "trader-modal-round31", "trader-modal-round32", "trader-modal-round45");
+  modal.classList.add("trader-modal-refined", "trader-modal-round31", "trader-modal-round32", "trader-modal-round45", "trader-modal-round63", "trader-modal-round64", "trader-modal-round65", "trader-modal-round66", "trader-modal-round67", "trader-modal-round68", "trader-modal-round71", "trader-modal-round72", "trader-modal-round73", "trader-modal-round82", "trader-modal-round83");
   modal.style.display = "block";
+  modal.dataset.traderModalUiVersion = "round83-scroll-stabilized";
+  modalContent.scrollTop = 0;
 
   ensureTraderModalDocumentNavigation();
   bindTraderModal(modal);
+  ensureTraderModalScrollControls(modal);
 }
 
 // ------------------------------------------------------------
@@ -1717,25 +1917,8 @@ function buildTraderCard(trader) {
           ${escapeHtml(trader?.description || "Описание отсутствует")}
         </div>
 
-        <div class="trader-card-economy">
-          <div class="trader-card-economy-cell">
-            <span>Покупка</span>
-            <strong>-${escapeHtml(String(buyDiscount))}%</strong>
-          </div>
-          <div class="trader-card-economy-cell">
-            <span>Продажа</span>
-            <strong>+${escapeHtml(String(sellBonus))}%</strong>
-          </div>
-          <div class="trader-card-economy-cell">
-            <span>Репутация</span>
-            <strong>${escapeHtml(repTitle)}</strong>
-          </div>
-        </div>
-
         <div class="trader-meta trader-meta-footer">
           <span class="meta-item">🎯 ${escapeHtml(preview)}</span>
-          <span class="meta-item">🧭 ${escapeHtml(traderLevelLabel)}</span>
-          <span class="meta-item">🏷️ ${escapeHtml(repTitle)}</span>
         </div>
       </div>
     </article>
@@ -1757,7 +1940,8 @@ export function renderTraders(traders) {
     return;
   }
 
-  container.innerHTML = traders.map((trader) => buildTraderCard(trader)).join("");
+  container.innerHTML = `${traders.map((trader) => buildTraderCard(trader)).join("")}${buildTraderPageScrollControls()}`;
+  ensureTraderPageScrollControls();
 }
 
 // ------------------------------------------------------------

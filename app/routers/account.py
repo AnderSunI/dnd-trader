@@ -80,6 +80,19 @@ class AccountMediaUploadRequest(BaseModel):
     make_primary: bool = False
 
 
+class AccountCharacterSaveRequest(BaseModel):
+    id: int | None = None
+    name: str = Field(default="Персонаж", min_length=1, max_length=160)
+    class_name: str | None = Field(default="", max_length=120)
+    level: int | None = Field(default=1, ge=1, le=30)
+    race: str | None = Field(default="", max_length=120)
+    alignment: str | None = Field(default="", max_length=120)
+    experience: int | None = Field(default=0, ge=0)
+    stats: dict[str, Any] | None = None
+    data: dict[str, Any] | None = None
+    make_active: bool = True
+
+
 def create_account_router(*, get_db, uploads_root: Path | None = None) -> APIRouter:
     router = APIRouter(prefix="/account", tags=["account"])
     uploads_dir = Path(uploads_root or "frontend/static/uploads/account")
@@ -593,6 +606,117 @@ def create_account_router(*, get_db, uploads_root: Path | None = None) -> APIRou
                 "media_items": media["showcase"],
                 "cover_image": primary_showcase or media.get("banner") or media.get("avatar"),
             },
+        }
+
+    def normalize_character_stats(value: Any) -> dict[str, int]:
+        source = value if isinstance(value, dict) else {}
+        result: dict[str, int] = {}
+        for key in ["str", "dex", "con", "int", "wis", "cha"]:
+            raw = source.get(key, 10)
+            if isinstance(raw, dict):
+                raw = raw.get("score", raw.get("value", 10))
+            try:
+                score = int(raw)
+            except (TypeError, ValueError):
+                score = 10
+            result[key] = max(1, min(30, score))
+        return result
+
+    def merge_character_data(existing: Any, incoming: Any) -> dict[str, Any]:
+        data = existing if isinstance(existing, dict) else {}
+        next_data = dict(data)
+        if isinstance(incoming, dict):
+            for key, value in incoming.items():
+                next_data[key] = value
+        return next_data
+
+    def upsert_account_character(
+        db: Session,
+        current_user: User,
+        payload: AccountCharacterSaveRequest,
+        *,
+        forced_character_id: int | None = None,
+    ) -> Character:
+        character_id = forced_character_id or payload.id
+        character: Character | None = None
+
+        if character_id:
+            character = (
+                db.query(Character)
+                .filter(Character.id == int(character_id), Character.user_id == current_user.id)
+                .first()
+            )
+            if not character:
+                raise HTTPException(status_code=404, detail="Персонаж не найден")
+
+        if character is None:
+            character = Character(
+                user_id=current_user.id,
+                name="Персонаж",
+                class_name="",
+                level=1,
+                race="",
+                alignment="",
+                experience=0,
+                stats={"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
+                data={"quests": [], "history": [], "files": [], "player_notes": "", "gm_notes": "", "map": {}, "lss": {}},
+                gold=1000,
+                inventory=[],
+                cart=[],
+                reserved=[],
+                gm_notes={},
+                cabinet_data={},
+            )
+            db.add(character)
+            db.flush()
+
+        name = str(payload.name or "").strip()[:160] or "Персонаж"
+        character.name = name
+        character.class_name = str(payload.class_name or "").strip()[:120]
+        character.level = max(1, min(30, int(payload.level or 1)))
+        character.race = str(payload.race or "").strip()[:120]
+        character.alignment = str(payload.alignment or "").strip()[:120]
+        character.experience = max(0, int(payload.experience or 0))
+        character.stats = normalize_character_stats(payload.stats)
+        character.data = merge_character_data(character.data, payload.data)
+        character.updated_at = now_utc()
+
+        if payload.make_active:
+            current_user.active_character_id = character.id
+            current_user.last_seen_at = now_utc()
+            db.add(current_user)
+
+        db.add(character)
+        db.commit()
+        db.refresh(character)
+        db.refresh(current_user)
+        return character
+
+    @router.post("/characters")
+    def create_or_update_account_character(
+        payload: AccountCharacterSaveRequest,
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ):
+        character = upsert_account_character(db, current_user, payload)
+        return {
+            "status": "ok",
+            "character": serialize_character_brief(character),
+            **build_account_payload(db, current_user),
+        }
+
+    @router.patch("/characters/{character_id}")
+    def update_account_character(
+        character_id: int,
+        payload: AccountCharacterSaveRequest,
+        current_user: User = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ):
+        character = upsert_account_character(db, current_user, payload, forced_character_id=character_id)
+        return {
+            "status": "ok",
+            "character": serialize_character_brief(character),
+            **build_account_payload(db, current_user),
         }
 
     @router.get("/me")

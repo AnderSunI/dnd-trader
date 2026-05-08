@@ -616,6 +616,32 @@ function logTradeSnapshot(action, payload) {
   console.log(`[TRADE:${action}]`, payload);
 }
 
+function emitAppHistoryEvent(detail = {}) {
+  if (!detail || typeof detail !== "object") return;
+
+  const now = new Date().toISOString();
+  const currentUser = STATE.user || window.__appUser || {};
+  const actor =
+    currentUser?.nickname ||
+    currentUser?.display_name ||
+    currentUser?.username ||
+    currentUser?.email ||
+    (STATE.token ? "Игрок" : "Гость");
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("dnd:history:add", {
+        detail: {
+          actor,
+          created_at: now,
+          timestamp: now,
+          ...detail,
+        },
+      })
+    );
+  } catch (_) {}
+}
+
 function setAppLoadingStatus(message) {
   try {
     if (typeof window.__setAppLoadingStatus === "function") {
@@ -713,13 +739,26 @@ async function applyGuestMoneyUpdateFromInput() {
   renderAllLocalState();
   syncMoneyControls();
 
+  const moneyLabel = getCurrentMoneyLabel();
+
   logTradeSnapshot("UPDATE_GOLD", {
     goldInput: inputGold,
     moneyCp: getCurrentMoneyCp(),
-    moneyLabel: getCurrentMoneyLabel(),
+    moneyLabel,
   });
 
-  showToast(`Ваше золото обновлено: ${getCurrentMoneyLabel()}`);
+  emitAppHistoryEvent({
+    scope: "system",
+    type: "money_update",
+    action: "money_update",
+    title: "Обновление золота",
+    message: `Тестовое золото обновлено: ${moneyLabel}`,
+    status: canEditTestMoney() ? getEffectiveRole() : "",
+    money_cp_total: getCurrentMoneyCp(),
+    money_label: moneyLabel,
+  });
+
+  showToast(`Ваше золото обновлено: ${moneyLabel}`);
 }
 
 async function resetGuestMoney() {
@@ -734,12 +773,25 @@ async function resetGuestMoney() {
   renderAllLocalState();
   syncMoneyControls();
 
+  const moneyLabel = getCurrentMoneyLabel();
+
   logTradeSnapshot("RESET_GOLD", {
     moneyCp: getCurrentMoneyCp(),
-    moneyLabel: getCurrentMoneyLabel(),
+    moneyLabel,
   });
 
-  showToast(`Золото сброшено: ${getCurrentMoneyLabel()}`);
+  emitAppHistoryEvent({
+    scope: "system",
+    type: "money_reset",
+    action: "money_reset",
+    title: "Сброс золота",
+    message: `Тестовое золото сброшено: ${moneyLabel}`,
+    status: canEditTestMoney() ? getEffectiveRole() : "",
+    money_cp_total: getCurrentMoneyCp(),
+    money_label: moneyLabel,
+  });
+
+  showToast(`Золото сброшено: ${moneyLabel}`);
 }
 
 function setBusy(flag) {
@@ -1229,6 +1281,15 @@ async function handleLogin() {
     await loadInventoryFromServer();
     renderAllLocalState();
 
+    emitAppHistoryEvent({
+      scope: "auth",
+      type: "login",
+      action: "login",
+      title: "Вход в аккаунт",
+      message: `Пользователь вошёл: ${STATE.user?.email || email}`,
+      status: getEffectiveRole(),
+    });
+
     showToast("Вход выполнен");
   } catch (error) {
     console.error(error);
@@ -1250,6 +1311,16 @@ async function handleRegister() {
   try {
     setBusy(true);
     await registerUser(email, password);
+
+    emitAppHistoryEvent({
+      scope: "auth",
+      type: "register",
+      action: "register",
+      title: "Регистрация аккаунта",
+      message: `Зарегистрирован аккаунт: ${email}`,
+      actor: email,
+    });
+
     showToast("Регистрация успешна. Теперь войдите.");
   } catch (error) {
     console.error(error);
@@ -1260,6 +1331,23 @@ async function handleRegister() {
 }
 
 function handleLogout() {
+  const previousUser = STATE.user || window.__appUser || {};
+  const previousActor =
+    previousUser?.nickname ||
+    previousUser?.display_name ||
+    previousUser?.username ||
+    previousUser?.email ||
+    "Игрок";
+
+  emitAppHistoryEvent({
+    scope: "auth",
+    type: "logout",
+    action: "logout",
+    title: "Выход из аккаунта",
+    message: `Пользователь вышел: ${previousActor}`,
+    actor: previousActor,
+  });
+
   STATE.token = "";
   STATE.user = null;
   STATE.inventory = [];
@@ -1290,6 +1378,16 @@ function handleInvalidAuthSession(event) {
   renderAllLocalState();
 
   const message = event?.detail?.message || "Сессия истекла. Войдите заново.";
+
+  emitAppHistoryEvent({
+    scope: "auth",
+    type: "session_invalid",
+    action: "session_invalid",
+    title: "Сессия завершена",
+    message,
+    actor: "Система",
+  });
+
   if (!authInvalidNoticeShown) {
     authInvalidNoticeShown = true;
     showToast(message);

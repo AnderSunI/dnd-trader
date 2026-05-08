@@ -34,6 +34,7 @@ const MAPS_STATE = {
     pendingMarkerLabel: "",
     pendingMarkerKind: "marker",
     pendingMarkerColor: "#98dfe3",
+    fullscreen: false,
   },
 
   view: {
@@ -774,11 +775,16 @@ export function zoomMap(delta) {
   updateViewportStatus();
 }
 
-export function rotateMap(delta = 90) {
-  MAPS_STATE.view.rotation = ((MAPS_STATE.view.rotation + delta) % 360 + 360) % 360;
+export function setMapRotation(value = 0) {
+  const next = Math.round(safeNumber(value, 0));
+  MAPS_STATE.view.rotation = ((next % 360) + 360) % 360;
   syncToSharedState();
   applyMapTransform();
   updateViewportStatus();
+}
+
+function rotateMap(delta = 90) {
+  setMapRotation(MAPS_STATE.view.rotation + delta);
 }
 
 export function resetMapView(rerender = true) {
@@ -832,6 +838,8 @@ function applyMapTransform() {
     rotate(${MAPS_STATE.view.rotation}deg)
   `.replace(/\s+/g, " ").trim();
 
+  viewport.style.setProperty("--map-compass-rotation", `${MAPS_STATE.view.rotation}deg`);
+
   if (MAPS_STATE.view.markerMode) {
     viewport.style.cursor = "crosshair";
   } else if (MAPS_STATE.view.dragMode === "marker") {
@@ -850,6 +858,27 @@ function updateViewportStatus() {
   const rotateLabel = getEl("mapRotateBtn")?.querySelector("span");
   if (rotateLabel) {
     rotateLabel.textContent = `${MAPS_STATE.view.rotation}°`;
+  }
+
+  const rotationValue = getEl("mapRotationValue");
+  if (rotationValue) {
+    rotationValue.textContent = `${MAPS_STATE.view.rotation}°`;
+  }
+
+  const rotationRange = getEl("mapRotationRange");
+  if (rotationRange && String(rotationRange.value) !== String(MAPS_STATE.view.rotation)) {
+    rotationRange.value = String(MAPS_STATE.view.rotation);
+  }
+
+  const zoomMarker = getEl("mapZoomLevelMarker");
+  if (zoomMarker) {
+    const left = Math.round(((MAPS_STATE.view.zoom - 0.4) / 3.6) * 100);
+    zoomMarker.style.left = `${Math.max(0, Math.min(100, left))}%`;
+  }
+
+  const viewport = getEl("mapStageViewport");
+  if (viewport) {
+    viewport.style.setProperty("--map-compass-rotation", `${MAPS_STATE.view.rotation}deg`);
   }
 
   if (!info || !active) return;
@@ -1093,9 +1122,13 @@ function getActiveLocation(active, markers) {
 
 function renderMapCompass() {
   return `
-    <div class="map-compass" aria-hidden="true">
-      <span>N</span>
-      <i></i>
+    <div class="map-compass map-stage-control" aria-label="Компас и быстрый поворот карты">
+      <i aria-hidden="true"></i>
+      <button class="map-compass-btn map-compass-n map-stage-control" type="button" data-map-rotate-to="0" title="Север сверху">N</button>
+      <button class="map-compass-btn map-compass-e map-stage-control" type="button" data-map-rotate-to="90" title="Восток сверху">E</button>
+      <button class="map-compass-btn map-compass-s map-stage-control" type="button" data-map-rotate-to="180" title="Юг сверху">S</button>
+      <button class="map-compass-btn map-compass-w map-stage-control" type="button" data-map-rotate-to="270" title="Запад сверху">W</button>
+      <button class="map-compass-center map-stage-control" type="button" data-map-rotate-to="0" title="Сбросить поворот">✦</button>
     </div>
   `;
 }
@@ -1223,18 +1256,18 @@ function renderActiveMarkersDock(markers, selectedMarker) {
   const visible = (Array.isArray(markers) ? markers : []).slice(0, 18);
 
   return `
-    <div class="map-active-markers-dock">
-      <div class="map-active-markers-dock-head">
-        <span>Активные метки</span>
+    <details class="map-active-markers-dock map-stage-control">
+      <summary class="map-active-markers-dock-head map-stage-control">
+        <span>Метки</span>
         <strong>${escapeHtml(String(visible.length))}</strong>
-      </div>
-      <div class="map-active-markers-scroll">
+      </summary>
+      <div class="map-active-markers-scroll map-stage-control">
         ${visible.length
           ? visible.map((marker) => `
             <button
               type="button"
               data-marker-select="${escapeHtml(marker.id)}"
-              class="map-active-marker-chip ${selectedMarker?.id === marker.id ? "active" : ""}"
+              class="map-active-marker-chip map-stage-control ${selectedMarker?.id === marker.id ? "active" : ""}"
               title="${escapeHtml(marker.label)}"
             >
               <span>${escapeHtml(getMarkerKindIcon(marker.kind))}</span>
@@ -1243,12 +1276,13 @@ function renderActiveMarkersDock(markers, selectedMarker) {
           `).join("")
           : `<div class="muted">Метки не найдены</div>`}
       </div>
-    </div>
+    </details>
   `;
 }
 
 function renderMapStage(active, markers, selectedMarker) {
   const hasImage = Boolean(active?.image);
+  const zoomPercent = Math.round(((MAPS_STATE.view.zoom - 0.4) / 3.6) * 100);
 
   return `
     <div class="map-stage-shell">
@@ -1276,14 +1310,60 @@ function renderMapStage(active, markers, selectedMarker) {
 
         ${renderActiveMarkersDock(markers, selectedMarker)}
 
-        <div class="map-zoom-dock">
-          <button class="btn" type="button" id="mapZoomOutBtn">−</button>
-          <div class="map-zoom-track"><span style="left:${Math.round(((MAPS_STATE.view.zoom - 0.4) / 3.6) * 100)}%;"></span></div>
-          <button class="btn" type="button" id="mapZoomInBtn">＋</button>
+        <div class="map-zoom-dock map-stage-control" data-map-control="zoom">
+          <button class="btn map-stage-control" type="button" id="mapZoomOutBtn" aria-label="Отдалить карту">−</button>
+          <div class="map-zoom-track" aria-hidden="true">
+            <span id="mapZoomLevelMarker" style="left:${zoomPercent}%;"></span>
+          </div>
+          <button class="btn map-stage-control" type="button" id="mapZoomInBtn" aria-label="Приблизить карту">＋</button>
         </div>
 
-        <button class="map-world-chip" type="button" id="mapResetViewBtn">Сброс вида</button>
-        <button class="map-legend-toggle" type="button" id="mapRotateBtn">Поворот <span>${escapeHtml(String(MAPS_STATE.view.rotation || 0))}°</span></button>
+        <button class="map-world-chip map-stage-control" type="button" id="mapResetViewBtn">Сброс вида</button>
+
+        <div class="map-stage-actions map-stage-control">
+          <button
+            class="map-fullscreen-toggle map-stage-control"
+            type="button"
+            id="mapFullscreenBtn"
+            title="${MAPS_STATE.ui.fullscreen ? "Вернуться к обычному режиму" : "Открыть карту на весь экран"}"
+          >${MAPS_STATE.ui.fullscreen ? "⤡ Выйти" : "⛶ Карта"}</button>
+
+          <details class="map-stage-controls-drawer map-stage-control" id="mapStageControlsDrawer">
+            <summary class="map-stage-control">⚙ Управление</summary>
+            <div class="map-stage-controls-panel map-stage-control">
+              <section class="map-rotation-dock map-stage-control">
+                <div class="map-rotation-head">
+                  <span>Поворот</span>
+                  <strong id="mapRotationValue">${escapeHtml(String(MAPS_STATE.view.rotation || 0))}°</strong>
+                </div>
+                <input
+                  id="mapRotationRange"
+                  class="map-rotation-range map-stage-control"
+                  type="range"
+                  min="0"
+                  max="359"
+                  step="1"
+                  value="${escapeHtml(String(MAPS_STATE.view.rotation || 0))}"
+                  aria-label="Поворот карты в градусах"
+                />
+                <button class="map-rotate-button map-stage-control" type="button" id="mapRotateBtn">↻ 90°</button>
+              </section>
+
+              <section class="map-legend-panel map-stage-control" id="mapLegendDrawer">
+                <div class="map-stage-panel-title">🧭 Легенда</div>
+                <div class="map-legend-content">
+                  ${MAP_CATEGORY_FILTERS.filter(([key]) => key !== "all").map(([key, label]) => `
+                    <button type="button" class="map-legend-row map-stage-control" data-map-filter="${escapeHtml(key)}">
+                      <span>${escapeHtml(getMarkerKindIcon(key))}</span>
+                      <strong>${escapeHtml(label)}</strong>
+                      <small>${escapeHtml(getMarkerKindLabel(key))}</small>
+                    </button>
+                  `).join("")}
+                </div>
+              </section>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
   `;
@@ -1307,7 +1387,7 @@ function renderQuickMarkerCreate(active) {
   const modeText = MAPS_STATE.view.markerMode ? "Кликни по карте" : "Добавить метку";
 
   return `
-    <section class="map-location-card map-quick-marker-panel">
+    <section class="map-location-card map-quick-marker-panel ${MAPS_STATE.view.markerMode ? "map-quick-marker-panel-active" : ""}">
       <div class="map-card-heading">
         <span>Быстрая метка</span>
         <strong>${MAPS_STATE.view.markerMode ? "ожидает клика" : "готово"}</strong>
@@ -1334,7 +1414,7 @@ function renderQuickMarkerCreate(active) {
         <button class="btn" type="button" id="mapQuickCancelMarkerBtn" ${MAPS_STATE.view.markerMode ? "" : "disabled"}>Отмена</button>
       </div>
       <div class="muted map-quick-marker-note">
-        Введи название, выбери тип/цвет, нажми «Добавить метку» и кликни по карте. Метка сразу откроется в редакторе справа.
+        1) Введи название. 2) Нажми «Добавить метку». 3) Кликни по карте — редактор откроется справа.
       </div>
     </section>
   `;
@@ -1343,7 +1423,7 @@ function renderQuickMarkerCreate(active) {
 function renderSelectedMarkerQuickEditor(marker, realMarker) {
   if (!marker) {
     return `
-      <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-empty">
+      <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-empty map-marker-quick-editor-round96">
         <div class="map-card-heading">
           <span>Редактор метки</span>
           <strong>нет выбора</strong>
@@ -1355,7 +1435,7 @@ function renderSelectedMarkerQuickEditor(marker, realMarker) {
 
   if (!realMarker) {
     return `
-      <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-preview">
+      <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-preview map-marker-quick-editor-round96">
         <div class="map-card-heading">
           <span>Редактор метки</span>
           <strong>demo</strong>
@@ -1366,7 +1446,7 @@ function renderSelectedMarkerQuickEditor(marker, realMarker) {
   }
 
   return `
-    <section class="map-location-card map-marker-quick-editor">
+    <section class="map-location-card map-marker-quick-editor map-marker-quick-editor-round96">
       <div class="map-card-heading">
         <span>Редактор метки</span>
         <strong>${escapeHtml(getMarkerKindLabel(marker.kind))}</strong>
@@ -1446,8 +1526,8 @@ function renderLocationRail(active, markers) {
   const eventMarkers = markers.filter((item) => normalizeMarkerKind(item.kind, "marker") === "event");
 
   return `
-    <aside class="map-location-rail map-location-rail-clean">
-      <section class="map-location-card map-location-card-main map-combined-panel">
+    <aside class="map-location-rail map-location-rail-clean map-location-rail-round96">
+      <section class="map-location-card map-location-card-main map-combined-panel map-location-card-round96">
         <div class="map-location-image">
           <img src="${escapeHtml(previewImage)}" alt="${escapeHtml(location.name)}" />
         </div>
@@ -1548,12 +1628,13 @@ function renderMapViewer() {
   const selectedMarker = getSelectedDisplayMarker(active, markers);
 
   return `
-    <div class="map-reference-layout">
-      <main class="map-main-panel">
+    <div class="map-reference-layout map-reference-layout-round96">
+      <main class="map-main-panel map-main-panel-round96">
         ${renderSummaryBar()}
         ${renderCreateForm()}
         <div id="mapViewportInfo" class="map-viewport-info" hidden></div>
         ${renderMapStage(displayMap, markers, selectedMarker)}
+        ${renderMapBottomPanels(markers)}
         <details class="map-control-drawer map-marker-editor-drawer">
           <summary>
             <span>Настройки карт и меток</span>
@@ -1677,6 +1758,8 @@ export function renderMaps() {
 
   applyMapTransform();
   bindMapActions();
+  ensureMapKeyboardShortcuts();
+  ensureMapFullscreenEvents();
   syncToSharedState();
 }
 
@@ -1727,6 +1810,134 @@ async function addValueToSelectedMarker(field, promptTitle) {
     [field]: [...prev, value],
   });
   showToast("Данные метки обновлены");
+}
+
+
+let mapKeyboardShortcutsBound = false;
+
+function handleMapKeyboardShortcut(event) {
+  if (event.key !== "Escape") return;
+  if (!MAPS_STATE.ui.fullscreen) return;
+
+  event.preventDefault();
+  toggleMapFullscreen(false);
+}
+
+function ensureMapKeyboardShortcuts() {
+  if (mapKeyboardShortcutsBound) return;
+  document.addEventListener("keydown", handleMapKeyboardShortcut);
+  mapKeyboardShortcutsBound = true;
+}
+
+function getNativeFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+}
+
+function requestNativeFullscreen(element) {
+  if (!element) return Promise.reject(new Error("fullscreen target missing"));
+  const fn =
+    element.requestFullscreen ||
+    element.webkitRequestFullscreen ||
+    element.msRequestFullscreen;
+  if (!fn) return Promise.reject(new Error("fullscreen api unavailable"));
+  const result = fn.call(element);
+  return result && typeof result.then === "function" ? result : Promise.resolve();
+}
+
+function exitNativeFullscreen() {
+  const fn =
+    document.exitFullscreen ||
+    document.webkitExitFullscreen ||
+    document.msExitFullscreen;
+  if (!fn) return Promise.resolve();
+  const result = fn.call(document);
+  return result && typeof result.then === "function" ? result : Promise.resolve();
+}
+
+function setMapFullscreenButtonState(isFullscreen) {
+  const btn = getEl("mapFullscreenBtn");
+  if (!btn) return;
+  btn.textContent = isFullscreen ? "⤡ Выйти" : "⛶ Карта";
+  btn.title = isFullscreen ? "Вернуться к обычному режиму" : "Открыть карту на весь экран";
+  btn.classList.toggle("active", Boolean(isFullscreen));
+}
+
+function syncMapFullscreenStateFromBrowser() {
+  const stage = getEl("mapStageViewport");
+  const activeElement = getNativeFullscreenElement();
+  const isFullscreen = Boolean(stage && activeElement === stage);
+
+  MAPS_STATE.ui.fullscreen = isFullscreen;
+  document.body.classList.toggle("map-native-fullscreen-active", isFullscreen);
+  setMapFullscreenButtonState(isFullscreen);
+  resetInteractionState();
+  applyMapTransform();
+  updateViewportStatus();
+}
+
+let mapFullscreenEventsBound = false;
+function ensureMapFullscreenEvents() {
+  if (mapFullscreenEventsBound) return;
+  document.addEventListener("fullscreenchange", syncMapFullscreenStateFromBrowser);
+  document.addEventListener("webkitfullscreenchange", syncMapFullscreenStateFromBrowser);
+  document.addEventListener("MSFullscreenChange", syncMapFullscreenStateFromBrowser);
+  mapFullscreenEventsBound = true;
+}
+
+function toggleMapFullscreen(force = null) {
+  const stage = getEl("mapStageViewport");
+  const activeElement = getNativeFullscreenElement();
+  const currentlyFullscreen = Boolean(stage && activeElement === stage);
+  const nextValue = typeof force === "boolean" ? force : !currentlyFullscreen;
+
+  resetInteractionState();
+
+  if (nextValue) {
+    MAPS_STATE.view.panX = 0;
+    MAPS_STATE.view.panY = 0;
+    MAPS_STATE.view.zoom = 1;
+    MAPS_STATE.ui.fullscreen = true;
+    document.body.classList.add("map-native-fullscreen-active");
+    setMapFullscreenButtonState(true);
+    applyMapTransform();
+    updateViewportStatus();
+
+    requestNativeFullscreen(stage)
+      .then(() => {
+        syncMapFullscreenStateFromBrowser();
+      })
+      .catch((error) => {
+        console.warn("Map fullscreen failed", error);
+        MAPS_STATE.ui.fullscreen = false;
+        document.body.classList.remove("map-native-fullscreen-active");
+        setMapFullscreenButtonState(false);
+        showToast("Браузер не дал открыть полноэкранный режим");
+      });
+    return;
+  }
+
+  MAPS_STATE.ui.fullscreen = false;
+  document.body.classList.remove("map-native-fullscreen-active");
+  setMapFullscreenButtonState(false);
+
+  if (currentlyFullscreen) {
+    exitNativeFullscreen()
+      .catch((error) => console.warn("Map fullscreen exit failed", error))
+      .finally(() => {
+        syncMapFullscreenStateFromBrowser();
+      });
+  } else {
+    applyMapTransform();
+    updateViewportStatus();
+  }
+}
+
+function isMapStageControlTarget(target) {
+  return Boolean(
+    target?.closest?.(
+      ".map-stage-control, .map-zoom-dock, .map-world-chip, .map-rotate-button, .map-stage-controls-drawer, .map-stage-controls-panel, .map-legend-drawer, .map-active-markers-dock, .map-control-drawer, .map-filter-drawer, .map-marker-editor-drawer, button, input, select, textarea, label, summary, details"
+    )
+  );
 }
 
 // ------------------------------------------------------------
@@ -1825,8 +2036,31 @@ function bindMapActions() {
   const rotateBtn = getEl("mapRotateBtn");
   if (rotateBtn) rotateBtn.onclick = () => rotateMap(90);
 
+  const rotationRange = getEl("mapRotationRange");
+  if (rotationRange) {
+    rotationRange.oninput = () => setMapRotation(rotationRange.value);
+    rotationRange.onchange = () => setMapRotation(rotationRange.value);
+  }
+
+  document.querySelectorAll("[data-map-rotate-to]").forEach((btn) => {
+    btn.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setMapRotation(btn.dataset.mapRotateTo || 0);
+    };
+  });
+
   const resetBtn = getEl("mapResetViewBtn");
   if (resetBtn) resetBtn.onclick = () => resetMapView(true);
+
+  const fullscreenBtn = getEl("mapFullscreenBtn");
+  if (fullscreenBtn) {
+    fullscreenBtn.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleMapFullscreen();
+    };
+  }
 
   const markerModeBtn = getEl("mapMarkerModeBtn");
   if (markerModeBtn) markerModeBtn.onclick = () => toggleMarkerMode();
@@ -2041,6 +2275,7 @@ function bindMapActions() {
     viewport.onpointerdown = (event) => {
       const targetMarker = event.target.closest(".map-marker-btn");
       if (targetMarker) return;
+      if (isMapStageControlTarget(event.target)) return;
       if (MAPS_STATE.view.markerMode) return;
       if (event.button !== 0) return;
 
@@ -2186,6 +2421,7 @@ window.mapsModule = {
   selectMap,
   zoomMap,
   rotateMap,
+  setMapRotation,
   resetMapView,
   toggleMarkerMode,
   addMarkerToActiveMap,

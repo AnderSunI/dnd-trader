@@ -43,6 +43,7 @@ const ACCOUNT_STATE = {
   },
   searchQuery: "",
   searchResults: [],
+  selectedSocialProfileId: "",
   conversations: [],
   activeConversationId: "",
   activeFriendId: "",
@@ -61,6 +62,76 @@ const ACCOUNT_SECTIONS = [
   { key: "trade", label: "Обмен" },
   { key: "settings", label: "Настройки" },
 ];
+
+function getAccountHistoryActor() {
+  const user = ACCOUNT_STATE.account?.user || window.__appUser || {};
+  return (
+    user?.nickname ||
+    user?.display_name ||
+    user?.username ||
+    user?.email ||
+    "Игрок"
+  );
+}
+
+function getAccountUserLabel(user = {}) {
+  return (
+    user?.nickname ||
+    user?.display_name ||
+    user?.username ||
+    user?.email ||
+    (user?.id ? `Игрок #${user.id}` : "")
+  );
+}
+
+function getAccountFriendLabelById(userId) {
+  const id = Number(userId || 0);
+  const friendPools = [
+    ACCOUNT_STATE.friends?.friends,
+    ACCOUNT_STATE.friends?.incoming_requests,
+    ACCOUNT_STATE.friends?.outgoing_requests,
+    ACCOUNT_STATE.searchResults,
+  ];
+
+  for (const pool of friendPools) {
+    if (!Array.isArray(pool)) continue;
+
+    for (const entry of pool) {
+      const candidates = [entry, entry?.user, entry?.friend, entry?.target_user, entry?.requester];
+      for (const candidate of candidates) {
+        if (Number(candidate?.id || 0) === id) {
+          return getAccountUserLabel(candidate);
+        }
+      }
+    }
+  }
+
+  const conversation = ACCOUNT_STATE.conversations.find(
+    (entry) => Number(entry?.friend?.id || 0) === id
+  );
+  if (conversation?.friend) return getAccountUserLabel(conversation.friend);
+
+  return id ? `Игрок #${id}` : "Игрок";
+}
+
+function emitAccountHistoryEvent(detail = {}) {
+  if (!detail || typeof detail !== "object") return;
+
+  const now = new Date().toISOString();
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("dnd:history:add", {
+        detail: {
+          actor: getAccountHistoryActor(),
+          created_at: now,
+          timestamp: now,
+          ...detail,
+        },
+      })
+    );
+  } catch (_) {}
+}
 
 function syncAccountUser(userPatch = {}) {
   const currentUser = window.__appUser || {};
@@ -147,6 +218,182 @@ function getProfileBannerUrl() {
   return safeText(media.banner?.url || user.banner_url || "", "").trim();
 }
 
+function getUserProfileMedia(user = {}) {
+  const media = user?.profile_media;
+  if (!media || typeof media !== "object") {
+    return {
+      avatar: null,
+      banner: null,
+      showcase: [],
+    };
+  }
+  return {
+    avatar: media.avatar && typeof media.avatar === "object" ? media.avatar : null,
+    banner: media.banner && typeof media.banner === "object" ? media.banner : null,
+    showcase: Array.isArray(media.showcase) ? media.showcase : [],
+  };
+}
+
+function getUserAvatarUrl(user = {}) {
+  const media = getUserProfileMedia(user);
+  return safeText(media.avatar?.url || user.avatar_url || "", "").trim();
+}
+
+function getUserBannerUrl(user = {}) {
+  const media = getUserProfileMedia(user);
+  return safeText(media.banner?.url || user.banner_url || "", "").trim();
+}
+
+function getOnlineLabel(user = {}) {
+  if (user?.is_online) return "В сети";
+  const lastSeen = user?.last_seen_at || user?.updated_at || "";
+  return lastSeen ? `Был(а): ${formatDateTime(lastSeen)}` : "Не в сети";
+}
+
+function getOnlineDotClass(user = {}) {
+  return user?.is_online ? "is-online" : "is-offline";
+}
+
+function getSocialUserEntries() {
+  const friends = Array.isArray(ACCOUNT_STATE.friends?.friends) ? ACCOUNT_STATE.friends.friends : [];
+  const incoming = Array.isArray(ACCOUNT_STATE.friends?.incoming_requests) ? ACCOUNT_STATE.friends.incoming_requests : [];
+  const outgoing = Array.isArray(ACCOUNT_STATE.friends?.outgoing_requests) ? ACCOUNT_STATE.friends.outgoing_requests : [];
+  const searchResults = Array.isArray(ACCOUNT_STATE.searchResults) ? ACCOUNT_STATE.searchResults : [];
+
+  return [
+    ...friends.map((entry) => entry?.friend || entry?.user || entry).filter(Boolean),
+    ...incoming.map((entry) => entry?.user || entry?.friend || entry).filter(Boolean),
+    ...outgoing.map((entry) => entry?.user || entry?.friend || entry?.target_user || entry).filter(Boolean),
+    ...searchResults.filter(Boolean),
+  ];
+}
+
+function getSocialUserById(userId) {
+  const id = Number(userId || 0);
+  if (!id) return null;
+  return getSocialUserEntries().find((user) => Number(user?.id || 0) === id) || null;
+}
+
+function getSelectedSocialProfileUser() {
+  const selected = getSocialUserById(ACCOUNT_STATE.selectedSocialProfileId);
+  if (selected) return selected;
+
+  const friends = Array.isArray(ACCOUNT_STATE.friends?.friends) ? ACCOUNT_STATE.friends.friends : [];
+  const onlineFriend = friends.map((entry) => entry?.friend || entry?.user || entry).find((user) => user?.is_online);
+  const firstFriend = friends.map((entry) => entry?.friend || entry?.user || entry).find(Boolean);
+  const firstSearch = Array.isArray(ACCOUNT_STATE.searchResults) ? ACCOUNT_STATE.searchResults.find(Boolean) : null;
+  return onlineFriend || firstFriend || firstSearch || null;
+}
+
+function renderOnlineBadge(user = {}) {
+  return `<span class="account-online-badge ${getOnlineDotClass(user)}"><i></i>${escapeHtml(getOnlineLabel(user))}</span>`;
+}
+
+function renderSocialProfilePanel() {
+  const user = getSelectedSocialProfileUser();
+  if (!user) {
+    return `
+      <aside class="cabinet-block account-social-profile-panel account-social-profile-empty">
+        <div class="account-hub-kicker">Player profile</div>
+        <h4 class="account-social-title">Профиль игрока</h4>
+        <div class="account-social-empty account-social-profile-empty-box">Выбери друга или найденного игрока — здесь появятся профиль, статус, витрина и быстрые действия.</div>
+      </aside>
+    `;
+  }
+
+  const media = getUserProfileMedia(user);
+  const avatar = getUserAvatarUrl(user);
+  const banner = getUserBannerUrl(user);
+  const displayName = user.display_name || user.nickname || user.email || "Игрок";
+  const nickname = user.nickname || user.username || "player";
+  const showcaseCount = Array.isArray(media.showcase) ? media.showcase.length : 0;
+  const profileTags = Array.isArray(user.profile_tags) ? user.profile_tags : [];
+  const activeCharacter = user.active_character || user.showcase?.active_character || null;
+  const activeParty = user.active_party || user.showcase?.active_party || null;
+  const about = user.bio || user.about_me || user.showcase?.about_me || user.short_status || "Профиль пока почти пуст.";
+  const relationshipState = getFriendRelationshipState(user);
+  const isFriend = relationshipState === "friend";
+
+  return `
+    <aside class="cabinet-block account-social-profile-panel">
+      <div class="account-social-profile-banner ${banner ? "has-banner" : ""}">
+        ${banner ? `<img src="${escapeHtml(banner)}" alt="${escapeHtml(displayName)} banner">` : `<div class="account-social-profile-banner-fallback">✦</div>`}
+      </div>
+      <div class="account-social-profile-body">
+        <div class="account-social-profile-top">
+          <div class="account-social-profile-avatar">
+            ${avatar ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(displayName)} avatar">` : `<span>${escapeHtml(displayName.slice(0, 1).toUpperCase())}</span>`}
+          </div>
+          <div class="account-social-profile-title">
+            <div class="account-hub-kicker">Player profile</div>
+            <h4>${escapeHtml(displayName)}</h4>
+            <span>@${escapeHtml(nickname)}</span>
+          </div>
+        </div>
+
+        <div class="account-social-profile-status-row">
+          ${renderOnlineBadge(user)}
+          <span class="meta-item">${escapeHtml(roleBadgeLabel(user))}</span>
+        </div>
+
+        <p class="account-social-profile-about">${escapeHtml(about)}</p>
+
+        <div class="account-social-profile-stats">
+          <div><span>Витрина</span><strong>${escapeHtml(String(showcaseCount))}</strong></div>
+          <div><span>Персонаж</span><strong>${escapeHtml(activeCharacter?.name || "—")}</strong></div>
+          <div><span>Стол</span><strong>${escapeHtml(activeParty?.title || "—")}</strong></div>
+        </div>
+
+        ${profileTags.length ? `
+          <div class="account-social-profile-tags">
+            ${profileTags.slice(0, 6).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}
+          </div>
+        ` : ""}
+
+        ${showcaseCount ? `
+          <div class="account-social-profile-showcase">
+            ${media.showcase.slice(0, 4).map((item) => `
+              <span>${item?.url ? `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.title || "showcase")}">` : "🖼️"}</span>
+            `).join("")}
+          </div>
+        ` : `<div class="account-social-empty account-social-profile-mini-empty">Витрина игрока пока пустая или скрыта приватностью.</div>`}
+
+        <div class="account-social-profile-actions">
+          ${isFriend ? `<button class="btn btn-primary" type="button" data-account-open-chat="${escapeHtml(String(user.id || ""))}">Чат</button>` : renderFriendActionButton(user)}
+          ${isFriend ? `<button class="btn" type="button" data-account-open-trade="${escapeHtml(String(user.id || ""))}">Обмен</button>` : ""}
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function renderOnlineFriendsPanel() {
+  const friends = Array.isArray(ACCOUNT_STATE.friends?.friends) ? ACCOUNT_STATE.friends.friends : [];
+  const onlineFriends = friends.map((entry) => entry?.friend || entry?.user || entry).filter((user) => user?.is_online);
+
+  return `
+    <section class="cabinet-block account-social-online-panel">
+      <div class="account-social-panel-head">
+        <div>
+          <div class="account-hub-kicker">Online</div>
+          <h4 class="account-social-title">Сейчас онлайн</h4>
+        </div>
+        <span class="meta-item">${escapeHtml(String(onlineFriends.length))}</span>
+      </div>
+      <div class="account-social-online-list">
+        ${onlineFriends.length
+          ? onlineFriends.map((user) => `
+            <button class="account-social-online-row" type="button" data-account-view-profile="${escapeHtml(String(user.id || ""))}">
+              ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
+              <span>${escapeHtml(user.display_name || user.nickname || "Игрок")}</span>
+            </button>
+          `).join("")
+          : `<div class="account-social-empty account-social-empty-small">Сейчас никто из друзей не онлайн.</div>`}
+      </div>
+    </section>
+  `;
+}
+
 function getActiveConversation() {
   return ACCOUNT_STATE.conversations.find((entry) => String(entry.id) === String(ACCOUNT_STATE.activeConversationId)) || null;
 }
@@ -168,7 +415,7 @@ function getConversationFriendUserId(conversation) {
 function renderAccountChatAvatar(user, className = "account-chat-avatar") {
   const name = safeText(user?.display_name || user?.nickname || user?.email || "Игрок", "Игрок");
   const initial = name.slice(0, 1).toUpperCase();
-  const avatarUrl = safeText(user?.avatar_url || "", "").trim();
+  const avatarUrl = getUserAvatarUrl(user);
   return `
     <span class="${className} ${user?.is_online ? "account-chat-avatar-online" : ""}">
       ${avatarUrl
@@ -441,6 +688,7 @@ function renderAccountHero() {
   }
 
   const avatar = getProfileAvatarUrl();
+  const banner = getProfileBannerUrl();
   const avatarMarkup = avatar
     ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(user.nickname || "avatar")}" class="account-hub-avatar-media">`
     : `<div class="account-hub-avatar-fallback">${escapeHtml((user.nickname || user.email || "U").slice(0, 1).toUpperCase())}</div>`;
@@ -450,41 +698,46 @@ function renderAccountHero() {
   const charactersCount = getCurrentCharacters().length;
   const friendsCount = ACCOUNT_STATE.friends?.friends?.length || getCurrentShowcase().friends_count || 0;
   const showcaseCount = (getProfileMedia().showcase || []).length;
+  const createdAt = user.created_at || user.createdAt || ACCOUNT_STATE.account?.created_at || "";
 
   return `
-    <section class="cabinet-block account-hub-hero account-clean-hero">
-      <div class="account-clean-identity">
-        <div class="account-hub-avatar-wrap account-clean-avatar">${avatarMarkup}</div>
-        <div class="account-clean-main">
-          <div class="account-hub-kicker">Мой аккаунт</div>
+    <section class="cabinet-block account-hub-hero account-clean-hero account-clean-hero-with-banner account-reference-hero account-reference-hero-round112 ${banner ? "has-profile-banner" : ""}">
+      <div class="account-hub-banner-layer" aria-hidden="true">
+        ${banner ? `<img src="${escapeHtml(banner)}" alt="">` : ""}
+      </div>
+      <div class="account-reference-identity">
+        <div class="account-hub-avatar-wrap account-clean-avatar account-reference-avatar">${avatarMarkup}</div>
+        <div class="account-clean-main account-reference-main">
           <div class="account-hub-title account-clean-title">${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</div>
           <div class="muted account-hub-subtitle account-clean-subtitle">
             @${escapeHtml(user.nickname || user.username || "player")} • ${escapeHtml(user.email || "email не указан")}
           </div>
-          <div class="account-clean-status-line">
-            <span class="meta-item">${escapeHtml(roleBadgeLabel(user))}</span>
-            <span class="meta-item">${user.is_online ? "online" : `last seen: ${escapeHtml(formatDateTime(user.last_seen_at))}`}</span>
-            ${lssName ? `<span class="meta-item">LSS: ${escapeHtml(lssName)}</span>` : ""}
+          <div class="account-clean-status-line account-reference-status-line">
+            <span class="meta-item">👑 Роль: ${escapeHtml(roleBadgeLabel(user))}</span>
+            ${renderOnlineBadge(user)}
+            ${createdAt ? `<span class="meta-item">🗓️ Создан: ${escapeHtml(formatDateTime(createdAt))}</span>` : ""}
+            ${lssName ? `<span class="meta-item">🎲 LSS: ${escapeHtml(lssName)}</span>` : `<span class="meta-item">🎲 LSS: Персонаж</span>`}
           </div>
+          <div class="account-reference-short-status">${escapeHtml(user.short_status || "Без статуса")}</div>
         </div>
-        <div class="account-clean-actions">
+        <div class="account-clean-actions account-reference-actions">
           <button class="btn ${isGm ? "btn-danger" : "btn-primary"}" type="button" id="accountToggleGmModeBtn">
             ${isGm ? "Player mode" : "GM mode"}
           </button>
-          <button class="btn" type="button" data-account-section="chat">Чат</button>
-          <button class="btn" type="button" data-account-section-open="masterroom">Master Room</button>
-          <button class="btn btn-danger account-hub-logout-btn" type="button" data-account-logout="1">Выйти</button>
+          <button class="btn btn-primary" type="button" data-account-section-open="masterroom">👥 Открыть Master Room</button>
+          <button class="btn" type="button" data-account-section="chat">💬 Открыть чат</button>
+          <button class="btn btn-danger account-hub-logout-btn" type="button" data-account-logout="1">🚪 Выйти</button>
         </div>
       </div>
 
-      <div class="account-clean-summary-grid">
+      <div class="account-clean-summary-grid account-reference-summary-grid">
         <div class="account-clean-summary-card"><span>Персонажи</span><strong>${escapeHtml(String(charactersCount))}</strong></div>
         <div class="account-clean-summary-card"><span>Партии</span><strong>${escapeHtml(String(partiesCount))}</strong></div>
         <div class="account-clean-summary-card"><span>Друзья</span><strong>${escapeHtml(String(friendsCount))}</strong></div>
         <div class="account-clean-summary-card"><span>Витрина</span><strong>${escapeHtml(String(showcaseCount))}</strong></div>
       </div>
 
-      <details class="account-clean-details">
+      <details class="account-clean-details account-reference-drawer account-reference-quick-drawer">
         <summary>Коротко о профиле</summary>
         <div>${escapeHtml(user.bio || user.short_status || "Профиль игрока, витрина персонажей и социальный хаб кампании.")}</div>
       </details>
@@ -493,39 +746,72 @@ function renderAccountHero() {
 }
 
 function renderSectionNav() {
-  const primary = new Set(["profile", "friends", "chat", "parties", "characters", "settings"]);
-  const primarySections = ACCOUNT_SECTIONS.filter((section) => primary.has(section.key));
-  const extraSections = ACCOUNT_SECTIONS.filter((section) => !primary.has(section.key));
+  const orderedKeys = ["profile", "friends", "parties", "characters", "showcase", "trade", "settings", "chat"];
+  const sectionMeta = {
+    profile: { icon: "👤", label: "Профиль" },
+    friends: { icon: "👥", label: "Друзья" },
+    parties: { icon: "⚔️", label: "Столы / Партии" },
+    characters: { icon: "🪖", label: "Персонажи" },
+    showcase: { icon: "🖼️", label: "Витрина" },
+    trade: { icon: "🔄", label: "Обмен" },
+    settings: { icon: "⚙️", label: "Настройки", iconOnly: true },
+    chat: { icon: "💬", label: "Чат" },
+  };
+
+  const orderedSections = orderedKeys
+    .map((key) => ACCOUNT_SECTIONS.find((section) => section.key === key))
+    .filter(Boolean);
 
   return `
-    <div class="cabinet-block account-hub-nav account-hub-nav-shell account-clean-nav">
-      <div class="account-hub-tab-row account-clean-tab-row">
-        ${primarySections.map((section) => `
-          <button
-            class="btn ${ACCOUNT_STATE.section === section.key ? "active" : ""}"
-            type="button"
-            data-account-section="${escapeHtml(section.key)}"
-          >
-            ${escapeHtml(section.label)}
-          </button>
-        `).join("")}
+    <div class="cabinet-block account-hub-nav account-hub-nav-shell account-clean-nav account-steam-nav">
+      <div class="account-hub-tab-row account-clean-tab-row account-steam-tab-row">
+        ${orderedSections.map((section) => {
+          const meta = sectionMeta[section.key] || { icon: "•", label: section.label || section.key };
+          const activeClass = ACCOUNT_STATE.section === section.key ? "active" : "";
+          const iconOnlyClass = meta.iconOnly ? "account-nav-tab-icon-only" : "";
+          return `
+            <button
+              class="btn account-nav-tab ${activeClass} ${iconOnlyClass}"
+              type="button"
+              data-account-section="${escapeHtml(section.key)}"
+              title="${escapeHtml(meta.label)}"
+              aria-label="${escapeHtml(meta.label)}"
+            >
+              <span class="account-nav-tab-icon" aria-hidden="true">${escapeHtml(meta.icon)}</span>
+              ${meta.iconOnly ? "" : `<span class="account-nav-tab-label">${escapeHtml(meta.label)}</span>`}
+            </button>
+          `;
+        }).join("")}
       </div>
-      ${extraSections.length ? `
-        <details class="account-clean-details account-clean-extra-nav">
-          <summary>Дополнительно</summary>
-          <div class="account-clean-extra-nav-row">
-            ${extraSections.map((section) => `
-              <button
-                class="btn ${ACCOUNT_STATE.section === section.key ? "active" : ""}"
-                type="button"
-                data-account-section="${escapeHtml(section.key)}"
-              >
-                ${escapeHtml(section.label)}
-              </button>
-            `).join("")}
-          </div>
-        </details>
-      ` : ""}
+    </div>
+  `;
+}
+
+
+function renderProfileMediaCompact(kind, title, description, previewUrl, recommendedSize) {
+  const pendingPreview = getPendingMediaData(kind).dataUrl;
+  const effectivePreview = pendingPreview || previewUrl;
+  const fileInputId = `account${kind.charAt(0).toUpperCase() + kind.slice(1)}FileInput`;
+  const urlInputId = kind === "avatar" ? "accountAvatarUrlInput" : "accountBannerUrlInput";
+  return `
+    <div class="account-profile-media-compact account-profile-media-${escapeHtml(kind)} ${effectivePreview ? "has-preview" : ""}">
+      <div class="account-profile-media-preview" data-account-media-preview="${escapeHtml(kind)}">
+        ${effectivePreview
+          ? `<img src="${escapeHtml(effectivePreview)}" alt="${escapeHtml(title)}">`
+          : `<span>＋</span>`}
+      </div>
+      <div class="account-profile-media-copy">
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(description)}</span>
+        <small>${escapeHtml(recommendedSize)}</small>
+        <div class="account-profile-media-actions">
+          <button class="btn" type="button" data-account-pick-media="${escapeHtml(kind)}">Выбрать</button>
+          <button class="btn btn-primary" type="button" data-account-upload-media="${escapeHtml(kind)}">Загрузить</button>
+          <button class="btn btn-danger" type="button" data-account-delete-media="${escapeHtml(kind)}">Очистить</button>
+        </div>
+        <input id="${urlInputId}" class="account-profile-media-url" type="text" value="${escapeHtml(previewUrl || "")}" placeholder="URL fallback">
+      </div>
+      <input id="${fileInputId}" type="file" accept="image/*" hidden>
     </div>
   `;
 }
@@ -537,112 +823,94 @@ function renderProfileSection() {
   const activeCharacter = showcase.active_character;
   const activeParty = showcase.active_party;
   const media = getProfileMedia();
-  const previewTitle = activeCharacter?.name || getCurrentLssCharacterName() || user.display_name || user.nickname || "Кабинет персонажа";
-  const previewMeta = [
-    `Роль: ${roleBadgeLabel(user)}`,
-    activeParty?.title ? `Стол: ${activeParty.title}` : "",
-    lssCharacterMeta(user, activeCharacter),
-  ].filter(Boolean);
+  const avatar = getProfileAvatarUrl();
+  const banner = getProfileBannerUrl();
+  const previewBanner = banner || "/static/images/background.jpg";
+  const displayName = user.display_name || user.nickname || user.email || "Игрок";
+  const nickname = user.nickname || user.username || "player";
+  const previewRole = String(user.role || "player").trim().toLowerCase() === "gm" ? "ГМ" : "Игрок";
 
   return `
-    <div class="account-hub-profile-grid">
-      <div class="cabinet-block account-hub-stage-card">
-        <div class="flex-between account-hub-card-head">
-          <div>
-            <h4 class="account-hub-card-title">Обзор профиля</h4>
-            <div class="muted account-hub-card-copy">Сначала идентичность и быстрые игровые блоки, редактирование ниже.</div>
+    <div class="account-profile-reference-grid account-profile-reference-grid-round112">
+      <details class="cabinet-block account-clean-details account-reference-drawer account-profile-info-card account-profile-edit-drawer">
+        <summary>
+          <span class="account-profile-section-title">Информация профиля</span>
+          <small>редактирование</small>
+        </summary>
+        <div class="account-profile-edit-layout">
+          <div class="account-profile-form-grid">
+            <label class="account-profile-field account-profile-field-with-icon">
+              <span>Username / nickname</span>
+              <div class="account-profile-input-wrap">
+                <i aria-hidden="true">👤</i>
+                <input id="accountNicknameInput" type="text" value="${escapeHtml(user.nickname || "")}" placeholder="nickname">
+              </div>
+            </label>
+            <label class="account-profile-field account-profile-field-with-icon">
+              <span>Display name</span>
+              <div class="account-profile-input-wrap">
+                <i aria-hidden="true">T</i>
+                <input id="accountDisplayNameInput" type="text" value="${escapeHtml(user.display_name || "")}" placeholder="Введите отображаемое имя">
+              </div>
+            </label>
+            <label class="account-profile-field account-profile-field-full account-profile-field-with-icon">
+              <span>Короткий статус</span>
+              <div class="account-profile-input-wrap">
+                <i aria-hidden="true">🪶</i>
+                <input id="accountShortStatusInput" type="text" value="${escapeHtml(user.short_status || "")}" placeholder="Во что играю, кого ищу, чем занят">
+              </div>
+            </label>
+            <label class="account-profile-field account-profile-field-full account-profile-field-with-icon">
+              <span>О себе</span>
+              <div class="account-profile-input-wrap account-profile-textarea-wrap">
+                <i aria-hidden="true">📖</i>
+                <textarea id="accountBioInput" rows="4" placeholder="Расскажите о себе, интересах, стиле игры...">${escapeHtml(user.bio || "")}</textarea>
+              </div>
+            </label>
           </div>
-          <span class="meta-item">${media.avatar?.url ? "avatar uploaded" : "avatar via URL/fallback"}</span>
-        </div>
-        <div class="profile-grid account-hub-stats-grid">
-          <div class="stat-box account-hub-stat-card">
-            <div class="muted">О себе</div>
-            <div class="account-hub-stat-copy">${escapeHtml(user.bio || showcase.about_me || "Заполни краткое описание профиля и стиля игры.")}</div>
-          </div>
-          <div class="stat-box account-hub-stat-card">
-            <div class="muted">Активный персонаж</div>
-            <div class="account-hub-stat-value">${escapeHtml(activeCharacter?.name || getCurrentLssCharacterName() || "Не выбран")}</div>
-            <div class="muted account-hub-stat-note">${escapeHtml(activeCharacter?.class_name || "Связь с LSS доступна")}</div>
-          </div>
-          <div class="stat-box account-hub-stat-card">
-            <div class="muted">Текущий стол</div>
-            <div class="account-hub-stat-value">${escapeHtml(activeParty?.title || "Не выбран")}</div>
-            <div class="muted account-hub-stat-note">${escapeHtml(activeParty?.role_in_table || "Можно выбрать в настройках")}</div>
-          </div>
-          <div class="stat-box account-hub-stat-card">
-            <div class="muted">Быстрые теги</div>
-            <div class="account-hub-stat-tags">${escapeHtml((user.profile_tags || []).join(" • ") || "co-op • roleplay • bg3")}</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="account-hub-support-column">
-        <div class="cabinet-block account-hub-stage-card">
-          <div class="flex-between account-hub-card-head">
-            <div>
-              <h4 class="account-hub-card-title">Featured</h4>
-              <div class="muted account-hub-card-copy">Главное о твоём профиле без ухода в настройки.</div>
+          <details class="account-clean-details account-reference-drawer account-profile-media-drawer">
+            <summary>
+              <span class="account-profile-section-title">Медиа профиля</span>
+              <small>аватар и баннер</small>
+            </summary>
+            <div class="account-profile-media-column">
+              ${renderProfileMediaCompact("avatar", "Аватар", "Загрузите аватар", media.avatar?.url || user.avatar_url || "", media.avatar?.description || "Рекомендуемый размер 512×512 px")}
+              ${renderProfileMediaCompact("banner", "Баннер профиля", "Загрузите баннер", media.banner?.url || user.banner_url || "", media.banner?.description || "Рекомендуемый размер 1920×640 px")}
             </div>
-            <span class="meta-item">${escapeHtml(roleBadgeLabel(user))}</span>
-          </div>
-          <div class="profile-grid account-hub-featured-grid">
-            <div class="stat-box account-hub-stat-card">
-              <div class="muted">Статус</div>
-              <div class="account-hub-stat-value">${escapeHtml(user.short_status || "Без статуса")}</div>
-            </div>
-            <div class="stat-box account-hub-stat-card">
-              <div class="muted">Витрина</div>
-              <div class="account-hub-stat-value">${escapeHtml(String((media.showcase || []).length))} media</div>
-            </div>
-            <div class="stat-box account-hub-stat-card">
-              <div class="muted">Активный стол</div>
-              <div class="account-hub-stat-value">${escapeHtml(activeParty?.title || "Не выбран")}</div>
-            </div>
-          </div>
+          </details>
         </div>
-        ${renderMediaSlot("avatar", "Аватар", "Основной образ профиля, используется в хабе и social-блоках.", getProfileAvatarUrl())}
-        ${renderMediaSlot("banner", "Баннер", "Фон hero-зоны профиля. Можно оставить URL как fallback.", getProfileBannerUrl())}
-      </div>
-    </div>
+        <div class="account-profile-save-row">
+          <button class="btn btn-primary" type="button" id="accountSaveProfileBtn">Сохранить профиль</button>
+          <span class="muted">Изменения применятся в шапке, social-профиле и витрине.</span>
+        </div>
+      </details>
 
-    <div class="cabinet-block account-hub-edit-panel account-hub-edit-shell">
-      <div class="flex-between account-hub-card-head">
-        <div>
-          <h4 class="account-hub-card-title">Редактирование профиля</h4>
-          <div class="muted account-hub-card-copy">Редактирование остаётся доступным, но больше не занимает весь экран вместо профиля.</div>
+      <section class="cabinet-block account-profile-preview-card account-profile-preview-card-round112 ${banner ? "has-profile-banner" : "has-default-profile-art"}">
+        <div class="account-profile-preview-bg" aria-hidden="true">
+          <img src="${escapeHtml(previewBanner)}" alt="">
         </div>
-      </div>
-      <div class="profile-grid account-hub-edit-grid">
-        <div class="filter-group">
-          <label>Username / nickname</label>
-          <input id="accountNicknameInput" type="text" value="${escapeHtml(user.nickname || "")}">
-        </div>
-        <div class="filter-group">
-          <label>Display name</label>
-          <input id="accountDisplayNameInput" type="text" value="${escapeHtml(user.display_name || "")}">
-        </div>
-        <div class="filter-group account-hub-full-span">
-          <label>Короткий статус</label>
-          <input id="accountShortStatusInput" type="text" value="${escapeHtml(user.short_status || "")}" placeholder="Во что играю, кого ищу, чем занят">
-        </div>
-        <div class="filter-group account-hub-full-span">
-          <label>О себе</label>
-          <textarea id="accountBioInput" rows="4" placeholder="О себе, интересы, стиль игры...">${escapeHtml(user.bio || "")}</textarea>
-        </div>
-      </div>
-      <div class="cart-buttons account-hub-edit-actions">
-        <button class="btn btn-primary" type="button" id="accountSaveProfileBtn">Сохранить профиль</button>
-      </div>
-    </div>
+        <div class="account-profile-preview-content">
+          <div class="account-profile-preview-kicker">Личный кабинет — превью</div>
+          <div class="account-profile-preview-row">
+            <div class="account-profile-preview-avatar">
+              ${avatar ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(displayName)}">` : `<span>✦</span>`}
+            </div>
+            <div class="account-profile-preview-copy">
+              <h4>${escapeHtml(displayName)}</h4>
+              <div class="muted">Роль: ${escapeHtml(previewRole)} • @${escapeHtml(nickname)}</div>
+              <div class="muted">Раздел: LSS • ${escapeHtml(user.email || "email не указан")}</div>
+            </div>
+            <span class="account-profile-preview-crown" aria-hidden="true">👑</span>
+          </div>
 
-    <div class="cabinet-block account-hub-preview-card">
-      <div class="account-hub-preview-emblem">✦</div>
-      <div class="account-hub-preview-copy">
-        <div class="account-hub-kicker">Личный кабинет — превью</div>
-        <div class="account-hub-preview-title">${escapeHtml(previewTitle)}</div>
-        <div class="account-hub-preview-meta">${escapeHtml(previewMeta.join(" • ") || "Игровой профиль и social hub")}</div>
-      </div>
-      <div class="account-hub-preview-scene"></div>
+          <div class="account-profile-preview-strip">
+            <div><span>Персонаж</span><strong>${escapeHtml(activeCharacter?.name || getCurrentLssCharacterName() || "Не выбран")}</strong></div>
+            <div><span>Партия</span><strong>${escapeHtml(activeParty?.title || "Не выбрана")}</strong></div>
+            <div><span>Витрина</span><strong>${escapeHtml(String((media.showcase || []).length))} media</strong></div>
+          </div>
+        </div>
+      </section>
     </div>
   `;
 }
@@ -654,23 +922,25 @@ function lssCharacterMeta(user, activeCharacter) {
 function renderFriendsSearch() {
   const results = Array.isArray(ACCOUNT_STATE.searchResults) ? ACCOUNT_STATE.searchResults : [];
   return `
-    <section class="cabinet-block account-social-search">
+    <section class="cabinet-block account-social-search account-social-search-discord">
       <div class="account-social-search-head">
         <div>
           <div class="account-hub-kicker">Social search</div>
-          <h4 class="account-social-title">Поиск игроков</h4>
-          <div class="muted account-social-copy">Найди игрока по нику, display name или email и открой direct chat.</div>
+          <h4 class="account-social-title">Поиск и добавление</h4>
+          <div class="muted account-social-copy">Найди игрока по нику, display name или email. Выбери профиль, чтобы посмотреть статус, витрину и быстрые действия.</div>
         </div>
         <span class="meta-item">${escapeHtml(String(results.length))} найдено</span>
       </div>
-      <div class="account-social-search-row">
+
+      <div class="account-social-search-row account-social-search-row-discord">
         <div class="filter-group">
-          <label>Поиск игроков</label>
+          <label>Поиск игрока</label>
           <input id="accountFriendsSearchInput" type="text" value="${escapeHtml(ACCOUNT_STATE.searchQuery || "")}" placeholder="Ник, display name или email">
         </div>
         <button class="btn btn-primary" type="button" id="accountFriendsSearchBtn">Найти</button>
       </div>
-      <div class="account-social-search-results">
+
+      <div class="account-social-search-results account-social-search-results-discord">
         ${results.length
           ? results.map((user) => `
               <div class="account-social-result-row">
@@ -678,11 +948,15 @@ function renderFriendsSearch() {
                 <div class="account-social-person-copy">
                   <strong>${escapeHtml(user.display_name || user.nickname || user.email || "Игрок")}</strong>
                   <span>@${escapeHtml(user.nickname || user.username || "")}${user.short_status ? ` • ${escapeHtml(user.short_status)}` : ""}</span>
+                  ${renderOnlineBadge(user)}
                 </div>
-                ${renderFriendActionButton(user)}
+                <div class="account-social-actions account-social-actions-inline account-social-result-actions">
+                  <button class="btn" type="button" data-account-view-profile="${escapeHtml(String(user.id || ""))}">Профиль</button>
+                  ${renderFriendActionButton(user)}
+                </div>
               </div>
             `).join("")
-          : `<div class="account-social-empty">Поиск пока пуст. Введи ник или email игрока.</div>`}
+          : `<div class="account-social-empty">Здесь появятся найденные игроки. Введи ник, display name или email.</div>`}
       </div>
     </section>
   `;
@@ -693,115 +967,119 @@ function renderFriendsList() {
   const friends = Array.isArray(state.friends) ? state.friends : [];
   const incoming = Array.isArray(state.incoming_requests) ? state.incoming_requests : [];
   const outgoing = Array.isArray(state.outgoing_requests) ? state.outgoing_requests : [];
+
   return `
-    <div class="account-social-shell">
-      ${renderFriendsSearch()}
-      <div class="account-social-summary">
-        <div class="account-social-summary-card">
-          <span>Друзья</span>
-          <strong>${escapeHtml(String(friends.length))}</strong>
-        </div>
-        <div class="account-social-summary-card">
-          <span>Входящие</span>
-          <strong>${escapeHtml(String(incoming.length))}</strong>
-        </div>
-        <div class="account-social-summary-card">
-          <span>Исходящие</span>
-          <strong>${escapeHtml(String(outgoing.length))}</strong>
-        </div>
-      </div>
+    <div class="account-social-shell account-social-shell-discord">
+      <div class="account-social-discord-layout account-social-discord-layout-profile">
+        <aside class="account-social-sidebar">
+          ${renderFriendsSearch()}
+          ${renderOnlineFriendsPanel()}
+        </aside>
 
-      <div class="account-social-grid">
-        <section class="cabinet-block account-social-panel account-social-panel-main">
-          <div class="account-social-panel-head">
-            <div>
-              <div class="account-hub-kicker">Party network</div>
-              <h4 class="account-social-title">Друзья</h4>
+        <div class="account-social-mainstack">
+          <section class="cabinet-block account-social-panel account-social-panel-main account-social-panel-friends">
+            <div class="account-social-panel-head">
+              <div>
+                <div class="account-hub-kicker">Party network</div>
+                <h4 class="account-social-title">Друзья</h4>
+                <div class="muted account-social-copy">Контакты, online-статус, профиль, чат и обмен без лишних дублей.</div>
+              </div>
+              <span class="meta-item">${escapeHtml(String(friends.length))}</span>
             </div>
-            <span class="meta-item">${escapeHtml(String(friends.length))}</span>
-          </div>
-          <div class="account-social-list">
-            ${friends.length
-              ? friends.map((entry) => {
-                  const friend = entry.friend || {};
-                  return `
-                    <div class="account-social-friend-card">
-                      ${renderAccountChatAvatar(friend)}
-                      <div class="account-social-person-copy">
-                        <strong>${escapeHtml(friend.display_name || friend.nickname || "Игрок")}</strong>
-                        <span>@${escapeHtml(friend.nickname || "")} • ${friend.is_online ? "online" : "offline"}</span>
-                        ${friend.short_status ? `<small>${escapeHtml(friend.short_status)}</small>` : ""}
+            <div class="account-social-list account-social-list-friends">
+              ${friends.length
+                ? friends.map((entry) => {
+                    const friend = entry.friend || entry.user || entry || {};
+                    const isSelected = String(ACCOUNT_STATE.selectedSocialProfileId || "") === String(friend.id || "");
+                    return `
+                      <div class="account-social-friend-card account-social-friend-card-main ${isSelected ? "account-social-friend-card-active" : ""}">
+                        ${renderAccountChatAvatar(friend)}
+                        <div class="account-social-person-copy">
+                          <strong>${escapeHtml(friend.display_name || friend.nickname || "Игрок")}</strong>
+                          <span>@${escapeHtml(friend.nickname || "")}</span>
+                          ${renderOnlineBadge(friend)}
+                          ${friend.short_status ? `<small>${escapeHtml(friend.short_status)}</small>` : ""}
+                        </div>
+                        <div class="account-social-actions account-social-actions-main">
+                          <button class="btn" type="button" data-account-view-profile="${escapeHtml(String(friend.id || ""))}">Профиль</button>
+                          <button class="btn" type="button" data-account-open-chat="${escapeHtml(String(friend.id || ""))}">Чат</button>
+                          <button class="btn" type="button" data-account-open-trade="${escapeHtml(String(friend.id || ""))}">Обмен</button>
+                          <button class="btn btn-danger" type="button" data-account-remove-friend="${escapeHtml(String(friend.id || ""))}">Удалить</button>
+                        </div>
                       </div>
-                      <div class="account-social-actions">
-                        <button class="btn" type="button" data-account-open-chat="${escapeHtml(String(friend.id || ""))}">Чат</button>
-                        <button class="btn" type="button" data-account-open-trade="${escapeHtml(String(friend.id || ""))}">Обмен</button>
-                        <button class="btn btn-danger" type="button" data-account-remove-friend="${escapeHtml(String(friend.id || ""))}">Удалить</button>
-                      </div>
-                    </div>
-                  `;
-                }).join("")
-              : `<div class="account-social-empty">Друзей пока нет. Используй поиск выше, чтобы собрать party network.</div>`}
-          </div>
-        </section>
+                    `;
+                  }).join("")
+                : `<div class="account-social-empty">Друзей пока нет. Используй поиск слева, чтобы собрать свой social hub.</div>`}
+            </div>
+          </section>
 
-        <section class="cabinet-block account-social-panel">
-          <div class="account-social-panel-head">
-            <div>
-              <div class="account-hub-kicker">Incoming</div>
-              <h4 class="account-social-title">Входящие заявки</h4>
-            </div>
-            <span class="meta-item">${escapeHtml(String(incoming.length))}</span>
-          </div>
-          <div class="account-social-list">
-            ${incoming.length
-              ? incoming.map((entry) => {
-                  const user = entry.user || {};
-                  return `
-                    <div class="account-social-request-card">
-                      ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
-                      <div class="account-social-person-copy">
-                        <strong>${escapeHtml(user.display_name || user.nickname || "Игрок")}</strong>
-                        <span>${escapeHtml(entry.message || "Без сообщения")}</span>
-                      </div>
-                      <div class="account-social-actions account-social-actions-inline">
-                        <button class="btn btn-primary" type="button" data-account-accept-request="${escapeHtml(String(entry.id))}">Принять</button>
-                        <button class="btn btn-danger" type="button" data-account-reject-request="${escapeHtml(String(entry.id))}">Отклонить</button>
-                      </div>
-                    </div>
-                  `;
-                }).join("")
-              : `<div class="account-social-empty">Входящих заявок нет.</div>`}
-          </div>
-        </section>
+          <div class="account-social-request-grid">
+            <section class="cabinet-block account-social-panel">
+              <div class="account-social-panel-head">
+                <div>
+                  <div class="account-hub-kicker">Incoming</div>
+                  <h4 class="account-social-title">Входящие заявки</h4>
+                </div>
+                <span class="meta-item">${escapeHtml(String(incoming.length))}</span>
+              </div>
+              <div class="account-social-list">
+                ${incoming.length
+                  ? incoming.map((entry) => {
+                      const user = entry.user || {};
+                      return `
+                        <div class="account-social-request-card">
+                          ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
+                          <div class="account-social-person-copy">
+                            <strong>${escapeHtml(user.display_name || user.nickname || "Игрок")}</strong>
+                            <span>${escapeHtml(entry.message || "Без сообщения")}</span>
+                            ${renderOnlineBadge(user)}
+                          </div>
+                          <div class="account-social-actions account-social-actions-inline">
+                            <button class="btn" type="button" data-account-view-profile="${escapeHtml(String(user.id || ""))}">Профиль</button>
+                            <button class="btn btn-primary" type="button" data-account-accept-request="${escapeHtml(String(entry.id))}">Принять</button>
+                            <button class="btn btn-danger" type="button" data-account-reject-request="${escapeHtml(String(entry.id))}">Отклонить</button>
+                          </div>
+                        </div>
+                      `;
+                    }).join("")
+                  : `<div class="account-social-empty">Входящих заявок нет.</div>`}
+              </div>
+            </section>
 
-        <section class="cabinet-block account-social-panel">
-          <div class="account-social-panel-head">
-            <div>
-              <div class="account-hub-kicker">Outgoing</div>
-              <h4 class="account-social-title">Исходящие заявки</h4>
-            </div>
-            <span class="meta-item">${escapeHtml(String(outgoing.length))}</span>
+            <section class="cabinet-block account-social-panel">
+              <div class="account-social-panel-head">
+                <div>
+                  <div class="account-hub-kicker">Outgoing</div>
+                  <h4 class="account-social-title">Исходящие заявки</h4>
+                </div>
+                <span class="meta-item">${escapeHtml(String(outgoing.length))}</span>
+              </div>
+              <div class="account-social-list">
+                ${outgoing.length
+                  ? outgoing.map((entry) => {
+                      const user = entry.user || entry.target_user || {};
+                      return `
+                        <div class="account-social-request-card">
+                          ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
+                          <div class="account-social-person-copy">
+                            <strong>${escapeHtml(user.display_name || user.nickname || "Игрок")}</strong>
+                            <span>${escapeHtml(entry.message || "Ожидает ответа")}</span>
+                            ${renderOnlineBadge(user)}
+                          </div>
+                          <div class="account-social-actions account-social-actions-inline">
+                            <button class="btn" type="button" data-account-view-profile="${escapeHtml(String(user.id || ""))}">Профиль</button>
+                            <button class="btn btn-danger" type="button" data-account-cancel-request="${escapeHtml(String(entry.id))}">Отменить</button>
+                          </div>
+                        </div>
+                      `;
+                    }).join("")
+                  : `<div class="account-social-empty">Исходящих заявок нет.</div>`}
+              </div>
+            </section>
           </div>
-          <div class="account-social-list">
-            ${outgoing.length
-              ? outgoing.map((entry) => {
-                  const user = entry.user || {};
-                  return `
-                    <div class="account-social-request-card">
-                      ${renderAccountChatAvatar(user, "account-chat-avatar account-chat-avatar-small")}
-                      <div class="account-social-person-copy">
-                        <strong>${escapeHtml(user.display_name || user.nickname || "Игрок")}</strong>
-                        <span>${escapeHtml(entry.message || "Ожидает ответа")}</span>
-                      </div>
-                      <div class="account-social-actions account-social-actions-inline">
-                        <button class="btn btn-danger" type="button" data-account-cancel-request="${escapeHtml(String(entry.id))}">Отменить</button>
-                      </div>
-                    </div>
-                  `;
-                }).join("")
-              : `<div class="account-social-empty">Исходящих заявок нет.</div>`}
-          </div>
-        </section>
+        </div>
+
+        ${renderSocialProfilePanel()}
       </div>
     </div>
   `;
@@ -1021,50 +1299,58 @@ function renderSettingsSection() {
   const user = getCurrentUser();
   const parties = getCurrentParties();
   return `
-    <div class="cabinet-block">
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+    <div class="cabinet-block account-settings-shell">
+      <div class="account-settings-head">
+        <div>
+          <h4 class="account-hub-card-title" style="margin:0;">Настройки аккаунта</h4>
+          <div class="muted account-hub-card-copy">Приватность, social-права и базовые параметры профиля без ощущения сырой формы.</div>
+        </div>
+        <span class="meta-item">⚙️ account</span>
+      </div>
+
+      <div class="profile-grid account-settings-grid">
         <div class="filter-group">
-          <label>Preferred role</label>
+          <label>Предпочитаемая роль</label>
           <select id="accountPreferredRoleInput">
-            <option value="player" ${user?.preferred_role === "player" ? "selected" : ""}>player</option>
-            <option value="gm" ${user?.preferred_role === "gm" ? "selected" : ""}>gm</option>
-            <option value="both" ${user?.preferred_role === "both" ? "selected" : ""}>both</option>
+            <option value="player" ${user?.preferred_role === "player" ? "selected" : ""}>Игрок</option>
+            <option value="gm" ${user?.preferred_role === "gm" ? "selected" : ""}>ГМ</option>
+            <option value="both" ${user?.preferred_role === "both" ? "selected" : ""}>Оба режима</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Privacy</label>
+          <label>Приватность профиля</label>
           <select id="accountPrivacyLevelInput">
-            <option value="public" ${user?.privacy_level === "public" ? "selected" : ""}>public</option>
-            <option value="friends" ${user?.privacy_level === "friends" ? "selected" : ""}>friends</option>
-            <option value="private" ${user?.privacy_level === "private" ? "selected" : ""}>private</option>
+            <option value="public" ${user?.privacy_level === "public" ? "selected" : ""}>Публичный</option>
+            <option value="friends" ${user?.privacy_level === "friends" ? "selected" : ""}>Только друзья</option>
+            <option value="private" ${user?.privacy_level === "private" ? "selected" : ""}>Приватный</option>
           </select>
         </div>
         <div class="filter-group">
           <label>Кто может писать</label>
           <select id="accountAllowMessagesInput">
-            <option value="everyone" ${user?.allow_direct_messages === "everyone" ? "selected" : ""}>everyone</option>
-            <option value="friends" ${user?.allow_direct_messages !== "everyone" && user?.allow_direct_messages !== "nobody" ? "selected" : ""}>friends</option>
-            <option value="nobody" ${user?.allow_direct_messages === "nobody" ? "selected" : ""}>nobody</option>
+            <option value="everyone" ${user?.allow_direct_messages === "everyone" ? "selected" : ""}>Все</option>
+            <option value="friends" ${user?.allow_direct_messages !== "everyone" && user?.allow_direct_messages !== "nobody" ? "selected" : ""}>Только друзья</option>
+            <option value="nobody" ${user?.allow_direct_messages === "nobody" ? "selected" : ""}>Никто</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Timezone</label>
+          <label>Часовой пояс</label>
           <input id="accountTimezoneInput" type="text" value="${escapeHtml(user?.timezone || "UTC")}">
         </div>
         <div class="filter-group">
-          <label>Locale</label>
+          <label>Локаль</label>
           <input id="accountLocaleInput" type="text" value="${escapeHtml(user?.locale || "ru-RU")}">
         </div>
         <div class="filter-group">
-          <label>Profile tags</label>
+          <label>Теги профиля</label>
           <input id="accountProfileTagsInput" type="text" value="${escapeHtml((user?.profile_tags || []).join(", "))}" placeholder="co-op, roleplay, bg3">
         </div>
         <div class="filter-group">
-          <label>Preferred systems</label>
+          <label>Предпочитаемые системы</label>
           <input id="accountPreferredSystemsInput" type="text" value="${escapeHtml((user?.preferred_systems || []).join(", "))}" placeholder="D&D, BG3">
         </div>
         <div class="filter-group">
-          <label>Active party</label>
+          <label>Активная партия</label>
           <select id="accountActivePartyInput">
             <option value="">Не выбрана</option>
             ${parties.map((entry) => `
@@ -1073,25 +1359,39 @@ function renderSettingsSection() {
           </select>
         </div>
       </div>
-      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:12px;">
-        <label class="meta-item" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+
+      <div class="account-settings-toggle-list">
+        <label class="account-settings-toggle-item">
+          <div class="account-settings-toggle-copy">
+            <strong>Разрешить заявки в друзья</strong>
+            <span>Другие игроки смогут отправлять тебе friend request.</span>
+          </div>
           <input id="accountAllowFriendRequestsInput" type="checkbox" ${user?.allow_friend_requests ? "checked" : ""}>
-          allow friend requests
         </label>
-        <label class="meta-item" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <label class="account-settings-toggle-item">
+          <div class="account-settings-toggle-copy">
+            <strong>Разрешить приглашения в партию</strong>
+            <span>Игроки и ГМ смогут отправлять инвайты в стол / партию.</span>
+          </div>
           <input id="accountAllowPartyInvitesInput" type="checkbox" ${user?.allow_party_invites ? "checked" : ""}>
-          allow party invites
         </label>
-        <label class="meta-item" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <label class="account-settings-toggle-item">
+          <div class="account-settings-toggle-copy">
+            <strong>Публичный профиль</strong>
+            <span>Другие увидят профиль, витрину и базовые social-данные.</span>
+          </div>
           <input id="accountAllowProfilePublicInput" type="checkbox" ${user?.allow_profile_view_public ? "checked" : ""}>
-          public profile
         </label>
-        <label class="meta-item" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <label class="account-settings-toggle-item">
+          <div class="account-settings-toggle-copy">
+            <strong>Показывать значок ГМа</strong>
+            <span>Отображать мастерский badge в профиле и social-блоках.</span>
+          </div>
           <input id="accountShowGmBadgeInput" type="checkbox" ${user?.show_gm_badge ? "checked" : ""}>
-          show gm badge
         </label>
       </div>
-      <div class="cart-buttons" style="margin-top:12px;">
+
+      <div class="cart-buttons account-settings-actions">
         <button class="btn btn-primary" type="button" id="accountSaveSettingsBtn">Сохранить настройки</button>
       </div>
     </div>
@@ -1488,6 +1788,13 @@ async function saveProfileSection() {
   ACCOUNT_STATE.account = payload;
   syncAccountUser(payload?.user || {});
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "system",
+    type: "account_profile_update",
+    action: "profile_update",
+    title: "Профиль обновлён",
+    message: "Пользователь обновил профиль аккаунта.",
+  });
   showToast("Профиль сохранён");
 }
 
@@ -1509,6 +1816,13 @@ async function saveSettingsSection() {
   ACCOUNT_STATE.account = payload;
   syncAccountUser(payload?.user || {});
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "system",
+    type: "account_settings_update",
+    action: "settings_update",
+    title: "Настройки аккаунта обновлены",
+    message: "Пользователь обновил настройки аккаунта.",
+  });
   showToast("Настройки сохранены");
 }
 
@@ -1524,6 +1838,14 @@ async function saveActiveCharacter() {
   ACCOUNT_STATE.account = payload;
   syncAccountUser(payload?.user || {});
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "lss",
+    type: "active_character_update",
+    action: "active_character_update",
+    title: "Активный персонаж обновлён",
+    message: `Выбран active character #${Number(value)}`,
+    character_id: Number(value),
+  });
   showToast("Active character обновлён");
 }
 
@@ -1541,6 +1863,13 @@ async function toggleGlobalGmMode() {
     };
   }
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "gm",
+    type: currentRole === "gm" ? "gm_mode_off" : "gm_mode_on",
+    action: currentRole === "gm" ? "gm_mode_off" : "gm_mode_on",
+    title: currentRole === "gm" ? "GM mode выключен" : "GM mode включён",
+    message: currentRole === "gm" ? "Пользователь выключил глобальный режим GM." : "Пользователь включил глобальный режим GM.",
+  });
   showToast(currentRole === "gm" ? "Глобальный режим GM выключен" : "Глобальный режим GM включён");
 }
 
@@ -1598,6 +1927,15 @@ async function sendCurrentDirectMessage() {
     return;
   }
   await sendDirectMessage(friendUserId, body);
+  emitAccountHistoryEvent({
+    scope: "notes",
+    type: "direct_message_sent",
+    action: "chat_message",
+    title: "Сообщение отправлено",
+    message: `Сообщение игроку ${getAccountFriendLabelById(friendUserId)}`,
+    target_user_id: friendUserId,
+    status: "chat",
+  });
   await loadConversations();
   const refreshed = ACCOUNT_STATE.conversations.find((entry) => Number(entry?.friend?.id || 0) === Number(friendUserId));
   if (refreshed) {
@@ -1643,6 +1981,18 @@ async function sendTradeToCurrentFriend() {
 
   await loadTradeInventory();
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "trade",
+    type: "player_transfer",
+    action: "player_transfer",
+    title: "Передача игроку",
+    message: `Передача игроку ${getAccountFriendLabelById(friendUserId)}${goldCp ? ` • золото: ${goldCp}м` : ""}${itemId ? ` • предмет #${itemId} × ${quantity}` : ""}`,
+    target_user_id: friendUserId,
+    item_id: itemId || "",
+    quantity: itemId ? quantity : "",
+    money_cp_total: goldCp || "",
+    status: "account",
+  });
   showToast("Передача выполнена");
 }
 
@@ -1709,6 +2059,14 @@ async function uploadPickedMedia(kind) {
   ACCOUNT_STATE.account = payload;
   syncAccountUser(payload?.user || {});
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "system",
+    type: "account_media_upload",
+    action: "media_upload",
+    title: kind === "showcase" ? "Витрина обновлена" : "Медиа профиля обновлено",
+    message: kind === "showcase" ? "Добавлено изображение в витрину." : `Обновлено изображение профиля: ${kind}.`,
+    status: kind,
+  });
   showToast(kind === "showcase" ? "Изображение добавлено в витрину" : "Изображение профиля обновлено");
 }
 
@@ -1726,6 +2084,14 @@ async function removeAccountMedia(mediaId) {
   ACCOUNT_STATE.account = payload;
   syncAccountUser(payload?.user || {});
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "system",
+    type: "account_media_delete",
+    action: "media_delete",
+    title: "Изображение удалено",
+    message: `Удалено изображение профиля/витрины: ${mediaId}.`,
+    status: String(mediaId || ""),
+  });
   showToast("Изображение удалено");
 }
 
@@ -1734,6 +2100,14 @@ async function promoteAccountMedia(mediaId) {
   ACCOUNT_STATE.account = payload;
   syncAccountUser(payload?.user || {});
   renderAccountModule();
+  emitAccountHistoryEvent({
+    scope: "system",
+    type: "account_media_primary",
+    action: "media_primary",
+    title: "Обложка витрины обновлена",
+    message: `Выбрана новая обложка витрины: ${mediaId}.`,
+    status: String(mediaId || ""),
+  });
   showToast("Обложка витрины обновлена");
 }
 
@@ -1796,7 +2170,16 @@ export function bindAccountModuleActions() {
     btn.dataset.boundAccountSendRequest = "1";
     btn.addEventListener("click", async () => {
       try {
-        await sendFriendRequest({ target_user_id: Number(btn.dataset.accountSendRequest) });
+        const targetUserId = Number(btn.dataset.accountSendRequest);
+        await sendFriendRequest({ target_user_id: targetUserId });
+        emitAccountHistoryEvent({
+          scope: "system",
+          type: "friend_request_sent",
+          action: "friend_request_sent",
+          title: "Заявка в друзья отправлена",
+          message: `Заявка отправлена игроку ${getAccountFriendLabelById(targetUserId)}`,
+          target_user_id: targetUserId,
+        });
         await loadAccountModule();
         ACCOUNT_STATE.section = "friends";
         renderAccountModule();
@@ -1812,7 +2195,16 @@ export function bindAccountModuleActions() {
     btn.dataset.boundAccountAcceptRequest = "1";
     btn.addEventListener("click", async () => {
       try {
-        await acceptFriendRequest(Number(btn.dataset.accountAcceptRequest));
+        const requestId = Number(btn.dataset.accountAcceptRequest);
+        await acceptFriendRequest(requestId);
+        emitAccountHistoryEvent({
+          scope: "system",
+          type: "friend_request_accept",
+          action: "friend_request_accept",
+          title: "Заявка в друзья принята",
+          message: `Принята заявка в друзья #${requestId}`,
+          status: "friends",
+        });
         await loadAccountModule();
         ACCOUNT_STATE.section = "friends";
         renderAccountModule();
@@ -1827,7 +2219,16 @@ export function bindAccountModuleActions() {
     btn.dataset.boundAccountRejectRequest = "1";
     btn.addEventListener("click", async () => {
       try {
-        await rejectFriendRequest(Number(btn.dataset.accountRejectRequest));
+        const requestId = Number(btn.dataset.accountRejectRequest);
+        await rejectFriendRequest(requestId);
+        emitAccountHistoryEvent({
+          scope: "system",
+          type: "friend_request_reject",
+          action: "friend_request_reject",
+          title: "Заявка в друзья отклонена",
+          message: `Отклонена заявка в друзья #${requestId}`,
+          status: "friends",
+        });
         await loadAccountModule();
         ACCOUNT_STATE.section = "friends";
         renderAccountModule();
@@ -1842,7 +2243,16 @@ export function bindAccountModuleActions() {
     btn.dataset.boundAccountCancelRequest = "1";
     btn.addEventListener("click", async () => {
       try {
-        await cancelFriendRequest(Number(btn.dataset.accountCancelRequest));
+        const requestId = Number(btn.dataset.accountCancelRequest);
+        await cancelFriendRequest(requestId);
+        emitAccountHistoryEvent({
+          scope: "system",
+          type: "friend_request_cancel",
+          action: "friend_request_cancel",
+          title: "Заявка в друзья отменена",
+          message: `Отменена исходящая заявка #${requestId}`,
+          status: "friends",
+        });
         await loadAccountModule();
         ACCOUNT_STATE.section = "friends";
         renderAccountModule();
@@ -1857,7 +2267,17 @@ export function bindAccountModuleActions() {
     btn.dataset.boundAccountRemoveFriend = "1";
     btn.addEventListener("click", async () => {
       try {
-        await removeFriend(Number(btn.dataset.accountRemoveFriend));
+        const friendUserId = Number(btn.dataset.accountRemoveFriend);
+        await removeFriend(friendUserId);
+        emitAccountHistoryEvent({
+          scope: "system",
+          type: "friend_remove",
+          action: "friend_remove",
+          title: "Друг удалён",
+          message: `Удалён из друзей: ${getAccountFriendLabelById(friendUserId)}`,
+          target_user_id: friendUserId,
+          status: "friends",
+        });
         await loadAccountModule();
         ACCOUNT_STATE.section = "friends";
         renderAccountModule();
@@ -1888,6 +2308,17 @@ export function bindAccountModuleActions() {
       } catch (error) {
         showToast(error.message || "Не удалось открыть обмен");
       }
+    });
+  });
+
+  document.querySelectorAll("[data-account-view-profile]").forEach((btn) => {
+    if (btn.dataset.boundAccountViewProfile === "1") return;
+    btn.dataset.boundAccountViewProfile = "1";
+    btn.addEventListener("click", () => {
+      const userId = String(btn.dataset.accountViewProfile || "").trim();
+      if (!userId) return;
+      ACCOUNT_STATE.selectedSocialProfileId = userId;
+      renderAccountModule();
     });
   });
 

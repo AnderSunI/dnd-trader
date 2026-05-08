@@ -332,6 +332,14 @@ export async function updateAccount(data) {
   return apiPatch("/account/me", data ?? {});
 }
 
+export async function saveAccountCharacter(data) {
+  return apiPost("/account/characters", data ?? {});
+}
+
+export async function updateAccountCharacter(characterId, data) {
+  return apiPatch(`/account/characters/${Number(characterId)}`, data ?? {});
+}
+
 export async function fetchAccountMedia() {
   return apiGet("/account/media");
 }

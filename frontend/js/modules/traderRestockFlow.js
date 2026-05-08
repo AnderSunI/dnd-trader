@@ -24,6 +24,37 @@ function getNextRestockStock({
   return Math.max(current, base);
 }
 
+function emitRestockHistoryEvent({
+  trader,
+  traderId,
+  reroll = false,
+  mode = "local",
+} = {}) {
+  const now = new Date().toISOString();
+  const normalizedTraderId = Number(traderId ?? trader?.id ?? 0) || "";
+  const traderName = trader?.name || `Торговец #${normalizedTraderId || "?"}`;
+  const modeLabel = reroll ? "реролл" : "обновление";
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("dnd:history:add", {
+        detail: {
+          scope: "trade",
+          type: reroll ? "trader_restock_reroll" : "trader_restock",
+          action: reroll ? "restock_reroll" : "restock",
+          title: reroll ? "Реролл ассортимента" : "Обновление ассортимента",
+          message: `${traderName}: ${modeLabel} ассортимента (${mode})`,
+          trader_id: normalizedTraderId,
+          trader_name: traderName,
+          status: mode,
+          created_at: now,
+          timestamp: now,
+        },
+      })
+    );
+  } catch (_) {}
+}
+
 export function applyLocalGuestRestockToTrader({
   trader,
   reroll = false,
@@ -76,6 +107,13 @@ export async function handleGuestRestockFlow({
     return;
   }
 
+  emitRestockHistoryEvent({
+    trader,
+    traderId,
+    reroll: Boolean(reroll),
+    mode: "guest/local",
+  });
+
   showToast(`Локальный restock выполнен (${reroll ? "реролл" : "обновление"})`);
   if (activeTraderId === traderId) {
     await openTraderModal(traderId);
@@ -105,6 +143,17 @@ export async function handleServerRestockFlow({
   }
 
   const modeLabel = reroll ? "реролл" : "обновление";
+  const historyTrader = traderFromPayload && typeof traderFromPayload === "object"
+    ? traderFromPayload
+    : { id: traderId };
+
+  emitRestockHistoryEvent({
+    trader: historyTrader,
+    traderId,
+    reroll: Boolean(reroll),
+    mode: "server",
+  });
+
   showToast(`Ассортимент обновлён (${modeLabel})`);
 
   if (activeTraderId === traderId) {

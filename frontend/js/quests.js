@@ -148,6 +148,136 @@ function serializeCheckpoints(checkpoints) {
     .join("\n");
 }
 
+
+function normalizeQuestImportList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  const candidates = [
+    payload.quests,
+    payload.items,
+    payload.data,
+    payload.data?.quests,
+    payload.data?.items,
+    payload.profile?.quests,
+    payload.profile?.data?.quests,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+
+  return [];
+}
+
+function getQuestUpdatedTime(item) {
+  const time = new Date(item?.updated_at || item?.updatedAt || item?.created_at || item?.createdAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function mergeQuestCollections(primary = [], secondary = []) {
+  const byId = new Map();
+
+  [...normalizeQuestList(secondary), ...normalizeQuestList(primary)].forEach((item) => {
+    const id = String(item?.id || "").trim() || makeId("quest_merge");
+    const previous = byId.get(id);
+
+    if (!previous || getQuestUpdatedTime(item) >= getQuestUpdatedTime(previous)) {
+      byId.set(id, {
+        ...(previous || {}),
+        ...item,
+        id,
+      });
+    }
+  });
+
+  return normalizeQuestList(Array.from(byId.values()));
+}
+
+function saveLocalBackup(items) {
+  try {
+    const key = `${getStorageKey()}_backup_${Date.now()}`;
+    localStorage.setItem(key, JSON.stringify(items));
+    const prefix = `${getStorageKey()}_backup_`;
+    const backupKeys = Object.keys(localStorage)
+      .filter((entryKey) => entryKey.startsWith(prefix))
+      .sort();
+
+    while (backupKeys.length > 5) {
+      const oldKey = backupKeys.shift();
+      if (oldKey) localStorage.removeItem(oldKey);
+    }
+  } catch (_) {}
+}
+
+function buildAutoCheckpointTexts({ type, title, description } = {}) {
+  const normalizedType = safeText(type, "quest").toLowerCase();
+  const cleanTitle = safeText(title, "").trim();
+  const cleanDescription = safeText(description, "").trim();
+  const hasNamedTarget = cleanTitle && cleanTitle !== "Без названия";
+
+  if (normalizedType === "achievement") {
+    return [
+      "Уточнить условие достижения",
+      "Выполнить требование",
+      "Зафиксировать результат в журнале",
+      "Выдать награду или отметить прогресс",
+    ];
+  }
+
+  if (normalizedType === "checkpoint") {
+    return [
+      "Добраться до точки",
+      "Проверить обстановку",
+      "Отметить результат для партии",
+    ];
+  }
+
+  if (normalizedType === "chronicle") {
+    return [
+      "Записать событие",
+      "Уточнить последствия для мира или партии",
+      "Связать запись с персонажами, локацией или заданием",
+    ];
+  }
+
+  const targetLine = hasNamedTarget
+    ? `Разобраться с задачей: ${cleanTitle}`
+    : "Разобраться с задачей";
+
+  const investigationLine = cleanDescription
+    ? "Проверить зацепки из описания"
+    : "Собрать информацию и зацепки";
+
+  return [
+    targetLine,
+    investigationLine,
+    "Найти ключевого НПС, место или предмет",
+    "Принять решение / завершить столкновение",
+    "Вернуться за наградой или обновить журнал",
+  ];
+}
+
+function buildAutoCheckpoints(input = {}) {
+  return buildAutoCheckpointTexts(input).map((text, index) => ({
+    id: makeId(`cp_auto_${index}`),
+    text,
+    done: false,
+  }));
+}
+
+function getQuestFormAutoCheckpoints() {
+  const type = safeText(getEl("questFormType")?.value, "quest").toLowerCase();
+  const title = safeText(getEl("questFormTitle")?.value, "").trim();
+  const description = safeText(getEl("questFormDescription")?.value, "").trim();
+
+  return buildAutoCheckpointTexts({
+    type,
+    title,
+    description,
+  });
+}
+
 function typeLabel(type) {
   const map = {
     quest: "Задание",
@@ -379,34 +509,41 @@ function tryLoadFromWindow() {
 export async function loadQuests() {
   QUESTS_STATE.role = getCurrentRole();
 
-  let data = await apiGet("/player/quests");
-  let source = "api";
+  const apiData = await apiGet("/player/quests");
+  const localData = loadLocal();
+  const windowData = tryLoadFromWindow();
 
-  if (!data) {
-    data = tryLoadFromWindow();
-    source = "window";
-  }
+  const apiItems = normalizeQuestImportList(apiData);
+  const localItems = normalizeQuestImportList(localData);
+  const windowItems = normalizeQuestImportList(windowData);
 
-  if (!data) {
-    data = loadLocal();
-    source = "local";
-  }
-
+  let source = "empty";
   let items = [];
 
-  if (Array.isArray(data)) {
-    items = data;
-  } else if (Array.isArray(data?.quests)) {
-    items = data.quests;
-  } else if (Array.isArray(data?.items)) {
-    items = data.items;
-  } else if (Array.isArray(data?.data?.quests)) {
-    items = data.data.quests;
+  if (apiItems.length && localItems.length) {
+    items = mergeQuestCollections(apiItems, localItems);
+    source = "api+local";
+  } else if (apiItems.length) {
+    items = normalizeQuestList(apiItems);
+    source = "api";
+  } else if (localItems.length) {
+    items = normalizeQuestList(localItems);
+    source = apiData ? "local-preserved" : "local";
+  } else if (windowItems.length) {
+    items = normalizeQuestList(windowItems);
+    source = "window";
+  } else {
+    items = [];
+    source = apiData ? "api-empty" : "empty";
   }
 
   QUESTS_STATE.items = normalizeQuestList(items);
   QUESTS_STATE.loaded = true;
   QUESTS_STATE.source = QUESTS_STATE.items.length ? source : "empty";
+
+  if (QUESTS_STATE.items.length) {
+    saveLocal(QUESTS_STATE.items);
+  }
 
   renderQuests();
   return QUESTS_STATE.items;
@@ -415,11 +552,23 @@ export async function loadQuests() {
 // ------------------------------------------------------------
 // 💾 SAVE
 // ------------------------------------------------------------
-export async function saveQuests() {
-  saveLocal(QUESTS_STATE.items);
+export async function saveQuests(options = {}) {
+  const {
+    allowEmpty = false,
+    silent = false,
+  } = options || {};
+
+  const safeItems = normalizeQuestList(QUESTS_STATE.items);
+  QUESTS_STATE.items = safeItems;
+
+  saveLocalBackup(safeItems);
+  saveLocal(safeItems);
 
   const payload = {
-    quests: QUESTS_STATE.items,
+    quests: safeItems,
+    merge: false,
+    allow_empty: Boolean(allowEmpty),
+    client_updated_at: new Date().toISOString(),
   };
 
   const result = await apiWrite(
@@ -428,7 +577,21 @@ export async function saveQuests() {
     ["POST", "PUT", "PATCH"]
   );
 
-  QUESTS_STATE.source = result ? "api" : "local";
+  if (!result) {
+    QUESTS_STATE.source = "local";
+    if (!silent) {
+      showToast("Сервер заданий не ответил — сохранено локально");
+    }
+    return false;
+  }
+
+  const serverItems = normalizeQuestImportList(result);
+  if (serverItems.length || safeItems.length === 0) {
+    QUESTS_STATE.items = normalizeQuestList(serverItems);
+    saveLocal(QUESTS_STATE.items);
+  }
+
+  QUESTS_STATE.source = "api";
   return true;
 }
 
@@ -444,7 +607,7 @@ export async function addQuestEntry(entry) {
 
   setItemsAndKeepSort([normalized, ...QUESTS_STATE.items]);
 
-  await saveQuests();
+  await saveQuests({ silent: true });
   renderQuests();
 
   emitQuestHistory({
@@ -470,7 +633,7 @@ export async function updateQuestEntry(questId, patch) {
     ...patch,
   }));
 
-  await saveQuests();
+  await saveQuests({ silent: true });
   renderQuests();
 
   if (changed) {
@@ -500,7 +663,7 @@ export async function deleteQuestEntry(questId) {
     closeQuestForm();
   }
 
-  await saveQuests();
+  await saveQuests({ allowEmpty: QUESTS_STATE.items.length === 0, silent: true });
   renderQuests();
 
   if (quest) {
@@ -527,7 +690,7 @@ export async function updateQuestStatus(questId, nextStatus) {
     status: nextStatus,
   }));
 
-  await saveQuests();
+  await saveQuests({ silent: true });
   renderQuests();
 
   if (changed) {
@@ -748,7 +911,7 @@ function renderSummaryBar(items) {
   return `
     <section class="quest-ref-hero quest-ref-hero-v39 cabinet-block" data-cabinet-always-open="1">
       <div class="quest-ref-hero-main">
-        <div class="quest-ref-kicker">Campaign journal</div>
+        <div class="quest-ref-kicker">Журнал заданий</div>
         <h2>Задания</h2>
         <p>${escapeHtml(heroDescription)}</p>
         <div class="quest-ref-hero-meta quest-ref-hero-meta-v39">
@@ -798,8 +961,8 @@ function renderFilters() {
     <section class="quest-ref-toolbar quest-ref-toolbar-v39 cabinet-block" data-cabinet-always-open="1">
       <div class="quest-ref-toolbar-head quest-ref-toolbar-head-v39">
         <div>
-          <div class="quest-ref-kicker">Журнал заданий</div>
-          <h3>Фильтры</h3>
+          <div class="quest-ref-kicker">Поиск и фильтры</div>
+          <h3>Журнал заданий</h3>
         </div>
         <div class="quest-ref-toolbar-actions">
           ${isGm()
@@ -924,9 +1087,13 @@ function renderForm() {
           <textarea id="questFormDescription" rows="5" placeholder="Что произошло, зачем это важно, что изменилось...">${escapeHtml(item.description)}</textarea>
         </label>
 
-        <label class="filter-group quest-ref-form-full">
-          <span>Чекпоинты</span>
+        <label class="filter-group quest-ref-form-full quest-ref-checkpoint-builder">
+          <span>Чекпоинты / подзадачи</span>
           <textarea id="questFormCheckpoints" rows="4" placeholder="Найти след&#10;Поговорить с НПС&#10;Вернуться в лагерь">${escapeHtml(serializeCheckpoints(item.checkpoints))}</textarea>
+          <div class="quest-ref-checkpoint-builder-actions">
+            <button class="btn btn-secondary" type="button" id="questFormGenerateCheckpointsBtn">✨ Автоэтапы как в BG3</button>
+            <small>Если оставить поле пустым, этапы создадутся автоматически при сохранении.</small>
+          </div>
         </label>
       </div>
 
@@ -1145,12 +1312,12 @@ export function renderQuests() {
   const selected = ensureSelectedQuest(filtered.length ? filtered : QUESTS_STATE.items);
 
   container.innerHTML = `
-    <div class="quest-ref-shell quest-ref-shell-reference quest-ref-v39 quest-ref-v41" data-quest-source="${escapeHtml(QUESTS_STATE.source)}" data-quest-role="${escapeHtml(QUESTS_STATE.role)}">
+    <div class="quest-ref-shell quest-ref-shell-reference quest-ref-v39 quest-ref-v41 quest-ref-round94" data-quest-source="${escapeHtml(QUESTS_STATE.source)}" data-quest-role="${escapeHtml(QUESTS_STATE.role)}">
       ${renderSummaryBar(QUESTS_STATE.items)}
       ${renderFilters()}
       ${renderForm()}
       <div class="quest-ref-workspace" data-cabinet-always-open="1" data-cabinet-no-disclosure="1">
-        <main class="quest-ref-list-panel">
+        <main class="quest-ref-list-panel quest-ref-list-panel-round94">
           ${filtered.length ? `<div class="quest-ref-list">${filtered.map(renderQuestCard).join("")}</div>` : renderEmptyState()}
         </main>
         ${renderQuestDetailPanel(filtered.length ? getSelectedQuest(filtered) : selected)}
@@ -1174,6 +1341,7 @@ function bindQuestActions() {
   const emptyCreateBtn = getEl("questsEmptyCreateBtn");
   const saveBtn = getEl("questFormSaveBtn");
   const cancelBtn = getEl("questFormCancelBtn");
+  const generateCheckpointsBtn = getEl("questFormGenerateCheckpointsBtn");
 
   if (searchInput && searchInput.dataset.boundQuestSearch !== "1") {
     searchInput.dataset.boundQuestSearch = "1";
@@ -1256,6 +1424,18 @@ function bindQuestActions() {
     });
   }
 
+  if (generateCheckpointsBtn && generateCheckpointsBtn.dataset.boundQuestGenerateCheckpoints !== "1") {
+    generateCheckpointsBtn.dataset.boundQuestGenerateCheckpoints = "1";
+    generateCheckpointsBtn.addEventListener("click", () => {
+      const textarea = getEl("questFormCheckpoints");
+      if (!textarea) return;
+
+      const generated = getQuestFormAutoCheckpoints();
+      textarea.value = generated.join("\n");
+      showToast("Автоэтапы добавлены");
+    });
+  }
+
   if (saveBtn && saveBtn.dataset.boundQuestFormSave !== "1") {
     saveBtn.dataset.boundQuestFormSave = "1";
     saveBtn.addEventListener("click", async () => {
@@ -1265,7 +1445,14 @@ function bindQuestActions() {
       const reward = safeText(getEl("questFormReward")?.value, "").trim();
       const tags = parseTags(getEl("questFormTags")?.value);
       const description = safeText(getEl("questFormDescription")?.value, "").trim();
-      const checkpoints = normalizeCheckpoints(getEl("questFormCheckpoints")?.value);
+      let checkpoints = normalizeCheckpoints(getEl("questFormCheckpoints")?.value);
+      if (!checkpoints.length) {
+        checkpoints = buildAutoCheckpoints({
+          type,
+          title,
+          description,
+        });
+      }
       const author =
         safeText(window.__appUser?.email, "") ||
         safeText(window.__appUser?.id, "") ||

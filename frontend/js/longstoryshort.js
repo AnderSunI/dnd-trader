@@ -10,6 +10,7 @@
 // ============================================================
 
 import {
+  apiPost,
   fetchAccount,
   updateAccount,
 } from "./api.js";
@@ -139,7 +140,7 @@ function quickAdjustHp(delta) {
   if (!confirm(`Изменить текущие хиты: ${current} → ${next}?`)) return;
   updateLssProfile((profile) => {
     profile.vitality = profile.vitality || {};
-    profile.vitality['hp-current'] = next;
+    profile.vitality['hp-current'] = preserveValueNode(profile.vitality['hp-current'], next);
   }, 'Хиты обновлены');
 }
 
@@ -151,7 +152,7 @@ function quickSetHp() {
   if (!confirm(`Сохранить текущие хиты: ${current} → ${next}?`)) return;
   updateLssProfile((profile) => {
     profile.vitality = profile.vitality || {};
-    profile.vitality['hp-current'] = next;
+    profile.vitality['hp-current'] = preserveValueNode(profile.vitality['hp-current'], next);
   }, 'Хиты обновлены');
 }
 
@@ -307,16 +308,163 @@ function getLssCharacterPool() {
   return Array.isArray(LSS_STATE.characterPool) ? LSS_STATE.characterPool : [];
 }
 
+
+function lssEditDomKey(key) {
+  return String(key || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9а-яА-ЯёЁ_-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function getProfileName(profile) {
+  return String(
+    unwrapValue(profile?.name, "") ||
+    unwrapValue(profile?.info?.name, "") ||
+    "Персонаж"
+  ).trim() || "Персонаж";
+}
+
+function getProfileCharacterId(profile = null) {
+  const candidate =
+    profile?.__dndTraderCharacterId ||
+    profile?.character_id ||
+    LSS_STATE.selectedCharacterId ||
+    "";
+  const id = Number(candidate);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function numericInputAttrs(min = null, max = null) {
+  const parts = ['type="number"', 'inputmode="numeric"'];
+  if (min !== null && min !== undefined) parts.push(`min="${escapeHtml(String(min))}"`);
+  if (max !== null && max !== undefined) parts.push(`max="${escapeHtml(String(max))}"`);
+  return parts.join(" ");
+}
+
+function preserveValueNode(previous, value, name = "") {
+  if (previous && typeof previous === "object" && !Array.isArray(previous)) {
+    return {
+      ...previous,
+      ...(name ? { name } : previous.name ? { name: previous.name } : {}),
+      value,
+    };
+  }
+  return name ? { name, value } : { value };
+}
+
+function setLssValue(profile, path, value, name = "") {
+  setNested(profile, path, preserveValueNode(getNested(profile, path, null), value, name));
+}
+
+function getCoins(profile) {
+  const coins = profile?.coins && typeof profile.coins === "object" ? profile.coins : {};
+  return {
+    pp: toNumber(unwrapValue(coins.pp, 0), 0),
+    gp: toNumber(unwrapValue(coins.gp, 0), 0),
+    ep: toNumber(unwrapValue(coins.ep, 0), 0),
+    sp: toNumber(unwrapValue(coins.sp, 0), 0),
+    cp: toNumber(unwrapValue(coins.cp, 0), 0),
+  };
+}
+
+function extractProfileStatsForAccount(profile) {
+  const result = {};
+  STAT_DEFS.forEach(({ key }) => {
+    result[key] = Math.max(1, Math.min(30, toNumber(getNested(profile, `stats.${key}.score`, 10), 10)));
+  });
+  return result;
+}
+
+function buildAccountCharacterPayload(profile, options = {}) {
+  const normalized = normalizeLssProfileForSave(profile);
+  const id = getProfileCharacterId(normalized);
+  const payload = {
+    name: getProfileName(normalized),
+    class_name: String(unwrapValue(normalized?.info?.charClass, "") || "").trim(),
+    level: Math.max(1, toNumber(unwrapValue(normalized?.info?.level, 1), 1)),
+    race: String(unwrapValue(normalized?.info?.race, "") || "").trim(),
+    alignment: String(unwrapValue(normalized?.info?.alignment, "") || "").trim(),
+    experience: Math.max(0, toNumber(unwrapValue(normalized?.info?.experience, 0), 0)),
+    stats: extractProfileStatsForAccount(normalized),
+    data: {
+      lss: normalized,
+      lss_updated_at: new Date().toISOString(),
+      lss_source: String(LSS_STATE.source || "manual"),
+    },
+    make_active: options.makeActive !== false,
+  };
+  if (id) payload.id = id;
+  return payload;
+}
+
+async function syncLssCharacterToAccount(profile, options = {}) {
+  if (!getToken()) {
+    return { profile, payload: null, account: null, skipped: true };
+  }
+
+  const payload = buildAccountCharacterPayload(profile, options);
+
+  try {
+    const accountPayload = await apiPost("/account/characters", payload);
+    const character = accountPayload?.character || accountPayload?.showcase?.active_character || null;
+    const characterId = Number(character?.id || accountPayload?.user?.active_character_id || payload.id || 0);
+    const nextProfile = cloneData(profile || {});
+
+    if (Number.isFinite(characterId) && characterId > 0) {
+      nextProfile.__dndTraderCharacterId = characterId;
+      nextProfile.character_id = characterId;
+      LSS_STATE.selectedCharacterId = String(characterId);
+    }
+
+    if (Array.isArray(accountPayload?.characters)) {
+      LSS_STATE.characterPool = accountPayload.characters;
+    }
+
+    if (accountPayload?.user && typeof accountPayload.user === "object") {
+      window.__appUser = {
+        ...(window.__appUser || {}),
+        ...accountPayload.user,
+      };
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent("dnd:account:changed", { detail: accountPayload }));
+      window.dispatchEvent(new CustomEvent("dnd:lss:character-synced", { detail: { character, account: accountPayload } }));
+    } catch (_) {}
+
+    return { profile: nextProfile, payload, account: accountPayload, skipped: false };
+  } catch (error) {
+    console.warn("LSS character sync unavailable:", error);
+    return { profile, payload, account: null, skipped: false, error };
+  }
+}
+
 function buildBlankProfileFromCharacter(character = {}) {
   const name = String(character?.name || "Персонаж").trim() || "Персонаж";
   const className = String(character?.class_name || "").trim();
   const level = Math.max(1, toNumber(character?.level, 1));
   const race = String(character?.race || "").trim();
   const alignment = String(character?.alignment || "").trim();
+  const statsSource = character?.stats && typeof character.stats === "object" ? character.stats : {};
+  const stats = {};
+
+  STAT_DEFS.forEach(({ key }) => {
+    const raw = statsSource[key];
+    const score = Math.max(1, Math.min(30, toNumber(typeof raw === "object" ? raw?.score : raw, 10)));
+    stats[key] = { name: key, score, modifier: statMod(score), check: statMod(score) };
+  });
+
+  const skills = {};
+  Object.entries(SKILL_BASE_STATS).forEach(([skillKey, baseStat]) => {
+    skills[skillKey] = { baseStat, name: skillKey, isProf: 0 };
+  });
 
   return {
+    __dndTraderCharacterId: Number(character?.id || 0) || undefined,
+    character_id: Number(character?.id || 0) || undefined,
     name,
     info: {
+      name: { name: "name", value: name },
       charClass: { name: "charClass", value: className },
       charSubclass: { name: "charSubclass", value: "" },
       level: { name: "level", value: level },
@@ -324,8 +472,8 @@ function buildBlankProfileFromCharacter(character = {}) {
       playerName: { name: "playerName", value: "" },
       race: { name: "race", value: race },
       alignment: { name: "alignment", value: alignment },
-      experience: { name: "experience", value: 0 },
-      size: { value: "medium" },
+      experience: { name: "experience", value: Math.max(0, toNumber(character?.experience, 0)) },
+      size: { name: "size", value: "medium" },
     },
     subInfo: {
       age: { name: "age", value: "" },
@@ -336,16 +484,9 @@ function buildBlankProfileFromCharacter(character = {}) {
       hair: { name: "hair", value: "" },
     },
     proficiency: 2,
-    stats: {
-      str: { name: "str", score: 10, modifier: 0, check: 0 },
-      dex: { name: "dex", score: 10, modifier: 0, check: 0 },
-      con: { name: "con", score: 10, modifier: 0, check: 0 },
-      int: { name: "int", score: 10, modifier: 0, check: 0 },
-      wis: { name: "wis", score: 10, modifier: 0, check: 0 },
-      cha: { name: "cha", score: 10, modifier: 0, check: 0 },
-    },
-    saves: {},
-    skills: {},
+    stats,
+    saves: STAT_DEFS.reduce((acc, { key }) => ({ ...acc, [key]: { name: key, isProf: false } }), {}),
+    skills,
     vitality: {
       "hp-current": { value: 10 },
       "hp-max": { value: 10 },
@@ -353,7 +494,19 @@ function buildBlankProfileFromCharacter(character = {}) {
       speed: { value: 30 },
       initiative: { value: 0 },
       ac: { value: 10 },
+      "hit-die": { value: "d8" },
     },
+    spellsInfo: { base: { name: "base", value: "", code: "int" }, save: { name: "save", value: "" }, mod: { name: "mod", value: "" } },
+    spells: {},
+    coins: {
+      pp: { value: 0 },
+      gp: { value: 0 },
+      ep: { value: 0 },
+      sp: { value: 0 },
+      cp: { value: 0 },
+    },
+    conditions: [],
+    weaponsList: [],
     appearance: "",
     background: "",
     personality: "",
@@ -377,28 +530,41 @@ function buildStarterProfileFromForm(formData = {}) {
   const race = String(formData.race || "").trim();
   const background = String(formData.background || "").trim();
   const level = Math.max(1, toNumber(formData.level, 1));
+  const selectedId = Number(LSS_STATE.selectedCharacterId || 0) || 0;
 
   const profile = buildBlankProfileFromCharacter({
+    id: selectedId || undefined,
     name,
     class_name: charClass,
     level,
     race,
     alignment: String(formData.alignment || "").trim(),
+    experience: toNumber(formData.experience, 0),
   });
 
   profile.name = name;
-  profile.info = profile.info || {};
-  profile.info.name = { name: "name", value: name };
-  profile.info.charClass = { name: "charClass", value: charClass };
-  profile.info.race = { name: "race", value: race };
-  profile.info.background = { name: "background", value: background };
-  profile.info.level = { name: "level", value: level };
+  setLssValue(profile, "info.name", name, "name");
+  setLssValue(profile, "info.charClass", charClass, "charClass");
+  setLssValue(profile, "info.charSubclass", String(formData.charSubclass || "").trim(), "charSubclass");
+  setLssValue(profile, "info.race", race, "race");
+  setLssValue(profile, "info.background", background, "background");
+  setLssValue(profile, "info.alignment", String(formData.alignment || "").trim(), "alignment");
+  setLssValue(profile, "info.level", level, "level");
+  setLssValue(profile, "info.experience", Math.max(0, toNumber(formData.experience, 0)), "experience");
+  profile.proficiency = Math.max(0, toNumber(formData.proficiency, 2));
+
+  STAT_DEFS.forEach(({ key }) => {
+    const score = Math.max(1, Math.min(30, toNumber(formData[`stat_${key}`], 10)));
+    profile.stats[key] = { ...(profile.stats[key] || {}), name: key, score, modifier: statMod(score), check: statMod(score) };
+  });
+
   profile.vitality = profile.vitality || {};
-  profile.vitality["hp-current"] = { value: toNumber(formData.hpCurrent, 10) };
-  profile.vitality["hp-max"] = { value: toNumber(formData.hpMax, 10) };
-  profile.vitality.ac = { value: toNumber(formData.ac, 10) };
-  profile.vitality.initiative = { value: toNumber(formData.initiative, 0) };
-  profile.vitality.speed = { value: safeText(formData.speed, "30") };
+  profile.vitality["hp-current"] = preserveValueNode(profile.vitality["hp-current"], Math.max(0, toNumber(formData.hpCurrent, 10)));
+  profile.vitality["hp-max"] = preserveValueNode(profile.vitality["hp-max"], Math.max(1, toNumber(formData.hpMax, formData.hpCurrent || 10)));
+  profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], Math.max(0, toNumber(formData.hpTemp, 0)));
+  profile.vitality.ac = preserveValueNode(profile.vitality.ac, Math.max(0, toNumber(formData.ac, 10)));
+  profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, toNumber(formData.initiative, 0));
+  profile.vitality.speed = preserveValueNode(profile.vitality.speed, Math.max(0, toNumber(formData.speed, 30)));
   profile.__createdInDndTrader = true;
 
   return profile;
@@ -406,16 +572,35 @@ function buildStarterProfileFromForm(formData = {}) {
 
 function normalizeLssProfileForSave(profile) {
   const next = cloneData(profile || {});
-  const name = String(unwrapValue(next?.name, "") || unwrapValue(next?.info?.name, "") || "Персонаж").trim() || "Персонаж";
+  const name = getProfileName(next);
   next.name = name;
   next.info = next.info || {};
-  next.info.name = { ...(typeof next.info.name === "object" ? next.info.name : {}), name: "name", value: name };
-  next.info.level = { ...(typeof next.info.level === "object" ? next.info.level : {}), name: "level", value: Math.max(1, toNumber(unwrapValue(next.info.level, 1), 1)) };
-  next.info.charClass = { ...(typeof next.info.charClass === "object" ? next.info.charClass : {}), name: "charClass", value: String(unwrapValue(next.info.charClass, "") || "").trim() };
-  next.info.race = { ...(typeof next.info.race === "object" ? next.info.race : {}), name: "race", value: String(unwrapValue(next.info.race, "") || "").trim() };
+  next.info.name = preserveValueNode(next.info.name, name, "name");
+  next.info.level = preserveValueNode(next.info.level, Math.max(1, toNumber(unwrapValue(next.info.level, 1), 1)), "level");
+  next.info.charClass = preserveValueNode(next.info.charClass, String(unwrapValue(next.info.charClass, "") || "").trim(), "charClass");
+  next.info.charSubclass = preserveValueNode(next.info.charSubclass, String(unwrapValue(next.info.charSubclass, "") || "").trim(), "charSubclass");
+  next.info.race = preserveValueNode(next.info.race, String(unwrapValue(next.info.race, "") || "").trim(), "race");
+  next.info.background = preserveValueNode(next.info.background, String(unwrapValue(next.info.background, "") || "").trim(), "background");
+  next.info.alignment = preserveValueNode(next.info.alignment, String(unwrapValue(next.info.alignment, "") || "").trim(), "alignment");
+  next.info.experience = preserveValueNode(next.info.experience, Math.max(0, toNumber(unwrapValue(next.info.experience, 0), 0)), "experience");
   next.vitality = next.vitality || {};
   next.stats = next.stats || {};
+  next.saves = next.saves || {};
   next.skills = next.skills || {};
+  next.coins = next.coins || {};
+
+  STAT_DEFS.forEach(({ key }) => {
+    const prev = next.stats[key] && typeof next.stats[key] === "object" ? next.stats[key] : {};
+    const score = Math.max(1, Math.min(30, toNumber(prev.score ?? prev.value ?? next.stats[key], 10)));
+    next.stats[key] = { ...prev, name: prev.name || key, score, modifier: statMod(score), check: statMod(score) };
+    next.saves[key] = { ...(next.saves[key] || {}), name: key, isProf: Boolean(next.saves[key]?.isProf) };
+  });
+
+  Object.entries(SKILL_BASE_STATS).forEach(([skillKey, baseStat]) => {
+    const prev = next.skills[skillKey] && typeof next.skills[skillKey] === "object" ? next.skills[skillKey] : {};
+    next.skills[skillKey] = { ...prev, baseStat: prev.baseStat || baseStat, name: prev.name || skillKey, isProf: toNumber(prev.isProf, 0) > 0 ? 1 : 0 };
+  });
+
   next.updatedAt = new Date().toISOString();
   return next;
 }
@@ -1075,9 +1260,6 @@ function normalizeProfile(rawProfile) {
 // 📡 LOAD PROFILE
 // ------------------------------------------------------------
 async function tryLoadFromApi() {
-  const token = getToken();
-  if (!token) return null;
-
   const urls = [
     "/player/profile",
   ];
@@ -1090,7 +1272,20 @@ async function tryLoadFromApi() {
       const data = await res.json();
       if (!data) continue;
 
-      return data.profile || data.character || data.lss || data;
+      const profilePayload = data.profile || data.character || data.lss || data;
+      const lssBlock = profilePayload?.data?.lss || profilePayload?.data?.lss_profile || null;
+      if (lssBlock && typeof lssBlock === "object") {
+        const next = cloneData(lssBlock);
+        const characterId = Number(profilePayload?.character_id || profilePayload?.id || 0);
+        if (Number.isFinite(characterId) && characterId > 0) {
+          next.__dndTraderCharacterId = characterId;
+          next.character_id = characterId;
+          LSS_STATE.selectedCharacterId = String(characterId);
+        }
+        return next;
+      }
+
+      return profilePayload;
     } catch (_) {}
   }
 
@@ -1142,6 +1337,8 @@ export async function loadLSS() {
   }
 
   const profile = normalizeProfile(raw);
+  const characterId = getProfileCharacterId(profile);
+  if (characterId) LSS_STATE.selectedCharacterId = String(characterId);
 
   LSS_STATE.raw = raw;
   LSS_STATE.profile = profile;
@@ -1164,36 +1361,52 @@ function ensureEditableProfileBase() {
 function applyBasicFormToProfile(formData) {
   const profile = ensureEditableProfileBase();
 
-  profile.name = safeText(formData.name, profile.name || "");
-  setNested(profile, "info.charClass", safeText(formData.charClass, getNested(profile, "info.charClass", "")));
-  setNested(profile, "info.charSubclass", safeText(formData.charSubclass, getNested(profile, "info.charSubclass", "")));
-  setNested(profile, "info.level", toNumber(formData.level, getNested(profile, "info.level", 1)));
-  setNested(profile, "info.background", safeText(formData.background, getNested(profile, "info.background", "")));
-  setNested(profile, "info.race", safeText(formData.race, getNested(profile, "info.race", "")));
-  setNested(profile, "info.alignment", safeText(formData.alignment, getNested(profile, "info.alignment", "")));
-  setNested(profile, "info.size", safeText(formData.size, getNested(profile, "info.size", "")));
-  setNested(profile, "info.experience", safeText(formData.experience, getNested(profile, "info.experience", "")));
+  profile.name = safeText(formData.name, getProfileName(profile));
+  setLssValue(profile, "info.name", profile.name, "name");
+  setLssValue(profile, "info.charClass", safeText(formData.charClass, unwrapValue(getNested(profile, "info.charClass", ""))), "charClass");
+  setLssValue(profile, "info.charSubclass", safeText(formData.charSubclass, unwrapValue(getNested(profile, "info.charSubclass", ""))), "charSubclass");
+  setLssValue(profile, "info.level", Math.max(1, toNumber(formData.level, unwrapValue(getNested(profile, "info.level", 1)))), "level");
+  setLssValue(profile, "info.background", safeText(formData.background, unwrapValue(getNested(profile, "info.background", ""))), "background");
+  setLssValue(profile, "info.race", safeText(formData.race, unwrapValue(getNested(profile, "info.race", ""))), "race");
+  setLssValue(profile, "info.alignment", safeText(formData.alignment, unwrapValue(getNested(profile, "info.alignment", ""))), "alignment");
+  setLssValue(profile, "info.size", safeText(formData.size, unwrapValue(getNested(profile, "info.size", ""))), "size");
+  setLssValue(profile, "info.experience", Math.max(0, toNumber(formData.experience, unwrapValue(getNested(profile, "info.experience", 0)))), "experience");
 
-  setNested(profile, "subInfo.age", safeText(formData.age, getNested(profile, "subInfo.age", "")));
-  setNested(profile, "subInfo.height", safeText(formData.height, getNested(profile, "subInfo.height", "")));
-  setNested(profile, "subInfo.weight", safeText(formData.weight, getNested(profile, "subInfo.weight", "")));
-  setNested(profile, "subInfo.eyes", safeText(formData.eyes, getNested(profile, "subInfo.eyes", "")));
-  setNested(profile, "subInfo.skin", safeText(formData.skin, getNested(profile, "subInfo.skin", "")));
-  setNested(profile, "subInfo.hair", safeText(formData.hair, getNested(profile, "subInfo.hair", "")));
+  setLssValue(profile, "subInfo.age", safeText(formData.age, unwrapValue(getNested(profile, "subInfo.age", ""))), "age");
+  setLssValue(profile, "subInfo.height", safeText(formData.height, unwrapValue(getNested(profile, "subInfo.height", ""))), "height");
+  setLssValue(profile, "subInfo.weight", safeText(formData.weight, unwrapValue(getNested(profile, "subInfo.weight", ""))), "weight");
+  setLssValue(profile, "subInfo.eyes", safeText(formData.eyes, unwrapValue(getNested(profile, "subInfo.eyes", ""))), "eyes");
+  setLssValue(profile, "subInfo.skin", safeText(formData.skin, unwrapValue(getNested(profile, "subInfo.skin", ""))), "skin");
+  setLssValue(profile, "subInfo.hair", safeText(formData.hair, unwrapValue(getNested(profile, "subInfo.hair", ""))), "hair");
 
-  setNested(profile, "vitality.hp-current", safeText(formData.hpCurrent, getNested(profile, "vitality.hp-current", "")));
-  setNested(profile, "vitality.hp-max", safeText(formData.hpMax, getNested(profile, "vitality.hp-max", "")));
-  setNested(profile, "vitality.hp-temp", safeText(formData.hpTemp, getNested(profile, "vitality.hp-temp", "")));
-  setNested(profile, "vitality.ac", safeText(formData.ac, getNested(profile, "vitality.ac", "")));
-  setNested(profile, "vitality.speed", safeText(formData.speed, getNested(profile, "vitality.speed", "")));
-  setNested(profile, "vitality.initiative", safeText(formData.initiative, getNested(profile, "vitality.initiative", "")));
+  profile.proficiency = Math.max(0, toNumber(formData.proficiency, profile.proficiency || 2));
+  profile.vitality = profile.vitality || {};
+  profile.vitality["hp-current"] = preserveValueNode(profile.vitality["hp-current"], Math.max(0, toNumber(formData.hpCurrent, unwrapValue(profile.vitality["hp-current"], 0))));
+  profile.vitality["hp-max"] = preserveValueNode(profile.vitality["hp-max"], Math.max(1, toNumber(formData.hpMax, unwrapValue(profile.vitality["hp-max"], 1))));
+  profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], Math.max(0, toNumber(formData.hpTemp, unwrapValue(profile.vitality["hp-temp"], 0))));
+  profile.vitality.ac = preserveValueNode(profile.vitality.ac, Math.max(0, toNumber(formData.ac, unwrapValue(profile.vitality.ac, 10))));
+  profile.vitality.speed = preserveValueNode(profile.vitality.speed, Math.max(0, toNumber(formData.speed, unwrapValue(profile.vitality.speed, 30))));
+  profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, toNumber(formData.initiative, unwrapValue(profile.vitality.initiative, 0)));
 
-  ["str", "dex", "con", "int", "wis", "cha"].forEach((key) => {
-    setNested(
-      profile,
-      `stats.${key}.score`,
-      toNumber(formData[`stat_${key}`], getNested(profile, `stats.${key}.score`, 10))
-    );
+  profile.stats = profile.stats || {};
+  STAT_DEFS.forEach(({ key }) => {
+    const score = Math.max(1, Math.min(30, toNumber(formData[`stat_${key}`], getNested(profile, `stats.${key}.score`, 10))));
+    profile.stats[key] = { ...(profile.stats[key] || {}), name: key, score, modifier: statMod(score), check: statMod(score) };
+  });
+
+  profile.saves = profile.saves || {};
+  STAT_DEFS.forEach(({ key }) => {
+    profile.saves[key] = { ...(profile.saves[key] || {}), name: key, isProf: Boolean(formData.saves?.[key]) };
+  });
+
+  profile.skills = profile.skills || {};
+  Object.entries(SKILL_BASE_STATS).forEach(([skillKey, baseStat]) => {
+    profile.skills[skillKey] = { ...(profile.skills[skillKey] || {}), baseStat, name: skillKey, isProf: formData.skills?.[skillKey] ? 1 : 0 };
+  });
+
+  profile.coins = profile.coins || {};
+  ["pp", "gp", "ep", "sp", "cp"].forEach((coin) => {
+    profile.coins[coin] = preserveValueNode(profile.coins[coin], Math.max(0, toNumber(formData[`coin_${coin}`], unwrapValue(profile.coins[coin], 0))));
   });
 
   profile.portrait = safeText(formData.portrait, profile.portrait || "");
@@ -1231,6 +1444,7 @@ function collectEditFormData() {
     "eyes",
     "skin",
     "hair",
+    "proficiency",
     "hpCurrent",
     "hpMax",
     "hpTemp",
@@ -1243,6 +1457,11 @@ function collectEditFormData() {
     "stat_int",
     "stat_wis",
     "stat_cha",
+    "coin_pp",
+    "coin_gp",
+    "coin_ep",
+    "coin_sp",
+    "coin_cp",
     "portrait",
     "appearance",
     "backgroundText",
@@ -1259,10 +1478,19 @@ function collectEditFormData() {
     "notes2",
   ];
 
-  const result = {};
+  const result = { saves: {}, skills: {} };
   fields.forEach((key) => {
     result[key] = safeText(getSection(`lssEdit_${key}`)?.value, "");
   });
+
+  STAT_DEFS.forEach(({ key }) => {
+    result.saves[key] = Boolean(getSection(`lssEdit_save_${key}`)?.checked);
+  });
+
+  Object.keys(SKILL_BASE_STATS).forEach((skillKey) => {
+    result.skills[skillKey] = Boolean(getSection(`lssEdit_skill_${lssEditDomKey(skillKey)}`)?.checked);
+  });
+
   return result;
 }
 
@@ -1316,18 +1544,18 @@ function getPrettyRawPreview() {
 
 function renderTopToolbar() {
   const sourceLabel = {
-    empty: "нет данных",
+    empty: "пусто",
     local: "локально",
-    manual: "вручную",
-    api: "API",
-    file: "файл",
+    api: "аккаунт",
+    manual: "ручной ввод",
+    window: "window",
   }[String(LSS_STATE.source || "empty").toLowerCase()] || String(LSS_STATE.source || "нет данных");
 
   const characterPool = getLssCharacterPool();
   const hasProfile = Boolean(LSS_STATE.profile);
 
   return `
-    <div class="cabinet-block lss-ref-topbar">
+    <div class="cabinet-block lss-ref-topbar lss-ref-topbar-compact">
       <div class="lss-ref-brand">
         <div class="lss-ref-mark">✦</div>
         <div>
@@ -1350,23 +1578,13 @@ function renderTopToolbar() {
             <button class="btn btn-secondary" type="button" id="lssApplyCharacterPoolBtn">Взять</button>
           </div>
         ` : ""}
-        <button class="btn btn-primary" type="button" id="lssToggleImportBtn">${LSS_STATE.importPanelOpen ? "Скрыть загрузку" : "📁 Загрузить"}</button>
+        <button class="btn btn-primary" type="button" id="lssToggleImportBtn">${LSS_STATE.importPanelOpen ? "Скрыть JSON" : "📁 Загрузить"}</button>
         <button class="btn btn-secondary" type="button" id="lssToggleEditBtn">${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : hasProfile ? "🛠 Конструктор" : "✨ Создать"}</button>
         <button class="btn btn-secondary" type="button" id="lssDiceToggleBtn" ${hasProfile ? "" : "disabled"}>${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}</button>
         ${hasProfile ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn">Очистить</button>` : ""}
       </div>
 
       <div class="lss-ref-source-pill">Источник: ${escapeHtml(sourceLabel)}</div>
-
-      ${hasProfile ? `
-        <div class="lss-jump-rail lss-ref-jump-rail">
-          <button class="btn btn-secondary" type="button" data-lss-jump="lssHeroSection">Портрет</button>
-          <button class="btn btn-secondary" type="button" data-lss-jump="lssTabsSection">Вкладки</button>
-          <button class="btn btn-secondary" type="button" data-lss-jump="lssActivePanel">Текущий блок</button>
-          <button class="btn btn-secondary" type="button" data-lss-jump="lssEditPanel">Конструктор</button>
-          <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх ↑</button>
-        </div>
-      ` : ""}
     </div>
   `;
 }
@@ -1408,6 +1626,7 @@ function renderEditPanel(profile) {
   const info = p.info || {};
   const subInfo = p.subInfo || {};
   const vitality = p.vitality || {};
+  const coins = getCoins(p);
   const portraitUrl = getPortraitUrl(p);
 
   return `
@@ -1444,12 +1663,12 @@ function renderEditPanel(profile) {
             <div class="filter-group"><label>Предыстория</label><input id="lssEdit_background" type="text" value="${escapeHtml(safeText(unwrapValue(info.background, ""), ""))}" /></div>
             <div class="filter-group"><label>Мировоззрение</label><input id="lssEdit_alignment" type="text" value="${escapeHtml(safeText(unwrapValue(info.alignment, ""), ""))}" /></div>
             <div class="filter-group"><label>Размер</label><input id="lssEdit_size" type="text" value="${escapeHtml(safeText(unwrapValue(info.size, ""), ""))}" /></div>
-            <div class="filter-group"><label>Опыт</label><input id="lssEdit_experience" type="text" value="${escapeHtml(safeText(unwrapValue(info.experience, ""), ""))}" /></div>
+            <div class="filter-group"><label>Опыт</label><input id="lssEdit_experience" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(info.experience, "0"), "0"))}" /></div>
           </div>
           <div class="profile-grid" style="margin-top:12px;">
-            <div class="filter-group"><label>Возраст</label><input id="lssEdit_age" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.age, ""), ""))}" /></div>
-            <div class="filter-group"><label>Рост</label><input id="lssEdit_height" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.height, ""), ""))}" /></div>
-            <div class="filter-group"><label>Вес</label><input id="lssEdit_weight" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.weight, ""), ""))}" /></div>
+            <div class="filter-group"><label>Возраст</label><input id="lssEdit_age" type="text" inputmode="numeric" value="${escapeHtml(safeText(unwrapValue(subInfo.age, ""), ""))}" /></div>
+            <div class="filter-group"><label>Рост</label><input id="lssEdit_height" type="text" inputmode="decimal" value="${escapeHtml(safeText(unwrapValue(subInfo.height, ""), ""))}" /></div>
+            <div class="filter-group"><label>Вес</label><input id="lssEdit_weight" type="text" inputmode="decimal" value="${escapeHtml(safeText(unwrapValue(subInfo.weight, ""), ""))}" /></div>
             <div class="filter-group"><label>Глаза</label><input id="lssEdit_eyes" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.eyes, ""), ""))}" /></div>
             <div class="filter-group"><label>Кожа</label><input id="lssEdit_skin" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.skin, ""), ""))}" /></div>
             <div class="filter-group"><label>Волосы</label><input id="lssEdit_hair" type="text" value="${escapeHtml(safeText(unwrapValue(subInfo.hair, ""), ""))}" /></div>
@@ -1465,12 +1684,13 @@ function renderEditPanel(profile) {
             <span class="meta-item">HP / AC / Init</span>
           </div>
           <div class="profile-grid">
-            <div class="filter-group"><label>HP текущие</label><input id="lssEdit_hpCurrent" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-current"], ""), ""))}" /></div>
-            <div class="filter-group"><label>HP максимум</label><input id="lssEdit_hpMax" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-max"], ""), ""))}" /></div>
-            <div class="filter-group"><label>HP временные</label><input id="lssEdit_hpTemp" type="text" value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], ""), ""))}" /></div>
-            <div class="filter-group"><label>КБ</label><input id="lssEdit_ac" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.ac, ""), ""))}" /></div>
-            <div class="filter-group"><label>Скорость</label><input id="lssEdit_speed" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.speed, ""), ""))}" /></div>
-            <div class="filter-group"><label>Инициатива</label><input id="lssEdit_initiative" type="text" value="${escapeHtml(safeText(unwrapValue(vitality.initiative, ""), ""))}" /></div>
+            <div class="filter-group"><label>HP текущие</label><input id="lssEdit_hpCurrent" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-current"], "0"), "0"))}" /></div>
+            <div class="filter-group"><label>HP максимум</label><input id="lssEdit_hpMax" ${numericInputAttrs(1)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-max"], "1"), "1"))}" /></div>
+            <div class="filter-group"><label>HP временные</label><input id="lssEdit_hpTemp" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], "0"), "0"))}" /></div>
+            <div class="filter-group"><label>КБ</label><input id="lssEdit_ac" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.ac, "10"), "10"))}" /></div>
+            <div class="filter-group"><label>Скорость, фт.</label><input id="lssEdit_speed" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.speed, "30"), "30"))}" /></div>
+            <div class="filter-group"><label>Инициатива</label><input id="lssEdit_initiative" type="number" inputmode="numeric" value="${escapeHtml(safeText(unwrapValue(vitality.initiative, "0"), "0"))}" /></div>
+            <div class="filter-group"><label>Бонус владения</label><input id="lssEdit_proficiency" ${numericInputAttrs(0)} value="${escapeHtml(String(getProficiencyBonus(p)))}" /></div>
           </div>
           <div class="profile-grid" style="margin-top:12px;">
             <div class="filter-group"><label>STR</label><input id="lssEdit_stat_str" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.str?.score, 10)))}" /></div>
@@ -1479,6 +1699,35 @@ function renderEditPanel(profile) {
             <div class="filter-group"><label>INT</label><input id="lssEdit_stat_int" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.int?.score, 10)))}" /></div>
             <div class="filter-group"><label>WIS</label><input id="lssEdit_stat_wis" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.wis?.score, 10)))}" /></div>
             <div class="filter-group"><label>CHA</label><input id="lssEdit_stat_cha" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.cha?.score, 10)))}" /></div>
+          </div>
+
+          <div class="lss-editor-checks-block">
+            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Спасброски с владением</div>
+            <div class="lss-editor-check-grid lss-editor-check-grid-stats">
+              ${STAT_DEFS.map(({ key, label }) => `
+                <label class="lss-editor-check"><input id="lssEdit_save_${escapeHtml(key)}" type="checkbox" ${hasSaveProficiency(p, key) ? "checked" : ""}> <span>${escapeHtml(label)}</span></label>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="lss-editor-checks-block">
+            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Навыки с владением</div>
+            <div class="lss-editor-check-grid">
+              ${Object.entries(SKILL_BASE_STATS).map(([skillKey, baseStat]) => `
+                <label class="lss-editor-check"><input id="lssEdit_skill_${escapeHtml(lssEditDomKey(skillKey))}" type="checkbox" ${isSkillProficient(p, skillKey) ? "checked" : ""}> <span>${escapeHtml(SKILL_LABELS[skillKey] || skillKey)} <small>${escapeHtml(baseStat.toUpperCase())}</small></span></label>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="lss-editor-checks-block">
+            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Монеты</div>
+            <div class="profile-grid">
+              <div class="filter-group"><label>Платина</label><input id="lssEdit_coin_pp" ${numericInputAttrs(0)} value="${escapeHtml(String(coins.pp))}" /></div>
+              <div class="filter-group"><label>Золото</label><input id="lssEdit_coin_gp" ${numericInputAttrs(0)} value="${escapeHtml(String(coins.gp))}" /></div>
+              <div class="filter-group"><label>Электрум</label><input id="lssEdit_coin_ep" ${numericInputAttrs(0)} value="${escapeHtml(String(coins.ep))}" /></div>
+              <div class="filter-group"><label>Серебро</label><input id="lssEdit_coin_sp" ${numericInputAttrs(0)} value="${escapeHtml(String(coins.sp))}" /></div>
+              <div class="filter-group"><label>Медь</label><input id="lssEdit_coin_cp" ${numericInputAttrs(0)} value="${escapeHtml(String(coins.cp))}" /></div>
+            </div>
           </div>
         </section>
 
@@ -1573,12 +1822,12 @@ function renderEditPanel(profile) {
       </div>
 
       <div class="modal-actions" style="margin-top:12px;">
-        <button class="btn btn-success" type="button" id="lssSaveEditBtn">Сохранить поля</button>
+        <button class="btn btn-success" type="button" id="lssSaveEditBtn">Сохранить персонажа в профиль</button>
         <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх</button>
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Сейчас редактируются базовые поля листа. Оружие и заклинания пока безопаснее держать через импорт JSON, чтобы не ломать структуру.
+        Сохраняются основа персонажа, боевые цифры, характеристики, спасброски, навыки, монеты и текстовые блоки. Сложные оружие/заклинания из импортированного JSON не стираются.
       </div>
     </div>
   `;
@@ -1614,23 +1863,43 @@ function bindLssActions() {
 
   if (quickCreateBtn && quickCreateBtn.dataset.bound !== "1") {
     quickCreateBtn.dataset.bound = "1";
-    quickCreateBtn.addEventListener("click", () => {
-      const profile = normalizeLssProfileForSave(buildStarterProfileFromForm({
-        name: getSection("lssQuickCreateName")?.value,
+    quickCreateBtn.addEventListener("click", async () => {
+      const name = String(getSection("lssQuickCreateName")?.value || "").trim();
+      if (!name) {
+        showToast("Сначала дай персонажу имя");
+        getSection("lssQuickCreateName")?.focus?.();
+        return;
+      }
+
+      const form = {
+        name,
         charClass: getSection("lssQuickCreateClass")?.value,
+        charSubclass: getSection("lssQuickCreateSubclass")?.value,
         race: getSection("lssQuickCreateRace")?.value,
         level: getSection("lssQuickCreateLevel")?.value,
         background: getSection("lssQuickCreateBackground")?.value,
+        alignment: getSection("lssQuickCreateAlignment")?.value,
+        experience: getSection("lssQuickCreateExperience")?.value,
+        proficiency: getSection("lssQuickCreateProficiency")?.value,
         hpCurrent: getSection("lssQuickCreateHp")?.value,
-        hpMax: getSection("lssQuickCreateHp")?.value,
+        hpMax: getSection("lssQuickCreateHpMax")?.value || getSection("lssQuickCreateHp")?.value,
         ac: getSection("lssQuickCreateAc")?.value,
+        initiative: getSection("lssQuickCreateInitiative")?.value,
         speed: getSection("lssQuickCreateSpeed")?.value,
-      }));
+      };
+      STAT_DEFS.forEach(({ key }) => {
+        form[`stat_${key}`] = getSection(`lssQuickCreateStat_${key}`)?.value;
+      });
+
+      let profile = normalizeLssProfileForSave(buildStarterProfileFromForm(form));
+      const syncResult = await syncLssCharacterToAccount(profile, { makeActive: true });
+      profile = normalizeLssProfileForSave(syncResult.profile || profile);
+
       setLssData(profile, { persistLocal: true, source: "manual" });
       LSS_STATE.editPanelOpen = true;
       LSS_STATE.activeTab = "overview";
       renderLSS();
-      showToast("Персонаж создан в LSS");
+      showToast(syncResult.error ? "Персонаж создан локально, но аккаунт не синхронизирован" : "Персонаж создан и сохранён в профиль");
     });
   }
 
@@ -1663,6 +1932,8 @@ function bindLssActions() {
         ? cloneData(LSS_STATE.profile)
         : buildBlankProfileFromCharacter(character);
 
+      nextProfile.__dndTraderCharacterId = Number(character.id || 0) || nextProfile.__dndTraderCharacterId;
+      nextProfile.character_id = Number(character.id || 0) || nextProfile.character_id;
       nextProfile.name = character.name || nextProfile.name || "Персонаж";
       nextProfile.info = nextProfile.info || {};
       nextProfile.info.charClass = { ...(nextProfile.info.charClass || {}), name: "charClass", value: character.class_name || "" };
@@ -1776,19 +2047,21 @@ function bindLssActions() {
 
   if (saveEditBtn && saveEditBtn.dataset.bound !== "1") {
     saveEditBtn.dataset.bound = "1";
-    saveEditBtn.addEventListener("click", () => {
+    saveEditBtn.addEventListener("click", async () => {
       const formData = collectEditFormData();
       if (!String(formData.name || "").trim()) {
         showToast("Укажи имя персонажа перед сохранением");
         getSection("lssEdit_name")?.focus?.();
         return;
       }
-      const nextProfile = normalizeLssProfileForSave(applyBasicFormToProfile(formData));
+      let nextProfile = normalizeLssProfileForSave(applyBasicFormToProfile(formData));
+      const syncResult = await syncLssCharacterToAccount(nextProfile, { makeActive: true });
+      nextProfile = normalizeLssProfileForSave(syncResult.profile || nextProfile);
 
       setLssData(nextProfile, { persistLocal: true, source: "manual" });
       LSS_STATE.editPanelOpen = false;
       renderLSS();
-      showToast("LSS сохранён локально");
+      showToast(syncResult.error ? "LSS сохранён локально, но аккаунт не синхронизирован" : "Персонаж сохранён в профиль и пул Master Room");
     });
   }
 
@@ -1931,29 +2204,45 @@ function bindLssActions() {
 // ------------------------------------------------------------
 function renderEmptyState() {
   return `
-    <div class="cabinet-block lss-ref-empty-state">
+    <div class="cabinet-block lss-ref-empty-state lss-ref-create-state">
       <div class="lss-ref-empty-copy">
         <div class="lss-ref-kicker">LSS constructor</div>
-        <h3>Создай персонажа или загрузи JSON</h3>
-        <p>Можно быстро создать базовый лист с именем, классом и стартовыми характеристиками, а потом открыть полный конструктор.</p>
+        <h3>Создай игрового персонажа</h3>
+        <p>Имя персонажа станет основой для профиля игрока и пула персонажей Master Room. После создания лист сохраняется локально и синхронизируется в аккаунт, если ты авторизован.</p>
       </div>
 
       <div class="lss-ref-starter-card">
-        <div class="lss-ref-starter-grid">
-          <div class="filter-group lss-ref-field-main"><label>Имя персонажа</label><input id="lssQuickCreateName" type="text" placeholder="Например: Вирен Теневой"></div>
-          <div class="filter-group"><label>Класс</label><input id="lssQuickCreateClass" type="text" placeholder="Следопыт"></div>
-          <div class="filter-group"><label>Раса</label><input id="lssQuickCreateRace" type="text" placeholder="Эльф"></div>
-          <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" type="number" min="1" value="1"></div>
-          <div class="filter-group"><label>Предыстория</label><input id="lssQuickCreateBackground" type="text" placeholder="Отшельник"></div>
-          <div class="filter-group"><label>HP</label><input id="lssQuickCreateHp" type="number" min="1" value="10"></div>
-          <div class="filter-group"><label>КБ</label><input id="lssQuickCreateAc" type="number" min="1" value="10"></div>
-          <div class="filter-group"><label>Скорость</label><input id="lssQuickCreateSpeed" type="text" value="30"></div>
+        <div class="lss-ref-starter-grid lss-ref-starter-grid-wide">
+          <div class="filter-group lss-ref-field-main"><label>Имя персонажа</label><input id="lssQuickCreateName" type="text" autocomplete="off" placeholder="Например: Торен"></div>
+          <div class="filter-group"><label>Класс</label><input id="lssQuickCreateClass" type="text" autocomplete="off" placeholder="Волшебник"></div>
+          <div class="filter-group"><label>Подкласс</label><input id="lssQuickCreateSubclass" type="text" autocomplete="off" placeholder="Маг крови"></div>
+          <div class="filter-group"><label>Раса</label><input id="lssQuickCreateRace" type="text" autocomplete="off" placeholder="Человек"></div>
+          <div class="filter-group"><label>Предыстория</label><input id="lssQuickCreateBackground" type="text" autocomplete="off" placeholder="Дворянин"></div>
+          <div class="filter-group"><label>Мировоззрение</label><input id="lssQuickCreateAlignment" type="text" autocomplete="off" placeholder="Нейтрально-добрый"></div>
+          <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" ${numericInputAttrs(1, 30)} value="1"></div>
+          <div class="filter-group"><label>Опыт</label><input id="lssQuickCreateExperience" ${numericInputAttrs(0)} value="0"></div>
+          <div class="filter-group"><label>Бонус владения</label><input id="lssQuickCreateProficiency" ${numericInputAttrs(0)} value="2"></div>
+          <div class="filter-group"><label>HP текущие</label><input id="lssQuickCreateHp" ${numericInputAttrs(1)} value="10"></div>
+          <div class="filter-group"><label>HP максимум</label><input id="lssQuickCreateHpMax" ${numericInputAttrs(1)} value="10"></div>
+          <div class="filter-group"><label>КБ</label><input id="lssQuickCreateAc" ${numericInputAttrs(1)} value="10"></div>
+          <div class="filter-group"><label>Инициатива</label><input id="lssQuickCreateInitiative" type="number" inputmode="numeric" value="0"></div>
+          <div class="filter-group"><label>Скорость, фт.</label><input id="lssQuickCreateSpeed" ${numericInputAttrs(0)} value="30"></div>
         </div>
+
+        <div class="lss-ref-starter-stats">
+          ${STAT_DEFS.map(({ key, label }) => `
+            <div class="filter-group">
+              <label>${escapeHtml(label)}</label>
+              <input id="lssQuickCreateStat_${escapeHtml(key)}" ${numericInputAttrs(1, 30)} value="10">
+            </div>
+          `).join("")}
+        </div>
+
         <div class="modal-actions lss-ref-starter-actions">
-          <button class="btn btn-success" type="button" id="lssQuickCreateBtn">Создать персонажа</button>
+          <button class="btn btn-success" type="button" id="lssQuickCreateBtn">Создать и сохранить персонажа</button>
           <button class="btn btn-primary" type="button" id="lssEmptyImportBtn">Загрузить JSON</button>
         </div>
-        <div class="muted">Создание сохраняет LSS локально в браузере и сразу открывает конструктор для дальнейшей настройки.</div>
+        <div class="muted">После создания откроется конструктор. Авторизованный пользователь получит персонажа в “Мой аккаунт → Персонажи” и в пуле Master Room.</div>
       </div>
     </div>
   `;
@@ -1961,34 +2250,28 @@ function renderEmptyState() {
 
 
 function renderDiceDock() {
-  if (!LSS_STATE.profile) return "";
+  if (!LSS_STATE.profile || !LSS_STATE.dicePanelOpen) return "";
   const last = LSS_STATE.lastRoll;
   const dieButtons = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
 
   return `
-    <div style="position:sticky; top:8px; z-index:4; display:flex; justify-content:flex-end; margin-bottom:10px; pointer-events:none;">
-      <div class="cabinet-block" style="pointer-events:auto; padding:8px 10px; width:min(100%, 280px); margin:0; box-shadow:0 10px 26px rgba(0,0,0,0.22);">
-        <div class="flex-between" style="gap:8px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:14px;">🎲 Кубы</div>
-            <div class="muted" style="font-size:11px;">быстрый бросок</div>
-          </div>
-          <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn" style="min-height:30px; padding:4px 9px; border-radius:10px;">
-            ${LSS_STATE.dicePanelOpen ? "Скрыть" : "Открыть"}
-          </button>
+    <div class="cabinet-block lss-ref-dice-dock">
+      <div class="flex-between" style="gap:8px; align-items:center;">
+        <div>
+          <div style="font-weight:800; font-size:14px;">🎲 Кубы</div>
+          <div class="muted" style="font-size:11px;">быстрый бросок</div>
         </div>
-        ${LSS_STATE.dicePanelOpen ? `
-          <div class="cart-buttons" style="margin-top:8px; flex-wrap:wrap; gap:5px; justify-content:flex-start;">
-            ${dieButtons.map((die) => `
-              <button class="btn ${LSS_STATE.diceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-lss-roll-die="${die}" style="min-height:28px; padding:4px 8px; border-radius:10px; font-size:12px;">
-                ${die.toUpperCase()}
-              </button>
-            `).join("")}
-          </div>
-          <div class="muted" style="margin-top:8px; font-size:12px;">
-            ${last ? `Последний: <strong>${escapeHtml(String(last.type).toUpperCase())}</strong> → <strong>${escapeHtml(String(last.result))}</strong>` : "Выбери куб"}
-          </div>
-        ` : ""}
+        <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn">Скрыть</button>
+      </div>
+      <div class="cart-buttons lss-ref-dice-buttons">
+        ${dieButtons.map((die) => `
+          <button class="btn ${LSS_STATE.diceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-lss-roll-die="${die}">
+            ${die.toUpperCase()}
+          </button>
+        `).join("")}
+      </div>
+      <div class="muted" style="margin-top:8px; font-size:12px;">
+        ${last ? `Последний: <strong>${escapeHtml(String(last.type).toUpperCase())}</strong> → <strong>${escapeHtml(String(last.result))}</strong>` : "Выбери куб"}
       </div>
     </div>
   `;

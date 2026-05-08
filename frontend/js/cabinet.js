@@ -158,6 +158,8 @@ const CABINET_INVENTORY_STATE = {
   customDraft: {},
 };
 
+let filesKeyboardShortcutsBound = false;
+
 const FILES_STATE = {
   loaded: false,
   source: "empty",
@@ -177,6 +179,72 @@ const FILES_STATE = {
     detailsOpen: true,
   },
 };
+
+const SUPPORT_STORAGE_KEY = "dnd-trader-support-tickets-v1";
+const SUPPORT_ERROR_LOG_KEY = "__dndSupportErrors";
+
+const SUPPORT_MODULE_OPTIONS = [
+  ["traders", "Торговцы"],
+  ["inventory", "Инвентарь"],
+  ["lss", "LSS / персонаж"],
+  ["history", "История"],
+  ["quests", "Задания"],
+  ["map", "Карта"],
+  ["bestiari", "Энциклопедия / бестиарий"],
+  ["files", "Файлы"],
+  ["notes", "Заметки"],
+  ["masterroom", "Master Room"],
+  ["account", "Мой аккаунт"],
+  ["support", "Поддержка"],
+  ["backend", "API / backend"],
+  ["data", "Данные / предметы"],
+  ["other", "Другое"],
+];
+
+const SUPPORT_TYPE_OPTIONS = [
+  ["bug", "Баг"],
+  ["visual", "Визуальный баг"],
+  ["ux", "UX-проблема"],
+  ["data", "Проблема данных"],
+  ["balance", "Баланс"],
+  ["idea", "Идея"],
+  ["api", "Ошибка API"],
+];
+
+const SUPPORT_PRIORITY_OPTIONS = [
+  ["low", "Низкий"],
+  ["medium", "Средний"],
+  ["high", "Высокий"],
+  ["critical", "Критический"],
+];
+
+const SUPPORT_STATUS_OPTIONS = [
+  ["new", "Новый"],
+  ["needs_info", "Нужно уточнение"],
+  ["confirmed", "Подтверждён"],
+  ["in_progress", "В работе"],
+  ["fixed", "Исправлено"],
+  ["verified", "Проверено"],
+  ["closed", "Закрыто"],
+];
+
+const SUPPORT_STATE = {
+  loaded: false,
+  source: "empty",
+  tickets: [],
+  selectedTicketId: "",
+  draftAttachments: [],
+  lastSavedAt: null,
+  filters: {
+    status: "all",
+    priority: "all",
+    module: "all",
+    search: "",
+  },
+};
+
+let supportErrorCaptureBound = false;
+
 
 const MASTER_ROOM_STATE = {
   loaded: false,
@@ -730,6 +798,13 @@ function getCabinetTabMeta(tabName) {
       subtitle: "Короткая витрина D&D Trader и дорожная карта развития.",
       group: "support",
     },
+    support: {
+      icon: "🛠️",
+      text: "Поддержка",
+      headerTitle: "Поддержка",
+      subtitle: "Багтрекер и саппорт: скрин, описание, шаги воспроизведения, приоритет и отчёт окружения.",
+      group: "support",
+    },
     inventory: {
       icon: "🎒",
       text: "Инвентарь",
@@ -825,6 +900,7 @@ function getVisibleTabsByRole(role) {
     "files",
     "playernotes",
     "masterroom",
+    "support",
     "project",
   ];
 
@@ -846,6 +922,7 @@ function getSectionIdForTab(tabName) {
   const map = {
     myaccount: "cabinet-myaccount",
     project: "cabinet-project",
+    support: "cabinet-support",
     inventory: "cabinet-inventory",
     lss: "cabinet-lss",
     history: "cabinet-history",
@@ -865,6 +942,7 @@ function hideAllCabinetSections() {
   [
     "cabinet-myaccount",
     "cabinet-project",
+    "cabinet-support",
     "cabinet-inventory",
     "cabinet-lss",
     "cabinet-history",
@@ -1147,6 +1225,18 @@ function ensureCabinetStructure() {
     }
   }
 
+  if (main && !getEl("cabinet-support")) {
+    const section = document.createElement("div");
+    section.id = "cabinet-support";
+    section.className = "cabinet-section tab-hidden";
+    const projectSection = getEl("cabinet-project");
+    if (projectSection) {
+      main.insertBefore(section, projectSection);
+    } else {
+      main.appendChild(section);
+    }
+  }
+
   applyCabinetModalLayout();
   return modal;
 }
@@ -1235,6 +1325,773 @@ function bindCabinetHeaderActions() {
     });
   });
 }
+
+
+// ------------------------------------------------------------
+// 🛠 SUPPORT / BUGTRACKER
+// ------------------------------------------------------------
+function getSupportOptionLabel(options, value, fallback = "—") {
+  const entry = options.find(([key]) => key === value);
+  return entry?.[1] || fallback;
+}
+
+function getSupportPriorityLabel(value) {
+  return getSupportOptionLabel(SUPPORT_PRIORITY_OPTIONS, value, "Средний");
+}
+
+function getSupportStatusLabel(value) {
+  return getSupportOptionLabel(SUPPORT_STATUS_OPTIONS, value, "Новый");
+}
+
+function getSupportTypeLabel(value) {
+  return getSupportOptionLabel(SUPPORT_TYPE_OPTIONS, value, "Баг");
+}
+
+function getSupportModuleLabel(value) {
+  return getSupportOptionLabel(SUPPORT_MODULE_OPTIONS, value, "Другое");
+}
+
+function getSupportTicketsFromStorage() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(SUPPORT_STORAGE_KEY);
+    const parsed = tryParseJson(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function persistSupportTickets() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.localStorage.setItem(SUPPORT_STORAGE_KEY, JSON.stringify(SUPPORT_STATE.tickets));
+    SUPPORT_STATE.lastSavedAt = new Date().toISOString();
+  } catch (error) {
+    console.warn("Support tickets save failed", error);
+    showToast("Не удалось сохранить тикеты локально");
+  }
+}
+
+function createSupportId() {
+  return `sup-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeSupportTicket(raw = {}) {
+  const now = new Date().toISOString();
+  const id = String(raw.id || createSupportId()).trim();
+
+  return {
+    id,
+    title: sharedSafeText(raw.title || raw.summary || "Без названия").slice(0, 140),
+    module: SUPPORT_MODULE_OPTIONS.some(([key]) => key === raw.module) ? raw.module : "other",
+    type: SUPPORT_TYPE_OPTIONS.some(([key]) => key === raw.type) ? raw.type : "bug",
+    priority: SUPPORT_PRIORITY_OPTIONS.some(([key]) => key === raw.priority) ? raw.priority : "medium",
+    status: SUPPORT_STATUS_OPTIONS.some(([key]) => key === raw.status) ? raw.status : "new",
+    actual: sharedSafeText(raw.actual || raw.description || ""),
+    expected: sharedSafeText(raw.expected || ""),
+    steps: sharedSafeText(raw.steps || ""),
+    context: sharedSafeText(raw.context || ""),
+    reporter: sharedSafeText(raw.reporter || getSupportReporterLabel()),
+    attachments: Array.isArray(raw.attachments)
+      ? raw.attachments
+          .filter((item) => item && (item.dataUrl || item.name))
+          .map((item) => ({
+            id: String(item.id || createSupportId()),
+            name: sharedSafeText(item.name || "attachment"),
+            type: sharedSafeText(item.type || "file"),
+            size: safeNumber(item.size, 0),
+            dataUrl: String(item.dataUrl || ""),
+          }))
+      : [],
+    created_at: raw.created_at || now,
+    updated_at: raw.updated_at || raw.created_at || now,
+  };
+}
+
+function loadSupportTickets() {
+  ensureSupportErrorCapture();
+
+  const loaded = getSupportTicketsFromStorage().map(normalizeSupportTicket);
+  SUPPORT_STATE.tickets = loaded;
+  SUPPORT_STATE.loaded = true;
+  SUPPORT_STATE.source = loaded.length ? "local" : "empty";
+
+  if (!SUPPORT_STATE.selectedTicketId && loaded.length) {
+    SUPPORT_STATE.selectedTicketId = loaded[0].id;
+  }
+
+  if (SUPPORT_STATE.selectedTicketId && !loaded.some((ticket) => ticket.id === SUPPORT_STATE.selectedTicketId)) {
+    SUPPORT_STATE.selectedTicketId = loaded[0]?.id || "";
+  }
+}
+
+function getSupportReporterLabel() {
+  const user = getCurrentUser?.() || {};
+  return (
+    user?.nickname ||
+    user?.display_name ||
+    user?.username ||
+    user?.email ||
+    "Игрок"
+  );
+}
+
+function getSupportErrorLog() {
+  try {
+    const list = window[SUPPORT_ERROR_LOG_KEY];
+    return Array.isArray(list) ? list.slice(-8) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function ensureSupportErrorCapture() {
+  if (supportErrorCaptureBound || typeof window === "undefined") return;
+
+  window[SUPPORT_ERROR_LOG_KEY] = Array.isArray(window[SUPPORT_ERROR_LOG_KEY])
+    ? window[SUPPORT_ERROR_LOG_KEY]
+    : [];
+
+  const pushError = (entry) => {
+    try {
+      const list = window[SUPPORT_ERROR_LOG_KEY];
+      list.push({
+        created_at: new Date().toISOString(),
+        ...entry,
+      });
+      while (list.length > 20) list.shift();
+    } catch (_) {}
+  };
+
+  window.addEventListener("error", (event) => {
+    pushError({
+      type: "error",
+      message: event.message || "window error",
+      source: event.filename || "",
+      line: event.lineno || "",
+      column: event.colno || "",
+    });
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    pushError({
+      type: "unhandledrejection",
+      message: event.reason?.message || String(event.reason || "promise rejection"),
+      stack: event.reason?.stack || "",
+    });
+  });
+
+  supportErrorCaptureBound = true;
+}
+
+function captureSupportContext() {
+  const currentSection = getActiveCabinetSectionRoot?.();
+  const user = getCurrentUser?.() || {};
+  const errors = getSupportErrorLog();
+  const localKeys = [];
+
+  try {
+    if (window.localStorage) {
+      for (let i = 0; i < window.localStorage.length; i += 1) {
+        const key = window.localStorage.key(i);
+        if (key && key.includes("dnd")) localKeys.push(key);
+      }
+    }
+  } catch (_) {}
+
+  const lines = [
+    `Время: ${new Date().toISOString()}`,
+    `Модуль кабинета: ${CABINET_STATE.activeTab || "unknown"}`,
+    `DOM-секция: ${currentSection?.id || "unknown"}`,
+    `Роль: ${getCurrentRole?.() || "unknown"}`,
+    `Пользователь: ${user?.nickname || user?.display_name || user?.email || "unknown"}`,
+    `URL: ${window.location?.href || "unknown"}`,
+    `Viewport: ${window.innerWidth || 0}×${window.innerHeight || 0}`,
+    `Device pixel ratio: ${window.devicePixelRatio || 1}`,
+    `User agent: ${navigator.userAgent || "unknown"}`,
+    `LocalStorage keys: ${localKeys.slice(0, 18).join(", ") || "—"}`,
+  ];
+
+  if (errors.length) {
+    lines.push("");
+    lines.push("Последние frontend errors:");
+    errors.forEach((entry, index) => {
+      lines.push(`${index + 1}. [${entry.type || "error"}] ${entry.message || "unknown"} ${entry.source || ""}`);
+    });
+  }
+
+  return lines.join("\n");
+}
+
+function getSupportDraftFromForm() {
+  return {
+    title: getEl("supportTitleInput")?.value || "",
+    module: getEl("supportModuleSelect")?.value || "other",
+    type: getEl("supportTypeSelect")?.value || "bug",
+    priority: getEl("supportPrioritySelect")?.value || "medium",
+    actual: getEl("supportActualInput")?.value || "",
+    expected: getEl("supportExpectedInput")?.value || "",
+    steps: getEl("supportStepsInput")?.value || "",
+    context: getEl("supportContextInput")?.value || "",
+  };
+}
+
+function clearSupportForm() {
+  ["supportTitleInput", "supportActualInput", "supportExpectedInput", "supportStepsInput", "supportContextInput"].forEach((id) => {
+    const el = getEl(id);
+    if (el) el.value = "";
+  });
+
+  const moduleSelect = getEl("supportModuleSelect");
+  if (moduleSelect) moduleSelect.value = CABINET_STATE.activeTab === "support" ? "other" : CABINET_STATE.activeTab;
+
+  const typeSelect = getEl("supportTypeSelect");
+  if (typeSelect) typeSelect.value = "bug";
+
+  const prioritySelect = getEl("supportPrioritySelect");
+  if (prioritySelect) prioritySelect.value = "medium";
+
+  SUPPORT_STATE.draftAttachments = [];
+}
+
+function createSupportTicketFromForm() {
+  const draft = getSupportDraftFromForm();
+  const title = sharedSafeText(draft.title).trim();
+  const actual = sharedSafeText(draft.actual).trim();
+
+  if (!title && !actual) {
+    showToast("Заполни название или описание проблемы");
+    return;
+  }
+
+  const ticket = normalizeSupportTicket({
+    ...draft,
+    title: title || actual.slice(0, 80) || "Новый тикет",
+    attachments: SUPPORT_STATE.draftAttachments,
+    reporter: getSupportReporterLabel(),
+  });
+
+  SUPPORT_STATE.tickets = [ticket, ...SUPPORT_STATE.tickets];
+  SUPPORT_STATE.selectedTicketId = ticket.id;
+  persistSupportTickets();
+  clearSupportForm();
+  renderSupportTracker();
+
+  emitCabinetHistory({
+    category: "system",
+    scope: "support",
+    type: "support_ticket_created",
+    action: "support_ticket_created",
+    title: `Создан тикет: ${ticket.title}`,
+    message: `${getSupportModuleLabel(ticket.module)} • ${getSupportPriorityLabel(ticket.priority)}`,
+  });
+
+  showToast("Тикет создан");
+}
+
+function updateSupportTicket(ticketId, patch = {}) {
+  const id = String(ticketId || "");
+  SUPPORT_STATE.tickets = SUPPORT_STATE.tickets.map((ticket) => {
+    if (ticket.id !== id) return ticket;
+    return normalizeSupportTicket({
+      ...ticket,
+      ...patch,
+      updated_at: new Date().toISOString(),
+    });
+  });
+  persistSupportTickets();
+}
+
+function deleteSupportTicket(ticketId) {
+  const id = String(ticketId || "");
+  const ticket = SUPPORT_STATE.tickets.find((entry) => entry.id === id);
+  if (!ticket) return;
+
+  const ok = window.confirm(`Удалить тикет «${ticket.title}»?`);
+  if (!ok) return;
+
+  SUPPORT_STATE.tickets = SUPPORT_STATE.tickets.filter((entry) => entry.id !== id);
+  SUPPORT_STATE.selectedTicketId = SUPPORT_STATE.tickets[0]?.id || "";
+  persistSupportTickets();
+  renderSupportTracker();
+  showToast("Тикет удалён");
+}
+
+function getFilteredSupportTickets() {
+  const query = sharedSafeText(SUPPORT_STATE.filters.search).toLowerCase().replace(/ё/g, "е").trim();
+  const status = SUPPORT_STATE.filters.status || "all";
+  const priority = SUPPORT_STATE.filters.priority || "all";
+  const moduleName = SUPPORT_STATE.filters.module || "all";
+
+  return SUPPORT_STATE.tickets.filter((ticket) => {
+    if (status !== "all" && ticket.status !== status) return false;
+    if (priority !== "all" && ticket.priority !== priority) return false;
+    if (moduleName !== "all" && ticket.module !== moduleName) return false;
+
+    if (query) {
+      const haystack = [
+        ticket.title,
+        ticket.actual,
+        ticket.expected,
+        ticket.steps,
+        ticket.context,
+        ticket.reporter,
+        getSupportModuleLabel(ticket.module),
+        getSupportTypeLabel(ticket.type),
+        getSupportPriorityLabel(ticket.priority),
+        getSupportStatusLabel(ticket.status),
+      ].join(" ").toLowerCase().replace(/ё/g, "е");
+      return haystack.includes(query);
+    }
+
+    return true;
+  });
+}
+
+function getSupportSummary() {
+  const tickets = SUPPORT_STATE.tickets;
+  return {
+    total: tickets.length,
+    open: tickets.filter((ticket) => !["closed", "verified"].includes(ticket.status)).length,
+    critical: tickets.filter((ticket) => ticket.priority === "critical").length,
+    screenshots: tickets.reduce((sum, ticket) => sum + (ticket.attachments?.length || 0), 0),
+  };
+}
+
+function renderSupportOptions(options, selected) {
+  return options.map(([value, label]) => `
+    <option value="${escapeHtml(value)}" ${selected === value ? "selected" : ""}>${escapeHtml(label)}</option>
+  `).join("");
+}
+
+function renderSupportAttachmentPreview(attachments = [], prefix = "support-attachment") {
+  if (!attachments.length) {
+    return `<div class="support-attachment-empty">Скриншотов пока нет.</div>`;
+  }
+
+  return attachments.map((attachment) => `
+    <div class="support-attachment-card">
+      ${attachment.dataUrl && String(attachment.type || "").startsWith("image/")
+        ? `<img src="${escapeHtml(attachment.dataUrl)}" alt="${escapeHtml(attachment.name)}">`
+        : `<div class="support-attachment-file">📎</div>`}
+      <div>
+        <strong>${escapeHtml(attachment.name || "attachment")}</strong>
+        <span>${escapeHtml(formatBytes(attachment.size || 0))}</span>
+      </div>
+      ${prefix === "draft"
+        ? `<button class="support-attachment-remove" type="button" data-support-remove-draft-attachment="${escapeHtml(attachment.id)}">×</button>`
+        : ""}
+    </div>
+  `).join("");
+}
+
+function renderSupportTicketRow(ticket) {
+  return `
+    <button
+      class="support-ticket-row ${SUPPORT_STATE.selectedTicketId === ticket.id ? "active" : ""}"
+      type="button"
+      data-support-ticket-id="${escapeHtml(ticket.id)}"
+    >
+      <span class="support-ticket-priority support-ticket-priority-${escapeHtml(ticket.priority)}">${escapeHtml(getSupportPriorityLabel(ticket.priority))}</span>
+      <strong>${escapeHtml(ticket.title || "Без названия")}</strong>
+      <small>${escapeHtml(getSupportModuleLabel(ticket.module))} • ${escapeHtml(getSupportStatusLabel(ticket.status))} • ${escapeHtml(formatDateTime(ticket.updated_at || ticket.created_at))}</small>
+      <em>${escapeHtml(getSupportTypeLabel(ticket.type))}</em>
+    </button>
+  `;
+}
+
+function renderSupportTicketDetails(ticket) {
+  if (!ticket) {
+    return `
+      <aside class="cabinet-block support-detail-panel support-detail-empty">
+        <div class="support-empty-icon">🛠️</div>
+        <h3>Выбери тикет</h3>
+        <p class="muted">Здесь будет полный отчёт: описание, ожидание, шаги, скриншоты и системный контекст.</p>
+      </aside>
+    `;
+  }
+
+  return `
+    <aside class="cabinet-block support-detail-panel">
+      <div class="support-detail-head">
+        <div>
+          <div class="support-kicker">Тикет</div>
+          <h3>${escapeHtml(ticket.title)}</h3>
+          <p>${escapeHtml(getSupportModuleLabel(ticket.module))} • ${escapeHtml(getSupportTypeLabel(ticket.type))}</p>
+        </div>
+        <span class="support-ticket-priority support-ticket-priority-${escapeHtml(ticket.priority)}">${escapeHtml(getSupportPriorityLabel(ticket.priority))}</span>
+      </div>
+
+      <div class="support-detail-controls">
+        <label>
+          <span>Статус</span>
+          <select id="supportDetailStatusSelect" data-support-update-ticket="${escapeHtml(ticket.id)}" data-support-update-field="status">
+            ${renderSupportOptions(SUPPORT_STATUS_OPTIONS, ticket.status)}
+          </select>
+        </label>
+        <label>
+          <span>Приоритет</span>
+          <select id="supportDetailPrioritySelect" data-support-update-ticket="${escapeHtml(ticket.id)}" data-support-update-field="priority">
+            ${renderSupportOptions(SUPPORT_PRIORITY_OPTIONS, ticket.priority)}
+          </select>
+        </label>
+      </div>
+
+      <div class="support-detail-meta">
+        <span>Автор: <strong>${escapeHtml(ticket.reporter || "—")}</strong></span>
+        <span>Создан: <strong>${escapeHtml(formatDateTime(ticket.created_at))}</strong></span>
+        <span>Обновлён: <strong>${escapeHtml(formatDateTime(ticket.updated_at))}</strong></span>
+        <span>Скрины: <strong>${escapeHtml(String(ticket.attachments?.length || 0))}</strong></span>
+      </div>
+
+      <div class="support-detail-block">
+        <h4>Что сломано</h4>
+        <p>${escapeHtml(ticket.actual || "Не заполнено")}</p>
+      </div>
+
+      <div class="support-detail-block">
+        <h4>Как должно быть</h4>
+        <p>${escapeHtml(ticket.expected || "Не заполнено")}</p>
+      </div>
+
+      <div class="support-detail-block">
+        <h4>Шаги воспроизведения</h4>
+        <pre>${escapeHtml(ticket.steps || "Не заполнено")}</pre>
+      </div>
+
+      <details class="support-context-drawer">
+        <summary>Системный отчёт</summary>
+        <pre>${escapeHtml(ticket.context || "Отчёт не приложен")}</pre>
+      </details>
+
+      <div class="support-detail-block">
+        <h4>Скриншоты / вложения</h4>
+        <div class="support-attachment-grid">${renderSupportAttachmentPreview(ticket.attachments || [])}</div>
+      </div>
+
+      <div class="support-detail-actions">
+        <button class="btn" type="button" data-support-export-ticket="${escapeHtml(ticket.id)}">Экспорт JSON</button>
+        <button class="btn btn-danger" type="button" data-support-delete-ticket="${escapeHtml(ticket.id)}">Удалить</button>
+      </div>
+    </aside>
+  `;
+}
+
+function renderSupportTracker() {
+  const container = getEl("cabinet-support");
+  if (!container) return;
+
+  ensureSupportErrorCapture();
+  if (!SUPPORT_STATE.loaded) loadSupportTickets();
+
+  const summary = getSupportSummary();
+  const filtered = getFilteredSupportTickets();
+  const selected = SUPPORT_STATE.tickets.find((ticket) => ticket.id === SUPPORT_STATE.selectedTicketId) || filtered[0] || null;
+
+  if (selected && selected.id !== SUPPORT_STATE.selectedTicketId) {
+    SUPPORT_STATE.selectedTicketId = selected.id;
+  }
+
+  container.innerHTML = `
+    <section class="support-shell">
+      <div class="cabinet-block support-hero">
+        <div class="support-hero-copy">
+          <div class="support-kicker">Support / Bugtracker</div>
+          <h2>Поддержка и отчёты о проблемах</h2>
+          <p>
+            Полный саппорт-центр для проекта: что сломано, что ожидалось, шаги воспроизведения,
+            скриншот, приоритет, модуль и автоматический отчёт окружения.
+          </p>
+        </div>
+        <div class="support-summary-grid">
+          <div><span>Всего</span><strong>${escapeHtml(String(summary.total))}</strong></div>
+          <div><span>Открыто</span><strong>${escapeHtml(String(summary.open))}</strong></div>
+          <div><span>Критично</span><strong>${escapeHtml(String(summary.critical))}</strong></div>
+          <div><span>Скрины</span><strong>${escapeHtml(String(summary.screenshots))}</strong></div>
+        </div>
+      </div>
+
+      <div class="support-layout">
+        <main class="support-main">
+          <section class="cabinet-block support-create-panel">
+            <div class="support-panel-head">
+              <div>
+                <div class="support-kicker">Новый тикет</div>
+                <h3>Сообщить о проблеме</h3>
+                <p class="muted">Заполни коротко, но воспроизводимо: модуль, что случилось, как повторить, что должно было быть.</p>
+              </div>
+              <button class="btn" type="button" id="supportCaptureContextBtn">📋 Снять отчёт</button>
+            </div>
+
+            <div class="support-form-grid">
+              <label class="support-field support-full-span">
+                <span>Название</span>
+                <input id="supportTitleInput" type="text" placeholder="Например: карта не открывается в fullscreen">
+              </label>
+
+              <label class="support-field">
+                <span>Модуль</span>
+                <select id="supportModuleSelect">
+                  ${renderSupportOptions(SUPPORT_MODULE_OPTIONS, CABINET_STATE.activeTab === "support" ? "other" : CABINET_STATE.activeTab)}
+                </select>
+              </label>
+
+              <label class="support-field">
+                <span>Тип</span>
+                <select id="supportTypeSelect">
+                  ${renderSupportOptions(SUPPORT_TYPE_OPTIONS, "bug")}
+                </select>
+              </label>
+
+              <label class="support-field">
+                <span>Приоритет</span>
+                <select id="supportPrioritySelect">
+                  ${renderSupportOptions(SUPPORT_PRIORITY_OPTIONS, "medium")}
+                </select>
+              </label>
+
+              <label class="support-field support-full-span">
+                <span>Что сломано / что произошло</span>
+                <textarea id="supportActualInput" rows="4" placeholder="Опиши фактическое поведение. Можно вставить ошибку из консоли."></textarea>
+              </label>
+
+              <label class="support-field support-full-span">
+                <span>Как должно быть</span>
+                <textarea id="supportExpectedInput" rows="3" placeholder="Опиши ожидаемое поведение."></textarea>
+              </label>
+
+              <label class="support-field support-full-span">
+                <span>Шаги воспроизведения</span>
+                <textarea id="supportStepsInput" rows="4" placeholder="1. Открыть...\n2. Нажать...\n3. Получить..."></textarea>
+              </label>
+
+              <label class="support-field support-full-span">
+                <span>Системный отчёт</span>
+                <textarea id="supportContextInput" rows="5" placeholder="Нажми «Снять отчёт», чтобы заполнить автоматически."></textarea>
+              </label>
+            </div>
+
+            <div class="support-upload-strip">
+              <div>
+                <strong>Скриншот / вложение</strong>
+                <span>Можно приложить скрин проблемы. Для MVP хранится локально в браузере.</span>
+              </div>
+              <label class="btn support-file-button">
+                📎 Приложить файл
+                <input id="supportAttachmentInput" type="file" accept="image/*,.txt,.json" hidden>
+              </label>
+            </div>
+
+            <div class="support-attachment-grid support-draft-attachments">
+              ${renderSupportAttachmentPreview(SUPPORT_STATE.draftAttachments, "draft")}
+            </div>
+
+            <div class="support-create-actions">
+              <button class="btn btn-primary" type="button" id="supportCreateTicketBtn">Создать тикет</button>
+              <button class="btn" type="button" id="supportClearFormBtn">Очистить форму</button>
+              <button class="btn" type="button" id="supportExportAllBtn">Экспорт всех тикетов</button>
+            </div>
+          </section>
+
+          <section class="cabinet-block support-list-panel">
+            <div class="support-panel-head">
+              <div>
+                <div class="support-kicker">Очередь</div>
+                <h3>Тикеты</h3>
+              </div>
+              <span class="meta-item">${escapeHtml(String(filtered.length))} показано</span>
+            </div>
+
+            <div class="support-filter-grid">
+              <label>
+                <span>Поиск</span>
+                <input id="supportSearchInput" type="search" value="${escapeHtml(SUPPORT_STATE.filters.search || "")}" placeholder="модуль, ошибка, описание...">
+              </label>
+              <label>
+                <span>Статус</span>
+                <select id="supportStatusFilter">
+                  <option value="all">Все статусы</option>
+                  ${renderSupportOptions(SUPPORT_STATUS_OPTIONS, SUPPORT_STATE.filters.status)}
+                </select>
+              </label>
+              <label>
+                <span>Приоритет</span>
+                <select id="supportPriorityFilter">
+                  <option value="all">Любой</option>
+                  ${renderSupportOptions(SUPPORT_PRIORITY_OPTIONS, SUPPORT_STATE.filters.priority)}
+                </select>
+              </label>
+              <label>
+                <span>Модуль</span>
+                <select id="supportModuleFilter">
+                  <option value="all">Все модули</option>
+                  ${renderSupportOptions(SUPPORT_MODULE_OPTIONS, SUPPORT_STATE.filters.module)}
+                </select>
+              </label>
+            </div>
+
+            <div class="support-ticket-list">
+              ${filtered.length
+                ? filtered.map(renderSupportTicketRow).join("")
+                : `<div class="support-empty-list">Тикетов пока нет. Создай первый отчёт о проблеме.</div>`}
+            </div>
+          </section>
+        </main>
+
+        ${renderSupportTicketDetails(selected)}
+      </div>
+    </section>
+  `;
+
+  bindSupportActions();
+}
+
+function supportDownloadJson(filename, payload) {
+  try {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.warn("Support export failed", error);
+    showToast("Не удалось экспортировать JSON");
+  }
+}
+
+function bindSupportActions() {
+  const createBtn = getEl("supportCreateTicketBtn");
+  if (createBtn && createBtn.dataset.boundSupportCreate !== "1") {
+    createBtn.dataset.boundSupportCreate = "1";
+    createBtn.addEventListener("click", createSupportTicketFromForm);
+  }
+
+  const clearBtn = getEl("supportClearFormBtn");
+  if (clearBtn && clearBtn.dataset.boundSupportClear !== "1") {
+    clearBtn.dataset.boundSupportClear = "1";
+    clearBtn.addEventListener("click", () => {
+      clearSupportForm();
+      renderSupportTracker();
+    });
+  }
+
+  const captureBtn = getEl("supportCaptureContextBtn");
+  if (captureBtn && captureBtn.dataset.boundSupportCapture !== "1") {
+    captureBtn.dataset.boundSupportCapture = "1";
+    captureBtn.addEventListener("click", () => {
+      const target = getEl("supportContextInput");
+      if (target) target.value = captureSupportContext();
+      showToast("Системный отчёт заполнен");
+    });
+  }
+
+  const attachmentInput = getEl("supportAttachmentInput");
+  if (attachmentInput && attachmentInput.dataset.boundSupportAttachment !== "1") {
+    attachmentInput.dataset.boundSupportAttachment = "1";
+    attachmentInput.addEventListener("change", () => {
+      const file = attachmentInput.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        SUPPORT_STATE.draftAttachments.push({
+          id: createSupportId(),
+          name: file.name,
+          type: file.type || "file",
+          size: file.size || 0,
+          dataUrl: String(reader.result || ""),
+        });
+        renderSupportTracker();
+      };
+      reader.onerror = () => showToast("Не удалось прочитать файл");
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.querySelectorAll("[data-support-remove-draft-attachment]").forEach((btn) => {
+    if (btn.dataset.boundSupportRemoveDraft === "1") return;
+    btn.dataset.boundSupportRemoveDraft = "1";
+    btn.addEventListener("click", () => {
+      SUPPORT_STATE.draftAttachments = SUPPORT_STATE.draftAttachments.filter(
+        (item) => item.id !== btn.dataset.supportRemoveDraftAttachment
+      );
+      renderSupportTracker();
+    });
+  });
+
+  document.querySelectorAll("[data-support-ticket-id]").forEach((btn) => {
+    if (btn.dataset.boundSupportTicketSelect === "1") return;
+    btn.dataset.boundSupportTicketSelect = "1";
+    btn.addEventListener("click", () => {
+      SUPPORT_STATE.selectedTicketId = btn.dataset.supportTicketId || "";
+      renderSupportTracker();
+    });
+  });
+
+  ["supportSearchInput", "supportStatusFilter", "supportPriorityFilter", "supportModuleFilter"].forEach((id) => {
+    const el = getEl(id);
+    if (!el || el.dataset.boundSupportFilter === "1") return;
+    el.dataset.boundSupportFilter = "1";
+    el.addEventListener("input", () => {
+      SUPPORT_STATE.filters.search = getEl("supportSearchInput")?.value || "";
+      SUPPORT_STATE.filters.status = getEl("supportStatusFilter")?.value || "all";
+      SUPPORT_STATE.filters.priority = getEl("supportPriorityFilter")?.value || "all";
+      SUPPORT_STATE.filters.module = getEl("supportModuleFilter")?.value || "all";
+      renderSupportTracker();
+    });
+    el.addEventListener("change", () => {
+      SUPPORT_STATE.filters.search = getEl("supportSearchInput")?.value || "";
+      SUPPORT_STATE.filters.status = getEl("supportStatusFilter")?.value || "all";
+      SUPPORT_STATE.filters.priority = getEl("supportPriorityFilter")?.value || "all";
+      SUPPORT_STATE.filters.module = getEl("supportModuleFilter")?.value || "all";
+      renderSupportTracker();
+    });
+  });
+
+  document.querySelectorAll("[data-support-update-ticket]").forEach((select) => {
+    if (select.dataset.boundSupportUpdate === "1") return;
+    select.dataset.boundSupportUpdate = "1";
+    select.addEventListener("change", () => {
+      const ticketId = select.dataset.supportUpdateTicket;
+      const field = select.dataset.supportUpdateField;
+      if (!ticketId || !field) return;
+      updateSupportTicket(ticketId, { [field]: select.value });
+      renderSupportTracker();
+    });
+  });
+
+  document.querySelectorAll("[data-support-delete-ticket]").forEach((btn) => {
+    if (btn.dataset.boundSupportDelete === "1") return;
+    btn.dataset.boundSupportDelete = "1";
+    btn.addEventListener("click", () => deleteSupportTicket(btn.dataset.supportDeleteTicket));
+  });
+
+  document.querySelectorAll("[data-support-export-ticket]").forEach((btn) => {
+    if (btn.dataset.boundSupportExport === "1") return;
+    btn.dataset.boundSupportExport = "1";
+    btn.addEventListener("click", () => {
+      const ticket = SUPPORT_STATE.tickets.find((entry) => entry.id === btn.dataset.supportExportTicket);
+      if (!ticket) return;
+      supportDownloadJson(`dnd-trader-ticket-${ticket.id}.json`, ticket);
+    });
+  });
+
+  const exportAllBtn = getEl("supportExportAllBtn");
+  if (exportAllBtn && exportAllBtn.dataset.boundSupportExportAll !== "1") {
+    exportAllBtn.dataset.boundSupportExportAll = "1";
+    exportAllBtn.addEventListener("click", () => {
+      supportDownloadJson("dnd-trader-support-tickets.json", SUPPORT_STATE.tickets);
+    });
+  }
+}
+
 
 function renderProjectSupportTab() {
   const container = getEl("cabinet-project");
@@ -2347,21 +3204,23 @@ function renderInventorySummary(items) {
   const totalValue = getInventoryTotalValueCp(items);
   const user = getCurrentUser() || window.__appUser || {};
   const moneyLabel = user?.money_label || window.__appMoneyLabel || window.__playerMoneyLabel || "—";
+  const categoryCount = getInventoryCategories(items).length || 0;
   const raritySummary = getInventoryRaritySummary(items)
     .map(([key, count]) => `${rarityLabel(key)}: ${count}`)
     .join(" • ");
 
   return `
-    <section class="cabinet-block inventory-ref-hero">
+    <section class="cabinet-block inventory-ref-hero inventory-ref-hero-compact">
       <div class="inventory-ref-hero-main">
-        <div class="inventory-ref-kicker">Character inventory</div>
+        <div class="inventory-ref-kicker">Сумка персонажа</div>
         <h2>Инвентарь</h2>
-        <p>Снаряжение, предметы, кастомные находки и быстрые слоты персонажа. Визуал ближе к RPG-инвентарю, но без перегруза карточками.</p>
+        <p>Снаряжение, предметы, кастомные находки и быстрые слоты. Карточки — для чтения, таблица — для больших списков.</p>
         <div class="inventory-ref-hero-tags">
-          <span>Категорий: ${escapeHtml(String(getInventoryCategories(items).length || 0))}</span>
+          <span>Категорий: ${escapeHtml(String(categoryCount))}</span>
           <span>Магических: ${escapeHtml(String(magicalCount))}</span>
           <span>Custom: ${escapeHtml(String(customCount))}</span>
           <span>Надето: ${escapeHtml(String(equippedEntries.length))}</span>
+          <span>${escapeHtml(raritySummary || "Редкости не определены")}</span>
         </div>
       </div>
 
@@ -2371,8 +3230,6 @@ function renderInventorySummary(items) {
         ${renderInventoryMetric("Предметов", String(totalCount), "в сумке")}
         ${renderInventoryMetric("Стоимость", formatCpCompact(totalValue), "оценка")}
       </div>
-
-      <div class="inventory-ref-rarity-line">${escapeHtml(raritySummary || "Редкости пока не определены")}</div>
     </section>
   `;
 }
@@ -2382,30 +3239,51 @@ function renderInventoryToolbar() {
   const inventory = getInventoryState();
 
   return `
-    <section class="cabinet-block inventory-ref-toolbar">
+    <section class="cabinet-block inventory-ref-toolbar inventory-ref-toolbar-compact">
       <div class="inventory-ref-toolbar-top">
         <div>
           <div class="inventory-ref-kicker">Навигация по вещам</div>
-          <h3>Фильтры и категории</h3>
+          <h3>Сумка и категории</h3>
         </div>
         <div class="inventory-ref-toolbar-actions">
           <button class="btn" type="button" id="cabinetRefreshInventoryBtn">Обновить</button>
-          <button class="btn" type="button" id="cabinetToggleInventoryFiltersBtn">${CABINET_INVENTORY_STATE.filtersVisible ? "Скрыть фильтры" : "Показать фильтры"}</button>
+          <button class="btn" type="button" id="cabinetToggleInventoryFiltersBtn">${CABINET_INVENTORY_STATE.filtersVisible ? "Скрыть фильтры" : "Фильтры"}</button>
           <button class="btn btn-primary" type="button" id="cabinetAddCustomItemBtn">
             ${CABINET_INVENTORY_STATE.customFormOpen ? "Скрыть форму" : "＋ Добавить предмет"}
           </button>
         </div>
       </div>
 
+      <div class="inventory-ref-quickbar">
+        <div class="filter-group inventory-ref-search-field">
+          <label>Поиск</label>
+          <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, эффект, описание, свойство..." />
+        </div>
+
+        <div class="filter-group inventory-ref-sort-field">
+          <label>Сортировка</label>
+          <select id="cabinetInventorySort">
+            <option value="name" ${CABINET_INVENTORY_STATE.sort === "name" ? "selected" : ""}>Название</option>
+            <option value="price_asc" ${CABINET_INVENTORY_STATE.sort === "price_asc" ? "selected" : ""}>Дешёвые</option>
+            <option value="price_desc" ${CABINET_INVENTORY_STATE.sort === "price_desc" ? "selected" : ""}>Дорогие</option>
+            <option value="rarity" ${CABINET_INVENTORY_STATE.sort === "rarity" ? "selected" : ""}>Редкость</option>
+          </select>
+        </div>
+
+        <div class="filter-group inventory-ref-view-field">
+          <label>Вид</label>
+          <select id="cabinetInventoryViewMode">
+            <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
+            <option value="inventory" ${CABINET_INVENTORY_STATE.viewMode === "inventory" ? "selected" : ""}>Список</option>
+            <option value="table" ${CABINET_INVENTORY_STATE.viewMode === "table" ? "selected" : ""}>Таблица</option>
+          </select>
+        </div>
+      </div>
+
       ${renderInventoryCategoryTabs(inventory)}
 
       ${CABINET_INVENTORY_STATE.filtersVisible ? `
-        <div class="inventory-ref-filter-grid">
-          <div class="filter-group inventory-ref-search-field">
-            <label>Поиск</label>
-            <input id="cabinetInventorySearch" type="text" value="${escapeHtml(CABINET_INVENTORY_STATE.search)}" placeholder="Название, эффект, описание, свойство..." />
-          </div>
-
+        <div class="inventory-ref-filter-grid inventory-ref-advanced-filters">
           <div class="filter-group">
             <label>Редкость</label>
             <select id="cabinetInventoryRarity">
@@ -2438,25 +3316,6 @@ function renderInventoryToolbar() {
                   return `<option value="${escapeHtml(normalized)}" ${String(CABINET_INVENTORY_STATE.category || "") === normalized ? "selected" : ""}>${escapeHtml(inventoryCategoryLabel(category))}</option>`;
                 })
                 .join("")}
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Сортировка</label>
-            <select id="cabinetInventorySort">
-              <option value="name" ${CABINET_INVENTORY_STATE.sort === "name" ? "selected" : ""}>Название</option>
-              <option value="price_asc" ${CABINET_INVENTORY_STATE.sort === "price_asc" ? "selected" : ""}>Дешёвые</option>
-              <option value="price_desc" ${CABINET_INVENTORY_STATE.sort === "price_desc" ? "selected" : ""}>Дорогие</option>
-              <option value="rarity" ${CABINET_INVENTORY_STATE.sort === "rarity" ? "selected" : ""}>Редкость</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Вид</label>
-            <select id="cabinetInventoryViewMode">
-              <option value="grid" ${CABINET_INVENTORY_STATE.viewMode === "grid" ? "selected" : ""}>Карточки</option>
-              <option value="inventory" ${CABINET_INVENTORY_STATE.viewMode === "inventory" ? "selected" : ""}>Список</option>
-              <option value="table" ${CABINET_INVENTORY_STATE.viewMode === "table" ? "selected" : ""}>Таблица</option>
             </select>
           </div>
 
@@ -3431,19 +4290,49 @@ function getSelectedFile() {
   return getFileById(FILES_STATE.selectedFileId);
 }
 
+function normalizeFilesSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[.,:;!?()[\]{}"«»'`~_+=\\/|<>-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function fileSearchBlob(file) {
-  return [
+  return normalizeFilesSearch([
     file?.name,
     file?.type,
     file?.category,
     file?.visibility,
     file?.note,
     ...(Array.isArray(file?.tags) ? file.tags : []),
-  ].join(" ").toLowerCase();
+  ].filter(Boolean).join(" "));
+}
+
+function focusFilesSearchAfterRender(caretPosition = null) {
+  requestAnimationFrame(() => {
+    const field = getEl("cabinetFilesSearchInput");
+    if (!field) return;
+
+    field.focus({ preventScroll: true });
+
+    const length = field.value.length;
+    const pos = Number.isFinite(Number(caretPosition))
+      ? Math.max(0, Math.min(length, Number(caretPosition)))
+      : length;
+
+    try {
+      field.setSelectionRange(pos, pos);
+    } catch {
+      // No-op for browser edge cases.
+    }
+  });
 }
 
 function getFilteredFiles() {
-  const search = String(FILES_STATE.filters.search || "").trim().toLowerCase();
+  const search = normalizeFilesSearch(FILES_STATE.filters.search);
+  const searchTokens = search ? search.split(" ").filter(Boolean) : [];
   const category = String(FILES_STATE.filters.category || "all");
   const visibility = String(FILES_STATE.filters.visibility || "all");
   const sort = String(FILES_STATE.filters.sort || "newest");
@@ -3451,7 +4340,10 @@ function getFilteredFiles() {
   const filtered = FILES_STATE.items.filter((file) => {
     if (category !== "all" && file.category !== category) return false;
     if (visibility !== "all" && file.visibility !== visibility) return false;
-    if (search && !fileSearchBlob(file).includes(search)) return false;
+    if (searchTokens.length) {
+      const haystack = fileSearchBlob(file);
+      if (!searchTokens.every((token) => haystack.includes(token))) return false;
+    }
     return true;
   });
 
@@ -3689,17 +4581,18 @@ async function moveCabinetFile(fromIndex, toIndex) {
 function renderFilesHero() {
   const summary = getFilesSummary();
   return `
-    <section class="cabinet-block files-ref-hero">
+    <section class="cabinet-block files-ref-hero files-ref-hero-round105">
       <div class="files-ref-hero-main">
         <div class="files-ref-kicker">Архив партии</div>
         <h3>Файлы кампании</h3>
-        <p>Карты, handouts, изображения, документы и материалы стола. Модуль local-first: если API недоступен, архив остаётся в браузере.</p>
-        <div class="files-ref-hero-actions">
-          <button class="btn btn-primary" type="button" id="cabinetFilesUploadBtn">＋ Загрузить файлы</button>
-          <button class="btn" type="button" id="cabinetFilesRefreshBtn">Обновить</button>
-          <button class="btn" type="button" id="cabinetFilesToggleUploadBtn">${FILES_STATE.ui.uploadOpen ? "Скрыть загрузку" : "Показать загрузку"}</button>
-          <input type="file" id="cabinetFileInput" multiple hidden />
-        </div>
+        <p>Карты, handouts, изображения, документы и материалы стола. Local-first: если API недоступен, архив остаётся в браузере.</p>
+      </div>
+
+      <div class="files-ref-hero-actions">
+        <button class="btn btn-primary" type="button" id="cabinetFilesUploadBtn">＋ Загрузить</button>
+        <button class="btn" type="button" id="cabinetFilesRefreshBtn">Обновить</button>
+        <button class="btn" type="button" id="cabinetFilesToggleUploadBtn">${FILES_STATE.ui.uploadOpen ? "Скрыть" : "Загрузка"}</button>
+        <input type="file" id="cabinetFileInput" multiple hidden />
       </div>
 
       <div class="files-ref-summary-grid">
@@ -3716,15 +4609,15 @@ function renderFilesDropzone() {
   if (!FILES_STATE.ui.uploadOpen) return "";
 
   return `
-    <section class="cabinet-block files-ref-upload" id="cabinetFilesDropzone">
+    <section class="cabinet-block files-ref-upload files-ref-upload-round105" id="cabinetFilesDropzone">
       <div class="files-ref-upload-icon">⇪</div>
-      <div>
+      <div class="files-ref-upload-copy">
         <h4>Загрузка в архив</h4>
-        <p class="muted">Нажми «Загрузить файлы» или перетащи файлы в эту область. Категория определится автоматически, её можно изменить справа.</p>
+        <p class="muted">Нажми «Загрузить» или перетащи файлы сюда. Категория определится автоматически, её можно изменить справа.</p>
       </div>
       <div class="files-ref-upload-meta">
         <span>Источник: <strong>${escapeHtml(FILES_STATE.source)}</strong></span>
-        <span>Последнее сохранение: <strong>${escapeHtml(formatTime(FILES_STATE.lastSavedAt))}</strong></span>
+        <span>Сохранение: <strong>${escapeHtml(formatTime(FILES_STATE.lastSavedAt))}</strong></span>
       </div>
     </section>
   `;
@@ -3732,10 +4625,19 @@ function renderFilesDropzone() {
 
 function renderFilesFilters() {
   return `
-    <section class="cabinet-block files-ref-toolbar">
-      <label class="filter-group">
+    <section class="cabinet-block files-ref-toolbar files-ref-toolbar-round105">
+      <label class="filter-group files-ref-search-group">
         <span>Поиск</span>
-        <input id="cabinetFilesSearchInput" type="search" placeholder="Название, тег, заметка..." value="${escapeHtml(FILES_STATE.filters.search)}" />
+        <div class="files-ref-search-box">
+          <input id="cabinetFilesSearchInput" type="search" placeholder="Название, тег, заметка..." value="${escapeHtml(FILES_STATE.filters.search)}" />
+          <button
+            class="files-ref-search-clear"
+            type="button"
+            id="cabinetFilesSearchClearBtn"
+            title="Очистить поиск"
+            ${FILES_STATE.filters.search ? "" : "hidden"}
+          >×</button>
+        </div>
       </label>
 
       <label class="filter-group">
@@ -3940,7 +4842,7 @@ function renderFilesDetailPanel() {
   `;
 }
 
-function renderFiles() {
+function renderFiles(options = {}) {
   const container = getEl("cabinet-files");
   if (!container) return;
 
@@ -3958,11 +4860,11 @@ function renderFiles() {
   ensureSelectedFileIsValid();
 
   container.innerHTML = `
-    <div class="files-ref-shell">
+    <div class="files-ref-shell files-ref-shell-round105">
       ${renderFilesHero()}
       ${renderFilesDropzone()}
       ${renderFilesFilters()}
-      <div class="files-ref-layout">
+      <div class="files-ref-layout files-ref-layout-round105">
         <main class="files-ref-main">
           ${renderFilesList()}
         </main>
@@ -3972,7 +4874,12 @@ function renderFiles() {
   `;
 
   bindFilesActions();
+
+  if (options.preserveSearchFocus) {
+    focusFilesSearchAfterRender(options.searchCaret);
+  }
 }
+
 
 function bindFilesActions() {
   const refreshBtn = getEl("cabinetFilesRefreshBtn");
@@ -4049,9 +4956,37 @@ function bindFilesActions() {
   if (searchInput && searchInput.dataset.boundFilesSearch !== "1") {
     searchInput.dataset.boundFilesSearch = "1";
     searchInput.addEventListener("input", () => {
+      const caret = searchInput.selectionStart ?? searchInput.value.length;
       FILES_STATE.filters.search = searchInput.value || "";
-      renderFiles();
+      FILES_STATE.selectedFileId = getFilteredFiles()[0]?.id || FILES_STATE.selectedFileId;
+      renderFiles({ preserveSearchFocus: true, searchCaret: caret });
     });
+  }
+
+  const clearSearchBtn = getEl("cabinetFilesSearchClearBtn");
+  if (clearSearchBtn && clearSearchBtn.dataset.boundFilesSearchClear !== "1") {
+    clearSearchBtn.dataset.boundFilesSearchClear = "1";
+    clearSearchBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      FILES_STATE.filters.search = "";
+      FILES_STATE.selectedFileId = getFilteredFiles()[0]?.id || "";
+      renderFiles({ preserveSearchFocus: true, searchCaret: 0 });
+    });
+  }
+
+  if (!filesKeyboardShortcutsBound) {
+    document.addEventListener("keydown", (event) => {
+      const isSearchHotkey = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
+      if (!isSearchHotkey) return;
+
+      const container = getEl("cabinet-files");
+      if (!container || container.offsetParent === null) return;
+
+      event.preventDefault();
+      focusFilesSearchAfterRender();
+    });
+    filesKeyboardShortcutsBound = true;
   }
 
   const categoryFilter = getEl("cabinetFilesCategoryFilter");
@@ -9448,6 +10383,13 @@ export async function switchCabinetTab(tabName) {
   if (tabName === "myaccount") {
     await loadAccountModule();
     renderAccountModule();
+    finalizeCabinetActiveModule();
+    return;
+  }
+
+  if (tabName === "support") {
+    loadSupportTickets();
+    renderSupportTracker();
     finalizeCabinetActiveModule();
     return;
   }

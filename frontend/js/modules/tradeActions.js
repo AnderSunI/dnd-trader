@@ -84,6 +84,62 @@ export function createTradeActions(deps) {
     getCartTotalUnits,
   } = deps;
 
+  function normalizeTraderId(value) {
+    const id = Number(value);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }
+
+  function getTradePriceLabel(payload, fallback = "") {
+    if (!payload || typeof payload !== "object") return fallback || "";
+    return (
+      payload.total_paid_label ||
+      payload.total_received_label ||
+      payload.total_label ||
+      payload.price_label ||
+      fallback ||
+      ""
+    );
+  }
+
+  function emitTradeHistoryEvent({
+    action,
+    title,
+    item,
+    trader,
+    traderId,
+    quantity,
+    priceLabel,
+    payload,
+  } = {}) {
+    const normalizedAction = String(action || "trade").toLowerCase();
+    const itemName = item?.name || payload?.item_name || payload?.itemName || "Предмет";
+    const traderName = trader?.name || payload?.trader_name || payload?.traderName || "Торговец";
+    const detail = {
+      scope: "trade",
+      type: normalizedAction === "sell" ? "trade_sell" : "trade_buy",
+      action: normalizedAction,
+      title: title || (normalizedAction === "sell" ? "Продажа предмета" : "Покупка у торговца"),
+      message: `${itemName} × ${quantity || 1}${priceLabel ? ` • ${priceLabel}` : ""}`,
+      item_id: Number(item?.item_id ?? item?.id ?? payload?.item_id ?? 0) || "",
+      item_name: itemName,
+      trader_id: normalizeTraderId(traderId ?? trader?.id ?? payload?.trader_id) || "",
+      trader_name: traderName,
+      quantity: Math.max(1, safeNumber(quantity, 1)),
+      price_label: priceLabel || "",
+      created_at: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      payload: payload && typeof payload === "object" ? payload : null,
+    };
+
+    try {
+      window.dispatchEvent(
+        new CustomEvent("dnd:history:add", {
+          detail,
+        })
+      );
+    } catch (_) {}
+  }
+
   function applyLocalBuy(traderId, itemId, quantity = 1) {
     const trader = getTraderById(traderId);
     const traderItem = getTraderItem(traderId, itemId);
@@ -182,15 +238,17 @@ export function createTradeActions(deps) {
     const source = String(settings.source || "trader");
     const skipConfirm = Boolean(settings.skipConfirm);
 
+    const itemBefore = getBuyConfirmItem({
+      traderId,
+      itemId,
+      cart: state.cart,
+      getTraderItem,
+      findCartItemByTraderAndItemId,
+    });
+    const traderBefore = getTraderById(traderId);
+
     if (!skipConfirm) {
-      const item = getBuyConfirmItem({
-        traderId,
-        itemId,
-        cart: state.cart,
-        getTraderItem,
-        findCartItemByTraderAndItemId,
-      });
-      const itemName = item?.name || "предмет";
+      const itemName = itemBefore?.name || "предмет";
       if (!confirmTradeAction("Купить", itemName, qty)) return { cancelled: true };
     }
 
@@ -217,6 +275,17 @@ export function createTradeActions(deps) {
       rerenderTraders();
       await syncOpenTraderModalIfVisible(state.activeTraderId ?? traderId);
 
+      emitTradeHistoryEvent({
+        action: "buy",
+        title: "Покупка у торговца",
+        item: itemBefore,
+        trader: traderBefore,
+        traderId,
+        quantity: qty,
+        priceLabel: getTradePriceLabel(snapshot?.payload, snapshot?.totalLabel),
+        payload: snapshot?.payload || snapshot,
+      });
+
       showToast(
         `Покупка успешна${snapshot?.playerMoneyLabel ? ` • Ваше золото: ${snapshot.playerMoneyLabel}` : ""}`
       );
@@ -230,7 +299,7 @@ export function createTradeActions(deps) {
     }
   }
 
-  function applyLocalSell(itemId, quantity = 1) {
+  function applyLocalSell(itemId, quantity = 1, traderIdOverride = null) {
     const invIndex = findInventoryIndexByItemId(state.inventory, itemId);
     if (invIndex < 0) throw new Error("Предмет не найден в инвентаре");
 
@@ -239,7 +308,8 @@ export function createTradeActions(deps) {
     const owned = Math.max(0, safeNumber(item.quantity, 0));
     if (owned < qty) throw new Error(`У вас только ${owned} шт.`);
 
-    const trader = item.trader_id != null ? getTraderById(item.trader_id) : null;
+    const selectedTraderId = normalizeTraderId(traderIdOverride ?? item.trader_id ?? state.activeTraderId);
+    const trader = selectedTraderId != null ? getTraderById(selectedTraderId) : null;
     const totalCp = getSellTotalCp(item, qty);
 
     state.guestMoneyCp = Math.max(0, getCurrentMoneyCp() + totalCp);
@@ -273,10 +343,14 @@ export function createTradeActions(deps) {
     return result;
   }
 
-  async function applyServerSell(itemId, quantity = 1) {
+  async function applyServerSell(itemId, quantity = 1, traderIdOverride = null) {
     const inventoryEntry = findInventoryItemById(state.inventory, itemId);
-    const traderId = inventoryEntry?.trader_id ?? null;
-    const traderBeforeCp = traderId != null ? getTraderMoneyCp(getTraderById(traderId)) : 0;
+    const traderId = normalizeTraderId(traderIdOverride ?? inventoryEntry?.trader_id ?? state.activeTraderId);
+    if (traderId == null) {
+      throw new Error("Торговец для продажи не выбран");
+    }
+
+    const traderBeforeCp = getTraderMoneyCp(getTraderById(traderId));
     const sellDeltaCp = inventoryEntry ? getSellTotalCp(inventoryEntry, quantity) : 0;
 
     const payload = await apiSellItem(itemId, traderId, quantity);
@@ -303,22 +377,37 @@ export function createTradeActions(deps) {
     const qty = Math.max(1, safeNumber(quantity, 1));
     const settings = options && typeof options === "object" ? options : {};
     const skipConfirm = Boolean(settings.skipConfirm);
+    const itemBefore = findInventoryItemById(state.inventory, itemId);
+    const traderId = normalizeTraderId(settings.traderId ?? itemBefore?.trader_id ?? state.activeTraderId);
+    const traderBefore = traderId != null ? getTraderById(traderId) : null;
 
     if (!skipConfirm) {
-      const item = findInventoryItemById(state.inventory, itemId);
-      const itemName = item?.name || "предмет";
+      const itemName = itemBefore?.name || "предмет";
       if (!confirmTradeAction("Продать", itemName, qty)) return { cancelled: true };
     }
 
     try {
       setBusy(true);
-      if (state.token) await applyServerSell(itemId, qty);
-      else applyLocalSell(itemId, qty);
+      const snapshot = state.token
+        ? await applyServerSell(itemId, qty, traderId)
+        : applyLocalSell(itemId, qty, traderId);
+
+      emitTradeHistoryEvent({
+        action: "sell",
+        title: "Продажа предмета",
+        item: itemBefore,
+        trader: traderBefore,
+        traderId,
+        quantity: qty,
+        priceLabel: getTradePriceLabel(snapshot, snapshot?.totalLabel),
+        payload: snapshot,
+      });
 
       renderAllLocalState();
       rerenderTraders();
-      await syncOpenTraderModalIfVisible(state.activeTraderId);
+      await syncOpenTraderModalIfVisible(state.activeTraderId ?? traderId);
       showToast(`Продажа успешна • Ваше золото: ${getCurrentMoneyLabel()}`);
+      return snapshot;
     } catch (error) {
       console.error(error);
       showToast(error.message || "Ошибка продажи");

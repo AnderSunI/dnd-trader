@@ -138,8 +138,13 @@ class PlayerNotesRequest(BaseModel):
 
 
 class PlayerQuestsRequest(BaseModel):
-    quests: list[Any] = []
-    history: list[Any] | None = None
+    # Принимаем гибкий payload: фронт может прислать полный список,
+    # merge-mode или пустой список при явном удалении последней записи.
+    quests: Any = None
+    history: Any | None = None
+    merge: bool = False
+    allow_empty: bool = False
+    client_updated_at: Any | None = None
 
 
 def normalize_text_payload(value: Any) -> str:
@@ -154,6 +159,171 @@ def normalize_text_payload(value: Any) -> str:
         return json.dumps(value, ensure_ascii=False)
     except Exception:
         return str(value)
+
+
+def normalize_json_safe(value: Any, *, depth: int = 0) -> Any:
+    """Return a JSON-column-safe copy without losing useful user data."""
+    if depth > 12:
+        return str(value)
+
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    if isinstance(value, list):
+        return [normalize_json_safe(item, depth=depth + 1) for item in value]
+
+    if isinstance(value, tuple):
+        return [normalize_json_safe(item, depth=depth + 1) for item in value]
+
+    if isinstance(value, dict):
+        safe_dict: dict[str, Any] = {}
+        for key, item in value.items():
+            safe_key = str(key)
+            safe_dict[safe_key] = normalize_json_safe(item, depth=depth + 1)
+        return safe_dict
+
+    return str(value)
+
+
+def normalize_quest_list_payload(value: Any) -> list[Any]:
+    if isinstance(value, list):
+        return value
+
+    if isinstance(value, dict):
+        for key in ("quests", "items", "data"):
+            nested = value.get(key)
+            if isinstance(nested, list):
+                return nested
+            if isinstance(nested, dict):
+                nested_quests = nested.get("quests") or nested.get("items")
+                if isinstance(nested_quests, list):
+                    return nested_quests
+
+    return []
+
+
+def normalize_quest_checkpoint_payload(value: Any, index: int = 0) -> dict[str, Any] | None:
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        return {
+            "id": f"cp_{index}",
+            "text": text,
+            "done": False,
+        }
+
+    if not isinstance(value, dict):
+        return None
+
+    text = str(value.get("text") or value.get("title") or value.get("name") or "").strip()
+    if not text:
+        return None
+
+    return {
+        **normalize_json_safe(value),
+        "id": str(value.get("id") or f"cp_{index}"),
+        "text": text,
+        "done": bool(value.get("done") or value.get("completed")),
+    }
+
+
+def normalize_quest_entry_payload(value: Any, index: int = 0) -> dict[str, Any] | None:
+    if isinstance(value, str):
+        title = value.strip()
+        if not title:
+            return None
+        return {
+            "id": f"quest_{index}",
+            "type": "chronicle",
+            "title": title,
+            "description": "",
+            "reward": "",
+            "status": "active",
+            "tags": [],
+            "author": "",
+            "checkpoints": [],
+        }
+
+    if not isinstance(value, dict):
+        return None
+
+    safe = normalize_json_safe(value)
+    assert isinstance(safe, dict)
+
+    entry_type = str(
+        safe.get("type") or safe.get("kind") or safe.get("entry_type") or "quest"
+    ).strip().lower()
+    if entry_type not in {"quest", "achievement", "checkpoint", "chronicle"}:
+        entry_type = "quest"
+
+    status = str(safe.get("status") or safe.get("state") or "active").strip().lower()
+    if status not in {"active", "completed", "failed", "hidden"}:
+        status = "active"
+
+    raw_checkpoints = safe.get("checkpoints")
+    checkpoints: list[dict[str, Any]] = []
+    if isinstance(raw_checkpoints, list):
+        for cp_index, checkpoint in enumerate(raw_checkpoints):
+            normalized_cp = normalize_quest_checkpoint_payload(checkpoint, cp_index)
+            if normalized_cp:
+                checkpoints.append(normalized_cp)
+    elif isinstance(raw_checkpoints, str):
+        for cp_index, checkpoint in enumerate(raw_checkpoints.splitlines()):
+            normalized_cp = normalize_quest_checkpoint_payload(checkpoint, cp_index)
+            if normalized_cp:
+                checkpoints.append(normalized_cp)
+
+    raw_tags = safe.get("tags")
+    if isinstance(raw_tags, list):
+        tags = [str(tag).strip() for tag in raw_tags if str(tag).strip()]
+    elif isinstance(raw_tags, str):
+        tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
+    else:
+        tags = []
+
+    title = str(
+        safe.get("title") or safe.get("name") or safe.get("quest_name") or "Без названия"
+    ).strip() or "Без названия"
+
+    return {
+        **safe,
+        "id": str(safe.get("id") or safe.get("_id") or safe.get("uuid") or f"quest_{index}"),
+        "type": entry_type,
+        "title": title,
+        "description": str(safe.get("description") or safe.get("text") or safe.get("content") or safe.get("summary") or ""),
+        "reward": str(safe.get("reward") or ""),
+        "status": status,
+        "tags": tags,
+        "author": str(safe.get("author") or safe.get("actor") or safe.get("created_by") or ""),
+        "checkpoints": checkpoints,
+        "created_at": str(safe.get("created_at") or safe.get("createdAt") or safe.get("date") or safe.get("timestamp") or ""),
+        "updated_at": str(safe.get("updated_at") or safe.get("updatedAt") or safe.get("date") or safe.get("timestamp") or ""),
+    }
+
+
+def normalize_quests_for_storage(value: Any) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for index, entry in enumerate(normalize_quest_list_payload(value)):
+        normalized_entry = normalize_quest_entry_payload(entry, index)
+        if normalized_entry:
+            normalized.append(normalized_entry)
+    return normalized
+
+
+def merge_quest_lists(existing: list[Any], incoming: list[Any]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+
+    for entry in normalize_quests_for_storage(existing):
+        merged[str(entry.get("id"))] = entry
+
+    for entry in normalize_quests_for_storage(incoming):
+        merged[str(entry.get("id"))] = {
+            **merged.get(str(entry.get("id")), {}),
+            **entry,
+        }
+
+    return list(merged.values())
 
 app.include_router(create_auth_router())
 app.include_router(create_inventory_router(get_db))
@@ -332,11 +502,9 @@ def player_quests(
     db: Session = Depends(get_db),
 ):
     character = ensure_default_character(db, current_user)
-    data = get_character_data_block(character)
+    data = dict(get_character_data_block(character) or {})
 
-    quests = data.get("quests", [])
-    if not isinstance(quests, list):
-        quests = []
+    quests = normalize_quests_for_storage(data.get("quests", []))
 
     return {
         "status": "ok",
@@ -353,11 +521,32 @@ def save_player_quests_endpoint(
     db: Session = Depends(get_db),
 ):
     character = ensure_default_character(db, current_user)
-    data = get_character_data_block(character)
+    data = dict(get_character_data_block(character) or {})
 
-    data["quests"] = payload.quests if isinstance(payload.quests, list) else []
+    existing_quests = normalize_quests_for_storage(data.get("quests", []))
+    incoming_quests = normalize_quests_for_storage(payload.quests)
+
+    # Safety guard: a frontend/API hiccup must not wipe existing quest data.
+    if not incoming_quests and existing_quests and not payload.allow_empty:
+        data["quests"] = existing_quests
+        set_character_data_block(character, data)
+        db.add(character)
+        db.commit()
+        db.refresh(character)
+
+        return {
+            "status": "ok",
+            "preserved_existing": True,
+            "quests": existing_quests,
+        }
+
+    if payload.merge:
+        data["quests"] = merge_quest_lists(existing_quests, incoming_quests)
+    else:
+        data["quests"] = incoming_quests
+
     if isinstance(payload.history, list):
-        data["history"] = payload.history
+        data["history"] = normalize_json_safe(payload.history)
 
     set_character_data_block(character, data)
 
