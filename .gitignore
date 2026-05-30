@@ -22,3 +22,10 @@ SESSION_MEMORY.md
 dnd_trader.db
 frontend/static/images/Referens/
 frontend/static/images/Screen/
+
+# D&D Trader generated encyclopedia outputs / debug logs
+tools/encyclopedia/**/out/
+tools/encyclopedia/**/*debug*.txt
+tools/encyclopedia/**/phb_inventory_run_debug.txt
+magic_items_full_debug.txt
+frontend/static/data/*.bak
