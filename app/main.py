@@ -633,6 +633,18 @@ def world_map(
     }
 
 
+# Modular CSS overrides.
+# Старый /styles.css остаётся базой, а файлы из frontend/css/modules
+# подключаются отдельно как /modules/*.css.
+CSS_MODULES_DIR = FRONTEND_CSS_DIR / "modules"
+if CSS_MODULES_DIR.exists():
+    app.mount(
+        "/modules",
+        StaticFiles(directory=str(CSS_MODULES_DIR)),
+        name="css_modules",
+    )
+
+
 @app.get("/styles.css")
 def styles_css():
     if ROOT_STYLES_PATH.exists():

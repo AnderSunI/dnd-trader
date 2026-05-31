@@ -1,0 +1,885 @@
+/* =========================================================
+   MODULE: Encyclopedia / Classes — BG3-like table/card polish
+   FILE: frontend/css/modules/bestiary-classes.css
+
+   Подключение:
+   frontend/index.html -> /modules/bestiary-classes.css
+   ВАЖНО: файл должен идти ПОСЛЕ /styles.css.
+
+   Отвечает за:
+   - таблицы прогрессии классов
+   - wide table/card layout
+   - fullscreen/lightbox таблиц
+   - вкладки/чипсы подклассов
+   - карточки классовых умений
+
+   Не трогает:
+   - торговцев
+   - инвентарь
+   - карту
+   - LSS
+   - монстров / предметы / заклинания
+
+   Round2: восстановление тёмного BG3-похожего отображения таблиц
+   после отката монолитного styles.css. Старый styles.css не меняется.
+   ========================================================= */
+
+/* ==========================================================================
+   D&D Trader / Bestiari encyclopedia hotfix round152
+   Scope: class tables/subclass tabs only.
+   Append-only override: keeps the rest of the cabinet untouched.
+   ========================================================================== */
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail,
+#cabinet-codex .bestiari-ref-class-subclass-rail {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs button,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs button,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail button,
+#cabinet-codex .bestiari-ref-class-subclass-rail button {
+  appearance: none;
+  border: 1px solid rgba(129, 224, 222, 0.2);
+  background:
+    radial-gradient(circle at 16% 12%, rgba(129, 224, 222, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(15, 28, 34, 0.96), rgba(7, 13, 18, 0.96));
+  color: rgba(238, 233, 214, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 26px rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  min-height: 38px;
+  padding: 9px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 800 0.88rem/1.1 var(--font-ui, system-ui, sans-serif);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs button:hover,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs button:hover,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail button:hover,
+#cabinet-codex .bestiari-ref-class-subclass-rail button:hover {
+  border-color: rgba(129, 224, 222, 0.48);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26), 0 0 0 1px rgba(129, 224, 222, 0.06);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs button.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs button.is-active,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail button.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-rail button.is-active {
+  color: #071116;
+  border-color: rgba(174, 236, 238, 0.88);
+  background: linear-gradient(180deg, rgba(198, 245, 246, 0.98), rgba(124, 204, 206, 0.96));
+  box-shadow: 0 12px 30px rgba(118, 215, 221, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs span,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs span,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail small,
+#cabinet-codex .bestiari-ref-class-subclass-rail small {
+  min-width: 24px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-panel,
+#cabinet-codex .bestiari-ref-class-subclass-panel {
+  display: none;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-panel.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-panel.is-active {
+  display: block;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-detail,
+#cabinet-codex .bestiari-ref-class-subclass-detail {
+  display: none;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-detail.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-detail.is-active {
+  display: block;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-card,
+#cabinet-codex .bestiari-ref-class-table-card {
+  margin: 12px 0 18px;
+  border: 1px solid rgba(129, 224, 222, 0.14);
+  background: linear-gradient(180deg, rgba(8, 18, 24, 0.94), rgba(4, 10, 15, 0.96));
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-title,
+#cabinet-codex .bestiari-ref-class-table-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(129, 224, 222, 0.1);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-title span,
+#cabinet-codex .bestiari-ref-class-table-title span {
+  display: block;
+  color: rgba(201, 169, 104, 0.88);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-title strong,
+#cabinet-codex .bestiari-ref-class-table-title strong {
+  color: rgba(239, 235, 216, 0.96);
+  font-family: var(--font-title, Georgia, serif);
+  font-size: 1.02rem;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-actions,
+#cabinet-codex .bestiari-ref-class-table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-actions small,
+#cabinet-codex .bestiari-ref-class-table-actions small {
+  color: rgba(215, 222, 220, 0.62);
+  font-weight: 800;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-fullscreen-btn,
+#cabinet-codex .bestiari-ref-class-table-fullscreen-btn {
+  appearance: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(129, 224, 222, 0.3);
+  background: linear-gradient(180deg, rgba(17, 31, 38, 0.98), rgba(7, 14, 19, 0.98));
+  color: rgba(225, 244, 242, 0.95);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-fullscreen-btn:hover,
+#cabinet-codex .bestiari-ref-class-table-fullscreen-btn:hover {
+  border-color: rgba(129, 224, 222, 0.72);
+  color: #071116;
+  background: linear-gradient(180deg, rgba(198, 245, 246, 0.98), rgba(124, 204, 206, 0.96));
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-scroll,
+#cabinet-codex .bestiari-ref-class-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 0 10px;
+  scrollbar-color: rgba(129, 224, 222, 0.42) rgba(255, 255, 255, 0.05);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table,
+#cabinet-codex .bestiari-ref-class-table {
+  width: max-content;
+  min-width: 1120px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+  color: rgba(235, 239, 232, 0.9);
+  font-size: 0.88rem;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th,
+#cabinet-codex .bestiari-ref-class-table th,
+#cabinet-bestiari .bestiari-ref-class-table td,
+#cabinet-codex .bestiari-ref-class-table td {
+  min-width: 72px;
+  max-width: 260px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(129, 224, 222, 0.08);
+  border-right: 1px solid rgba(129, 224, 222, 0.06);
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.45;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th,
+#cabinet-codex .bestiari-ref-class-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(13, 25, 31, 0.98), rgba(6, 13, 18, 0.98));
+  color: rgba(239, 224, 176, 0.94);
+  font-weight: 900;
+  text-align: center;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th:first-child,
+#cabinet-codex .bestiari-ref-class-table th:first-child,
+#cabinet-bestiari .bestiari-ref-class-table td:first-child,
+#cabinet-codex .bestiari-ref-class-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  min-width: 74px;
+  max-width: 86px;
+  background: rgba(6, 14, 19, 0.98);
+  text-align: center;
+  font-weight: 900;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th:nth-child(3),
+#cabinet-codex .bestiari-ref-class-table th:nth-child(3),
+#cabinet-bestiari .bestiari-ref-class-table td:nth-child(3),
+#cabinet-codex .bestiari-ref-class-table td:nth-child(3) {
+  min-width: 260px;
+  max-width: 360px;
+  text-align: left;
+}
+
+#cabinet-bestiari .bestiari-class-table-lightbox,
+#cabinet-codex .bestiari-class-table-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.bestiari-class-table-lightbox-panel {
+  width: min(96vw, 1500px);
+  height: min(88vh, 920px);
+  border: 1px solid rgba(129, 224, 222, 0.22);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(8, 18, 24, 0.98), rgba(3, 8, 12, 0.98));
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.58);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.bestiari-class-table-lightbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(129, 224, 222, 0.14);
+}
+
+.bestiari-class-table-lightbox-head strong {
+  color: rgba(239, 235, 216, 0.96);
+  font-family: var(--font-title, Georgia, serif);
+  font-size: 1.12rem;
+}
+
+.bestiari-class-table-lightbox-head small {
+  color: rgba(215, 222, 220, 0.62);
+  font-weight: 800;
+}
+
+.bestiari-class-table-lightbox-close {
+  appearance: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(239, 235, 216, 0.92);
+  cursor: pointer;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.bestiari-class-table-lightbox-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table-scroll {
+  overflow: visible;
+  max-width: none;
+}
+
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table {
+  min-width: 1280px;
+}
+
+body.has-bestiari-table-fullscreen {
+  overflow: hidden;
+}
+
+
+@media (max-width: 760px) {
+  #cabinet-bestiari .bestiari-ref-class-table-title,
+  #cabinet-codex .bestiari-ref-class-table-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  #cabinet-bestiari .bestiari-ref-class-table,
+  #cabinet-codex .bestiari-ref-class-table {
+    min-width: 980px;
+    font-size: 0.82rem;
+  }
+
+  #cabinet-bestiari .bestiari-class-table-lightbox,
+  #cabinet-codex .bestiari-class-table-lightbox {
+    padding: 10px;
+  }
+}
+
+/* ======================================================================
+   D&D Trader / Bestiari class UI polish — round153_class_css_restore
+   Scope: encyclopedia class cards only. Restores dark fantasy pills/tables,
+   avoids white browser controls, keeps wide tables readable.
+   ====================================================================== */
+
+#cabinet-bestiari .bestiari-ref-class-progression-drawer,
+#cabinet-codex .bestiari-ref-class-progression-drawer,
+#cabinet-bestiari .bestiari-ref-class-subclasses-drawer,
+#cabinet-codex .bestiari-ref-class-subclasses-drawer,
+#cabinet-bestiari .bestiari-ref-class-features-drawer,
+#cabinet-codex .bestiari-ref-class-features-drawer {
+  overflow: hidden;
+}
+
+#cabinet-bestiari .bestiari-ref-class-progression-stack,
+#cabinet-codex .bestiari-ref-class-progression-stack {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-card,
+#cabinet-codex .bestiari-ref-class-table-card {
+  border: 1px solid rgba(104, 183, 191, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(121, 224, 232, 0.075), transparent 34%),
+    linear-gradient(180deg, rgba(8, 19, 25, 0.96), rgba(3, 10, 15, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    0 16px 38px rgba(0, 0, 0, 0.24);
+  padding: 14px;
+  min-width: 0;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-card.is-primary,
+#cabinet-codex .bestiari-ref-class-table-card.is-primary {
+  border-color: rgba(191, 163, 94, 0.24);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-title,
+#cabinet-codex .bestiari-ref-class-table-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(117, 188, 196, 0.13);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-title span,
+#cabinet-codex .bestiari-ref-class-table-title span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(210, 173, 96, 0.78);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-title strong,
+#cabinet-codex .bestiari-ref-class-table-title strong {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.05rem, 1.6vw, 1.45rem);
+  color: rgba(244, 239, 224, 0.96);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-actions,
+#cabinet-codex .bestiari-ref-class-table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-actions small,
+#cabinet-codex .bestiari-ref-class-table-actions small {
+  color: rgba(214, 224, 222, 0.64);
+  white-space: nowrap;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-fullscreen-btn,
+#cabinet-codex .bestiari-ref-class-table-fullscreen-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(126, 213, 220, 0.28);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 30% 0%, rgba(140, 226, 232, 0.16), transparent 48%),
+    rgba(8, 19, 24, 0.92);
+  color: rgba(230, 246, 246, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025);
+  cursor: pointer;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-fullscreen-btn:hover,
+#cabinet-codex .bestiari-ref-class-table-fullscreen-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(212, 176, 99, 0.52);
+  color: #fff7df;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-scroll,
+#cabinet-codex .bestiari-ref-class-table-scroll,
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table-scroll {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid rgba(99, 169, 178, 0.15);
+  border-radius: 14px;
+  background: rgba(2, 8, 12, 0.66);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(137, 203, 207, 0.55) rgba(6, 13, 18, 0.88);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-scroll::-webkit-scrollbar,
+#cabinet-codex .bestiari-ref-class-table-scroll::-webkit-scrollbar,
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table-scroll::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-scroll::-webkit-scrollbar-track,
+#cabinet-codex .bestiari-ref-class-table-scroll::-webkit-scrollbar-track,
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table-scroll::-webkit-scrollbar-track {
+  background: rgba(5, 12, 16, 0.92);
+  border-radius: 999px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table-scroll::-webkit-scrollbar-thumb,
+#cabinet-codex .bestiari-ref-class-table-scroll::-webkit-scrollbar-thumb,
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid rgba(5, 12, 16, 0.92);
+  background: linear-gradient(90deg, rgba(118, 203, 211, 0.72), rgba(196, 160, 91, 0.62));
+}
+
+#cabinet-bestiari .bestiari-ref-class-table,
+#cabinet-codex .bestiari-ref-class-table {
+  width: max-content;
+  min-width: min(860px, 100%);
+  border-collapse: separate;
+  border-spacing: 0;
+  color: rgba(224, 232, 230, 0.9);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th,
+#cabinet-codex .bestiari-ref-class-table th,
+#cabinet-bestiari .bestiari-ref-class-table td,
+#cabinet-codex .bestiari-ref-class-table td {
+  padding: 10px 12px;
+  border-right: 1px solid rgba(112, 169, 176, 0.10);
+  border-bottom: 1px solid rgba(112, 169, 176, 0.10);
+  vertical-align: top;
+  min-width: 76px;
+  max-width: 360px;
+  white-space: normal;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th,
+#cabinet-codex .bestiari-ref-class-table th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  color: rgba(255, 246, 218, 0.94);
+  background:
+    linear-gradient(180deg, rgba(61, 54, 32, 0.98), rgba(33, 42, 39, 0.98));
+  font-weight: 850;
+  text-align: left;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th:first-child,
+#cabinet-codex .bestiari-ref-class-table th:first-child,
+#cabinet-bestiari .bestiari-ref-class-table td:first-child,
+#cabinet-codex .bestiari-ref-class-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  min-width: 78px;
+  max-width: 98px;
+  text-align: center;
+  font-weight: 850;
+  background: rgba(5, 18, 22, 0.98);
+  color: rgba(241, 235, 213, 0.96);
+}
+
+#cabinet-bestiari .bestiari-ref-class-table th:first-child,
+#cabinet-codex .bestiari-ref-class-table th:first-child {
+  z-index: 6;
+  background: linear-gradient(180deg, rgba(72, 62, 34, 0.99), rgba(38, 46, 39, 0.99));
+}
+
+#cabinet-bestiari .bestiari-ref-class-table td:nth-child(3),
+#cabinet-codex .bestiari-ref-class-table td:nth-child(3) {
+  min-width: 260px;
+  max-width: 460px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-table tbody tr:nth-child(even) td,
+#cabinet-codex .bestiari-ref-class-table tbody tr:nth-child(even) td {
+  background-color: rgba(95, 178, 188, 0.035);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclasses,
+#cabinet-codex .bestiari-ref-class-subclasses {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-warning,
+#cabinet-codex .bestiari-ref-class-subclass-warning {
+  padding: 12px 14px;
+  border: 1px solid rgba(214, 174, 94, 0.22);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(214, 174, 94, 0.11), transparent 42%),
+    rgba(7, 14, 18, 0.84);
+  color: rgba(235, 226, 199, 0.82);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail,
+#cabinet-codex .bestiari-ref-class-subclass-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow: visible;
+  padding: 2px 0 8px;
+  border-bottom: 1px solid rgba(125, 190, 198, 0.12);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs button,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs button,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail button,
+#cabinet-codex .bestiari-ref-class-subclass-rail button {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  min-height: 42px;
+  max-width: min(100%, 280px);
+  padding: 9px 13px;
+  border: 1px solid rgba(112, 183, 191, 0.22);
+  border-radius: 14px;
+  color: rgba(222, 232, 230, 0.88);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(103, 201, 211, 0.07), transparent 40%),
+    rgba(5, 14, 19, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs button:hover,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs button:hover,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail button:hover,
+#cabinet-codex .bestiari-ref-class-subclass-rail button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(128, 219, 228, 0.42);
+  color: rgba(250, 252, 245, 0.96);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs button.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs button.is-active,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail button.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-rail button.is-active {
+  border-color: rgba(210, 173, 96, 0.58);
+  color: rgba(255, 247, 225, 0.98);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(212, 173, 98, 0.17), transparent 44%),
+    linear-gradient(180deg, rgba(27, 40, 40, 0.96), rgba(11, 21, 26, 0.96));
+  box-shadow:
+    0 0 18px rgba(104, 199, 210, 0.08),
+    inset 0 0 0 1px rgba(212, 173, 98, 0.12);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-group-tabs span,
+#cabinet-codex .bestiari-ref-class-subclass-group-tabs span,
+#cabinet-bestiari .bestiari-ref-class-subclass-rail small,
+#cabinet-codex .bestiari-ref-class-subclass-rail small {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 23px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: rgba(4, 9, 11, 0.94);
+  background: rgba(170, 216, 217, 0.82);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-panel,
+#cabinet-codex .bestiari-ref-class-subclass-panel {
+  display: none;
+  min-width: 0;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-panel.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-panel.is-active {
+  display: grid;
+  gap: 14px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-detail,
+#cabinet-codex .bestiari-ref-class-subclass-detail {
+  display: none;
+  padding: 16px;
+  border: 1px solid rgba(113, 196, 205, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 5% 0%, rgba(114, 205, 213, 0.08), transparent 35%),
+    rgba(3, 10, 15, 0.76);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-detail.is-active,
+#cabinet-codex .bestiari-ref-class-subclass-detail.is-active {
+  display: grid;
+  gap: 14px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-hero,
+#cabinet-codex .bestiari-ref-class-subclass-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(119, 188, 196, 0.12);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-hero span,
+#cabinet-codex .bestiari-ref-class-subclass-hero span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(210, 173, 96, 0.82);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-hero h4,
+#cabinet-codex .bestiari-ref-class-subclass-hero h4 {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  color: rgba(243, 239, 224, 0.96);
+  font-size: clamp(1.1rem, 1.8vw, 1.45rem);
+}
+
+#cabinet-bestiari .bestiari-ref-class-subclass-hero small,
+#cabinet-codex .bestiari-ref-class-subclass-hero small {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(169, 213, 215, 0.12);
+  color: rgba(231, 239, 236, 0.78);
+  font-weight: 850;
+}
+
+#cabinet-bestiari .bestiari-ref-class-feature-grid,
+#cabinet-codex .bestiari-ref-class-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-feature-card,
+#cabinet-codex .bestiari-ref-class-feature-card {
+  border: 1px solid rgba(112, 183, 191, 0.15);
+  border-radius: 16px;
+  background: rgba(5, 13, 18, 0.78);
+  padding: 14px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-feature-head,
+#cabinet-codex .bestiari-ref-class-feature-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#cabinet-bestiari .bestiari-ref-class-feature-head strong,
+#cabinet-codex .bestiari-ref-class-feature-head strong {
+  font-family: var(--font-display, Georgia, serif);
+  color: rgba(246, 239, 220, 0.96);
+  letter-spacing: 0.02em;
+}
+
+#cabinet-bestiari .bestiari-ref-class-feature-head span,
+#cabinet-codex .bestiari-ref-class-feature-head span {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(210, 173, 96, 0.82);
+  color: rgba(6, 9, 10, 0.94);
+  font-weight: 900;
+  font-size: 0.76rem;
+}
+
+#cabinet-bestiari .bestiari-ref-class-feature-card p,
+#cabinet-codex .bestiari-ref-class-feature-card p {
+  margin: 0;
+  color: rgba(220, 228, 225, 0.86);
+  line-height: 1.6;
+}
+
+.bestiari-class-table-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(1, 5, 8, 0.78);
+  backdrop-filter: blur(14px);
+}
+
+.bestiari-class-table-lightbox-panel {
+  width: min(96vw, 1440px);
+  height: min(88vh, 900px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(134, 217, 224, 0.24);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(134, 217, 224, 0.12), transparent 35%),
+    linear-gradient(180deg, rgba(8, 20, 26, 0.98), rgba(2, 8, 12, 0.98));
+  box-shadow: 0 28px 80px rgba(0,0,0,0.58);
+}
+
+.bestiari-class-table-lightbox-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(128, 200, 208, 0.16);
+}
+
+.bestiari-class-table-lightbox-head span {
+  display: block;
+  color: rgba(209, 173, 96, 0.78);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.bestiari-class-table-lightbox-head strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(1.35rem, 2.8vw, 2.05rem);
+  color: rgba(246, 241, 226, 0.98);
+}
+
+.bestiari-class-table-lightbox-head small {
+  color: rgba(216, 226, 223, 0.62);
+}
+
+.bestiari-class-table-lightbox-close {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 42px;
+  height: 42px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(227, 123, 123, 0.32);
+  border-radius: 14px;
+  background: rgba(74, 18, 26, 0.82);
+  color: rgba(255, 224, 224, 0.95);
+  font-size: 1.35rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.bestiari-class-table-lightbox-body {
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table-scroll {
+  height: 100%;
+  max-height: 100%;
+}
+
+.bestiari-class-table-lightbox-body .bestiari-ref-class-table {
+  min-width: 1180px;
+  width: max-content;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 760px) {
+  #cabinet-bestiari .bestiari-ref-class-table-title,
+  #cabinet-codex .bestiari-ref-class-table-title,
+  .bestiari-class-table-lightbox-head {
+    flex-direction: column;
+  }
+
+  .bestiari-class-table-lightbox {
+    padding: 10px;
+  }
+
+  .bestiari-class-table-lightbox-panel {
+    width: 98vw;
+    height: 92vh;
+    border-radius: 18px;
+  }
+}
