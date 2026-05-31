@@ -2772,349 +2772,78 @@ function renderItemSection(entry) {
   const data = entry.item_data;
   if (!data) return "";
 
-  const armor = data.armor || {};
-  const weapon = data.weapon || {};
-  const tool = data.tool || {};
-  const equip = data.equip || {};
-  const use = data.use || {};
-  const reviewFlags = Array.isArray(data.review?.flags) ? data.review.flags : [];
+  const formatItemValue = (value) => {
+    if (value === undefined || value === null || value === "") return "";
+    if (typeof value === "number") return String(value);
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) return value.map((item) => formatItemValue(item)).filter(Boolean).join(", ");
+    if (typeof value === "object") {
+      if (value.raw) return String(value.raw);
+      if (value.label) return String(value.label);
+      if (value.text) return String(value.text);
+      if (value.name) return String(value.name);
+      if (value.average_gp) return `${value.average_gp} зм`;
+      if (value.value_gp) return `${value.value_gp} зм`;
+      if (value.range_min_gp || value.range_max_gp) {
+        const left = value.range_min_gp || "?";
+        const right = value.range_max_gp || "?";
+        return `${left}–${right} зм`;
+      }
+    }
+    return "";
+  };
 
-  const armorRows = data.armor ? [
-    { label: "КД", value: armor.armor_class_text || armor.armor_class || armor.ac_bonus || "—" },
-    { label: "Тип брони", value: armor.armor_type || "—" },
-    { label: "Сила", value: armor.strength_required || "—" },
-    { label: "Скрытность", value: armor.stealth_disadvantage ? "Помеха" : "—" },
-  ] : [];
+  const rarity = formatItemValue(data.rarity || data.rarity_visual || data.rarity_raw) || "—";
+  const type = formatItemValue(data.type || data.item_type || data.category) || "—";
+  const slot = formatItemValue(data.slot || data.equipment_slot) || "—";
+  const attunement = formatItemValue(data.attunement || data.requires_attunement) || "—";
+  const weight = formatItemValue(data.weight_lb || data.weight || data.weight_raw) || "—";
+  const price = formatItemValue(data.price || data.price_raw || data.cost || data.value_gp) || "—";
+  const source = formatItemValue(data.source || entry.source) || "—";
 
-  const weaponRows = data.weapon ? [
-    { label: "Урон", value: weapon.damage?.raw || [weapon.damage?.dice, weapon.damage?.type].filter(Boolean).join(" ") || "—" },
-    { label: "Роль", value: weapon.combat_role || "—" },
-    { label: "Владение", value: weapon.proficiency_group || "—" },
-    { label: "Свойства", value: weapon.properties_raw || (Array.isArray(weapon.properties) ? weapon.properties.join(", ") : "—") },
-  ] : [];
+  const properties = Array.isArray(data.properties)
+    ? data.properties.filter(Boolean)
+    : [];
 
-  const toolContents = Array.isArray(tool.contents_guess) ? tool.contents_guess : [];
-  const links = data.links && typeof data.links === "object" ? data.links : {};
-  const spellLinks = Array.isArray(links.spell_links) ? links.spell_links : [];
-  const inlineLinks = Array.isArray(links.inline_links) ? links.inline_links : [];
-  const sectionBuckets = data.mechanics?.section_buckets && typeof data.mechanics.section_buckets === "object" ? data.mechanics.section_buckets : {};
-  const mechanicsHighlights = [];
-  for (const [bucketKey, bucket] of Object.entries(sectionBuckets)) {
-    const bucketLines = normalizeTextBlock(bucket?.raw_lines || bucket?.lines || bucket);
-    if (!bucketLines.length) continue;
-    mechanicsHighlights.push(`${bucketKey}: ${bucketLines.slice(0, 3).join(" / ")}`);
-  }
+  const propertyText = (item) => {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") return item.text || item.name || item.title || item.label || "";
+    return "";
+  };
+
+  const propertiesHtml = properties.length
+    ? `
+      <div class="bestiari-ref-item-properties-title">Свойства / механика</div>
+      <div class="bestiari-ref-named-list bestiari-ref-item-properties">
+        ${properties
+          .map((item) => propertyText(item))
+          .filter(Boolean)
+          .map((item) => `<div><span>•</span><p>${escapeHtml(item)}</p></div>`)
+          .join("")}
+      </div>
+    `
+    : `<div class="bestiari-ref-item-empty-note">Свойства предмета пока не вынесены отдельно. Проверь описание и raw/source при необходимости.</div>`;
 
   const content = `
-    ${renderBestiariInfoGrid([
-      { label: "Категория", value: data.ui_category || data.type || "—" },
-      { label: "Группа", value: data.display_group || "—" },
-      { label: "Подтип", value: data.item_subtype || "—" },
-      { label: "Источник", value: [data.source_family, data.source_code].filter(Boolean).join(" / ") || "—" },
-      { label: "Редкость", value: data.rarity || "—" },
-      { label: "Цена", value: data.price_raw || data.value_gp || "—" },
-      { label: "Вес", value: data.weight_raw || data.weight_lb || "—" },
-      { label: "Слот", value: data.slot || equip.slot || "—" },
-      { label: "Использование", value: use.action_type || "—" },
-      { label: "Расходник", value: use.consumable ? "Да" : "Нет" },
-    ])}
-    ${armorRows.length ? renderBestiariDrawer("Броня / защита", renderBestiariInfoGrid(armorRows), { icon: "🛡", meta: armor.armor_type || "armor", open: true }) : ""}
-    ${weaponRows.length ? renderBestiariDrawer("Оружие / атака", renderBestiariInfoGrid(weaponRows), { icon: "⚔", meta: weapon.weapon_family || "weapon", open: true }) : ""}
-    ${toolContents.length ? renderBestiariDrawer("Состав / содержимое", `<div class="bestiari-ref-named-list">${toolContents.map((item) => `<div><span>•</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>`, { icon: "☑", meta: String(toolContents.length), open: true }) : ""}
-    ${mechanicsHighlights.length ? renderBestiariDrawer("Выделенная механика", `<div class="bestiari-ref-named-list">${mechanicsHighlights.map((item) => `<div><span>✦</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>`, { icon: "✦", meta: String(mechanicsHighlights.length), open: false }) : ""}
-    ${spellLinks.length || inlineLinks.length ? renderBestiariDrawer("Связи источника", `<div class="bestiari-ref-named-list">${[...spellLinks, ...inlineLinks].slice(0, 24).map((item) => `<div><span>⇄</span><p>${escapeHtml(item?.title || item?.label || item?.name || item?.url || item)}</p></div>`).join("")}</div>`, { icon: "⇄", meta: String(spellLinks.length + inlineLinks.length), open: false }) : ""}
-    ${(data.properties || []).length ? `<div class="bestiari-ref-named-list">${data.properties.map((item) => `<div><span>•</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
-    ${reviewFlags.length ? renderBestiariDrawer("Review", `<div class="bestiari-ref-named-list">${reviewFlags.map((item) => `<div><span>!</span><p>${escapeHtml(item)}</p></div>`).join("")}</div>`, { icon: "!", meta: String(reviewFlags.length), open: false }) : ""}
-  `;
-  return renderBestiariDrawer("Параметры предмета", content, { icon: "◈", meta: data.rarity || "item", open: true });
-}
-
-
-function getClassSubclassGroups(subclasses = []) {
-  const groups = [
-    { key: "official", label: "Официальные", hint: "книги", items: [] },
-    { key: "ua", label: "Unearthed Arcana", hint: "UA", items: [] },
-    { key: "homebrew", label: "Homebrew", hint: "черновики", items: [] },
-    { key: "other", label: "Прочее", hint: "проверить", items: [] },
-  ];
-  const byKey = new Map(groups.map((group) => [group.key, group]));
-
-  for (const subclass of subclasses) {
-    const rawStatus = String(subclass?.status || "").toLowerCase().trim();
-    const key = byKey.has(rawStatus) ? rawStatus : "other";
-    byKey.get(key).items.push(subclass);
-  }
-
-  return groups.filter((group) => group.items.length);
-}
-
-function getClassSubclassStatusLabel(status) {
-  const raw = String(status || "").toLowerCase().trim();
-  if (raw === "official") return "официальный";
-  if (raw === "ua") return "UA";
-  if (raw === "homebrew") return "Homebrew";
-  return raw || "проверить";
-}
-
-function renderClassSubclassFeature(feature = {}) {
-  const name = safeText(feature.name, "Умение");
-  const level = feature.level !== undefined && feature.level !== null && feature.level !== ""
-    ? `${feature.level} ур.`
-    : "";
-  const paragraphs = Array.isArray(feature.paragraphs)
-    ? feature.paragraphs.map((item) => String(item || "").trim()).filter(Boolean)
-    : [];
-  const text = paragraphs.length ? paragraphs.join(" ") : safeText(feature.text);
-
-  return `
-    <article class="bestiari-ref-class-feature-card">
-      <div class="bestiari-ref-class-feature-head">
-        <strong>${escapeHtml(name)}</strong>
-        ${level ? `<span>${escapeHtml(level)}</span>` : ""}
-      </div>
-      ${text ? `<p>${escapeHtml(text)}</p>` : ""}
-    </article>
-  `;
-}
-
-function renderClassSubclassDetail(subclass = {}, groupKey = "", index = 0, isActive = false) {
-  const name = safeText(subclass.name, "Подкласс");
-  const status = getClassSubclassStatusLabel(subclass.status);
-  const paragraphs = Array.isArray(subclass.paragraphs)
-    ? subclass.paragraphs.map((item) => String(item || "").trim()).filter(Boolean)
-    : [];
-  const features = Array.isArray(subclass.features_round1) ? subclass.features_round1 : [];
-  const summary = safeText(subclass.summary) || paragraphs[0] || "Описание подкласса пока не выделено.";
-
-  return `
-    <section
-      class="bestiari-ref-class-subclass-detail ${isActive ? "is-active" : ""}"
-      data-class-subclass-detail="${escapeHtml(groupKey)}"
-      data-class-subclass-index="${escapeHtml(index)}"
-    >
-      <div class="bestiari-ref-class-subclass-hero">
-        <div>
-          <span>${escapeHtml(status)}</span>
-          <h4>${escapeHtml(name)}</h4>
-        </div>
-        <small>${escapeHtml(String(features.length || 0))} умений</small>
-      </div>
-      <div class="bestiari-ref-description-flow bestiari-ref-class-subclass-text">
-        ${paragraphs.length
-          ? paragraphs.slice(0, 5).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")
-          : `<p>${escapeHtml(summary)}</p>`}
-      </div>
-      ${features.length ? `
-        <div class="bestiari-ref-class-feature-grid">
-          ${features.map((feature) => renderClassSubclassFeature(feature)).join("")}
-        </div>
-      ` : `
-        <div class="bestiari-ref-class-subclass-empty">Умения подкласса пока не выделились в round1. Нужен clean/hotfix-pass.</div>
-      `}
-    </section>
-  `;
-}
-
-function renderClassSubclasses(entry) {
-  const data = entry.class_data || {};
-  const subclasses = Array.isArray(data.subclasses_round1) ? data.subclasses_round1 : [];
-  if (!subclasses.length) {
-    return renderBestiariDrawer(
-      "Подклассы",
-      `<div class="bestiari-ref-class-subclass-empty">
-        В этом round1 подклассы не выделились отдельными сущностями. Текст может быть в полном описании, но нужен отдельный parser hotfix/clean-pass.
-      </div>`,
-      { icon: "◇", meta: "0", open: false, className: "bestiari-ref-class-subclasses-drawer" }
-    );
-  }
-
-  const groups = getClassSubclassGroups(subclasses);
-  const activeGroup = groups[0]?.key || "official";
-  const hasOfficialSubclassGroup = groups.some((group) => group.key === "official" || group.key === "ua");
-  const onlyDraftSubclasses = !hasOfficialSubclassGroup;
-
-  const content = `
-    ${onlyDraftSubclasses ? `
-      <div class="bestiari-ref-class-subclass-warning">
-        В round1 отдельными сущностями выделились только черновые/HB-блоки. Официальные подклассы и полный список путей/коллегий нужно добирать parser/clean-pass'ом из исходного текста.
-      </div>
-    ` : ""}
-    <div class="bestiari-ref-class-subclasses ${onlyDraftSubclasses ? "is-draft-only" : ""}" data-class-subclasses-root>
-      <div class="bestiari-ref-class-subclass-group-tabs" role="tablist" aria-label="Типы подклассов">
-        ${groups.map((group, groupIndex) => `
-          <button
-            type="button"
-            class="${group.key === activeGroup ? "is-active" : ""}"
-            data-class-subclass-group="${escapeHtml(group.key)}"
-          >
-            <strong>${escapeHtml(group.label)}</strong>
-            <span>${escapeHtml(String(group.items.length))}</span>
-          </button>
-        `).join("")}
-      </div>
-
-      ${groups.map((group) => `
-        <div class="bestiari-ref-class-subclass-panel ${group.key === activeGroup ? "is-active" : ""}" data-class-subclass-panel="${escapeHtml(group.key)}">
-          <div class="bestiari-ref-class-subclass-rail" role="tablist" aria-label="${escapeHtml(group.label)}">
-            ${group.items.map((subclass, index) => `
-              <button
-                type="button"
-                class="${index === 0 ? "is-active" : ""}"
-                data-class-subclass-chip="${escapeHtml(group.key)}"
-                data-class-subclass-index="${escapeHtml(index)}"
-              >
-                <span>${escapeHtml(subclass.name || "Подкласс")}</span>
-                <small>${escapeHtml(String((subclass.features_round1 || []).length || 0))}</small>
-              </button>
-            `).join("")}
-          </div>
-          <div class="bestiari-ref-class-subclass-details">
-            ${group.items.map((subclass, index) => renderClassSubclassDetail(subclass, group.key, index, index === 0)).join("")}
-          </div>
-        </div>
-      `).join("")}
+    <div class="bestiari-ref-item-sheet">
+      ${renderBestiariInfoGrid([
+        { label: "Тип", value: type },
+        { label: "Редкость", value: rarity },
+        { label: "Слот", value: slot },
+        { label: "Настройка", value: attunement },
+        { label: "Вес", value: weight },
+        { label: "Стоимость", value: price },
+        { label: "Источник", value: source },
+      ], "bestiari-ref-item-info-grid")}
+      ${propertiesHtml}
     </div>
   `;
 
-  return renderBestiariDrawer("Подклассы", content, {
-    icon: "◇",
-    meta: onlyDraftSubclasses ? `${subclasses.length} / черновые` : `${subclasses.length} / tabs`,
-    open: !onlyDraftSubclasses,
-    className: `bestiari-ref-class-subclasses-drawer ${onlyDraftSubclasses ? "is-draft-only" : ""}`
-  });
-}
-
-function normalizeClassTableRowsForRender(table = {}) {
-  const rawRows = Array.isArray(table.rows) ? table.rows : [];
-  const rows = rawRows
-    .map((row) => Array.isArray(row)
-      ? row.map((cell) => String(cell ?? "").replace(/\s+/g, " ").trim())
-      : [])
-    .filter((row) => row.some(Boolean));
-
-  const maxCols = Math.max(...rows.map((row) => row.length), 0);
-  if (!maxCols) return [];
-
-  return rows.map((row) => Array.from({ length: maxCols }, (_, index) => row[index] || ""));
-}
-
-function isClassTableHeaderContinuation(row = [], rowIndex = 0, rows = []) {
-  if (rowIndex !== 1 || rows.length < 4) return false;
-  const filled = row.map((cell) => String(cell || "").trim()).filter(Boolean);
-  if (!filled.length) return false;
-  const numericLike = filled.filter((cell) => /^\d+$/.test(cell) || /^[—-]+$/.test(cell)).length;
-  return numericLike >= Math.max(3, Math.floor(filled.length * 0.7));
-}
-
-function getClassTableLabel(table = {}, index = 0, isPrimary = false) {
-  const explicit = safeText(table.title || table.caption);
-  if (explicit) return explicit;
-  if (isPrimary) return "Прогрессия по уровням";
-  const kind = safeText(table.kind);
-  if (kind && kind !== "table" && kind !== "progression_or_feature_table") return kind;
-  return `Таблица ${index + 1}`;
-}
-
-function renderClassTableHtml(table = {}, index = 0, isPrimary = false) {
-  const rows = normalizeClassTableRowsForRender(table);
-  if (!rows.length) return "";
-
-  const title = getClassTableLabel(table, index, isPrimary);
-  const headerCount = isClassTableHeaderContinuation(rows[1], 1, rows) ? 2 : 1;
-  const headerRows = rows.slice(0, headerCount);
-  const bodyRows = rows.slice(headerCount);
-  const rowCount = bodyRows.length || rows.length;
-  const colCount = rows[0]?.length || 0;
-
-  return `
-    <section class="bestiari-ref-class-table-card ${isPrimary ? "is-primary" : ""}">
-      <div class="bestiari-ref-class-table-title">
-        <div>
-          <span>${escapeHtml(isPrimary ? "основная таблица" : "round1 table")}</span>
-          <strong>${escapeHtml(title)}</strong>
-        </div>
-        <div class="bestiari-ref-class-table-actions">
-          <small>${escapeHtml(String(rowCount))} строк · ${escapeHtml(String(colCount))} колонок</small>
-          <button class="bestiari-ref-class-table-fullscreen-btn" type="button" data-class-table-fullscreen title="Открыть таблицу крупно" aria-label="Открыть таблицу крупно">
-            ⤢
-          </button>
-        </div>
-      </div>
-      <div class="bestiari-ref-class-table-scroll">
-        <table class="bestiari-ref-class-table">
-          <thead>
-            ${headerRows.map((row) => `
-              <tr>${row.map((cell) => `<th>${escapeHtml(cell)}</th>`).join("")}</tr>
-            `).join("")}
-          </thead>
-          <tbody>
-            ${bodyRows.map((row) => `
-              <tr>${row.map((cell) => `<td>${escapeHtml(cell || "—")}</td>`).join("")}</tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  `;
-}
-
-function getPrimaryClassProgressionTable(tables = []) {
-  const usable = tables.filter((item) => Array.isArray(item?.rows) && item.rows.length >= 3);
-  if (!usable.length) return null;
-  return usable.find((item) => {
-    const firstRows = (item.rows || []).slice(0, 3).flat().join(" ").toLowerCase();
-    return firstRows.includes("уровень") && firstRows.includes("бонус") && firstRows.includes("умения");
-  }) || usable[0];
-}
-
-function renderClassProgression(data = {}) {
-  const tables = Array.isArray(data.progression_tables_round1) ? data.progression_tables_round1 : [];
-  const usableTables = tables.filter((item) => Array.isArray(item?.rows) && item.rows.length >= 3);
-  if (!usableTables.length) return "";
-
-  const primary = getPrimaryClassProgressionTable(usableTables);
-  const extraTables = usableTables.filter((item) => item !== primary).slice(0, 8);
-  const primaryRows = normalizeClassTableRowsForRender(primary);
-  const primaryBodyRows = primaryRows.slice(isClassTableHeaderContinuation(primaryRows[1], 1, primaryRows) ? 2 : 1);
-
-  const content = `
-    <div class="bestiari-ref-class-progression-stack">
-      ${renderClassTableHtml(primary, 0, true)}
-      ${extraTables.length ? `
-        <details class="bestiari-ref-class-extra-tables">
-          <summary>
-            <span>Дополнительные таблицы round1</span>
-            <strong>${escapeHtml(String(extraTables.length))}</strong>
-          </summary>
-          <div class="bestiari-ref-class-extra-table-list">
-            ${extraTables.map((table, index) => renderClassTableHtml(table, index + 1, false)).join("")}
-          </div>
-        </details>
-      ` : ""}
-    </div>
-  `;
-
-  return renderBestiariDrawer("Таблица прогрессии", content, {
-    icon: "▦",
-    meta: `${primaryBodyRows.length || "—"} уровней`,
+  return renderBestiariDrawer("Параметры предмета", content, {
+    icon: "◈",
+    meta: rarity || "item",
     open: true,
-    className: "bestiari-ref-class-progression-drawer"
-  });
-}
-
-function renderClassFeatures(data = {}) {
-  const features = Array.isArray(data.features_round1) ? data.features_round1 : [];
-  if (!features.length) return "";
-  const content = `
-    <div class="bestiari-ref-class-feature-grid bestiari-ref-class-core-feature-grid">
-      ${features.slice(0, 28).map((feature) => renderClassSubclassFeature(feature)).join("")}
-    </div>
-  `;
-  return renderBestiariDrawer("Классовые умения", content, {
-    icon: "✦",
-    meta: String(features.length),
-    open: false,
-    className: "bestiari-ref-class-features-drawer"
+    className: "bestiari-ref-item-drawer"
   });
 }
 

@@ -1,0 +1,174 @@
+/* =========================================================
+   MODULE: Encyclopedia / Items — RPG item card polish
+   FILE: frontend/css/modules/bestiary-items.css
+
+   Подключение:
+   frontend/index.html -> /modules/bestiary-items.css
+   ВАЖНО: файл должен идти ПОСЛЕ /styles.css.
+
+   Отвечает за:
+   - предметы в Энциклопедии / Бестиарии
+   - параметры предмета
+   - редкость / цену / вес / источник
+   - свойства предмета
+   - читаемый RPG-card вид внутри карточки справочника
+
+   Не трогает:
+   - торговцев и trader modal
+   - инвентарь игрока
+   - корзину
+   - монстров
+   - классы
+   - глобальный styles.css
+
+   Принцип:
+   старый styles.css остаётся базой,
+   этот файл только поверхностно улучшает отображение item entries.
+   ========================================================= */
+
+#cabinet-bestiari .bestiari-ref-item-drawer,
+#cabinet-codex .bestiari-ref-item-drawer {
+  border-color: rgba(226, 174, 86, 0.22);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(226, 174, 86, 0.10), transparent 34%),
+    linear-gradient(145deg, rgba(17, 24, 34, 0.94), rgba(8, 13, 21, 0.96));
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+#cabinet-bestiari .bestiari-ref-item-drawer > summary,
+#cabinet-codex .bestiari-ref-item-drawer > summary {
+  min-height: 48px;
+  background:
+    linear-gradient(90deg, rgba(226, 174, 86, 0.12), rgba(89, 188, 191, 0.055), transparent);
+}
+
+#cabinet-bestiari .bestiari-ref-item-drawer .bestiari-ref-drawer-icon,
+#cabinet-codex .bestiari-ref-item-drawer .bestiari-ref-drawer-icon {
+  color: #e6b86c;
+  text-shadow: 0 0 14px rgba(226, 174, 86, 0.35);
+}
+
+#cabinet-bestiari .bestiari-ref-item-drawer .bestiari-ref-drawer-title,
+#cabinet-codex .bestiari-ref-item-drawer .bestiari-ref-drawer-title {
+  color: #f2dfbc;
+  letter-spacing: 0.02em;
+}
+
+#cabinet-bestiari .bestiari-ref-item-drawer .bestiari-ref-drawer-meta,
+#cabinet-codex .bestiari-ref-item-drawer .bestiari-ref-drawer-meta {
+  border-color: rgba(226, 174, 86, 0.28);
+  color: #e9c17d;
+  background: rgba(226, 174, 86, 0.08);
+}
+
+#cabinet-bestiari .bestiari-ref-item-sheet,
+#cabinet-codex .bestiari-ref-item-sheet {
+  display: grid;
+  gap: 14px;
+}
+
+#cabinet-bestiari .bestiari-ref-item-info-grid,
+#cabinet-codex .bestiari-ref-item-info-grid {
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 10px;
+}
+
+#cabinet-bestiari .bestiari-ref-item-info-grid .bestiari-ref-info-tile,
+#cabinet-codex .bestiari-ref-item-info-grid .bestiari-ref-info-tile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(226, 174, 86, 0.16);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(226, 174, 86, 0.08), transparent 45%),
+    rgba(6, 12, 20, 0.54);
+}
+
+#cabinet-bestiari .bestiari-ref-item-info-grid .bestiari-ref-info-tile::before,
+#cabinet-codex .bestiari-ref-item-info-grid .bestiari-ref-info-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, rgba(226, 174, 86, 0.75), rgba(89, 188, 191, 0.20));
+  opacity: 0.72;
+}
+
+#cabinet-bestiari .bestiari-ref-item-info-grid .bestiari-ref-info-tile span,
+#cabinet-codex .bestiari-ref-item-info-grid .bestiari-ref-info-tile span {
+  color: rgba(230, 219, 196, 0.62);
+}
+
+#cabinet-bestiari .bestiari-ref-item-info-grid .bestiari-ref-info-tile strong,
+#cabinet-codex .bestiari-ref-item-info-grid .bestiari-ref-info-tile strong {
+  color: #f4e6c8;
+  line-height: 1.25;
+}
+
+#cabinet-bestiari .bestiari-ref-item-properties-title,
+#cabinet-codex .bestiari-ref-item-properties-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 -2px;
+  color: #e6b86c;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.74rem;
+}
+
+#cabinet-bestiari .bestiari-ref-item-properties-title::before,
+#cabinet-codex .bestiari-ref-item-properties-title::before {
+  content: "✦";
+  color: #72d6d2;
+  text-shadow: 0 0 12px rgba(114, 214, 210, 0.34);
+}
+
+#cabinet-bestiari .bestiari-ref-item-properties,
+#cabinet-codex .bestiari-ref-item-properties {
+  display: grid;
+  gap: 8px;
+}
+
+#cabinet-bestiari .bestiari-ref-item-properties > div,
+#cabinet-codex .bestiari-ref-item-properties > div {
+  border: 1px solid rgba(114, 214, 210, 0.13);
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(9, 18, 29, 0.74), rgba(4, 9, 16, 0.54));
+  padding: 9px 11px;
+}
+
+#cabinet-bestiari .bestiari-ref-item-properties > div > span,
+#cabinet-codex .bestiari-ref-item-properties > div > span {
+  color: #72d6d2;
+}
+
+#cabinet-bestiari .bestiari-ref-item-properties p,
+#cabinet-codex .bestiari-ref-item-properties p {
+  color: rgba(238, 231, 214, 0.88);
+  line-height: 1.5;
+}
+
+#cabinet-bestiari .bestiari-ref-item-empty-note,
+#cabinet-codex .bestiari-ref-item-empty-note {
+  border: 1px dashed rgba(226, 174, 86, 0.22);
+  border-radius: 14px;
+  padding: 11px 12px;
+  color: rgba(231, 220, 198, 0.72);
+  background: rgba(226, 174, 86, 0.045);
+}
+
+@media (max-width: 720px) {
+  #cabinet-bestiari .bestiari-ref-item-info-grid,
+  #cabinet-codex .bestiari-ref-item-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #cabinet-bestiari .bestiari-ref-item-drawer > summary,
+  #cabinet-codex .bestiari-ref-item-drawer > summary {
+    align-items: flex-start;
+  }
+}
