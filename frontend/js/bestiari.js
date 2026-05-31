@@ -27,6 +27,7 @@ const BESTIARI_STATE = {
   searchRenderTimer: null,
 };
 
+// round153_class_css_restore: class UI UX guardrails
 const BESTIARI_CATEGORY_LABELS = {
   all: "Всё",
   monsters: "Монстры",
@@ -560,6 +561,114 @@ function normalizeMonsterNamedEntries(value, fallbackName = "Элемент") {
   return normalizeTextBlock(value).map((text) => ({ name: fallbackName, text }));
 }
 
+
+function normalizeMonsterXpText(value) {
+  const raw = safeText(value);
+  if (!raw) return "";
+  const digits = raw.replace(/[\s\u00a0\u202f]+/g, "").match(/\d+/)?.[0] || "";
+  if (!digits) return raw;
+  const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return /опыт/i.test(raw) ? `${formatted} опыта` : `${formatted} опыта`;
+}
+
+function extractMonsterXpFromText(value) {
+  const text = Array.isArray(value)
+    ? value.join("\n")
+    : value && typeof value === "object"
+      ? Object.values(value).map((item) => Array.isArray(item) ? item.join(" ") : String(item || "")).join("\n")
+      : String(value || "");
+  if (!text.trim()) return "";
+
+  const patterns = [
+    /Опасность\s*[:\s]*(?:CR\s*)?\d+(?:\/\d+)?[^\n(]*\(([\d\s\u00a0\u202f]+)\s*опыта\)/i,
+    /(?:CR\s*)?\d+(?:\/\d+)?\s*\(([\d\s\u00a0\u202f]+)\s*опыта\)/i,
+    /([\d\s\u00a0\u202f]{4,})\s*опыта/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match?.[1]) return normalizeMonsterXpText(match[1]);
+  }
+  return "";
+}
+
+function getMonsterXpTextFromSources(raw = {}, challenge = {}) {
+  const directCandidates = [
+    challenge?.xp,
+    challenge?.experience,
+    raw?.xp,
+    raw?.experience,
+    raw?.challenge_xp,
+    raw?.statblock?.xp,
+    raw?.statblock?.experience,
+    raw?.statblock?.challenge?.xp,
+    raw?.statblock?.challenge?.experience,
+  ];
+
+  for (const candidate of directCandidates) {
+    const normalized = normalizeMonsterXpText(candidate);
+    if (normalized) return normalized;
+  }
+
+  const candidates = [
+    challenge?.raw,
+    challenge?.text,
+    raw?.challenge,
+    raw?.challenge_text,
+    raw?.danger,
+    raw?.cr_text,
+    raw?.statblock?.challenge,
+    raw?.statblock?.challenge_raw,
+    raw?.raw?.challenge,
+    raw?.raw?.danger,
+    raw?.raw_text,
+  ];
+
+  if (Array.isArray(raw?.info_panels)) {
+    for (const panel of raw.info_panels) {
+      candidates.push(`${panel?.label || ""} ${panel?.value || ""}`);
+    }
+  }
+
+  for (const key of ["page_lines", "raw_lines", "lines", "statblock_lines"]) {
+    if (Array.isArray(raw?.[key])) candidates.push(raw[key].slice(0, 80).join("\n"));
+    if (Array.isArray(raw?.raw?.[key])) candidates.push(raw.raw[key].slice(0, 80).join("\n"));
+    if (Array.isArray(raw?.raw_preserved?.[key])) candidates.push(raw.raw_preserved[key].slice(0, 80).join("\n"));
+  }
+
+  for (const candidate of candidates) {
+    const extracted = extractMonsterXpFromText(candidate);
+    if (extracted) return extracted;
+  }
+
+  return "";
+}
+
+const MONSTER_SUPPLEMENTAL_SECTION_RE = /^(?:персонализация дракона|опционально\s*:|описание\b|источник\s*:|драконы и врожд[её]нное колдовство)\b/i;
+
+function isMonsterSupplementalBreakEntry(entry = {}) {
+  const name = typeof entry === "string" ? entry : safeText(entry?.name || entry?.title || "");
+  const text = typeof entry === "string" ? entry : safeText(entry?.text || entry?.body || entry?.description || "");
+  const head = [name, text].filter(Boolean).join("\n").trim();
+  return MONSTER_SUPPLEMENTAL_SECTION_RE.test(head);
+}
+
+function splitMonsterEntriesAtSupplementalBreak(entries = []) {
+  const main = [];
+  const supplemental = [];
+  let inSupplemental = false;
+
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (!inSupplemental && isMonsterSupplementalBreakEntry(entry)) {
+      inSupplemental = true;
+    }
+    if (inSupplemental) supplemental.push(entry);
+    else main.push(entry);
+  }
+
+  return { main, supplemental };
+}
+
 function normalizeStatblock(raw = null) {
   if (!raw || typeof raw !== "object") return null;
 
@@ -586,7 +695,7 @@ function normalizeStatblock(raw = null) {
   if (!hasMeaningfulData) return null;
 
   const challengeValue = safeText(challenge.value || raw.cr || raw.challenge_rating || raw.level_like);
-  const xp = safeText(challenge.xp || challenge.experience || "");
+  const xp = getMonsterXpTextFromSources(raw, challenge);
   const abilities = raw.abilities || raw.stats ? normalizeAbilities(raw.abilities || raw.stats || {}) : null;
 
   return {
@@ -1266,6 +1375,13 @@ function convertMonsterToBestiariEntry(raw = {}) {
   const sourceUrl = safeText(raw.source_url || raw.url || raw.sourceUrl);
   const rawStatblock = raw.statblock && typeof raw.statblock === "object" ? raw.statblock : {};
   const challenge = rawStatblock.challenge && typeof rawStatblock.challenge === "object" ? rawStatblock.challenge : {};
+  const monsterXpText = getMonsterXpTextFromSources(raw, challenge);
+  const normalizedChallenge = {
+    ...(challenge && typeof challenge === "object" ? challenge : {}),
+    value: safeText(challenge.value || raw.cr || raw.challenge_rating || rawStatblock.cr || rawStatblock.challenge_rating),
+    xp: monsterXpText || safeText(challenge.xp || challenge.experience || raw.xp || raw.experience),
+    raw: safeText(challenge.raw || raw.challenge_text || rawStatblock.challenge_raw),
+  };
   const sta = rawStatblock.size_type_alignment && typeof rawStatblock.size_type_alignment === "object" ? rawStatblock.size_type_alignment : {};
   const crText = challenge.value ? `CR ${challenge.value}` : safeText(raw.cr || rawStatblock.cr || "CR ?");
   const typeBits = sta.raw || [sta.size, sta.type, sta.alignment].filter(Boolean).join(" ");
@@ -1275,13 +1391,21 @@ function convertMonsterToBestiariEntry(raw = {}) {
   const actions = normalizeMonsterEntryList(raw.actions || rawStatblock.actions || []);
   const bonusActions = normalizeMonsterEntryList(raw.bonus_actions || rawStatblock.bonus_actions || []);
   const reactions = normalizeMonsterEntryList(raw.reactions || rawStatblock.reactions || []);
-  const legendaryActions = normalizeMonsterEntryList(raw.legendary_actions || rawStatblock.legendary_actions || []);
-  const mythicActions = normalizeMonsterEntryList(raw.mythic_actions || rawStatblock.mythic_actions || []);
+  let legendaryActions = normalizeMonsterEntryList(raw.legendary_actions || rawStatblock.legendary_actions || []);
+  let mythicActions = normalizeMonsterEntryList(raw.mythic_actions || rawStatblock.mythic_actions || []);
   const lairActions = normalizeMonsterEntryList(raw.lair_actions || rawStatblock.lair_actions || []);
   const lairEffects = normalizeMonsterEntryList(raw.lair_effects || rawStatblock.lair_effects || []);
   const regionalEffects = normalizeMonsterEntryList(raw.regional_effects || rawStatblock.regional_effects || []);
+  const supplementalEntries = [];
+  const legendarySplit = splitMonsterEntriesAtSupplementalBreak(legendaryActions);
+  legendaryActions = legendarySplit.main;
+  supplementalEntries.push(...legendarySplit.supplemental.map((item) => ({ ...item, source_section: "legendary_actions" })));
+  const mythicSplit = splitMonsterEntriesAtSupplementalBreak(mythicActions);
+  mythicActions = mythicSplit.main;
+  supplementalEntries.push(...mythicSplit.supplemental.map((item) => ({ ...item, source_section: "mythic_actions" })));
   const statblock = {
     ...rawStatblock,
+    challenge: normalizedChallenge,
     traits,
     actions,
     bonus_actions: bonusActions,
@@ -1322,6 +1446,7 @@ function convertMonsterToBestiariEntry(raw = {}) {
       quality,
       review,
       section_buckets: raw.section_buckets || null,
+      supplemental_entries: supplementalEntries,
       site_noise_count: Array.isArray(raw.site_noise_lines) ? raw.site_noise_lines.length : 0,
     },
     review,
@@ -2805,9 +2930,16 @@ function renderClassSubclasses(entry) {
 
   const groups = getClassSubclassGroups(subclasses);
   const activeGroup = groups[0]?.key || "official";
+  const hasOfficialSubclassGroup = groups.some((group) => group.key === "official" || group.key === "ua");
+  const onlyDraftSubclasses = !hasOfficialSubclassGroup;
 
   const content = `
-    <div class="bestiari-ref-class-subclasses" data-class-subclasses-root>
+    ${onlyDraftSubclasses ? `
+      <div class="bestiari-ref-class-subclass-warning">
+        В round1 отдельными сущностями выделились только черновые/HB-блоки. Официальные подклассы и полный список путей/коллегий нужно добирать parser/clean-pass'ом из исходного текста.
+      </div>
+    ` : ""}
+    <div class="bestiari-ref-class-subclasses ${onlyDraftSubclasses ? "is-draft-only" : ""}" data-class-subclasses-root>
       <div class="bestiari-ref-class-subclass-group-tabs" role="tablist" aria-label="Типы подклассов">
         ${groups.map((group, groupIndex) => `
           <button
@@ -2846,9 +2978,9 @@ function renderClassSubclasses(entry) {
 
   return renderBestiariDrawer("Подклассы", content, {
     icon: "◇",
-    meta: `${subclasses.length} / tabs`,
-    open: true,
-    className: "bestiari-ref-class-subclasses-drawer"
+    meta: onlyDraftSubclasses ? `${subclasses.length} / черновые` : `${subclasses.length} / tabs`,
+    open: !onlyDraftSubclasses,
+    className: `bestiari-ref-class-subclasses-drawer ${onlyDraftSubclasses ? "is-draft-only" : ""}`
   });
 }
 
@@ -3058,6 +3190,169 @@ function renderDeitySection(entry) {
 }
 
 
+
+function renderMonsterSupplementalSections(entry) {
+  const supplemental = Array.isArray(entry?.monster_data?.supplemental_entries)
+    ? entry.monster_data.supplemental_entries
+    : [];
+  if (!supplemental.length) return "";
+
+  const content = `
+    <div class="bestiari-ref-named-list bestiari-ref-monster-supplemental-list">
+      ${supplemental.map((item) => {
+        if (typeof item === "string") return `<div><span>◇</span><p>${escapeHtml(item)}</p></div>`;
+        const source = item.source_section ? `<em>${escapeHtml(item.source_section)}</em>` : "";
+        return `
+          <div>
+            <span>◇</span>
+            <p>
+              <strong>${escapeHtml(item.name || item.title || "Дополнительный материал")}</strong>
+              ${source}
+              ${item.text ? `<br>${escapeHtml(item.text)}` : ""}
+            </p>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <div class="bestiari-ref-source-hint"><span>Вынесено из боевого статблока: parser round1 сохранил текст, но это не легендарные/мифические действия.</span></div>
+  `;
+
+  return renderBestiariDrawer("Лор / опциональные материалы", content, {
+    icon: "◇",
+    meta: String(supplemental.length),
+    open: false,
+    className: "bestiari-ref-monster-supplemental-drawer",
+  });
+}
+
+
+
+function normalizeMonsterRawFallbackLine(value) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .trim();
+}
+
+function getMonsterRawFallbackBuckets(entry = {}) {
+  if (!entry || entry.category !== "monsters") return [];
+
+  const buckets = entry.section_buckets || entry.monster_data?.section_buckets || {};
+  const monsterRaw = entry.monster_data?.raw_preserved || entry.monster_data?.raw || {};
+  const rawFields = entry.raw_fields || {};
+  const collected = [];
+  const seen = new Set();
+
+  const pushBucket = (label, lines, maxLines = 220) => {
+    const normalized = normalizeTextBlock(lines)
+      .map(normalizeMonsterRawFallbackLine)
+      .filter(Boolean)
+      .filter((line) => !/^свернуть$/i.test(line))
+      .filter((line) => !/^развернуть$/i.test(line))
+      .filter((line) => !/^комментар/i.test(line))
+      .filter((line) => !/^оставить комментар/i.test(line))
+      .slice(0, maxLines);
+
+    const unique = [];
+    for (const line of normalized) {
+      const key = `${label}::${line.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(line);
+    }
+    if (unique.length) collected.push({ label, lines: unique });
+  };
+
+  const bucketMap = [
+    ["Базовый статблок", buckets.core?.raw_lines || buckets.statblock?.raw_lines || buckets.header?.raw_lines],
+    ["Особенности", buckets.traits?.raw_lines],
+    ["Действия", buckets.actions?.raw_lines],
+    ["Бонусные действия", buckets.bonus_actions?.raw_lines],
+    ["Реакции", buckets.reactions?.raw_lines],
+    ["Легендарные действия", buckets.legendary_actions?.raw_lines],
+    ["Мифические действия", buckets.mythic_actions?.raw_lines],
+    ["Действия логова", buckets.lair_actions?.raw_lines],
+    ["Региональные эффекты", buckets.regional_effects?.raw_lines],
+  ];
+
+  for (const [label, lines] of bucketMap) pushBucket(label, lines);
+
+  const fallbackRawLines = [
+    monsterRaw.statblock_lines,
+    monsterRaw.raw_lines,
+    monsterRaw.page_lines,
+    rawFields.statblock_lines,
+    rawFields.raw_lines,
+    rawFields.page_lines,
+    entry.raw_lines,
+  ];
+
+  if (!collected.length) {
+    for (const lines of fallbackRawLines) {
+      const normalized = normalizeTextBlock(lines);
+      if (normalized.length) {
+        const startIndex = normalized.findIndex((line) => /^(класс доспеха|хиты|скорость|сил\b|действия|особенности|легендарные действия|мифические действия)/i.test(String(line || "").trim()));
+        pushBucket("Сырой статблок", startIndex >= 0 ? normalized.slice(startIndex) : normalized, 260);
+        break;
+      }
+    }
+  }
+
+  return collected;
+}
+
+function isMonsterRawFallbackUseful(entry = {}, buckets = []) {
+  if (!buckets.length) return false;
+  const sb = entry.statblock || {};
+  const normalizedCount = [
+    sb.traits,
+    sb.actions,
+    sb.bonus_actions,
+    sb.reactions,
+    sb.legendary_actions,
+    sb.mythic_actions,
+    sb.lair_actions,
+    sb.regional_effects,
+  ].reduce((sum, value) => sum + (Array.isArray(value) ? value.length : 0), 0);
+
+  const rawLineCount = buckets.reduce((sum, bucket) => sum + (bucket.lines?.length || 0), 0);
+  const needsReview = Boolean(entry.review?.needs_review || entry.monster_data?.review?.needs_review);
+  return rawLineCount >= 8 && (normalizedCount <= 3 || needsReview || rawLineCount > normalizedCount * 3);
+}
+
+function renderMonsterRawStatblockFallback(entry) {
+  const buckets = getMonsterRawFallbackBuckets(entry);
+  if (!isMonsterRawFallbackUseful(entry, buckets)) return "";
+
+  const total = buckets.reduce((sum, bucket) => sum + (bucket.lines?.length || 0), 0);
+  const content = `
+    <div class="bestiari-ref-monster-raw-note">
+      <strong>Raw-first:</strong>
+      <span>Parser round1 не обязан идеально разложить сложного монстра. Этот блок показывает сохранённый сырой статблок, чтобы не потерять действия, легендарки и механику до clean-pass.</span>
+    </div>
+    <div class="bestiari-ref-monster-raw-block">
+      ${buckets.map((bucket) => `
+        <section class="bestiari-ref-monster-raw-section">
+          <h4>${escapeHtml(bucket.label || "Секция")}</h4>
+          <div class="bestiari-ref-monster-raw-lines">
+            ${(bucket.lines || []).map((line, index) => {
+              const isHeading = /^(действия|бонусные действия|реакции|легендарные действия|мифические действия|действия логова|региональные эффекты|особенности|класс доспеха|хиты|скорость|сил\b|лов\b|тел\b|инт\b|мдр\b|хар\b)/i.test(line);
+              return `<div class="bestiari-ref-monster-raw-line ${isHeading ? "is-heading" : ""}"><b>${escapeHtml(String(index + 1).padStart(2, "0"))}</b><span>${escapeHtml(line)}</span></div>`;
+            }).join("")}
+          </div>
+        </section>
+      `).join("")}
+    </div>
+  `;
+
+  return renderBestiariDrawer("Сырой статблок / не терять механику", content, {
+    icon: "☠",
+    meta: `${total} строк`,
+    open: true,
+    className: "bestiari-ref-monster-raw-drawer",
+  });
+}
+
 function renderMonsterReview(entry) {
   if (!entry?.monster_data && !entry?.review && !entry?.section_buckets) return "";
   const review = entry.review || entry.monster_data?.review || {};
@@ -3158,11 +3453,13 @@ function renderEntryDetail(entry) {
         ${renderFullDescription(entry)}
         ${renderDeitySection(entry)}
         ${renderStatblock(entry)}
+        ${renderMonsterRawStatblockFallback(entry)}
+        ${renderMonsterSupplementalSections(entry)}
         ${renderMonsterReview(entry)}
         ${renderSpellSection(entry)}
         ${renderItemSection(entry)}
         ${renderClassSection(entry)}
-        ${renderMechanics(entry)}
+        ${entry.category === "classes" ? "" : renderMechanics(entry)}
         ${renderRelated(entry)}
       </section>
       ${renderSideStatPanel(entry)}
