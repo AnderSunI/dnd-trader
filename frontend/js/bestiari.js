@@ -40,6 +40,7 @@ const BESTIARI_CATEGORY_LABELS = {
   classes: "Классы",
   subclasses: "Подклассы",
   races: "Расы",
+  backgrounds: "Происхождения",
   factions: "Фракции",
   locations: "Локации",
   events: "События",
@@ -67,6 +68,12 @@ const BESTIARI_RACE_SEED_URLS = [
   "/static/data/races_normalized_round1.json",
   "/static/races_bestiari_preview.json",
   "/data/races_bestiari_preview.json",
+];
+
+const BESTIARI_BACKGROUND_SEED_URLS = [
+  "/static/data/backgrounds_bestiari_preview.json",
+  "/static/backgrounds_bestiari_preview.json",
+  "/data/backgrounds_bestiari_preview.json",
 ];
 
 const BESTIARI_CLASS_SEED_URLS = [
@@ -760,6 +767,7 @@ function normalizeEntry(raw = {}) {
     monster_data: raw.monster_data && typeof raw.monster_data === "object" ? raw.monster_data : null,
     deity_data: raw.deity_data && typeof raw.deity_data === "object" ? raw.deity_data : null,
     race_data: raw.race_data && typeof raw.race_data === "object" ? raw.race_data : null,
+    background_data: raw.background_data && typeof raw.background_data === "object" ? raw.background_data : null,
     review_status: safeText(raw.review_status || raw.reviewStatus),
     review: raw.review && typeof raw.review === "object" ? raw.review : null,
     quality: raw.quality && typeof raw.quality === "object" ? raw.quality : null,
@@ -1136,45 +1144,174 @@ function buildRaceInfoPanels(raw = {}, isOrigin = false) {
   return panels;
 }
 
-function convertRaceToBestiariEntry(raw = {}) {
-  const slug = safeText(raw.slug || raw.en_name || raw.ru_name, makeId("race"));
-  const title = safeText(raw.ru_name || raw.title_ru || raw.title || raw.title_raw, "Безымянная раса");
-  const enName = safeText(raw.en_name || raw.title_en);
-  const sourceTags = Array.isArray(raw.source_tags) ? raw.source_tags.map(String).filter(Boolean) : [];
-  const sectionName = safeText(raw.category_section || raw.section);
-  const isOrigin = sectionName === "Происхождения" || /origin|lineage/i.test(String(raw.type || ""));
-  const sections = Array.isArray(raw.sections) ? raw.sections : [];
-  const traits = Array.isArray(raw.traits_round1) ? raw.traits_round1 : [];
-  const spellRefs = filterRaceSpellRefs(raw.spell_refs_round1 || raw.spell_refs || []);
-  const source = normalizeSourceToString(raw.source) || "DnD.su";
-  const sourceUrl = raw.source_url || raw.url || "";
+function normalizeRaceSourceRefs(refs = []) {
+  const seen = new Set();
+  const out = [];
 
-  let intro = [];
-  for (const section of sections) {
-    const titleLower = String(section?.title || "").toLowerCase();
-    const paragraphs = cleanRaceTextList(section?.paragraphs || [])
-      .filter((paragraph) => !paragraph.startsWith("Источник:"));
-    if (paragraphs.length && (titleLower.includes(String(raw.ru_name || "").toLowerCase()) || !intro.length)) {
-      intro = paragraphs.slice(0, 3);
-      if (titleLower.includes(String(raw.ru_name || "").toLowerCase())) break;
+  for (const ref of Array.isArray(refs) ? refs : []) {
+    const title = String(ref?.title || ref?.name || ref?.ru_name || "").replace(/\s+/g, " ").trim();
+    const url = String(ref?.url || ref?.source_url || "").trim();
+    const path = String(ref?.path || ref?.source_path || "").trim();
+    if (!title && !url && !path) continue;
+    if (/^заклинания$/i.test(title) || path === "/spells/") continue;
+    const key = `${title}|${url}|${path}`.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...ref, title, url, path });
+  }
+
+  return out;
+}
+
+function getRaceRoundData(raw = {}) {
+  return raw.race_data && typeof raw.race_data === "object" ? raw.race_data : {};
+}
+
+function getRaceTraits(raw = {}) {
+  const data = getRaceRoundData(raw);
+  return getClassArray(
+    data.traits_round2 ||
+    data.traits_round1 ||
+    raw.traits_round2 ||
+    raw.traits_round1 ||
+    raw.traits ||
+    []
+  );
+}
+
+function getRaceVariants(raw = {}) {
+  const data = getRaceRoundData(raw);
+  return getClassArray(
+    data.variants_round2 ||
+    data.variant_refs_round2 ||
+    raw.variants_round2 ||
+    raw.variant_refs_round2 ||
+    raw.variants ||
+    []
+  );
+}
+
+function getRaceTables(raw = {}) {
+  const data = getRaceRoundData(raw);
+  return getClassArray(data.tables_round2 || raw.tables_round2 || raw.tables || []);
+}
+
+function getRaceSpellRefs(raw = {}) {
+  const data = getRaceRoundData(raw);
+  return normalizeRaceSourceRefs(
+    data.spell_refs_round2 ||
+    data.spell_refs_round1 ||
+    raw.spell_refs_round2 ||
+    raw.spell_refs_round1 ||
+    raw.spell_refs ||
+    []
+  );
+}
+
+function normalizeRaceTrait(trait = {}, fallbackIndex = 0) {
+  if (typeof trait === "string") {
+    return {
+      name: `Особенность ${fallbackIndex + 1}`,
+      kind: "feature",
+      text: trait.replace(/\s+/g, " ").trim(),
+    };
+  }
+
+  const name = getClassText(trait.name || trait.title || trait.label || trait.trait_name, `Особенность ${fallbackIndex + 1}`);
+  const kind = getClassText(trait.kind || trait.type || trait.group || "feature", "feature");
+  const text = getClassText(trait.text || trait.description || trait.summary || trait.content || trait.body || trait.rules, "");
+
+  return { ...trait, name, kind, text };
+}
+
+function normalizeRaceVariant(variant = {}, fallbackIndex = 0) {
+  if (typeof variant === "string") {
+    return {
+      title: variant.replace(/\s+/g, " ").trim() || `Вариант ${fallbackIndex + 1}`,
+      relationship_guess: "variant",
+      group_title: "Варианты",
+      text: "",
+    };
+  }
+
+  return {
+    ...variant,
+    title: getClassText(variant.title || variant.name || variant.ru_name || variant.label, `Вариант ${fallbackIndex + 1}`),
+    relationship_guess: getClassText(variant.relationship_guess || variant.relationship || variant.kind || "variant", "variant"),
+    group_title: getClassText(variant.group_title || variant.group || variant.source_section || variant.section_title || "", ""),
+    text: getClassText(variant.text || variant.description || variant.summary || variant.body || "", ""),
+    url: getClassText(variant.url || variant.source_url || "", ""),
+  };
+}
+
+function getRaceKindLabel(kind = "") {
+  const key = String(kind || "").toLowerCase();
+  const labels = {
+    ability_score_increase: "характеристики",
+    age: "возраст",
+    alignment: "мировоззрение",
+    size: "размер",
+    speed: "скорость",
+    darkvision: "зрение",
+    languages: "языки",
+    proficiency: "владение",
+    resistance: "сопротивление",
+    spellcasting_or_magic: "магия",
+    choice: "выбор",
+    feature: "особенность",
+  };
+  return labels[key] || kind || "особенность";
+}
+
+function convertRaceToBestiariEntry(raw = {}) {
+  const roundData = getRaceRoundData(raw);
+  const slug = safeText(raw.slug || roundData.slug || roundData.race_id || raw.en_name || roundData.en_name || raw.ru_name || raw.title, makeId("race"));
+  const title = safeText(raw.ru_name || roundData.ru_name || raw.title_ru || raw.title || raw.title_raw, "Безымянная раса");
+  const enName = safeText(raw.en_name || roundData.en_name || raw.title_en);
+  const sourceTags = Array.isArray(raw.source_tags)
+    ? raw.source_tags.map(String).filter(Boolean)
+    : Array.isArray(roundData.source_tags)
+      ? roundData.source_tags.map(String).filter(Boolean)
+      : [];
+  const sectionName = safeText(raw.category_section || raw.section);
+  const isOrigin = Boolean(roundData.is_origin) || sectionName === "Происхождения" || /origin|lineage/i.test(String(raw.type || raw.subtitle || ""));
+  const sections = Array.isArray(raw.sections) ? raw.sections : [];
+  const traits = getRaceTraits(raw);
+  const variants = getRaceVariants(raw);
+  const tables = getRaceTables(raw);
+  const spellRefs = getRaceSpellRefs(raw);
+  const source = normalizeSourceToString(raw.source) || normalizeSourceToString(roundData.source) || "DnD.su";
+  const sourceUrl = raw.source_url || raw.url || roundData.source_url || "";
+
+  let intro = normalizeTextBlock(raw.body || raw.intro_paragraphs || []);
+  if (!intro.length) {
+    for (const section of sections) {
+      const titleLower = String(section?.title || "").toLowerCase();
+      const paragraphs = cleanRaceTextList(section?.paragraphs || [])
+        .filter((paragraph) => !paragraph.startsWith("Источник:"));
+      if (paragraphs.length && (titleLower.includes(String(raw.ru_name || raw.title || "").toLowerCase()) || !intro.length)) {
+        intro = paragraphs.slice(0, 3);
+        if (titleLower.includes(String(raw.ru_name || raw.title || "").toLowerCase())) break;
+      }
     }
   }
 
-  const fallback = `${title} — черновая карточка ${isOrigin ? "происхождения" : "расы"} из round1. Нужен clean-pass.`;
-  const summary = shortenForSummary(intro[0] || fallback);
-  const fullDescription = sections
-    .map((section) => raceSectionToLine(section, 4))
-    .filter(Boolean)
-    .filter((line) => !line.startsWith("Комментарии:") && !line.startsWith("Галерея:"))
-    .slice(0, 28);
+  const fallback = `${title} — карточка ${isOrigin ? "происхождения" : "расы"} D&D 5e из round2.`;
+  const summary = shortenForSummary(raw.summary || intro[0] || fallback);
+  const fullDescription = normalizeTextBlock(raw.full_description).length
+    ? normalizeTextBlock(raw.full_description)
+    : sections
+      .map((section) => raceSectionToLine(section, 4))
+      .filter(Boolean)
+      .filter((line) => !line.startsWith("Комментарии:") && !line.startsWith("Галерея:"))
+      .slice(0, 40);
 
   const featureLines = [];
   const seenFeatureLines = new Set();
   for (const trait of traits) {
-    const name = String(trait?.name || "").replace(/\s+/g, " ").trim();
-    const traitText = String(trait?.text || "").replace(/\s+/g, " ").trim();
-    if (!name || !traitText) continue;
-    const line = `${name}. ${traitText}`;
+    const normalized = normalizeRaceTrait(trait, featureLines.length);
+    if (!normalized.name || !normalized.text) continue;
+    const line = `${normalized.name}. ${normalized.text}`;
     const key = line.toLowerCase().slice(0, 180);
     if (seenFeatureLines.has(key)) continue;
     seenFeatureLines.add(key);
@@ -1185,31 +1322,48 @@ function convertRaceToBestiariEntry(raw = {}) {
     id: raw.id || `race-${slug}`,
     category: "races",
     title,
-    subtitle: isOrigin ? "Происхождение / lineage" : "Раса / происхождение D&D 5e",
-    tags: [isOrigin ? "происхождение" : "раса", "dnd.su", ...sourceTags],
+    subtitle: raw.subtitle || (isOrigin ? "Происхождение / lineage" : "Раса / происхождение D&D 5e"),
+    tags: [isOrigin ? "происхождение" : "раса", "dnd.su", ...sourceTags, ...(roundData.is_variant ? ["вариант"] : [])].filter(Boolean),
     source,
     source_url: sourceUrl,
     summary,
-    body: intro.length ? [intro[0]] : [fallback],
+    body: intro.length ? intro.slice(0, 3) : [fallback],
     full_description: fullDescription.length ? fullDescription : intro.slice(1),
-    related: spellRefs.map((ref) => ref.title).filter(Boolean),
-    player_visible: raw.visibility?.player_summary !== false,
-    gm_only: false,
-    info_panels: buildRaceInfoPanels(raw, isOrigin),
+    related: [
+      ...variants.map((ref) => ref.title || ref.name || "").filter(Boolean),
+      ...spellRefs.map((ref) => ref.title || "").filter(Boolean),
+    ].slice(0, 32),
+    player_visible: raw.player_visible !== false && raw.visibility?.player_summary !== false,
+    gm_only: raw.gm_only === true,
+    info_panels: Array.isArray(raw.info_panels) && raw.info_panels.length ? raw.info_panels : buildRaceInfoPanels({ ...raw, quality: raw.quality || roundData.quality || {} }, isOrigin),
     mechanics: {
-      short_rules: featureLines.slice(0, 14),
+      short_rules: featureLines.slice(0, 24),
       examples: [],
     },
     race_data: {
+      ...roundData,
+      race_id: roundData.race_id || raw.race_id || raw.id || `race-${slug}`,
       ru_name: title,
       en_name: enName,
       source_tags: sourceTags,
-      source_path: raw.source_path || raw.path || "",
+      source_path: roundData.source_path || raw.source_path || raw.path || "",
       is_origin: isOrigin,
-      quality: raw.quality || {},
+      is_variant: Boolean(roundData.is_variant),
+      variant_of: roundData.variant_of || raw.variant_of || "",
+      family_id: roundData.family_id || raw.family_id || "",
+      quality: raw.quality || roundData.quality || {},
+      traits_round1: traits,
+      traits_round2: traits,
+      variants_round2: variants,
+      variant_refs_round2: variants,
+      tables_round2: tables,
       spell_refs_round1: spellRefs,
+      spell_refs_round2: spellRefs,
+      traits_by_kind: roundData.traits_by_kind || {},
+      lss_ready: roundData.lss_ready || {},
     },
     review_status: raw.review_status || "needs_cleaning",
+    quality: raw.quality || roundData.quality || null,
     raw_fields: raw.raw_fields && typeof raw.raw_fields === "object" ? raw.raw_fields : null,
   };
 }
@@ -1703,6 +1857,7 @@ async function loadExternalBestiariSeeds() {
   const monsterSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_MONSTER_SEED_URLS, "monster");
   const deitySeeds = await loadFirstAvailableBestiariSeed(BESTIARI_DEITY_SEED_URLS, "deity");
   const raceSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_RACE_SEED_URLS, "race");
+  const backgroundSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_BACKGROUND_SEED_URLS, "background");
   const classSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_CLASS_SEED_URLS, "class");
   const factionSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_FACTION_SEED_URLS, "faction");
   const conditionSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_CONDITION_SEED_URLS, "condition");
@@ -1714,7 +1869,7 @@ async function loadExternalBestiariSeeds() {
   const itemSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_ITEM_SEED_URLS, "item");
   const magicItemSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_MAGIC_ITEM_SEED_URLS, "magic item");
 
-  return [...monsterSeeds, ...deitySeeds, ...raceSeeds, ...classSeeds, ...factionSeeds, ...conditionSeeds, ...mechanicSeeds, ...loreSeeds, ...locationSeeds, ...spellSeeds, ...featSeeds, ...itemSeeds, ...magicItemSeeds].map(normalizeEntry);
+  return [...monsterSeeds, ...deitySeeds, ...raceSeeds, ...backgroundSeeds, ...classSeeds, ...factionSeeds, ...conditionSeeds, ...mechanicSeeds, ...loreSeeds, ...locationSeeds, ...spellSeeds, ...featSeeds, ...itemSeeds, ...magicItemSeeds].map(normalizeEntry);
 }
 
 function mergeEntryLists(...lists) {
@@ -1978,6 +2133,7 @@ function getCategoryIcon(category) {
     classes: "⚔",
     subclasses: "◇",
     races: "◎",
+    backgrounds: "◌",
     factions: "♜",
     locations: "⌖",
     events: "✹",
@@ -2254,7 +2410,7 @@ function renderSideSourcesPanel(entry) {
 
 function renderCategoryButtons(entries) {
   const stats = countByCategory(entries);
-  const categoryOrder = ["monsters", "gods", "events", "items", "spells", "feats", "locations", "lore", "mechanics", "classes", "races", "factions", "conditions"];
+  const categoryOrder = ["monsters", "gods", "events", "items", "spells", "feats", "locations", "lore", "mechanics", "classes", "races", "backgrounds", "factions", "conditions"];
   const allButton = `
     <button
       class="bestiari-ref-category ${BESTIARI_STATE.category === "all" ? "active" : ""}"
@@ -2936,12 +3092,127 @@ function normalizeClassTable(table = {}, index = 0) {
   return { title, meta, headers, rows: normalizedRows };
 }
 
-function renderClassProgression(data = {}) {
+function scoreMainClassProgressionTable(table = {}) {
+  const headersText = getClassArray(table.headers).map((item) => getClassText(item)).join(" ").toLowerCase();
+  const titleText = getClassText(table.title || "").toLowerCase();
+  const metaText = getClassText(table.meta || "").toLowerCase();
+  const firstHeader = getClassText(getClassArray(table.headers)[0] || "").toLowerCase();
+  const rowCount = getClassArray(table.rows).length;
+
+  let score = 0;
+  if (/уров|level/.test(headersText)) score += 5;
+  if (/бонус\s*мастер|proficiency/.test(headersText)) score += 5;
+  if (/умени|features?/.test(headersText)) score += 4;
+  if (/ячейк|заклинан|spell slots?|spells known|cantrips?/.test(headersText)) score += 2;
+  if (rowCount >= 18 && rowCount <= 22) score += 5;
+  if (/прогресс|progression/.test(titleText)) score += 3;
+  if (/таблица\s+прогресс|class\s+table/.test(titleText)) score += 3;
+  if (/progression_or_feature_table/.test(metaText)) score += 1;
+
+  if (/^к\s?\d+|^d\s?\d+|^1к|^1d/.test(firstHeader)) score -= 8;
+  if (/эффект|effect|амбици|эксцентрич|книга|стихия|создаваем|заклинани[ея]$/.test(headersText) && rowCount < 18) score -= 4;
+  if (/таблица\s+\d+/.test(titleText) && !/прогресс/.test(titleText)) score -= 2;
+
+  return score;
+}
+
+function splitClassProgressionTables(data = {}) {
   const tables = getClassArray(data.progression_tables_round1 || data.progression_tables || data.progression)
-    .map((table, index) => normalizeClassTable(table, index))
+    .map((table, index) => {
+      const normalized = normalizeClassTable(table, index);
+      if (!normalized) return null;
+      return {
+        ...normalized,
+        sourceIndex: index,
+        key: getClassStableKey(`${normalized.title || "table"}-${index}`, `class-table-${index}`),
+        score: scoreMainClassProgressionTable(normalized),
+      };
+    })
     .filter(Boolean);
 
-  if (!tables.length) {
+  if (!tables.length) return { main: [], additional: [], all: [] };
+
+  const mainCandidate = tables
+    .slice()
+    .sort((a, b) => b.score - a.score || a.sourceIndex - b.sourceIndex)[0];
+
+  const hasReliableMain = mainCandidate && mainCandidate.score >= 8;
+  const main = hasReliableMain ? [mainCandidate] : [tables[0]];
+  const mainKeys = new Set(main.map((table) => table.key));
+  const additional = tables.filter((table) => !mainKeys.has(table.key));
+
+  return { main, additional, all: tables };
+}
+
+function renderClassTableCard(table, index = 0, options = {}) {
+  const label = options.label || "таблица";
+  const primaryClass = options.primary || index === 0 ? "is-primary" : "";
+  const meta = [table.meta, options.note].filter(Boolean).join(" · ");
+
+  return `
+    <article class="bestiari-ref-class-table-card ${primaryClass}" data-class-table-card="${escapeHtml(table.key || String(index))}">
+      <div class="bestiari-ref-class-table-title">
+        <div>
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(table.title || `Таблица ${index + 1}`)}</strong>
+        </div>
+        <div class="bestiari-ref-class-table-actions">
+          ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+          <button class="bestiari-ref-class-table-fullscreen-btn" type="button" data-class-table-fullscreen="1" aria-label="Открыть таблицу во весь экран">⛶</button>
+        </div>
+      </div>
+      <div class="bestiari-ref-class-table-scroll">
+        <table class="bestiari-ref-class-table">
+          <thead>
+            <tr>${table.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${table.rows.map((row) => `
+              <tr>
+                ${table.headers.map((_, i) => `<td>${escapeHtml(row[i] ?? "—")}</td>`).join("")}
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+function renderClassTableTabbedBlock(tables = [], options = {}) {
+  const safeTables = getClassArray(tables);
+  if (!safeTables.length) return "";
+  if (safeTables.length === 1) {
+    return `<div class="bestiari-ref-class-progression-stack">${renderClassTableCard(safeTables[0], 0, options)}</div>`;
+  }
+
+  const rootClass = options.rootClass || "bestiari-ref-class-table-tabs-block";
+  const label = options.label || "таблица";
+
+  return `
+    <div class="${escapeHtml(rootClass)}" data-class-table-tabs-root="1">
+      <div class="bestiari-ref-class-progression-tabs bestiari-ref-class-subclass-group-tabs">
+        ${safeTables.map((table, index) => `
+          <button class="${index === 0 ? "is-active" : ""}" type="button" data-class-table-tab="${escapeHtml(table.key)}">
+            ${escapeHtml(table.title || `Таблица ${index + 1}`)} <span>${escapeHtml(String(index + 1))}</span>
+          </button>
+        `).join("")}
+      </div>
+      <div class="bestiari-ref-class-progression-stack" data-class-table-panels="1">
+        ${safeTables.map((table, index) => `
+          <section class="bestiari-ref-class-table-panel ${index === 0 ? "is-active" : ""}" data-class-table-panel="${escapeHtml(table.key)}" ${index === 0 ? "" : "hidden"}>
+            ${renderClassTableCard(table, index, { ...options, label })}
+          </section>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderClassProgression(data = {}) {
+  const { main, additional, all } = splitClassProgressionTables(data);
+
+  if (!all.length) {
     return renderBestiariDrawer(
       "Прогрессия класса",
       renderClassFallbackNote("Таблицы прогрессии пока не найдены в class_data. Raw сохранён, нужен отдельный clean-pass по классам."),
@@ -2955,43 +3226,32 @@ function renderClassProgression(data = {}) {
   }
 
   const content = `
-    <div class="bestiari-ref-class-progression-stack">
-      ${tables.map((table, index) => `
-        <article class="bestiari-ref-class-table-card ${index === 0 ? "is-primary" : ""}">
-          <div class="bestiari-ref-class-table-title">
-            <div>
-              <span>прогрессия</span>
-              <strong>${escapeHtml(table.title)}</strong>
-            </div>
-            <div class="bestiari-ref-class-table-actions">
-              ${table.meta ? `<small>${escapeHtml(table.meta)}</small>` : ""}
-              <button class="bestiari-ref-class-table-fullscreen-btn" type="button" data-class-table-fullscreen="1" aria-label="Открыть таблицу во весь экран">⛶</button>
-            </div>
-          </div>
-          <div class="bestiari-ref-class-table-scroll">
-            <table class="bestiari-ref-class-table">
-              <thead>
-                <tr>${table.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
-              </thead>
-              <tbody>
-                ${table.rows.map((row) => `
-                  <tr>
-                    ${table.headers.map((_, i) => `<td>${escapeHtml(row[i] ?? "—")}</td>`).join("")}
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      `).join("")}
-    </div>
+    ${additional.length ? `<div class="bestiari-ref-class-table-hint">Показана основная таблица прогрессии класса. Ещё ${escapeHtml(String(additional.length))} вспомогательных таблиц вынесено ниже в отдельный свернутый блок, чтобы не превращать класс в простыню.</div>` : ""}
+    ${renderClassTableTabbedBlock(main, { label: "прогрессия", primary: true, rootClass: "bestiari-ref-class-main-progression" })}
   `;
 
   return renderBestiariDrawer("Прогрессия класса", content, {
     icon: "▦",
-    meta: String(tables.length),
+    meta: additional.length ? `1 + ${additional.length}` : "1",
     open: true,
     className: "bestiari-ref-class-progression-drawer",
+  });
+}
+
+function renderClassAdditionalTables(data = {}) {
+  const { additional } = splitClassProgressionTables(data);
+  if (!additional.length) return "";
+
+  const content = `
+    <div class="bestiari-ref-class-table-hint">Это не основная прогрессия класса, а таблицы из особенностей, опциональных правил, подклассов, случайных эффектов или списков заклинаний. Они сохранены, но по умолчанию свернуты.</div>
+    ${renderClassTableTabbedBlock(additional, { label: "доп. таблица", rootClass: "bestiari-ref-class-extra-tables" })}
+  `;
+
+  return renderBestiariDrawer("Дополнительные таблицы класса", content, {
+    icon: "▥",
+    meta: String(additional.length),
+    open: false,
+    className: "bestiari-ref-class-extra-tables-drawer",
   });
 }
 
@@ -3042,10 +3302,48 @@ function getSubclassName(subclass = {}, index = 0) {
 }
 
 function getSubclassGroup(subclass = {}) {
-  return getClassText(
-    subclass.group || subclass.source_group || subclass.parent || subclass.source || subclass.category || subclass.type,
-    "Подклассы"
-  );
+  const rawLabels = [];
+  const pushLabel = (value) => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(pushLabel);
+      return;
+    }
+    if (typeof value === "object") {
+      pushLabel(value.name || value.title || value.label || value.value || value.text || value.code || value.slug);
+      return;
+    }
+    const text = String(value || "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    if (text) rawLabels.push(text);
+  };
+
+  pushLabel(subclass.group);
+  pushLabel(subclass.source_group);
+  pushLabel(subclass.subclass_group);
+  pushLabel(subclass.origin_group);
+  pushLabel(subclass.bucket);
+  pushLabel(subclass.category_bucket);
+  pushLabel(subclass.source_type);
+  pushLabel(subclass.origin);
+  pushLabel(subclass.source);
+  pushLabel(subclass.source_code);
+  pushLabel(subclass.source_title);
+  pushLabel(subclass.book);
+  pushLabel(subclass.parent);
+  pushLabel(subclass.category);
+  pushLabel(subclass.type);
+  pushLabel(subclass.tags);
+  pushLabel(subclass.source_tags);
+  pushLabel(subclass.flags);
+
+  const haystack = rawLabels.join(" | ").toLowerCase();
+  if (subclass.is_homebrew === true || /хоум\s*брю|home\s*brew|homebrew|custom|пользовательск|самодельн/.test(haystack)) return "Хоумбрю";
+  if (/unearthed|arcana|\bua\b|playtest|плейтест|архив|неофициальн|unofficial/.test(haystack)) return "UA / unofficial";
+  if (/critical role|tal[’']?dorei|explorer.*wildemount|mercers?/.test(haystack)) return "Сторонние / партнёрские";
+  if (/official|player'?s handbook|player’s handbook|\bphb\b|xanathar|xgte|tasha|tcoe|scag|dmg|mordenkainen|fizban|van richten|strixhaven|spelljammer|planescape|eberron|ravnica|theros|dragonlance|официальн/.test(haystack)) return "Официальные";
+
+  const explicit = rawLabels.find((label) => !/^(class|subclass|подкласс|подклассы|dnd\.su|dndsu|d&d|5e|класс)$/i.test(label));
+  return explicit || "Без группы / clean-pass";
 }
 
 function getSubclassSummary(subclass = {}) {
@@ -3167,6 +3465,7 @@ function renderClassSection(entry) {
       { label: "Подклассов", value: String((data.subclasses_round1 || []).length || "—") },
     ], "bestiari-ref-class-info-grid")}
     ${renderClassProgression(data)}
+    ${renderClassAdditionalTables(data)}
     ${renderClassSubclasses(entry)}
     ${renderClassFeatures(data)}
   `;
@@ -3176,6 +3475,507 @@ function renderClassSection(entry) {
     meta: data.hit_die || "class",
     open: true,
     className: "bestiari-ref-class-section-drawer"
+  });
+}
+
+function renderRaceTraitCards(traits = [], limit = null) {
+  const safeTraits = getClassArray(traits)
+    .map((trait, index) => normalizeRaceTrait(trait, index))
+    .filter((trait) => trait.name || trait.text);
+  const sliced = limit ? safeTraits.slice(0, limit) : safeTraits;
+  if (!sliced.length) return "";
+
+  return `
+    <div class="bestiari-ref-race-trait-grid">
+      ${sliced.map((trait) => `
+        <article class="bestiari-ref-race-trait-card">
+          <div class="bestiari-ref-race-trait-head">
+            <strong>${escapeHtml(trait.name || "Особенность")}</strong>
+            <span>${escapeHtml(getRaceKindLabel(trait.kind))}</span>
+          </div>
+          ${trait.text ? `<p>${escapeHtml(trait.text)}</p>` : ""}
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function splitRaceVariants(variants = []) {
+  const normalized = getClassArray(variants)
+    .map((variant, index) => normalizeRaceVariant(variant, index))
+    .filter((variant) => variant.title);
+
+  const mechanical = [];
+  const lore = [];
+
+  normalized.forEach((variant) => {
+    const relation = String(variant.relationship_guess || "").toLowerCase();
+    if (relation.includes("ethnicity") || relation.includes("lore")) lore.push(variant);
+    else mechanical.push(variant);
+  });
+
+  return { mechanical, lore, all: normalized };
+}
+
+function normalizeRaceVariantLookup(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/\[[^\]]*\]|\([^)]*\)/g, " ")
+    .replace(/\b(scag|rlw|mtf|mot|egw|ftd|ua|hb)\b/gi, " ")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getRaceVariantLookupStems(value = "") {
+  return normalizeRaceVariantLookup(value)
+    .split(" ")
+    .map((word) => word.trim())
+    .filter((word) => word.length > 2)
+    .map((word) => {
+      let normalized = word
+        .replace(/(ыми|ими|ого|ему|ому|ыми|ими|ая|яя|ые|ие|ый|ий|ой|ое|ее|ых|их|ам|ям|ов|ев|ей|а|я|ы|и)$/u, "");
+      if (normalized.length < 4) normalized = word;
+      return normalized.slice(0, Math.min(normalized.length, 8));
+    });
+}
+
+function raceVariantTextMatches(variantTitle = "", candidateTitle = "", candidateFullText = "") {
+  const variantKey = normalizeRaceVariantLookup(variantTitle);
+  const titleKey = normalizeRaceVariantLookup(candidateTitle);
+  const fullKey = normalizeRaceVariantLookup(candidateFullText);
+  if (!variantKey || (!titleKey && !fullKey)) return false;
+
+  if (titleKey && (titleKey === variantKey || titleKey.includes(variantKey) || variantKey.includes(titleKey))) return true;
+
+  const stems = getRaceVariantLookupStems(variantTitle);
+  if (stems.length) {
+    const titleStemHit = titleKey && stems.every((stem) => titleKey.includes(stem));
+    if (titleStemHit) return true;
+
+    const usefulStemCount = stems.filter((stem) => stem.length >= 4).length;
+    if (usefulStemCount >= 2 && stems.filter((stem) => fullKey.includes(stem)).length >= usefulStemCount) return true;
+    if (usefulStemCount === 1 && stems.some((stem) => stem.length >= 5 && titleKey.includes(stem))) return true;
+  }
+
+  return false;
+}
+
+function getRaceVariantDetail(variant = {}, options = {}) {
+  const title = getClassText(variant.title || variant.name || variant.ru_name || "", "");
+  const directText = getClassText(variant.text || variant.description || variant.summary || variant.body || "", "");
+  if (directText) {
+    return {
+      title,
+      text: directText,
+      source: variant.group_title || variant.source || "",
+      found: true,
+    };
+  }
+
+  const entry = options.entry || {};
+  const fullDescription = getClassArray(entry.full_description || entry.fullDescription || []);
+  const groupTitle = getClassText(variant.group_title || variant.group || "", "");
+  const candidates = [];
+
+  fullDescription.forEach((line, index) => {
+    const text = getClassText(line, "");
+    if (!text) return;
+    const colonIndex = text.indexOf(":");
+    const heading = colonIndex > -1 ? text.slice(0, colonIndex).trim() : "";
+    const body = colonIndex > -1 ? text.slice(colonIndex + 1).trim() : text;
+    const isTitleMatch = raceVariantTextMatches(title, heading || text, text);
+    const isGroupMatch = groupTitle && raceVariantTextMatches(groupTitle, heading || text, text) && normalizeRaceVariantLookup(text).includes(normalizeRaceVariantLookup(title));
+    if (!isTitleMatch && !isGroupMatch) return;
+
+    let score = 0;
+    if (isTitleMatch) score += 10;
+    if (heading && normalizeRaceVariantLookup(heading) === normalizeRaceVariantLookup(title)) score += 20;
+    if (body.length > 80) score += 4;
+    if (index < 16) score += 1;
+    candidates.push({ heading: heading || title, body, text, score });
+  });
+
+  candidates.sort((a, b) => b.score - a.score);
+  const best = candidates[0];
+  if (best) {
+    const text = best.body || best.text;
+    return {
+      title: best.heading || title,
+      text: text.length > 1200 ? `${text.slice(0, 1200).trim()}…` : text,
+      source: groupTitle,
+      found: true,
+    };
+  }
+
+  return {
+    title,
+    text: "Этот вариант найден в источнике как разновидность/подраса, но отдельный текст варианта пока не вынесен в структурированное поле. Полное описание сохранено в общей карточке расы; для финального LSS-pass нужно будет ещё разнести особенности вариантов по отдельным блокам.",
+    source: groupTitle,
+    found: false,
+  };
+}
+
+function renderRaceVariantCards(variants = [], options = {}) {
+  const safeVariants = getClassArray(variants)
+    .map((variant, index) => normalizeRaceVariant(variant, index))
+    .filter((variant) => variant.title);
+  if (!safeVariants.length) return "";
+
+  const icon = options.icon || "◇";
+  return `
+    <div class="bestiari-ref-race-variant-grid ${options.lore ? "is-lore" : ""}">
+      ${safeVariants.map((variant, index) => {
+        const detail = getRaceVariantDetail(variant, options);
+        return `
+          <article class="bestiari-ref-race-variant-card ${detail.found ? "has-detail" : "has-soft-detail"}">
+            <button class="bestiari-ref-race-variant-trigger" type="button" data-race-variant-toggle="${escapeHtml(String(index))}" aria-expanded="false">
+              <span class="bestiari-ref-race-variant-mark">${escapeHtml(icon)}</span>
+              <span class="bestiari-ref-race-variant-main">
+                <span class="bestiari-ref-race-variant-title">${escapeHtml(variant.title)}</span>
+                ${variant.group_title ? `<small>${escapeHtml(variant.group_title)}</small>` : ""}
+                ${variant.text ? `<p>${escapeHtml(variant.text)}</p>` : ""}
+                <em>${detail.found ? "Нажми, чтобы раскрыть описание" : "Нажми, чтобы показать заметку"}</em>
+              </span>
+            </button>
+            <div class="bestiari-ref-race-variant-detail" data-race-variant-detail hidden>
+              ${detail.title && detail.title !== variant.title ? `<strong>${escapeHtml(detail.title)}</strong>` : ""}
+              <p>${escapeHtml(detail.text)}</p>
+              ${variant.url ? `<a href="${escapeHtml(variant.url)}" target="_blank" rel="noreferrer">Источник</a>` : ""}
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderRaceTables(data = {}) {
+  const tables = getClassArray(data.tables_round2 || data.tables || [])
+    .map((table, index) => {
+      const normalized = normalizeClassTable(table, index);
+      if (!normalized) return null;
+      return {
+        ...normalized,
+        key: getClassStableKey(`${normalized.title || "race-table"}-${index}`, `race-table-${index}`),
+      };
+    })
+    .filter(Boolean);
+
+  if (!tables.length) return "";
+
+  return renderBestiariDrawer(
+    "Таблицы расы / происхождения",
+    `<div class="bestiari-ref-class-table-hint">Сохранённые таблицы источника: имена, лорные варианты, случайные черты, метки или опциональные материалы. Они свернуты, чтобы карточка не превращалась в простыню.</div>${renderClassTableTabbedBlock(tables, { label: "таблица", rootClass: "bestiari-ref-race-extra-tables" })}`,
+    {
+      icon: "▥",
+      meta: String(tables.length),
+      open: false,
+      className: "bestiari-ref-race-tables-drawer",
+    }
+  );
+}
+
+function renderRaceSpellRefs(data = {}) {
+  const refs = normalizeRaceSourceRefs(data.spell_refs_round2 || data.spell_refs_round1 || []);
+  if (!refs.length) return "";
+
+  return renderBestiariDrawer(
+    "Связанные заклинания",
+    `<div class="bestiari-ref-related-list bestiari-ref-race-spell-list">${refs.map((ref) => `<button type="button" data-bestiari-related="${escapeHtml(ref.title)}">${escapeHtml(ref.title)}</button>`).join("")}</div>`,
+    {
+      icon: "✧",
+      meta: String(refs.length),
+      open: false,
+      className: "bestiari-ref-race-spells-drawer",
+    }
+  );
+}
+
+
+function renderRaceLoreDrawer(entry = {}) {
+  const body = getClassArray(entry.body || []).filter(Boolean);
+  const full = getClassArray(entry.full_description || entry.fullDescription || []).filter(Boolean);
+  const paragraphs = [...body.slice(1), ...full]
+    .map((item) => getClassText(item, ""))
+    .filter(Boolean)
+    .slice(0, 32);
+
+  if (!paragraphs.length) return "";
+
+  return renderBestiariDrawer(
+    "Полный лор / текст источника",
+    `<div class="bestiari-ref-description-flow bestiari-ref-race-lore-flow">
+      ${paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
+    </div>`,
+    {
+      icon: "✥",
+      meta: `${paragraphs.length} блоков`,
+      open: false,
+      className: "bestiari-ref-race-lore-drawer",
+    }
+  );
+}
+
+function renderRaceVariantTraitReview(data = {}) {
+  const assigned = getClassArray(data.variant_traits_round2 || []);
+  const unassigned = getClassArray(data.variant_traits_unassigned_round2 || []);
+  const traits = [...assigned, ...unassigned];
+  if (!traits.length) return "";
+
+  const content = `
+    <div class="bestiari-ref-class-table-hint">Эти особенности уже отделены от базовой расы, но ещё не все безопасно привязаны к конкретной разновидности. Для игрока по умолчанию они свернуты, чтобы не смешивать базу и подрасы.</div>
+    ${renderRaceTraitCards(traits, 24)}
+  `;
+
+  return renderBestiariDrawer("Особенности разновидностей / review", content, {
+    icon: "◇",
+    meta: String(traits.length),
+    open: false,
+    className: "bestiari-ref-race-variant-traits-drawer",
+  });
+}
+
+function renderRaceSection(entry) {
+  const data = entry.race_data;
+  if (!data) return "";
+
+  const allTraits = getClassArray(data.traits_round2 || data.traits_round1 || []);
+  const baseTraitsRaw = getClassArray(data.base_traits_round2 || data.base_traits || []);
+  const traits = baseTraitsRaw.length ? baseTraitsRaw : allTraits;
+  const variants = getClassArray(data.variants_round2 || data.variant_refs_round2 || []);
+  const { mechanical, lore } = splitRaceVariants(variants);
+  const lss = data.lss_ready || {};
+  const spellCount = getClassArray(data.spell_refs_round2 || data.spell_refs_round1 || []).length;
+  const tableCount = getClassArray(data.tables_round2 || data.tables || []).length;
+  const variantTraitCount = getClassArray(data.variant_traits_round2 || []).length + getClassArray(data.variant_traits_unassigned_round2 || []).length;
+
+  const lssCore = [
+    lss.ability_score_increase?.display || lss.ability_score_increase?.text || "",
+    lss.size?.display || lss.size?.text || "",
+    lss.speed?.display || lss.speed?.text || "",
+    lss.darkvision?.display || lss.darkvision?.text || "",
+    lss.languages?.display || lss.languages?.text || "",
+  ].filter(Boolean);
+
+  const content = `
+    <div class="bestiari-ref-race-compact-note">
+      <strong>Короткая карточка</strong>
+      <span>По умолчанию показаны только базовые правила расы. Лор, таблицы, заклинания и спорные особенности разновидностей свернуты ниже.</span>
+    </div>
+
+    ${renderBestiariInfoGrid([
+      { label: "База", value: `${traits.length || 0} особенностей` },
+      { label: "Разновидности", value: String(mechanical.length || 0) },
+      { label: "Лор-варианты", value: String(lore.length || 0) },
+      { label: "Дополнительно", value: [spellCount ? `${spellCount} закл.` : "", tableCount ? `${tableCount} табл.` : ""].filter(Boolean).join(" · ") || "—" },
+    ], "bestiari-ref-race-info-grid bestiari-ref-race-info-grid-compact")}
+
+    ${lssCore.length ? `<div class="bestiari-ref-race-lss-note"><strong>LSS-ready:</strong><span>${escapeHtml(lssCore.join(" · "))}</span></div>` : ""}
+
+    ${traits.length ? renderBestiariDrawer("Базовые особенности расы", renderRaceTraitCards(traits, 12), {
+      icon: "✦",
+      meta: String(traits.length),
+      open: true,
+      className: "bestiari-ref-race-traits-drawer is-base-traits",
+    }) : ""}
+
+    ${mechanical.length ? renderBestiariDrawer("Разновидности / подрасы", renderRaceVariantCards(mechanical, { icon: "◇", entry, data }), {
+      icon: "◇",
+      meta: String(mechanical.length),
+      open: true,
+      className: "bestiari-ref-race-variants-drawer",
+    }) : ""}
+
+    ${lore.length ? renderBestiariDrawer("Этносы / лорные варианты", renderRaceVariantCards(lore, { icon: "◎", lore: true, entry, data }), {
+      icon: "◎",
+      meta: String(lore.length),
+      open: false,
+      className: "bestiari-ref-race-lore-variants-drawer",
+    }) : ""}
+
+    ${variantTraitCount ? renderRaceVariantTraitReview(data) : ""}
+    ${renderRaceLoreDrawer(entry)}
+    ${renderRaceSpellRefs(data)}
+    ${renderRaceTables(data)}
+  `;
+
+  return renderBestiariDrawer("Параметры расы", content, {
+    icon: "◎",
+    meta: variants.length ? `${traits.length} + ${variants.length}` : String(traits.length || "race"),
+    open: true,
+    className: "bestiari-ref-race-section-drawer is-condensed-race-card",
+  });
+}
+
+
+function getBackgroundList(value) {
+  return getClassArray(value).map((item) => getClassText(item, "")).filter(Boolean);
+}
+
+function renderBackgroundValueCard(label, value, options = {}) {
+  const list = Array.isArray(value) ? value.filter(Boolean) : getBackgroundList(value);
+  const raw = !Array.isArray(value) ? getClassText(value, "") : "";
+  if (!list.length && !raw) return "";
+  const content = list.length
+    ? `<div class="bestiari-ref-background-chip-list">${list.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>`
+    : `<p>${escapeHtml(raw)}</p>`;
+  return `
+    <article class="bestiari-ref-background-field-card ${options.wide ? "is-wide" : ""}">
+      <strong>${escapeHtml(label)}</strong>
+      ${content}
+    </article>
+  `;
+}
+
+function renderBackgroundFields(data = {}) {
+  const fields = data.fields || {};
+  const skillGuess = getClassArray(fields.skill_proficiencies_guess || []);
+  const toolGuess = getClassArray(fields.tool_proficiencies_guess || []);
+  const languageGuess = getClassArray(fields.languages_guess || []);
+  const equipmentGuess = getClassArray(fields.equipment_guess || []);
+  const equipmentRaw = getClassText(fields.equipment_raw || "", "");
+
+  const cards = [
+    renderBackgroundValueCard("Навыки", skillGuess.length ? skillGuess : fields.skill_proficiencies_raw),
+    renderBackgroundValueCard("Инструменты", toolGuess.length ? toolGuess : fields.tool_proficiencies_raw),
+    renderBackgroundValueCard("Языки", languageGuess.length ? languageGuess : fields.languages_raw),
+    renderBackgroundValueCard("Снаряжение", equipmentGuess.length ? equipmentGuess : equipmentRaw, { wide: true }),
+  ].filter(Boolean);
+
+  if (!cards.length) return "";
+  return `<div class="bestiari-ref-background-field-grid">${cards.join("")}</div>`;
+}
+
+function renderBackgroundFeature(data = {}) {
+  const feature = data.feature || {};
+  const name = getClassText(feature.name || feature.title || "", "");
+  const text = getClassText(feature.text || "", "");
+  if (!name && !text) return "";
+
+  return renderBestiariDrawer(
+    name ? `Умение: ${name}` : "Умение предыстории",
+    `<div class="bestiari-ref-background-feature">
+      ${text ? `<p>${escapeHtml(text)}</p>` : `<p class="muted">Текст умения сохранён в полном источнике, но не был уверенно выделен.</p>`}
+    </div>`,
+    {
+      icon: "✦",
+      meta: "feature",
+      open: true,
+      className: "bestiari-ref-background-feature-drawer",
+    }
+  );
+}
+
+function renderBackgroundVariants(data = {}) {
+  const variants = getClassArray(data.variants_round1 || data.variants || []).filter((variant) => variant && typeof variant === "object");
+  if (!variants.length) return "";
+  const content = `
+    <div class="bestiari-ref-background-variant-list">
+      ${variants.map((variant) => `
+        <article class="bestiari-ref-background-variant-card">
+          <strong>${escapeHtml(variant.title || variant.name || "Вариант")}</strong>
+          ${variant.text ? `<p>${escapeHtml(variant.text)}</p>` : ""}
+        </article>
+      `).join("")}
+    </div>
+  `;
+  return renderBestiariDrawer("Варианты / разновидности", content, {
+    icon: "◇",
+    meta: String(variants.length),
+    open: false,
+    className: "bestiari-ref-background-variants-drawer",
+  });
+}
+
+function renderBackgroundTablesBlock(title, tables, options = {}) {
+  const normalized = getClassArray(tables)
+    .map((table, index) => normalizeClassTable(table, index))
+    .filter(Boolean)
+    .map((table, index) => ({
+      ...table,
+      key: getClassStableKey(`${title}-${table.title || "table"}-${index}`, `background-table-${index}`),
+    }));
+  if (!normalized.length) return "";
+
+  return renderBestiariDrawer(
+    title,
+    `<div class="bestiari-ref-class-table-hint">${escapeHtml(options.hint || "Таблицы сохранены из источника и свернуты, чтобы карточка не превращалась в простыню.")}</div>${renderClassTableTabbedBlock(normalized, { label: "таблица", rootClass: "bestiari-ref-background-tables" })}`,
+    {
+      icon: options.icon || "▥",
+      meta: String(normalized.length),
+      open: options.open === true,
+      className: options.className || "bestiari-ref-background-tables-drawer",
+    }
+  );
+}
+
+function renderBackgroundFullTextDrawer(entry = {}) {
+  const lines = getClassArray(entry.full_description || entry.fullDescription || [])
+    .map((line) => getClassText(line, ""))
+    .filter(Boolean)
+    .slice(0, 28);
+  if (!lines.length) return "";
+  return renderBestiariDrawer(
+    "Полный текст источника",
+    `<div class="bestiari-ref-description-flow bestiari-ref-background-full-flow">${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>`,
+    {
+      icon: "✥",
+      meta: `${lines.length} блоков`,
+      open: false,
+      className: "bestiari-ref-background-full-drawer",
+    }
+  );
+}
+
+function renderBackgroundSection(entry) {
+  const data = entry.background_data;
+  if (!data) return "";
+
+  const fields = data.fields || {};
+  const feature = data.feature || {};
+  const variants = getClassArray(data.variants_round1 || []);
+  const personalityTables = getClassArray(data.personality_tables_round1 || []);
+  const optionTables = getClassArray(data.option_tables_round1 || []);
+  const otherTables = getClassArray(data.other_tables_round1 || []);
+  const flags = getClassArray(data.lss_ready?.review_flags || entry.quality?.flags || []);
+
+  const skills = getClassArray(fields.skill_proficiencies_guess || []);
+  const tools = getClassArray(fields.tool_proficiencies_guess || []);
+  const languages = getClassArray(fields.languages_guess || []);
+  const equipmentRaw = getClassText(fields.equipment_raw || "", "");
+
+  const content = `
+    <div class="bestiari-ref-background-compact-note">
+      <strong>Короткая карточка</strong>
+      <span>По умолчанию показаны только LSS-важные поля: навыки, инструменты, снаряжение и умение. Таблицы личности и полный текст свернуты ниже.</span>
+    </div>
+
+    ${renderBestiariInfoGrid([
+      { label: "Навыки", value: skills.length ? String(skills.length) : (fields.skill_proficiencies_raw ? "есть" : "—") },
+      { label: "Инструменты", value: tools.length ? String(tools.length) : (fields.tool_proficiencies_raw ? "есть" : "—") },
+      { label: "Языки", value: languages.length ? String(languages.length) : (fields.languages_raw ? "есть" : "—") },
+      { label: "Снаряжение", value: equipmentRaw ? "есть" : "—" },
+      { label: "Умение", value: feature?.name || feature?.title || "—" },
+      { label: "Таблицы", value: String(personalityTables.length + optionTables.length + otherTables.length || 0) },
+    ], "bestiari-ref-background-info-grid")}
+
+    ${renderBackgroundFields(data)}
+    ${renderBackgroundFeature(data)}
+    ${renderBackgroundVariants(data)}
+    ${renderBackgroundTablesBlock("Персонализация", personalityTables, { icon: "◇", open: false, hint: "Черты характера, идеалы, привязанности и слабости для LSS/ролеплея." })}
+    ${renderBackgroundTablesBlock("Специализация / выбор", optionTables, { icon: "▦", open: false, hint: "Таблицы вроде амплуа артиста, специализации мудреца, преступной специальности и других выборов." })}
+    ${renderBackgroundTablesBlock("Дополнительные таблицы", otherTables, { icon: "▥", open: false })}
+    ${flags.length ? renderBestiariDrawer("Проверить / clean-pass", `<div class="bestiari-ref-named-list">${flags.map((flag) => `<div><span>!</span><p>${escapeHtml(flag)}</p></div>`).join("")}</div>`, { icon: "!", meta: String(flags.length), open: false, className: "bestiari-ref-background-flags-drawer" }) : ""}
+    ${renderBackgroundFullTextDrawer(entry)}
+  `;
+
+  return renderBestiariDrawer("Параметры происхождения", content, {
+    icon: "◌",
+    meta: feature?.name || "background",
+    open: true,
+    className: "bestiari-ref-background-section-drawer",
   });
 }
 
@@ -3487,7 +4287,7 @@ function renderEntryDetail(entry) {
 
         ${entry.summary ? `<div class="bestiari-ref-summary-text">${escapeHtml(entry.summary)}</div>` : ""}
         ${renderInfoPanels(entry)}
-        ${renderFullDescription(entry)}
+        ${entry.category === "races" || entry.category === "backgrounds" ? "" : renderFullDescription(entry)}
         ${renderDeitySection(entry)}
         ${renderStatblock(entry)}
         ${renderMonsterRawStatblockFallback(entry)}
@@ -3496,7 +4296,9 @@ function renderEntryDetail(entry) {
         ${renderSpellSection(entry)}
         ${renderItemSection(entry)}
         ${renderClassSection(entry)}
-        ${entry.category === "classes" ? "" : renderMechanics(entry)}
+        ${renderRaceSection(entry)}
+        ${renderBackgroundSection(entry)}
+        ${entry.category === "classes" || entry.category === "races" || entry.category === "backgrounds" ? "" : renderMechanics(entry)}
         ${renderRelated(entry)}
       </section>
       ${renderSideStatPanel(entry)}
@@ -3799,6 +4601,26 @@ function bindActions() {
     });
   });
 
+  document.querySelectorAll("[data-class-table-tab]").forEach((btn) => {
+    if (btn.dataset.boundClassTableTab === "1") return;
+    btn.dataset.boundClassTableTab = "1";
+    btn.addEventListener("click", () => {
+      const root = btn.closest("[data-class-table-tabs-root]");
+      const tableKey = btn.dataset.classTableTab || "";
+      if (!root || !tableKey) return;
+
+      root.querySelectorAll("[data-class-table-tab]").forEach((item) => {
+        item.classList.toggle("is-active", item === btn);
+      });
+
+      root.querySelectorAll("[data-class-table-panel]").forEach((panel) => {
+        const isActive = panel.dataset.classTablePanel === tableKey;
+        panel.classList.toggle("is-active", isActive);
+        panel.hidden = !isActive;
+      });
+    });
+  });
+
   document.querySelectorAll("[data-class-table-fullscreen]").forEach((btn) => {
     if (btn.dataset.boundClassTableFullscreen === "1") return;
     btn.dataset.boundClassTableFullscreen = "1";
@@ -3816,6 +4638,32 @@ function bindActions() {
       closeBestiariClassTableLightbox();
     });
   }
+
+  document.querySelectorAll("[data-race-variant-toggle]").forEach((btn) => {
+    if (btn.dataset.boundRaceVariantToggle === "1") return;
+    btn.dataset.boundRaceVariantToggle = "1";
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".bestiari-ref-race-variant-card");
+      const grid = btn.closest(".bestiari-ref-race-variant-grid");
+      const detail = card?.querySelector("[data-race-variant-detail]");
+      if (!card || !detail) return;
+
+      const shouldOpen = detail.hidden;
+      grid?.querySelectorAll(".bestiari-ref-race-variant-card").forEach((item) => {
+        const itemDetail = item.querySelector("[data-race-variant-detail]");
+        const itemButton = item.querySelector("[data-race-variant-toggle]");
+        if (item !== card && itemDetail) {
+          item.classList.remove("is-active");
+          itemDetail.hidden = true;
+          itemButton?.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      card.classList.toggle("is-active", shouldOpen);
+      detail.hidden = !shouldOpen;
+      btn.setAttribute("aria-expanded", String(shouldOpen));
+    });
+  });
 
   document.querySelectorAll("[data-bestiari-related]").forEach((btn) => {
     if (btn.dataset.boundBestiariRelated === "1") return;
