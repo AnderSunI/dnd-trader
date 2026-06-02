@@ -1,0 +1,119 @@
+/* ======================================================================
+   D&D Trader / Encyclopedia backgrounds CSS
+   Split pass 01.
+   Scope: backgrounds/origins cards, proficiencies, equipment, features, personality tables.
+   ====================================================================== */
+
+/* backgrounds_ui_pass_01 — compact backgrounds/origins cards */
+.bestiari-ref-background-section-drawer .bestiari-ref-drawer-body {
+  display: grid;
+  gap: 12px;
+}
+
+.bestiari-ref-background-compact-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid rgba(126, 229, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(6, 18, 27, 0.46);
+}
+
+.bestiari-ref-background-compact-note strong {
+  color: rgba(236, 214, 164, 0.95);
+  white-space: nowrap;
+}
+
+.bestiari-ref-background-compact-note span {
+  color: rgba(219, 233, 236, 0.76);
+  line-height: 1.45;
+}
+
+.bestiari-ref-background-info-grid {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.bestiari-ref-background-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.bestiari-ref-background-field-card,
+.bestiari-ref-background-variant-card {
+  border: 1px solid rgba(126, 229, 255, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(10, 31, 43, 0.72), rgba(6, 18, 27, 0.55));
+  padding: 11px 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+}
+
+.bestiari-ref-background-field-card.is-wide {
+  grid-column: 1 / -1;
+}
+
+.bestiari-ref-background-field-card strong,
+.bestiari-ref-background-variant-card strong {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(236, 214, 164, 0.96);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.bestiari-ref-background-field-card p,
+.bestiari-ref-background-variant-card p,
+.bestiari-ref-background-feature p {
+  margin: 0;
+  color: rgba(226, 237, 238, 0.82);
+  line-height: 1.5;
+}
+
+.bestiari-ref-background-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bestiari-ref-background-chip-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 229, 255, 0.18);
+  background: rgba(126, 229, 255, 0.07);
+  color: rgba(222, 241, 244, 0.88);
+  font-size: 0.83rem;
+}
+
+.bestiari-ref-background-feature {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(236, 214, 164, 0.055);
+  border: 1px solid rgba(236, 214, 164, 0.16);
+}
+
+.bestiari-ref-background-variant-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.bestiari-ref-background-full-flow {
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+@media (max-width: 720px) {
+  .bestiari-ref-background-compact-note {
+    flex-direction: column;
+  }
+
+  .bestiari-ref-background-field-grid,
+  .bestiari-ref-background-variant-list {
+    grid-template-columns: 1fr;
+  }
+}
