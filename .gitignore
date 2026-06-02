@@ -29,3 +29,8 @@ tools/encyclopedia/**/*debug*.txt
 tools/encyclopedia/**/phb_inventory_run_debug.txt
 magic_items_full_debug.txt
 frontend/static/data/*.bak
+
+# Local/generated parser outputs and temporary backups
+/out/
+frontend/static/data/*.backup_before_*.json
+bestiary_spells_module_round1_apply.sh
