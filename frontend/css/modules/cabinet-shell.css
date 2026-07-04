@@ -1,0 +1,676 @@
+/* ==========================================================================
+   D&D Trader — CABINET SHELL MODULE
+   ========================================================================== */
+
+/*
+   Назначение модуля:
+   - общая оболочка личного кабинета;
+   - модальное/workspace-поведение #cabinetModal;
+   - левая навигационная рейка кабинета;
+   - заголовок активной вкладки;
+   - базовые блоки .cabinet-block / .cabinet-section;
+   - нижние/плавающие кнопки прокрутки кабинета.
+
+   Что НЕ входит в этот файл:
+   - содержимое инвентаря и экипировки -> modules/inventory.css;
+   - визуал торговца и его модалки -> modules/market.css / modules/trader-modal.css;
+   - карта -> будущий modules/map.css;
+   - история -> будущий modules/history.css;
+   - задания -> будущий modules/quests.css;
+   - персонаж / LSS -> будущий modules/character.css;
+   - Master Room и бой -> будущий modules/master-room.css;
+   - энциклопедия / бестиарий -> modules/bestiary-*.css.
+
+   Источник:
+   - вынесено из frontend/css/styles.css;
+   - старые правила в styles.css пока НЕ удалены;
+   - после визуальной проверки будет отдельный cleanup-pass монолита.
+
+   Безопасно править здесь:
+   - ширину левой рейки кабинета;
+   - отступы и радиусы оболочки;
+   - визуал активной кнопки вкладки;
+   - компактность header/sidebar;
+   - поведение collapsed-режима рейки.
+
+   Опасно править здесь без отдельной проверки:
+   - общие .modal / .modal-content, потому что их используют не только кабинет;
+   - содержимое конкретных вкладок;
+   - Master Room fullscreen/battle-режим;
+   - глобальные кнопки и формы.
+*/
+/* ==========================================================================
+   1. Состояние страницы при открытом кабинете
+   ========================================================================== */
+
+body.cabinet-open .page-shell {
+  filter: blur(18px) saturate(0.72);
+  transform: scale(0.988);
+  opacity: 0.18;
+  pointer-events: none;
+  user-select: none;
+  transition: filter 180ms ease, transform 180ms ease, opacity 180ms ease;
+}
+
+body.cabinet-open {
+  overflow: hidden;
+}
+
+body.cabinet-tab-masterroom .page-shell {
+  opacity: 0.08;
+  filter: blur(22px) saturate(0.65);
+}
+
+/* ==========================================================================
+   2. Размеры и режимы модалки кабинета
+   ========================================================================== */
+
+#cabinetModal[data-cabinet-layout-mode="workspace"] {
+  padding: 8px;
+  background: rgba(3, 8, 12, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.modal-large,
+.cabinet-modal-content {
+  width: min(1680px, calc(100% - 10px));
+}
+
+#cabinetModal[data-cabinet-layout-mode="modal"] {
+  padding: 10px;
+  overflow: hidden;
+  background: rgba(3, 8, 12, 0.88);
+  backdrop-filter: blur(14px);
+}
+
+#cabinetModal[data-cabinet-layout-mode="modal"] .cabinet-modal-content {
+  width: min(1680px, calc(100vw - 24px));
+  max-width: 1680px;
+  height: calc(100vh - 24px);
+  max-height: calc(100vh - 24px);
+  min-height: calc(100vh - 24px);
+  margin: 12px auto;
+  padding: 14px;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+#cabinetModal[data-cabinet-layout-mode="modal"] .cabinet-modal-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+#cabinetModal[data-cabinet-layout-mode="workspace"] .cabinet-modal-content {
+  width: 100%;
+  max-width: none;
+  max-height: calc(100vh - 16px);
+  min-height: calc(100vh - 16px);
+  margin: 0 auto;
+  padding: 20px 20px 22px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.08), transparent 18%),
+    radial-gradient(circle at top right, rgba(134, 203, 211, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(9, 15, 20, 0.992), rgba(5, 9, 13, 0.998));
+  border-color: rgba(214, 181, 122, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 28px 70px rgba(1, 4, 8, 0.52);
+}
+
+/* ==========================================================================
+   3. Layout кабинета и левая рейка
+   ========================================================================== */
+
+/* =========================================================
+   CABINET
+   ========================================================= */
+
+.cabinet-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.cabinet-sidebar {
+  position: sticky;
+  top: 0;
+  padding: 18px 14px 16px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.10), transparent 18%),
+    radial-gradient(circle at bottom center, rgba(134, 203, 211, 0.07), transparent 18%),
+    linear-gradient(180deg, rgba(13, 22, 28, 0.97), rgba(6, 11, 16, 0.995));
+  border: 1px solid rgba(214, 181, 122, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    inset 0 0 0 1px rgba(89, 126, 137, 0.06),
+    0 18px 36px rgba(3, 7, 10, 0.34);
+}
+
+.cabinet-sidebar-title {
+  margin-bottom: 14px;
+  color: #d6b57a;
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cabinet-tab-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cabinet-tab-buttons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-sidebar-title,
+#cabinetModal.cabinet-rail-collapsed .cabinet-sidebar-footer,
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn-inner span:not(.cabinet-rail-btn-icon) {
+  display: none;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-tab-buttons .btn {
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 8px;
+}
+
+.cabinet-sidebar-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(214, 181, 122, 0.10);
+}
+
+.cabinet-sidebar-footer .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.cabinet-tab-buttons .btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  color: #ccbda0;
+  background:
+    linear-gradient(180deg, rgba(25, 36, 44, 0.98), rgba(10, 17, 22, 0.995));
+  border: 1px solid rgba(214, 181, 122, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 10px 18px rgba(6, 10, 14, 0.18);
+  min-height: 50px;
+  font-size: 0.84rem;
+  padding: 11px 13px;
+}
+
+.cabinet-tab-buttons .btn:hover {
+  color: #ebf7f8;
+  border-color: rgba(134, 203, 211, 0.22);
+  background:
+    linear-gradient(180deg, rgba(26, 43, 50, 0.96), rgba(12, 21, 27, 0.98));
+}
+
+.cabinet-main {
+  min-width: 0;
+}
+
+/* -------- active cabinet button -------- */
+
+.cabinet-tab-buttons .btn.active,
+.cabinet-tab-buttons .btn.active:hover,
+.cabinet-tab-buttons .btn.active:focus {
+  background:
+    linear-gradient(180deg, rgba(34, 89, 97, 0.98), rgba(17, 50, 57, 0.99)) !important;
+  color: #eef8f8 !important;
+  border-color: rgba(134, 203, 211, 0.24) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 0 0 1px rgba(96, 164, 175, 0.10),
+    0 10px 22px rgba(4, 9, 13, 0.26);
+}
+
+.cabinet-tab-buttons .btn.active *,
+.cabinet-tab-buttons .btn.active .muted,
+.cabinet-tab-buttons .btn.active .meta-item {
+  color: #eef8f8 !important;
+}
+
+.cabinet-tab-buttons .btn.active,
+.cabinet-rail-btn.active {
+  color: #eef7f7;
+  border-color: rgba(134, 203, 211, 0.24);
+  background:
+    radial-gradient(circle at left center, rgba(134, 203, 211, 0.16), transparent 24%),
+    linear-gradient(180deg, rgba(27, 61, 68, 0.96), rgba(15, 35, 41, 0.99));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 12px 24px rgba(9, 18, 23, 0.22),
+    0 0 24px rgba(69, 136, 149, 0.10);
+}
+
+/* Старые дефолтные белые/серые кнопки больше не должны пробиваться в канон-зонах. */
+
+
+/* ---------------------------------------------------------------------------
+   02. CABINET RAIL CANON — стрелка реально сжимает левый столбец
+   --------------------------------------------------------------------------- */
+#cabinetModal.cabinet-rail-collapsed .cabinet-sidebar {
+  overflow: hidden !important;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-sidebar-title,
+#cabinetModal.cabinet-rail-collapsed .cabinet-sidebar-footer,
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn-inner span:not(.cabinet-rail-btn-icon) {
+  display: none !important;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-tab-buttons,
+#cabinetModal.cabinet-rail-collapsed .cabinet-tab-buttons-list,
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn-inner {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ==========================================================================
+   4. Кнопка сворачивания рейки и collapsed-режим
+   ========================================================================== */
+
+.cabinet-rail-toggle-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 38px;
+  margin-bottom: 8px;
+  color: #9ee8ef;
+  border-color: rgba(134, 203, 211, 0.24);
+  background:
+    linear-gradient(180deg, rgba(22, 42, 50, 0.96), rgba(8, 15, 20, 0.99));
+}
+
+.cabinet-rail-toggle-btn span {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn-inner {
+  justify-content: center;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn-icon {
+  font-size: 1.08rem;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-toggle-btn,
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn {
+  width: 48px !important;
+  min-width: 48px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  border-radius: 14px !important;
+}
+
+#cabinetModal.cabinet-rail-collapsed .cabinet-rail-btn-icon {
+  width: auto !important;
+  font-size: 1rem !important;
+}
+
+/* ==========================================================================
+   5. Footer/sidebar и кнопки вкладок
+   ========================================================================== */
+
+.cabinet-header-logout-btn {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+}
+
+/* ==========================================================================
+   6. Header и базовые секции кабинета
+   ========================================================================== */
+
+.cabinet-header {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.cabinet-header-inner h2 {
+  margin-bottom: 4px;
+  font-size: 1.34rem;
+}
+
+.cabinet-section {
+  display: block;
+}
+
+.cabinet-section.tab-hidden {
+  display: none !important;
+}
+
+.cabinet-block {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.cabinet-block h3 {
+  font-size: 0.98rem;
+  margin-bottom: 7px;
+}
+
+.cabinet-header-shell {
+  padding-right: 34px;
+}
+
+.cabinet-header-layout {
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cabinet-header-kicker {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.cabinet-header-title {
+  margin: 0 0 3px;
+  font-size: 1.16rem;
+}
+
+.cabinet-header-subtitle {
+  font-size: 0.82rem;
+}
+
+.cabinet-header-meta {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cabinet-rail-btn {
+  width: 100%;
+  min-height: 50px;
+  padding: 11px 13px;
+  justify-content: flex-start;
+  text-align: left;
+  border-radius: 16px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.cabinet-rail-btn-inner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+}
+
+.cabinet-rail-btn-icon {
+  width: 16px;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+/* ==========================================================================
+   7. Плавающая навигация/прокрутка кабинета
+   ========================================================================== */
+
+/* =========================================================
+   Модуль вынесен: инвентарь
+   Основные стили инвентаря и экипировки теперь лежат в:
+   frontend/css/modules/inventory.css
+
+   В монолите ниже могут оставаться только соседние или непроверенные
+   правила, которые не были точным дублем inventory.css.
+   ========================================================= */
+
+/* =========================================================
+   ROUND 20 — UX CLEANUP: CABINET MODULES / MAP / TRADER NAV
+   Scope:
+   - упрощение модулей личного кабинета через локальные якоря и compact-mode
+   - карта: активные метки на карте, объединённая правая панель
+   - торговец: единая навигационная шапка модалки + фикс фона
+   ========================================================= */
+
+/* ---------- global modal/body stabilization ---------- */
+
+
+/* ---------- cabinet module cleanup / anchors ---------- */
+
+.cabinet-floating-scroll {
+  position: fixed;
+  right: clamp(16px, 2vw, 28px);
+  bottom: clamp(16px, 2vw, 28px);
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.cabinet-floating-scroll button {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 205, 220, 0.22);
+  background: rgba(7, 14, 22, 0.62);
+  color: rgba(236, 246, 247, 0.86);
+  font-size: 18px;
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.26);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+
+.cabinet-floating-scroll button:hover {
+  background: rgba(13, 28, 40, 0.86);
+  color: #fff;
+  border-color: rgba(126, 205, 220, 0.42);
+}
+
+/* Верхняя навигация раздела — без фейковых стрелок, только чипы и шторка. */
+
+/* Единственные рабочие стрелки внутри кабинета. */
+.cabinet-floating-scroll-clean {
+  right: clamp(18px, 2.2vw, 34px);
+  bottom: clamp(18px, 2.2vw, 34px);
+  z-index: 110;
+}
+
+.cabinet-floating-scroll-clean button {
+  width: 46px;
+  height: 46px;
+  border-radius: 18px;
+  border: 1px solid rgba(126, 205, 220, 0.26);
+  background:
+    radial-gradient(circle at top left, rgba(126, 205, 220, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(8, 17, 27, 0.74), rgba(4, 9, 15, 0.88));
+  color: rgba(238, 248, 249, 0.9);
+  box-shadow:
+    0 16px 34px rgba(0,0,0,0.38),
+    inset 0 1px 0 rgba(255,255,255,0.035);
+  backdrop-filter: blur(14px);
+}
+
+.cabinet-floating-scroll-clean button:hover {
+  transform: translateY(-1px);
+  background:
+    radial-gradient(circle at top left, rgba(126, 205, 220, 0.2), transparent 34%),
+    linear-gradient(180deg, rgba(12, 28, 40, 0.9), rgba(5, 12, 20, 0.96));
+}
+
+/* Торговец: всё управление в одной шапке, без блуждающих крестиков. */
+
+/* =========================================================
+   ROUND 23 — REAL DISCLOSURE / LESS OVERLOAD
+   Scope: кабинетные модули, map control drawers, компактные прозрачные стрелки.
+   ========================================================= */
+
+/* Плавающие стрелки должны быть почти незаметным помощником, а не кнопками-кирпичами. */
+.cabinet-floating-scroll-clean {
+  right: clamp(12px, 1.45vw, 22px);
+  bottom: clamp(12px, 1.45vw, 22px);
+  gap: 6px;
+  opacity: 0.42;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.cabinet-floating-scroll-clean:hover,
+.cabinet-floating-scroll-clean:focus-within {
+  opacity: 0.82;
+}
+
+.cabinet-floating-scroll-clean button {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 205, 220, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(126, 205, 220, 0.10), transparent 36%),
+    linear-gradient(180deg, rgba(8, 17, 27, 0.46), rgba(4, 9, 15, 0.62));
+  color: rgba(238, 248, 249, 0.68);
+  font-size: 14px;
+  line-height: 1;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(10px);
+}
+
+.cabinet-floating-scroll-clean button:hover {
+  transform: translateY(-1px);
+  color: rgba(255, 255, 255, 0.94);
+  border-color: rgba(126, 205, 220, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(126, 205, 220, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(12, 28, 40, 0.68), rgba(5, 12, 20, 0.82));
+}
+
+/* =========================================================
+   ROUND 24 — BOTTOM NAV + DISCLOSURE ACROSS CABINET MODULES
+   Scope: меньше перегруза во всех кабинетных модулях, кроме LSS.
+   ========================================================= */
+
+/* Нижняя навигация: как мягкий помощник, а не боковые кнопки. */
+#cabinetModal .cabinet-floating-scroll,
+#cabinetModal .cabinet-floating-scroll-clean,
+#cabinetModal .cabinet-floating-scroll-bottom {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: 18px !important;
+  transform: translate(-50%, 12px) scale(0.96) !important;
+  z-index: 200 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 205, 220, 0.12);
+  background: rgba(4, 9, 15, 0.32);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+#cabinetModal .cabinet-floating-scroll.is-visible,
+#cabinetModal .cabinet-floating-scroll.is-idle-visible,
+#cabinetModal .cabinet-floating-scroll:focus-within,
+#cabinetModal .cabinet-floating-scroll:hover {
+  opacity: 0.44;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1) !important;
+}
+
+#cabinetModal .cabinet-floating-scroll:hover,
+#cabinetModal .cabinet-floating-scroll:focus-within {
+  opacity: 0.78;
+  border-color: rgba(126, 205, 220, 0.24);
+  background: rgba(4, 10, 16, 0.54);
+}
+
+#cabinetModal .cabinet-floating-scroll button,
+#cabinetModal .cabinet-floating-scroll-clean button,
+#cabinetModal .cabinet-floating-scroll-bottom button {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(126, 205, 220, 0.14) !important;
+  background:
+    radial-gradient(circle at top left, rgba(126, 205, 220, 0.11), transparent 38%),
+    linear-gradient(180deg, rgba(8, 17, 27, 0.50), rgba(4, 9, 15, 0.66)) !important;
+  color: rgba(238, 248, 249, 0.62) !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+#cabinetModal .cabinet-floating-scroll button:hover,
+#cabinetModal .cabinet-floating-scroll-clean button:hover,
+#cabinetModal .cabinet-floating-scroll-bottom button:hover {
+  color: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(126, 205, 220, 0.36) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ==========================================================================
+   7. Адаптив оболочки кабинета
+   ========================================================================== */
+
+@media (max-width: 1240px) {
+  .cabinet-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  .cabinet-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cabinet-sidebar {
+    position: static;
+  }
+
+  .cabinet-tab-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .cabinet-floating-scroll-clean button {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 560px) {
+  .modal-content,
+  .modal-large,
+  .cabinet-modal-content {
+    width: 100%;
+    padding: 14px;
+    max-height: calc(100vh - 24px);
+  }
+
+  .cabinet-tab-buttons {
+    grid-template-columns: 1fr;
+  }
+}
