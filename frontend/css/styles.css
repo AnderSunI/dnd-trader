@@ -817,35 +817,9 @@ button:not(:disabled):hover {
    TRADER MODAL
    ========================================================= */
 
-.trader-modal-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 
-.trader-modal-header {
-  display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
 
-.trader-modal-image-wrap {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(214, 181, 122, 0.12);
-  background:
-    linear-gradient(180deg, rgba(18, 29, 35, 0.98), rgba(8, 15, 20, 0.98));
-}
 
-.trader-modal-info {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
 .trader-header-title-row {
   display: flex;
@@ -855,17 +829,7 @@ button:not(:disabled):hover {
   margin-bottom: 10px;
 }
 
-.trader-header-title-row h2,
-.trader-modal-info h2 {
-  margin: 0;
-  font-size: clamp(1.38rem, 1.7vw, 1.78rem);
-  line-height: 1.1;
-  color: #efe5d4;
-}
 
-.trader-modal-meta {
-  margin-bottom: 0;
-}
 
 .trader-economy-strip {
   display: grid;
@@ -6222,13 +6186,8 @@ footer a:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .trader-modal-header {
-    grid-template-columns: 1fr;
-  }
-
-  .trader-modal-image-wrap {
-    max-width: 420px;
-  }
+  
+  
 }
 
 @media (max-width: 768px) {
@@ -6905,406 +6864,84 @@ td .item-description-short,
    - не трогаем кабинет и другие модалки
    ========================================================= */
 
-#traderModal {
-  padding: 18px;
-}
 
-#traderModal .modal-content {
-  width: min(1420px, calc(100% - 8px));
-  max-height: calc(100vh - 36px);
-  padding: 18px;
-}
 
-#traderModal .modal-large {
-  width: min(1480px, calc(100% - 8px));
-}
 
-#traderModal .trader-modal-layout {
-  gap: 16px;
-}
 
-#traderModal .trader-modal-header {
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: 18px;
-}
 
-#traderModal .trader-modal-image-wrap {
-  max-width: 100%;
-}
 
-#traderModal .trader-modal-info h2,
-#traderModal .trader-header-title-row h2 {
-  font-size: clamp(1.42rem, 1.85vw, 1.92rem);
-}
 
 @media (max-width: 1100px) {
-  #traderModal .modal-content,
-  #traderModal .modal-large {
-    width: min(100%, calc(100% - 12px));
-  }
-
-  #traderModal .trader-modal-header {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-  }
+  
+  
 }
 
 @media (max-width: 900px) {
-  #traderModal {
-    padding: 14px;
-  }
-
-  #traderModal .modal-content,
-  #traderModal .modal-large {
-    width: 100%;
-    max-height: calc(100vh - 28px);
-    padding: 16px;
-  }
-
-  #traderModal .trader-modal-header {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  #traderModal .trader-modal-image-wrap {
-    max-width: 480px;
-    margin: 0 auto;
-  }
+  
+  
+  
+  
 }
 
 /* =========================================================
    TUNING — trader modal size rollback to balanced middle
    ========================================================= */
 
-#traderModal {
-  padding: 28px;
-}
 
-#traderModal .modal-content {
-  width: min(1320px, calc(100% - 56px));
-  max-height: calc(100vh - 56px);
-  padding: 16px 16px 18px;
-  overflow-x: hidden;
-  background-color: #060b10;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(134, 203, 211, 0.52) rgba(5, 10, 15, 0.96);
-}
 
-#traderModal .modal-content::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
 
-#traderModal .modal-content::-webkit-scrollbar-track {
-  border-radius: 999px;
-  background: rgba(5, 10, 15, 0.96);
-}
 
-#traderModal .modal-content::-webkit-scrollbar-thumb {
-  border: 2px solid rgba(5, 10, 15, 0.96);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(134, 203, 211, 0.72), rgba(214, 181, 122, 0.58));
-}
 
-#traderModal .modal-large {
-  width: min(1360px, calc(100% - 56px));
-}
 
-#traderModal .trader-modal-layout {
-  gap: 14px;
-}
 
-#traderModal .trader-modal-header {
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
-  gap: 16px;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  position: relative;
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-  padding: 12px;
-  overflow: hidden;
-  border-radius: 24px;
-  border: 1px solid rgba(214, 181, 122, 0.28);
-  background:
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.10), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(134, 203, 211, 0.08), transparent 30%),
-    linear-gradient(180deg, rgba(12, 20, 27, 0.98), rgba(5, 10, 15, 0.995));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 18px 42px rgba(0, 0, 0, 0.30);
-}
 
-#traderModal .trader-modal-portrait-panel::before {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  pointer-events: none;
-  border-radius: 20px;
-  border: 1px solid rgba(214, 181, 122, 0.12);
-  box-shadow:
-    inset 0 0 0 1px rgba(134, 203, 211, 0.04),
-    inset 0 0 42px rgba(0, 0, 0, 0.32);
-}
 
-#traderModal .trader-modal-image-wrap {
-  position: relative;
-  z-index: 1;
-  max-width: 440px;
-  aspect-ratio: 4 / 5;
-  margin: 0 auto;
-  border-radius: 18px;
-  border-color: rgba(214, 181, 122, 0.24);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 14px 34px rgba(0, 0, 0, 0.34);
-}
 
-#traderModal .trader-modal-portrait-caption {
-  position: relative;
-  z-index: 1;
-  margin: -2px 6px 0;
-  color: #f0d79a;
-  font-family: Georgia, serif;
-  font-size: 0.88rem;
-  font-style: italic;
-  line-height: 1.42;
-  text-align: center;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.48);
-}
 
-#traderModal .trader-modal-reputation-card {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 9px;
-  padding: 13px 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(214, 181, 122, 0.18);
-  background:
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.08), transparent 30%),
-    linear-gradient(180deg, rgba(14, 22, 29, 0.92), rgba(6, 12, 18, 0.98));
-}
 
-#traderModal .trader-modal-reputation-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  color: #f1e8d8;
-}
 
-#traderModal .trader-modal-reputation-head strong {
-  font-family: Georgia, serif;
-  font-size: 1rem;
-}
 
-#traderModal .trader-modal-reputation-head span {
-  color: #f0d79a;
-  font-size: 1.28rem;
-  font-weight: 900;
-}
 
-#traderModal .trader-modal-reputation-card progress {
-  width: 100%;
-  height: 8px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-}
 
-#traderModal .trader-modal-reputation-card progress::-webkit-progress-bar {
-  background: rgba(255, 255, 255, 0.08);
-}
 
-#traderModal .trader-modal-reputation-card progress::-webkit-progress-value {
-  border-radius: 999px;
-  background: linear-gradient(90deg, #d6b57a, #8fdce4);
-}
 
-#traderModal .trader-modal-reputation-card progress::-moz-progress-bar {
-  border-radius: 999px;
-  background: linear-gradient(90deg, #d6b57a, #8fdce4);
-}
 
-#traderModal .trader-modal-info {
-  gap: 12px;
-}
 
-#traderModal .trader-header-title-row {
-  align-items: center;
-  margin-bottom: 0;
-}
 
-#traderModal .trader-modal-meta {
-  gap: 7px;
-}
 
-#traderModal .trader-modal-info h2,
-#traderModal .trader-header-title-row h2 {
-  color: #f0d79a;
-  font-family: Georgia, serif;
-  font-size: clamp(1.58rem, 2.2vw, 2.3rem);
-  font-weight: 800;
-  letter-spacing: 0;
-}
 
-#traderModal .trader-economy-strip {
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-  gap: 10px;
-}
 
-#traderModal .trader-reputation-box {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  border-left: 0;
-  border-color: rgba(134, 203, 211, 0.16);
-}
 
-#traderModal .trader-reputation-summary-meta {
-  margin: 0;
-}
 
-#traderModal .trader-reputation-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
 
-#traderModal .trader-reputation-summary-grid span {
-  min-width: 0;
-  padding: 10px 11px;
-  border-radius: 14px;
-  color: #dbe7e9;
-  line-height: 1.32;
-  border: 1px solid rgba(214, 181, 122, 0.11);
-  background:
-    radial-gradient(circle at top left, rgba(134, 203, 211, 0.07), transparent 30%),
-    linear-gradient(180deg, rgba(12, 21, 27, 0.90), rgba(6, 12, 18, 0.96));
-}
 
-#traderModal .trader-reputation-summary-grid strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #d6b57a;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 
-#traderModal .trader-reputation-note {
-  font-size: 0.79rem;
-  line-height: 1.42;
-}
 
-#traderModal .trader-restock-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 2px;
-}
 
-#traderModal .trader-restock-actions .btn {
-  min-height: 39px;
-  padding-inline: 14px;
-}
 
-#traderModal .tab-bar {
-  gap: 8px;
-  margin-bottom: 10px;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 36px;
-  padding: 7px 12px;
-  font-size: 0.84rem;
-}
 
-#traderModal .collection-wrapper {
-  padding: 10px;
-}
 
-#traderModal .compact-collection-toolbar,
-#traderModal .collection-toolbar {
-  gap: 8px;
-  margin-bottom: 10px;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  padding-top: 9px;
-  padding-bottom: 9px;
-}
 
-#traderModal .item-actions-stack {
-  gap: 6px;
-}
 
 @media (max-width: 1200px) {
-  #traderModal {
-    padding: 18px;
-  }
-
-  #traderModal .modal-content,
-  #traderModal .modal-large {
-    width: min(100%, calc(100% - 28px));
-    max-height: calc(100vh - 36px);
-  }
-
-  #traderModal .trader-modal-header {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-    gap: 14px;
-  }
-
-  #traderModal .trader-modal-image-wrap {
-    max-width: 360px;
-  }
-
-  #traderModal .trader-economy-strip,
-  #traderModal .trader-reputation-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  
+  
+  
+  
+  
 }
 
 @media (max-width: 860px) {
-  #traderModal {
-    padding: 12px;
-  }
-
-  #traderModal .modal-content,
-  #traderModal .modal-large {
-    width: min(100%, calc(100% - 16px));
-    max-height: calc(100vh - 24px);
-    padding: 12px 12px 14px;
-  }
-
-  #traderModal .trader-modal-header {
-    grid-template-columns: 1fr;
-  }
-
-  #traderModal .trader-modal-portrait-panel {
-    padding: 10px;
-  }
-
-  #traderModal .trader-modal-image-wrap {
-    max-width: 100%;
-    aspect-ratio: 16 / 11;
-  }
-
-  #traderModal .trader-header-title-row,
-  #traderModal .trader-reputation-summary-grid,
-  #traderModal .trader-economy-strip {
-    grid-template-columns: 1fr;
-  }
-
-  #traderModal .trader-header-title-row {
-    display: grid;
-    gap: 8px;
-  }
+  
+  
+  
+  
+  
+  
+  
 }
 
 .account-media-slot {
@@ -11859,116 +11496,19 @@ body.cabinet-tab-inventory #cabinet-inventory {
    ========================================================= */
 
 /* ---------- global modal/body stabilization ---------- */
-body.trader-modal-open {
-  overflow: hidden;
-}
 
-body.trader-modal-open .page-shell,
-body.trader-modal-open .main-container {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
 
-#traderModal {
-  overscroll-behavior: contain;
-}
 
-#traderModal .modal-content.modal-large {
-  position: relative;
-  max-height: min(92vh, 980px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
-}
 
-#traderModal > .modal-content > .close {
-  display: none;
-}
 
-.trader-modal-chrome {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 58px;
-  margin: -2px -2px 16px;
-  padding: 10px 12px;
-  border: 1px solid rgba(214, 181, 122, 0.18);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at top left, rgba(116, 204, 221, 0.12), transparent 30%),
-    linear-gradient(180deg, rgba(8, 15, 23, 0.98), rgba(5, 10, 16, 0.98));
-  box-shadow:
-    0 14px 34px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(14px);
-}
 
-.trader-modal-chrome-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
 
-.trader-modal-nav-btn,
-.trader-modal-close-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  border: 1px solid rgba(126, 205, 220, 0.22);
-  background: linear-gradient(180deg, rgba(12, 25, 36, 0.96), rgba(7, 14, 22, 0.98));
-  color: #eef8f9;
-  font-size: 20px;
-  font-weight: 900;
-  cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-}
 
-.trader-modal-nav-btn:hover,
-.trader-modal-close-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(126, 205, 220, 0.46);
-  box-shadow: 0 0 22px rgba(91, 190, 209, 0.18);
-}
 
-.trader-modal-nav-btn:disabled {
-  opacity: 0.42;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
 
-.trader-modal-close-btn {
-  border-color: rgba(214, 181, 122, 0.24);
-  color: #f2dfbd;
-}
 
-.trader-modal-nav-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
 
-.trader-modal-nav-copy strong {
-  color: #f1e3bd;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-.trader-modal-nav-copy span {
-  color: rgba(214, 224, 226, 0.72);
-  font-size: 12px;
-}
 
 /* ---------- cabinet module cleanup / anchors ---------- */
 
@@ -12195,14 +11735,8 @@ body.trader-modal-open .main-container {
 }
 
 @media (max-width: 1020px) {
-  .trader-modal-chrome {
-    align-items: stretch;
-  }
-
-  .trader-modal-nav-copy span {
-    display: none;
-  }
-
+  
+  
   .map-active-markers-dock {
     left: 10px;
     right: 10px;
@@ -12706,103 +12240,20 @@ body.trader-modal-open .main-container {
 }
 
 /* Торговец: всё управление в одной шапке, без блуждающих крестиков. */
-.trader-modal-chrome-unified {
-  position: sticky;
-  top: 0;
-  z-index: 35;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
-  align-items: center;
-  gap: 10px;
-  margin: -4px -4px 16px;
-  padding: 10px;
-  border: 1px solid rgba(214, 181, 122, 0.18);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at top left, rgba(126, 205, 220, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(7, 14, 22, 0.98), rgba(4, 9, 15, 0.99));
-  box-shadow:
-    0 18px 38px rgba(0,0,0,0.34),
-    inset 0 1px 0 rgba(255,255,255,0.035);
-  backdrop-filter: blur(16px);
-}
 
-.trader-modal-chrome-unified .trader-modal-nav-btn,
-.trader-modal-chrome-unified .trader-modal-close-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
-  font-size: 24px;
-  line-height: 1;
-}
 
-.trader-modal-chrome-unified .trader-modal-close-btn {
-  color: #f2dfbd;
-  border-color: rgba(214, 181, 122, 0.28);
-}
 
-.trader-modal-chrome-unified .trader-modal-nav-copy {
-  min-width: 0;
-  text-align: center;
-}
 
-.trader-modal-chrome-unified .trader-modal-nav-copy span {
-  display: block;
-  color: rgba(214, 181, 122, 0.76);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 
-.trader-modal-chrome-unified .trader-modal-nav-copy strong {
-  display: block;
-  margin-top: 2px;
-  color: #f4e6bf;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1rem, 1.4vw, 1.22rem);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-.trader-modal-chrome-unified .trader-modal-nav-copy small {
-  display: block;
-  margin-top: 2px;
-  color: rgba(220, 230, 232, 0.66);
-  font-size: 11px;
-}
 
-body.trader-modal-open {
-  overflow: hidden !important;
-  overscroll-behavior: none;
-}
 
-body.trader-modal-open #traderModal {
-  overscroll-behavior: contain;
-}
 
-body.trader-modal-open #traderModal .modal-content,
-body.trader-modal-open #traderModal .modal-content.modal-large {
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
-}
 
 @media (max-width: 760px) {
-  .trader-modal-chrome-unified {
-    grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
-    gap: 8px;
-  }
-
-  .trader-modal-chrome-unified .trader-modal-nav-btn,
-  .trader-modal-chrome-unified .trader-modal-close-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  .trader-modal-chrome-unified .trader-modal-nav-copy small {
-    display: none;
-  }
+  
+  
+  
 }
 
 /* =========================================================
@@ -16436,6 +15887,12 @@ body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
 }
 
 /* =========================================================
+   Модалка торговца вынесена в modules/trader-modal.css.
+   В этом монолите оставлены только соседние/общие стили, которые не были
+   точным дублем модуля или требуют отдельной проверки перед удалением.
+   ========================================================= */
+
+/* =========================================================
    ROUND 31 — MASTER ROOM ESCAPE / DENSITY + TRADER MODAL CLEANUP
    Цели: не ловить пользователя в Master Room, уплотнить UI под 15.6/1920-ish,
    поправить боевой блок и убрать смешение старой/новой модалки торговца.
@@ -16799,122 +16256,18 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
 }
 
 /* Торговая модалка: один визуальный слой, один крестик, компактный header */
-#traderModal.trader-modal-round31 .modal-content,
-#traderModal.trader-modal-refined .modal-content {
-  width: min(1540px, calc(100vw - 28px)) !important;
-  max-width: 1540px !important;
-  max-height: calc(100vh - 32px) !important;
-  overflow: hidden auto !important;
-  padding: 14px !important;
-  border-radius: 26px !important;
-}
 
-#traderModal.trader-modal-round31 .modal-content > .close,
-#traderModal.trader-modal-refined .modal-content > .close,
-#traderModal.trader-modal-round31 .close:not(.trader-modal-close-btn),
-#traderModal.trader-modal-refined .close:not(.trader-modal-close-btn) {
-  display: none !important;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-chrome,
-#traderModal.trader-modal-refined .trader-modal-chrome {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 48px 48px;
-  gap: 10px;
-  align-items: center;
-  min-height: 68px;
-  margin: -2px 0 14px;
-  padding: 10px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(214,181,122,0.17);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(91,207,224,0.10), transparent 42%),
-    linear-gradient(180deg, rgba(9,17,26,0.96), rgba(5,10,16,0.985));
-  box-shadow: 0 14px 32px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.025);
-}
 
-#traderModal.trader-modal-round31 .trader-modal-nav-copy,
-#traderModal.trader-modal-refined .trader-modal-nav-copy {
-  text-align: center;
-  min-width: 0;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-nav-copy span,
-#traderModal.trader-modal-refined .trader-modal-nav-copy span {
-  display: block;
-  color: rgba(214,181,122,0.88);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-nav-copy strong,
-#traderModal.trader-modal-refined .trader-modal-nav-copy strong {
-  display: block;
-  color: #f1dfb7;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.25rem, 1.8vw, 1.75rem);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-nav-copy small,
-#traderModal.trader-modal-refined .trader-modal-nav-copy small {
-  display: block;
-  color: rgba(204,216,219,0.68);
-  font-size: 0.78rem;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-nav-btn,
-#traderModal.trader-modal-round31 .trader-modal-close-btn,
-#traderModal.trader-modal-refined .trader-modal-nav-btn,
-#traderModal.trader-modal-refined .trader-modal-close-btn {
-  width: 48px;
-  height: 48px;
-  min-height: 48px;
-  padding: 0;
-  border-radius: 15px;
-  border: 1px solid rgba(214,181,122,0.19);
-  background: linear-gradient(180deg, rgba(12,22,32,0.96), rgba(5,11,18,0.98));
-  color: #ead8ae;
-  font-size: 1.8rem;
-  line-height: 1;
-  box-shadow: none;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-close-btn,
-#traderModal.trader-modal-refined .trader-modal-close-btn {
-  color: #f3dfb6;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-layout,
-#traderModal.trader-modal-refined .trader-modal-layout {
-  gap: 14px !important;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-header,
-#traderModal.trader-modal-refined .trader-modal-header {
-  display: grid !important;
-  grid-template-columns: minmax(300px, 430px) minmax(0, 1fr) !important;
-  gap: 18px !important;
-  align-items: start !important;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-info h2,
-#traderModal.trader-modal-refined .trader-modal-info h2 {
-  font-size: clamp(1.8rem, 2.5vw, 2.55rem) !important;
-  line-height: 1.04 !important;
-}
 
-#traderModal.trader-modal-round31 .trader-modal-image-wrap,
-#traderModal.trader-modal-refined .trader-modal-image-wrap {
-  max-height: 520px !important;
-}
 
 @media (max-width: 1540px) {
   body.cabinet-tab-masterroom #cabinetModal .cabinet-layout {
@@ -16946,16 +16299,7 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
 }
 
 @media (max-width: 1180px) {
-  body.cabinet-tab-masterroom #cabinetModal .cabinet-layout,
-  #cabinet-masterroom .master-runtime-hero,
-  #cabinet-masterroom .master-runtime-layout,
-  #cabinet-masterroom .master-runtime-stage-combat,
-  #cabinet-masterroom .combat-ref-layout,
-  #traderModal.trader-modal-round31 .trader-modal-header,
-  #traderModal.trader-modal-refined .trader-modal-header {
-    grid-template-columns: 1fr !important;
-  }
-
+  
   #cabinet-masterroom .master-runtime-tabs {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
@@ -16973,16 +16317,7 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
 }
 
 @media (max-width: 760px) {
-  body.cabinet-tab-masterroom #cabinetModal .cabinet-modal-content,
-  #traderModal.trader-modal-round31 .modal-content,
-  #traderModal.trader-modal-refined .modal-content {
-    width: calc(100vw - 12px) !important;
-    height: calc(100vh - 12px) !important;
-    max-height: calc(100vh - 12px) !important;
-    margin: 6px auto !important;
-    padding: 8px !important;
-  }
-
+  
   #cabinet-masterroom .master-runtime-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
@@ -16994,21 +16329,8 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
     grid-template-columns: 1fr 1fr !important;
   }
 
-  #traderModal.trader-modal-round31 .trader-modal-chrome,
-  #traderModal.trader-modal-refined .trader-modal-chrome {
-    grid-template-columns: 42px minmax(0, 1fr) 42px 42px;
-    gap: 6px;
-    padding: 8px;
-  }
-
-  #traderModal.trader-modal-round31 .trader-modal-nav-btn,
-  #traderModal.trader-modal-round31 .trader-modal-close-btn,
-  #traderModal.trader-modal-refined .trader-modal-nav-btn,
-  #traderModal.trader-modal-refined .trader-modal-close-btn {
-    width: 42px;
-    height: 42px;
-    min-height: 42px;
-  }
+  
+  
 }
 
 /* =========================================================
@@ -17318,107 +16640,20 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
 
 /* Trader modal: one chrome, no visual layer clash */
 
-#traderModal.trader-modal-round32 {
-  backdrop-filter: blur(12px);
-}
 
-#traderModal.trader-modal-round32 .modal-content,
-#traderModal.trader-modal-round32 #traderModalContent,
-#traderModal.trader-modal-round32 .trader-modal-layout {
-  max-width: min(1540px, calc(100vw - 48px));
-}
 
-#traderModal.trader-modal-round32 .modal-content {
-  max-height: calc(100vh - 42px);
-  overflow: hidden;
-  padding-top: 0;
-}
 
-#traderModal.trader-modal-round32 #traderModalContent {
-  max-height: calc(100vh - 42px);
-  overflow: auto;
-  scrollbar-width: thin;
-}
 
-#traderModal.trader-modal-round32 .modal-content > .close,
-#traderModal.trader-modal-round32 .close:not(.trader-modal-close-btn) {
-  display: none !important;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-chrome-unified {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
-  gap: 10px;
-  align-items: center;
-  min-height: 64px;
-  padding: 10px 12px;
-  margin: 0 0 12px;
-  border-radius: 0 0 20px 20px;
-  background: linear-gradient(180deg, rgba(9,16,24,0.98), rgba(7,13,20,0.94));
-  border: 1px solid rgba(205,170,103,0.16);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.34);
-}
 
-#traderModal.trader-modal-round32 .trader-modal-nav-copy {
-  min-width: 0;
-  text-align: center;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-nav-copy strong {
-  font-size: clamp(1.05rem, 1.35vw, 1.55rem);
-  line-height: 1.05;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-nav-btn,
-#traderModal.trader-modal-round32 .trader-modal-close-btn {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  padding: 0;
-  border-radius: 14px;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-header {
-  grid-template-columns: minmax(280px, 430px) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-portrait-panel {
-  position: sticky;
-  top: 78px;
-  align-self: start;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-image-wrap {
-  max-height: min(58vh, 680px);
-  overflow: hidden;
-}
 
-#traderModal.trader-modal-round32 .trader-modal-image {
-  width: 100%;
-  height: 100%;
-  max-height: min(58vh, 680px);
-  object-fit: cover;
-}
 
-#traderModal.trader-modal-round32 .trader-economy-strip {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
 
-#traderModal.trader-modal-round32 .trader-detail-section,
-#traderModal.trader-modal-round32 .trader-economy-cell,
-#traderModal.trader-modal-round32 .trader-modal-reputation-card {
-  padding: 12px;
-  border-radius: 16px;
-}
 
 @media (max-width: 1500px) {
   #cabinet-masterroom .master-runtime-hero {
@@ -17456,12 +16691,8 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
   #cabinet-masterroom .master-runtime-combat-setup-round32 .master-runtime-combat-setup-grid {
     grid-template-columns: 1fr;
   }
-  #traderModal.trader-modal-round32 .trader-modal-header {
-    grid-template-columns: 1fr;
-  }
-  #traderModal.trader-modal-round32 .trader-modal-portrait-panel {
-    position: static;
-  }
+  
+  
 }
 
 /* =========================================================
@@ -17958,50 +17189,9 @@ body,
 }
 
 /* Старые дефолтные белые/серые кнопки больше не должны пробиваться в канон-зонах. */
-#cabinet-quests,
-#traderModal {
-  color: var(--rpg-text) !important;
-}
 
-#cabinet-quests button,
-#cabinet-quests input,
-#cabinet-quests select,
-#cabinet-quests textarea,
-#traderModal button,
-#traderModal input,
-#traderModal select,
-#traderModal textarea {
-  font-family: var(--rpg-font-ui) !important;
-}
 
-#cabinet-quests button,
-#traderModal button,
-#cabinet-quests .btn,
-#traderModal .btn {
-  color: var(--rpg-text) !important;
-  border-color: var(--rpg-border) !important;
-  background: linear-gradient(180deg, rgba(9, 21, 27, 0.96), rgba(4, 10, 14, 0.985)) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035) !important;
-}
 
-#cabinet-quests .btn-primary,
-#cabinet-quests .btn-create,
-#cabinet-quests .btn.active,
-#cabinet-quests .quest-ref-primary,
-#cabinet-quests .quest-ref-tab.active,
-#cabinet-quests .quest-ref-tab-v39.active,
-#traderModal .btn-primary,
-#traderModal .tab-btn.active,
-#traderModal .category-tab.active {
-  color: #f4ffff !important;
-  border-color: rgba(110, 218, 229, 0.62) !important;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(166, 243, 249, 0.18), transparent 48%),
-    linear-gradient(180deg, rgba(35, 113, 121, 0.96), rgba(9, 48, 55, 0.99)) !important;
-  box-shadow:
-    0 0 22px rgba(82, 193, 205, 0.15),
-    inset 0 1px 0 rgba(255,255,255,0.08) !important;
-}
 
 /* ---------------------------------------------------------------------------
    02. CABINET RAIL CANON — стрелка реально сжимает левый столбец
@@ -18314,458 +17504,59 @@ body,
 /* ---------------------------------------------------------------------------
    04. TRADER MODAL CANON — компактная модалка и видимый ассортимент
    --------------------------------------------------------------------------- */
-#traderModal {
-  --trader-left-col: clamp(300px, 27vw, 420px);
-  --trader-gap: 14px;
-  --trader-chrome-h: 58px;
-}
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  width: min(1540px, calc(100vw - 36px)) !important;
-  height: min(900px, calc(100dvh - 34px)) !important;
-  max-height: calc(100dvh - 34px) !important;
-  padding: 12px 14px !important;
-  overflow: hidden !important;
-  border-color: rgba(205, 169, 103, 0.24) !important;
-  background:
-    radial-gradient(circle at left top, rgba(101, 195, 207, 0.055), transparent 32%),
-    linear-gradient(145deg, rgba(5, 13, 18, 0.985), rgba(2, 7, 11, 0.995)) !important;
-}
 
-#traderModal .trader-modal-chrome,
-#traderModal .trader-modal-chrome-unified {
-  display: grid !important;
-  grid-template-columns: 46px minmax(0, 1fr) 46px 46px !important;
-  align-items: center !important;
-  gap: 8px !important;
-  min-height: var(--trader-chrome-h) !important;
-  padding: 6px 8px !important;
-  margin: 0 0 10px !important;
-  border-radius: 16px !important;
-  background: rgba(2, 8, 12, 0.74) !important;
-  border: 1px solid rgba(205, 169, 103, 0.18) !important;
-}
 
-#traderModal .trader-modal-nav-copy {
-  min-width: 0 !important;
-  text-align: center !important;
-}
 
-#traderModal .trader-modal-nav-copy strong {
-  display: block !important;
-  color: var(--rpg-gold-2) !important;
-  font-family: var(--rpg-font-title) !important;
-  font-size: clamp(1.15rem, 1.25vw, 1.55rem) !important;
-  line-height: 1.05 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
 
-#traderModal .trader-modal-nav-copy span,
-#traderModal .trader-modal-nav-copy small {
-  color: var(--rpg-muted) !important;
-  font-size: 0.78rem !important;
-}
 
-#traderModal .trader-modal-nav-btn,
-#traderModal .trader-modal-close-btn {
-  width: 46px !important;
-  height: 46px !important;
-  min-width: 46px !important;
-  min-height: 46px !important;
-  padding: 0 !important;
-  border-radius: 14px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 1.26rem !important;
-}
 
-#traderModal .modal-content > .close:not(.trader-modal-close-btn) {
-  display: none !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round45 {
-  height: calc(100% - var(--trader-chrome-h) - 12px) !important;
-  min-height: 0 !important;
-  display: grid !important;
-  grid-template-columns: var(--trader-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-gap) !important;
-  align-items: stretch !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  min-height: 0 !important;
-  max-height: 100% !important;
-  display: grid !important;
-  grid-template-rows: minmax(0, 1fr) auto minmax(86px, auto) !important;
-  gap: 9px !important;
-  overflow: hidden !important;
-  padding: 10px !important;
-  border-radius: 18px !important;
-  background: rgba(4, 10, 14, 0.88) !important;
-  border: 1px solid rgba(205, 169, 103, 0.19) !important;
-}
 
-#traderModal .trader-modal-image-wrap {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  border-radius: 14px !important;
-}
 
-#traderModal .trader-modal-image {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
 
-#traderModal .trader-modal-portrait-caption {
-  padding: 5px 8px !important;
-  color: var(--rpg-gold-2) !important;
-  font-family: var(--rpg-font-title) !important;
-  font-size: 0.9rem !important;
-  line-height: 1.35 !important;
-  text-align: center !important;
-}
 
-#traderModal .trader-modal-reputation-card {
-  padding: 10px !important;
-  border-radius: 13px !important;
-  background: rgba(8, 17, 22, 0.88) !important;
-  border: 1px solid rgba(205, 169, 103, 0.16) !important;
-}
 
-#traderModal .trader-modal-main-column {
-  grid-column: 2 !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-info {
-  min-width: 0 !important;
-  display: block !important;
-}
 
-#traderModal .trader-header-title-row {
-  min-width: 0 !important;
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  align-items: start !important;
-  gap: 10px !important;
-  margin-bottom: 6px !important;
-}
 
-#traderModal .trader-modal-info h2,
-#traderModal .trader-header-title-row h2 {
-  min-width: 0 !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  color: var(--rpg-gold-2) !important;
-  font-family: var(--rpg-font-title) !important;
-  font-size: clamp(1.95rem, 2.25vw, 2.75rem) !important;
-  line-height: 1 !important;
-  letter-spacing: -0.02em !important;
-  white-space: normal !important;
-  overflow-wrap: anywhere !important;
-  word-break: normal !important;
-}
 
-#traderModal .trader-modal-meta,
-#traderModal .trader-meta {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 6px !important;
-  min-width: 0 !important;
-}
 
-#traderModal .meta-item,
-#traderModal .trader-quality {
-  max-width: 100% !important;
-  min-height: 24px !important;
-  padding: 4px 8px !important;
-  border-radius: 999px !important;
-  color: rgba(239, 229, 206, 0.94) !important;
-  background: rgba(3, 9, 13, 0.82) !important;
-  border: 1px solid rgba(205,169,103,0.20) !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
 
-#traderModal .trader-economy-strip {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 7px !important;
-  min-width: 0 !important;
-  margin-top: 8px !important;
-}
 
-#traderModal .trader-economy-cell {
-  min-height: 52px !important;
-  padding: 8px 10px !important;
-  border-radius: 13px !important;
-  background: rgba(3, 9, 13, 0.78) !important;
-  border: 1px solid rgba(101,195,207,0.15) !important;
-}
 
-#traderModal .trader-economy-cell span {
-  color: var(--rpg-muted) !important;
-  font-size: 0.72rem !important;
-  letter-spacing: 0.04em !important;
-  text-transform: uppercase !important;
-}
 
-#traderModal .trader-economy-cell strong {
-  display: block !important;
-  margin-top: 3px !important;
-  color: var(--rpg-gold-2) !important;
-  font-size: 1rem !important;
-  line-height: 1.08 !important;
-}
 
 /* Нижний дубль экономики скрыт: верхняя economy-strip является источником правды. */
-#traderModal .trader-reputation-box {
-  margin: 0 !important;
-  padding: 0 !important;
-  min-height: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
 
-#traderModal .trader-reputation-summary-meta,
-#traderModal .trader-reputation-summary-grid,
-#traderModal .trader-reputation-note {
-  display: none !important;
-}
 
-#traderModal .trader-restock-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 7px !important;
-  margin: 8px 0 0 !important;
-  padding: 8px !important;
-  border-radius: 13px !important;
-  background: rgba(6, 15, 20, 0.70) !important;
-  border: 1px solid rgba(101,195,207,0.12) !important;
-}
 
-#traderModal .trader-restock-actions .btn,
-#traderModal .trader-modal-info .btn {
-  min-height: 32px !important;
-  padding: 6px 12px !important;
-  border-radius: 11px !important;
-  font-size: 0.86rem !important;
-}
 
-#traderModal .trader-detail-section,
-#traderModal .trader-modal-description-section {
-  margin: 0 !important;
-  padding: 8px 10px !important;
-  border-radius: 13px !important;
-  color: var(--rpg-text) !important;
-  background: rgba(5, 13, 18, 0.72) !important;
-  border: 1px solid rgba(101,195,207,0.13) !important;
-}
 
-#traderModal .trader-detail-section p {
-  margin: 0 !important;
-  line-height: 1.34 !important;
-}
 
-#traderModal .trader-modal-tabs-flow {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  flex: 1 1 auto !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 7px !important;
-  overflow: hidden !important;
-}
 
-#traderModal .tab-bar {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 7px !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 31px !important;
-  padding: 6px 10px !important;
-  border-radius: 11px !important;
-  font-size: 0.83rem !important;
-  color: rgba(239,229,206,0.92) !important;
-  background: rgba(3, 9, 13, 0.82) !important;
-  border: 1px solid rgba(205,169,103,0.20) !important;
-}
 
-#traderModal .tab-content,
-#traderModal .category-content.active,
-#traderModal .tab-content.active {
-  min-height: 0 !important;
-  overflow: hidden !important;
-  flex: 1 1 auto !important;
-}
 
-#traderModal #tab-buy.tab-content.active,
-#traderModal .category-content.active,
-#traderModal .collection-wrapper,
-#traderModal .collection-panel,
-#traderModal .collection-section {
-  min-height: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
 
-#traderModal .collection-wrapper {
-  flex: 1 1 auto !important;
-}
 
 /* Фильтры ассортимента — компактные, не забирают высоту таблицы. */
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar {
-  display: grid !important;
-  grid-template-columns: minmax(150px, 1fr) minmax(190px, 0.9fr) minmax(120px, 0.55fr) auto minmax(115px, 0.55fr) minmax(95px, 0.45fr) !important;
-  gap: 7px !important;
-  align-items: end !important;
-  padding: 8px !important;
-  margin: 0 0 7px !important;
-  border-radius: 13px !important;
-  background: rgba(8, 18, 23, 0.75) !important;
-  border: 1px solid rgba(101,195,207,0.12) !important;
-}
 
-#traderModal .collection-toolbar .filter-group,
-#traderModal .compact-collection-toolbar .filter-group {
-  min-width: 0 !important;
-}
 
-#traderModal .collection-toolbar label,
-#traderModal .compact-collection-toolbar label,
-#traderModal .filter-group label {
-  color: var(--rpg-text-2) !important;
-  font-size: 0.74rem !important;
-  line-height: 1.1 !important;
-  margin-bottom: 4px !important;
-}
 
-#traderModal .collection-toolbar input,
-#traderModal .collection-toolbar select,
-#traderModal .compact-collection-toolbar input,
-#traderModal .compact-collection-toolbar select {
-  min-height: 30px !important;
-  height: 30px !important;
-  padding: 4px 8px !important;
-  border-radius: 10px !important;
-  color: var(--rpg-text) !important;
-  background: rgba(2, 8, 12, 0.9) !important;
-  border: 1px solid rgba(101,195,207,0.16) !important;
-}
 
-#traderModal .price-range {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 6px !important;
-}
 
-#traderModal .compact-inline-checkbox {
-  min-height: 30px !important;
-  align-self: end !important;
-  white-space: nowrap !important;
-}
 
 /* Таблица ассортимента: больше видимых строк, внутренний скролл, sticky header. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container {
-  flex: 1 1 auto !important;
-  min-height: 260px !important;
-  max-height: none !important;
-  overflow: auto !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(101,195,207,0.12) !important;
-  background: rgba(2, 8, 12, 0.58) !important;
-}
 
-#traderModal .items-table {
-  width: 100% !important;
-  table-layout: fixed !important;
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  margin-top: 0 !important;
-  font-size: 0.75rem !important;
-}
 
-#traderModal .items-table thead th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 2 !important;
-  background: rgba(9, 20, 26, 0.98) !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  padding: 5px 7px !important;
-  line-height: 1.18 !important;
-  vertical-align: middle !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 22% !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 11% !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 10% !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 9% !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 7% !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 19% !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 6% !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 16% !important; }
 
-#traderModal .item-name {
-  font-size: 0.77rem !important;
-  line-height: 1.16 !important;
-  overflow-wrap: anywhere !important;
-}
 
-#traderModal .item-actions-stack {
-  display: grid !important;
-  gap: 4px !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  min-height: 25px !important;
-  padding: 4px 7px !important;
-  border-radius: 9px !important;
-  font-size: 0.71rem !important;
-}
 
-#traderModal .qty-input,
-#traderModal .quantity-input {
-  width: 50px !important;
-  min-height: 27px !important;
-  padding: 4px 6px !important;
-}
 
 /* ---------------------------------------------------------------------------
    05. RESPONSIVE GUARD — ноуты / планшеты / мобилка
@@ -18801,24 +17592,10 @@ body,
 }
 
 @media (max-width: 1100px) {
-  #traderModal .trader-modal-header,
-  #traderModal .trader-modal-header-round45 {
-    grid-template-columns: 1fr !important;
-    overflow: auto !important;
-  }
-
-  #traderModal .trader-modal-portrait-panel {
-    max-height: none !important;
-  }
-
-  #traderModal .trader-modal-main-column {
-    overflow: visible !important;
-  }
-
-  #traderModal .collection-items-container,
-  #traderModal .items-table-container {
-    max-height: 360px !important;
-  }
+  
+  
+  
+  
 }
 
 @media (max-width: 760px) {
@@ -18826,37 +17603,11 @@ body,
     --rpg-body-size: 14px;
   }
 
-  #traderModal {
-    padding: 8px !important;
-  }
-
-  #traderModal .modal-content,
-  #traderModal .modal-content.modal-large {
-    width: calc(100vw - 16px) !important;
-    height: calc(100dvh - 16px) !important;
-    max-height: calc(100dvh - 16px) !important;
-    padding: 10px !important;
-  }
-
-  #traderModal .trader-modal-chrome,
-  #traderModal .trader-modal-chrome-unified {
-    grid-template-columns: 40px minmax(0, 1fr) 40px 40px !important;
-    min-height: 52px !important;
-    gap: 7px !important;
-  }
-
-  #traderModal .trader-modal-nav-btn,
-  #traderModal .trader-modal-close-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-  }
-
-  #traderModal .trader-modal-nav-copy small {
-    display: none !important;
-  }
-
+  
+  
+  
+  
+  
   #cabinet-quests .quest-ref-hero-v39,
   #cabinet-quests .quest-ref-toolbar-v39,
   #cabinet-quests .quest-ref-card-v39,
@@ -19155,110 +17906,20 @@ body,
   transform: translateY(-1px) !important;
 }
 
-body.trader-modal-open .traders-page-scroll-controls {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
 
-#traderModal .trader-modal-scroll-controls {
-  position: fixed !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: 18px !important;
-  transform: translate(-50%, 12px) scale(0.96) !important;
-  z-index: 3200 !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: auto !important;
-  max-width: calc(100vw - 32px);
-  padding: 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(126, 205, 220, 0.14);
-  background: rgba(4, 9, 15, 0.36);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(12px);
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease,
-    background 180ms ease,
-    border-color 180ms ease;
-}
 
-#traderModal .trader-modal-scroll-controls[hidden] {
-  display: none !important;
-}
 
-#traderModal .trader-modal-scroll-controls.is-visible,
-#traderModal .trader-modal-scroll-controls.is-idle-visible,
-#traderModal .trader-modal-scroll-controls:hover,
-#traderModal .trader-modal-scroll-controls:focus-within {
-  opacity: 0.46;
-  pointer-events: auto;
-  transform: translate(-50%, 0) scale(1) !important;
-}
 
-#traderModal .trader-modal-scroll-controls:hover,
-#traderModal .trader-modal-scroll-controls:focus-within {
-  opacity: 0.82;
-  border-color: rgba(126, 205, 220, 0.34);
-  background: rgba(4, 10, 16, 0.60);
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(126, 205, 220, 0.16) !important;
-  background:
-    radial-gradient(circle at top left, rgba(126, 205, 220, 0.14), transparent 38%),
-    linear-gradient(180deg, rgba(8, 17, 27, 0.56), rgba(4, 9, 15, 0.74)) !important;
-  color: rgba(238, 248, 249, 0.66) !important;
-  font-size: 14px !important;
-  line-height: 1 !important;
-  box-shadow: none !important;
-  cursor: pointer;
-}
 
-#traderModal .trader-modal-scroll-controls button:hover,
-#traderModal .trader-modal-scroll-controls button:focus-visible {
-  color: rgba(255, 255, 255, 0.98) !important;
-  border-color: rgba(126, 205, 220, 0.42) !important;
-  transform: translateY(-1px) !important;
-}
 
 @media (max-width: 720px) {
-  .traders-page-scroll-controls,
-  #traderModal .trader-modal-scroll-controls {
-    bottom: 12px !important;
-  }
-
-  .traders-page-scroll-controls button,
-  #traderModal .trader-modal-scroll-controls button {
-    width: 30px !important;
-    height: 30px !important;
-    min-width: 30px !important;
-    min-height: 30px !important;
-    font-size: 13px !important;
-  }
+  
+  
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .traders-page-scroll-controls,
-  #traderModal .trader-modal-scroll-controls,
-  .traders-page-scroll-controls button,
-  #traderModal .trader-modal-scroll-controls button {
-    transition: none !important;
-  }
+  
 }
 
 /* =========================================================
@@ -19272,372 +17933,56 @@ body.trader-modal-open .traders-page-scroll-controls {
    - modal arrows must float over the modal, not inside the table.
    ========================================================= */
 
-body.trader-modal-open {
-  overflow: hidden !important;
-}
 
-body.trader-modal-open #traderModal {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: clamp(10px, 1.4vw, 22px) !important;
-  overflow: hidden !important;
-}
 
-#traderModal.trader-modal-round82 .modal-content,
-#traderModal.trader-modal-round82 .modal-content.modal-large {
-  width: min(1560px, calc(100vw - 32px)) !important;
-  height: min(910px, calc(100dvh - 30px)) !important;
-  max-height: calc(100dvh - 30px) !important;
-  margin: 0 auto !important;
-  padding: clamp(12px, 1.1vw, 18px) !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  position: relative !important;
-}
 
-#traderModal.trader-modal-round82 #modalContent,
-#traderModal.trader-modal-round82 #traderModalContent {
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 0 8px 76px 0 !important;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(126, 205, 220, 0.56) rgba(4, 9, 14, 0.72);
-}
 
-#traderModal.trader-modal-round82 #modalContent::-webkit-scrollbar,
-#traderModal.trader-modal-round82 #traderModalContent::-webkit-scrollbar {
-  width: 10px;
-}
 
-#traderModal.trader-modal-round82 #modalContent::-webkit-scrollbar-track,
-#traderModal.trader-modal-round82 #traderModalContent::-webkit-scrollbar-track {
-  background: rgba(4, 9, 14, 0.72);
-  border-radius: 999px;
-}
 
-#traderModal.trader-modal-round82 #modalContent::-webkit-scrollbar-thumb,
-#traderModal.trader-modal-round82 #traderModalContent::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(126, 205, 220, 0.64), rgba(54, 116, 128, 0.54));
-  border-radius: 999px;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-chrome,
-#traderModal.trader-modal-round82 .trader-modal-chrome-unified {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 24 !important;
-  min-height: 0 !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  pointer-events: none !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-nav-left,
-#traderModal.trader-modal-round82 .trader-modal-nav-right {
-  pointer-events: auto !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-nav-left {
-  margin: 4px 0 0 4px !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-nav-right {
-  margin: 4px 12px 0 0 !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-nav-btn,
-#traderModal.trader-modal-round82 .trader-modal-close-btn {
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
-  border-radius: 13px !important;
-  background: rgba(3, 9, 14, 0.82) !important;
-  border: 1px solid rgba(205, 169, 103, 0.22) !important;
-  color: rgba(241, 232, 213, 0.96) !important;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28) !important;
-  backdrop-filter: blur(10px);
-}
 
-#traderModal.trader-modal-round82 .trader-modal-close-btn {
-  color: #fff1d3 !important;
-  border-color: rgba(226, 92, 92, 0.28) !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-layout,
-#traderModal.trader-modal-round82 .trader-modal-layout-round45 {
-  min-height: 100% !important;
-  height: auto !important;
-  display: block !important;
-  padding-top: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-header,
-#traderModal.trader-modal-round82 .trader-modal-header-round64,
-#traderModal.trader-modal-round82 .trader-modal-header-round45 {
-  height: auto !important;
-  min-height: 0 !important;
-  display: grid !important;
-  grid-template-columns: var(--trader-left-col, clamp(300px, 27vw, 420px)) minmax(0, 1fr) !important;
-  grid-template-rows: auto auto !important;
-  gap: 14px 16px !important;
-  align-items: start !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-profile-row {
-  display: contents !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-portrait-panel {
-  grid-column: 1 !important;
-  grid-row: 1 / span 2 !important;
-  position: sticky !important;
-  top: 6px !important;
-  min-height: 0 !important;
-  max-height: calc(100dvh - 86px) !important;
-  overflow: hidden !important;
-  padding: 10px !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-main-column {
-  grid-column: 2 !important;
-  grid-row: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-workline {
-  grid-column: 2 !important;
-  grid-row: 2 !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-round82 .trader-modal-tabs-flow {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-round82 .tab-content,
-#traderModal.trader-modal-round82 .category-content.active,
-#traderModal.trader-modal-round82 .tab-content.active,
-#traderModal.trader-modal-round82 #tab-buy.tab-content.active,
-#traderModal.trader-modal-round82 .collection-wrapper,
-#traderModal.trader-modal-round82 .collection-panel,
-#traderModal.trader-modal-round82 .collection-section {
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-round82 .trader-filter-drawer {
-  margin: 0 0 10px !important;
-  border-radius: 16px !important;
-  background: rgba(8, 18, 24, 0.72) !important;
-  border: 1px solid rgba(101, 195, 207, 0.16) !important;
-}
 
-#traderModal.trader-modal-round82 .trader-filter-drawer > summary {
-  min-height: 34px !important;
-  padding: 8px 10px !important;
-  color: rgba(241, 232, 213, 0.96) !important;
-  cursor: pointer;
-}
 
-#traderModal.trader-modal-round82 .collection-toolbar,
-#traderModal.trader-modal-round82 .compact-collection-toolbar {
-  grid-template-columns: minmax(190px, 1.1fr) minmax(220px, 1fr) minmax(150px, 0.7fr) auto minmax(150px, 0.7fr) minmax(125px, 0.55fr) !important;
-  gap: 9px !important;
-  padding: 10px !important;
-  margin: 0 !important;
-}
 
-#traderModal.trader-modal-round82 .collection-toolbar input,
-#traderModal.trader-modal-round82 .collection-toolbar select,
-#traderModal.trader-modal-round82 .compact-collection-toolbar input,
-#traderModal.trader-modal-round82 .compact-collection-toolbar select {
-  min-height: 36px !important;
-  height: 36px !important;
-  font-size: 0.92rem !important;
-}
 
-#traderModal.trader-modal-round82 .collection-items-container,
-#traderModal.trader-modal-round82 .items-table-container {
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(101, 195, 207, 0.14) !important;
-  background: rgba(3, 9, 14, 0.64) !important;
-}
 
-#traderModal.trader-modal-round82 .items-table {
-  width: 100% !important;
-  table-layout: fixed !important;
-  font-size: 0.88rem !important;
-}
 
-#traderModal.trader-modal-round82 .items-table th,
-#traderModal.trader-modal-round82 .items-table td {
-  padding: 9px 10px !important;
-  line-height: 1.32 !important;
-  vertical-align: middle !important;
-}
 
-#traderModal.trader-modal-round82 .items-table th:nth-child(1),
-#traderModal.trader-modal-round82 .items-table td:nth-child(1) { width: 20% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(2),
-#traderModal.trader-modal-round82 .items-table td:nth-child(2) { width: 10% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(3),
-#traderModal.trader-modal-round82 .items-table td:nth-child(3) { width: 10% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(4),
-#traderModal.trader-modal-round82 .items-table td:nth-child(4) { width: 9% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(5),
-#traderModal.trader-modal-round82 .items-table td:nth-child(5) { width: 6% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(6),
-#traderModal.trader-modal-round82 .items-table td:nth-child(6) { width: 22% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(7),
-#traderModal.trader-modal-round82 .items-table td:nth-child(7) { width: 5% !important; }
-#traderModal.trader-modal-round82 .items-table th:nth-child(8),
-#traderModal.trader-modal-round82 .items-table td:nth-child(8) { width: 18% !important; }
 
-#traderModal.trader-modal-round82 .item-title-v48,
-#traderModal.trader-modal-round82 .item-title-round65,
-#traderModal.trader-modal-round82 .item-main-cell-v48,
-#traderModal.trader-modal-round82 .item-main-cell-round65,
-#traderModal.trader-modal-round82 .item-name {
-  font-size: 0.9rem !important;
-  line-height: 1.24 !important;
-}
 
-#traderModal.trader-modal-round82 .item-category-v48,
-#traderModal.trader-modal-round82 .item-category-round65 {
-  font-size: 0.8rem !important;
-  line-height: 1.18 !important;
-}
 
-#traderModal.trader-modal-round82 .item-actions-stack {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(86px, 1fr)) !important;
-  gap: 7px !important;
-  align-items: stretch !important;
-}
 
-#traderModal.trader-modal-round82 .item-actions-stack .btn,
-#traderModal.trader-modal-round82 .items-table .btn {
-  min-height: 33px !important;
-  padding: 6px 9px !important;
-  border-radius: 999px !important;
-  font-size: 0.82rem !important;
-  line-height: 1.1 !important;
-  white-space: nowrap !important;
-}
 
-#traderModal.trader-modal-round82 .qty-input,
-#traderModal.trader-modal-round82 .quantity-input {
-  width: 58px !important;
-  min-height: 34px !important;
-  font-size: 0.9rem !important;
-}
 
-#traderModal.trader-modal-round82 > .trader-modal-scroll-controls,
-#traderModal.trader-modal-round82 .trader-modal-scroll-controls {
-  position: fixed !important;
-  left: 50% !important;
-  bottom: 22px !important;
-  transform: translate(-50%, 12px) scale(0.96) !important;
-  z-index: 5000 !important;
-}
 
-#traderModal.trader-modal-round82 > .trader-modal-scroll-controls.is-visible,
-#traderModal.trader-modal-round82 > .trader-modal-scroll-controls.is-idle-visible,
-#traderModal.trader-modal-round82 > .trader-modal-scroll-controls:hover,
-#traderModal.trader-modal-round82 .trader-modal-scroll-controls.is-visible,
-#traderModal.trader-modal-round82 .trader-modal-scroll-controls.is-idle-visible,
-#traderModal.trader-modal-round82 .trader-modal-scroll-controls:hover {
-  opacity: 0.58 !important;
-  pointer-events: auto !important;
-  transform: translate(-50%, 0) scale(1) !important;
-}
 
-#traderModal.trader-modal-round82 > .trader-modal-scroll-controls:hover,
-#traderModal.trader-modal-round82 .trader-modal-scroll-controls:hover {
-  opacity: 0.9 !important;
-}
 
 @media (max-width: 1180px) {
-  #traderModal.trader-modal-round82 .trader-modal-header,
-  #traderModal.trader-modal-round82 .trader-modal-header-round64,
-  #traderModal.trader-modal-round82 .trader-modal-header-round45 {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal.trader-modal-round82 .trader-modal-profile-row {
-    display: grid !important;
-    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr) !important;
-    gap: 12px !important;
-  }
-
-  #traderModal.trader-modal-round82 .trader-modal-portrait-panel,
-  #traderModal.trader-modal-round82 .trader-modal-main-column,
-  #traderModal.trader-modal-round82 .trader-modal-workline {
-    grid-column: 1 !important;
-    grid-row: auto !important;
-    position: static !important;
-    max-height: none !important;
-  }
-
-  #traderModal.trader-modal-round82 .trader-modal-main-column {
-    grid-column: 2 !important;
-  }
-
-  #traderModal.trader-modal-round82 .trader-modal-workline {
-    grid-column: 1 / -1 !important;
-  }
-
-  #traderModal.trader-modal-round82 .collection-toolbar,
-  #traderModal.trader-modal-round82 .compact-collection-toolbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+  
+  
+  
+  
+  
+  
 }
 
 @media (max-width: 760px) {
-  #traderModal.trader-modal-round82 .trader-modal-profile-row,
-  #traderModal.trader-modal-round82 .collection-toolbar,
-  #traderModal.trader-modal-round82 .compact-collection-toolbar {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal.trader-modal-round82 .trader-modal-main-column {
-    grid-column: 1 !important;
-  }
-
-  #traderModal.trader-modal-round82 .items-table {
-    min-width: 980px !important;
-  }
+  
+  
+  
 }
 /* ============================================================
    TRADER MODAL STABILIZATION — round83
@@ -19649,488 +17994,55 @@ body.trader-modal-open #traderModal {
    - table/buttons returned to readable size
    ============================================================ */
 
-body.trader-modal-open {
-  overflow: hidden !important;
-}
 
-#traderModal {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 1000 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  background: rgba(1, 8, 11, 0.78) !important;
-  backdrop-filter: blur(7px) saturate(110%) !important;
-}
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  position: relative !important;
-  width: min(92vw, 1540px) !important;
-  max-width: min(92vw, 1540px) !important;
-  height: auto !important;
-  max-height: 92vh !important;
-  margin: 3vh auto !important;
-  padding: 16px 18px 18px !important;
-  overflow: visible !important;
-  border: 1px solid rgba(206, 158, 88, 0.36) !important;
-  border-radius: 22px !important;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(39, 128, 136, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(9, 20, 24, 0.98), rgba(3, 10, 13, 0.98)) !important;
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.66), inset 0 0 0 1px rgba(136, 211, 218, 0.05) !important;
-}
 
-#traderModal .modal-content > .close {
-  display: none !important;
-}
 
-#traderModal #modalContent,
-#traderModal #traderModalContent {
-  position: relative !important;
-  display: block !important;
-  width: 100% !important;
-  max-width: none !important;
-  height: auto !important;
-  max-height: calc(92vh - 34px) !important;
-  min-height: 0 !important;
-  padding: 44px 8px 28px !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-color: rgba(104, 215, 223, 0.68) rgba(255, 255, 255, 0.05) !important;
-  scrollbar-width: thin !important;
-}
 
-#traderModal #modalContent::-webkit-scrollbar,
-#traderModal #traderModalContent::-webkit-scrollbar {
-  width: 8px !important;
-}
 
-#traderModal #modalContent::-webkit-scrollbar-track,
-#traderModal #traderModalContent::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-radius: 999px !important;
-}
 
-#traderModal #modalContent::-webkit-scrollbar-thumb,
-#traderModal #traderModalContent::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(121, 233, 241, 0.75), rgba(54, 128, 142, 0.75)) !important;
-  border-radius: 999px !important;
-}
 
-#traderModal .trader-modal-chrome,
-#traderModal .trader-modal-chrome-unified {
-  position: absolute !important;
-  top: 8px !important;
-  left: 10px !important;
-  right: 10px !important;
-  z-index: 35 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  pointer-events: none !important;
-}
 
-#traderModal .trader-modal-nav-left,
-#traderModal .trader-modal-nav-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  width: auto !important;
-  min-width: 0 !important;
-  pointer-events: auto !important;
-}
 
-#traderModal .trader-modal-nav-btn,
-#traderModal .trader-modal-close-btn {
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
-  display: inline-grid !important;
-  place-items: center !important;
-  padding: 0 !important;
-  border: 1px solid rgba(209, 164, 95, 0.42) !important;
-  border-radius: 13px !important;
-  color: #f3dfb8 !important;
-  background: rgba(3, 14, 18, 0.88) !important;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(119, 226, 232, 0.04) !important;
-  font-size: 1.35rem !important;
-  font-weight: 900 !important;
-  line-height: 1 !important;
-  cursor: pointer !important;
-}
 
-#traderModal .trader-modal-nav-btn:hover,
-#traderModal .trader-modal-close-btn:hover {
-  border-color: rgba(119, 226, 232, 0.82) !important;
-  color: #efffff !important;
-  background: rgba(18, 78, 88, 0.92) !important;
-  transform: translateY(-1px) !important;
-}
 
-#traderModal .trader-modal-nav-btn:disabled {
-  opacity: 0.38 !important;
-  cursor: default !important;
-}
 
-#traderModal .trader-modal-close-btn {
-  color: #ffe3e3 !important;
-}
 
-#traderModal .trader-modal-layout,
-#traderModal .trader-modal-layout-round45 {
-  display: block !important;
-  width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round64,
-#traderModal .trader-modal-header-round45 {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 18px !important;
-  width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 0 !important;
-  overflow: visible !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
 
-#traderModal .trader-modal-profile-row {
-  display: grid !important;
-  grid-template-columns: minmax(270px, 370px) minmax(0, 1fr) !important;
-  gap: clamp(16px, 2vw, 28px) !important;
-  align-items: start !important;
-  width: 100% !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  position: sticky !important;
-  top: 8px !important;
-  align-self: start !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-  padding: 10px !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(206, 158, 88, 0.28) !important;
-  background: rgba(3, 12, 15, 0.78) !important;
-}
 
-#traderModal .trader-modal-image-wrap {
-  border-radius: 14px !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-image {
-  width: 100% !important;
-  height: clamp(330px, 52vh, 560px) !important;
-  object-fit: cover !important;
-  object-position: center !important;
-}
 
-#traderModal .trader-modal-main-column,
-#traderModal .trader-modal-info,
-#traderModal .trader-modal-workline,
-#traderModal .trader-modal-tabs-flow {
-  display: block !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-header-title-row h2 {
-  margin: 0 0 8px !important;
-  font-size: clamp(2rem, 3vw, 3.25rem) !important;
-  line-height: 1.05 !important;
-}
 
-#traderModal .trader-modal-summary-grid {
-  grid-template-columns: repeat(4, minmax(140px, 1fr)) !important;
-  gap: 10px !important;
-}
 
-#traderModal .trader-restock-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-  margin: 12px 0 !important;
-}
 
-#traderModal .trader-restock-actions .btn {
-  min-height: 42px !important;
-  padding-inline: 18px !important;
-  font-size: 0.96rem !important;
-}
 
-#traderModal .tab-bar,
-#traderModal .category-tabs,
-#traderModal .trader-modal-tabs-flow > .tab-bar {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  margin: 0 0 10px !important;
-  overflow: visible !important;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 38px !important;
-  padding: 0 16px !important;
-  font-size: 0.94rem !important;
-  border-radius: 11px !important;
-}
 
-#traderModal .tab-content,
-#traderModal .tab-content.active,
-#traderModal .category-content,
-#traderModal .category-content.active,
-#traderModal #tab-buy.tab-content.active,
-#traderModal .collection-wrapper,
-#traderModal .collection-panel,
-#traderModal .collection-section {
-  display: block !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-}
 
-#traderModal .tab-content:not(.active),
-#traderModal .category-content:not(.active),
-#traderModal .category-content[hidden] {
-  display: none !important;
-}
 
-#traderModal .trader-filter-drawer {
-  margin: 10px 0 10px !important;
-  border-radius: 16px !important;
-  border: 1px solid rgba(117, 226, 232, 0.16) !important;
-  background: rgba(9, 23, 28, 0.82) !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-filter-drawer > summary {
-  min-height: 36px !important;
-  padding: 8px 12px !important;
-  cursor: pointer !important;
-  font-size: 0.94rem !important;
-}
 
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar {
-  display: grid !important;
-  grid-template-columns: minmax(180px, 1.4fr) minmax(160px, 1.1fr) minmax(135px, 0.8fr) minmax(110px, 0.62fr) minmax(145px, 0.9fr) minmax(130px, 0.82fr) !important;
-  gap: 10px !important;
-  align-items: end !important;
-  padding: 12px !important;
-  margin: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .collection-toolbar input,
-#traderModal .collection-toolbar select,
-#traderModal .compact-collection-toolbar input,
-#traderModal .compact-collection-toolbar select {
-  min-height: 40px !important;
-  font-size: 0.95rem !important;
-  border-radius: 12px !important;
-}
 
-#traderModal .inline-checkbox,
-#traderModal .compact-inline-checkbox {
-  min-height: 40px !important;
-  align-items: center !important;
-}
 
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table {
-  width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow-x: auto !important;
-  overflow-y: visible !important;
-  border-radius: 17px !important;
-}
 
-#traderModal .items-table {
-  width: 100% !important;
-  min-width: 1060px !important;
-  table-layout: fixed !important;
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  font-size: 0.91rem !important;
-  line-height: 1.35 !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  padding: 12px 10px !important;
-  vertical-align: middle !important;
-  font-size: 0.91rem !important;
-}
 
-#traderModal .items-table th {
-  font-size: 0.94rem !important;
-  font-weight: 850 !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 19% !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 10% !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 10% !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 9% !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 6% !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 23% !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 6% !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 17% !important; }
 
-#traderModal .item-title-v48,
-#traderModal .item-title-round65,
-#traderModal .item-main-cell-v48,
-#traderModal .item-main-cell-round65,
-#traderModal .item-name {
-  font-size: 0.95rem !important;
-  line-height: 1.2 !important;
-}
 
-#traderModal .item-category-v48,
-#traderModal .item-category-round65 {
-  font-size: 0.82rem !important;
-  opacity: 0.95 !important;
-}
 
-#traderModal .item-actions-stack {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(92px, 1fr)) !important;
-  gap: 6px !important;
-  align-items: stretch !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  min-width: 0 !important;
-  min-height: 32px !important;
-  height: auto !important;
-  padding: 6px 9px !important;
-  border-radius: 999px !important;
-  font-size: 0.82rem !important;
-  font-weight: 850 !important;
-  line-height: 1.08 !important;
-  white-space: nowrap !important;
-}
 
-#traderModal .qty-input,
-#traderModal .quantity-input {
-  width: 52px !important;
-  min-height: 34px !important;
-  font-size: 0.93rem !important;
-}
 
-#traderModal > .trader-modal-scroll-controls,
-#traderModal .trader-modal-scroll-controls {
-  position: fixed !important;
-  left: 50% !important;
-  bottom: max(18px, env(safe-area-inset-bottom)) !important;
-  top: auto !important;
-  right: auto !important;
-  z-index: 1200 !important;
-  display: flex !important;
-  gap: 8px !important;
-  padding: 6px !important;
-  border: 1px solid rgba(117, 226, 232, 0.18) !important;
-  border-radius: 999px !important;
-  background: rgba(3, 13, 17, 0.62) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38) !important;
-  backdrop-filter: blur(10px) !important;
-  transform: translateX(-50%) translateY(10px) !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease !important;
-}
 
-#traderModal > .trader-modal-scroll-controls.is-visible,
-#traderModal > .trader-modal-scroll-controls.is-idle-visible,
-#traderModal > .trader-modal-scroll-controls:hover,
-#traderModal > .trader-modal-scroll-controls:focus-within,
-#traderModal .trader-modal-scroll-controls.is-visible,
-#traderModal .trader-modal-scroll-controls.is-idle-visible,
-#traderModal .trader-modal-scroll-controls:hover,
-#traderModal .trader-modal-scroll-controls:focus-within {
-  opacity: 0.72 !important;
-  transform: translateX(-50%) translateY(0) !important;
-  pointer-events: auto !important;
-}
 
-#traderModal > .trader-modal-scroll-controls:hover,
-#traderModal > .trader-modal-scroll-controls:focus-within,
-#traderModal .trader-modal-scroll-controls:hover,
-#traderModal .trader-modal-scroll-controls:focus-within {
-  opacity: 1 !important;
-  background: rgba(7, 31, 38, 0.88) !important;
-}
 
-#traderModal .trader-modal-scroll-controls[hidden] {
-  display: none !important;
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  display: grid !important;
-  place-items: center !important;
-  border: 1px solid rgba(117, 226, 232, 0.22) !important;
-  border-radius: 50% !important;
-  color: #dafcff !important;
-  background: rgba(7, 26, 31, 0.86) !important;
-  font-size: 1.05rem !important;
-  font-weight: 900 !important;
-  cursor: pointer !important;
-}
 
-#traderModal .trader-modal-scroll-controls button:hover,
-#traderModal .trader-modal-scroll-controls button:focus-visible {
-  color: #ffffff !important;
-  border-color: rgba(126, 235, 241, 0.86) !important;
-  background: rgba(25, 102, 112, 0.95) !important;
-}
 
 .traders-page-scroll-controls {
   position: fixed !important;
@@ -20180,71 +18092,20 @@ body.trader-modal-open {
 }
 
 @media (max-width: 1180px) {
-  #traderModal .modal-content,
-  #traderModal .modal-content.modal-large {
-    width: 96vw !important;
-    max-width: 96vw !important;
-    margin: 2vh auto !important;
-  }
-
-  #traderModal #modalContent,
-  #traderModal #traderModalContent {
-    max-height: 94vh !important;
-    padding-top: 48px !important;
-  }
-
-  #traderModal .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal .trader-modal-portrait-panel {
-    position: relative !important;
-    top: auto !important;
-    max-width: 520px !important;
-  }
-
-  #traderModal .trader-modal-image {
-    height: clamp(280px, 42vh, 430px) !important;
-  }
-
-  #traderModal .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(140px, 1fr)) !important;
-  }
-
-  #traderModal .collection-toolbar,
-  #traderModal .compact-collection-toolbar {
-    grid-template-columns: repeat(2, minmax(160px, 1fr)) !important;
-  }
+  
+  
+  
+  
+  
+  
+  
 }
 
 @media (max-width: 720px) {
-  #traderModal .modal-content,
-  #traderModal .modal-content.modal-large {
-    width: 98vw !important;
-    max-width: 98vw !important;
-    margin: 1vh auto !important;
-    padding: 10px !important;
-    border-radius: 16px !important;
-  }
-
-  #traderModal #modalContent,
-  #traderModal #traderModalContent {
-    max-height: 96vh !important;
-    padding: 48px 2px 72px !important;
-  }
-
-  #traderModal .trader-modal-nav-btn,
-  #traderModal .trader-modal-close-btn {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    min-height: 38px !important;
-  }
-
-  #traderModal .collection-toolbar,
-  #traderModal .compact-collection-toolbar {
-    grid-template-columns: 1fr !important;
-  }
+  
+  
+  
+  
 }
 
 /* =========================================================
@@ -20254,263 +18115,48 @@ body.trader-modal-open {
    Goals: slightly smaller 100% scale, stable columns, visible horizontal table scroll.
    ========================================================= */
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  width: min(91vw, 1500px) !important;
-  max-width: min(91vw, 1500px) !important;
-  margin: 2.5vh auto !important;
-  padding: 14px 16px 16px !important;
-}
 
-#traderModal #modalContent,
-#traderModal #traderModalContent {
-  max-height: calc(92vh - 32px) !important;
-  padding: 42px 8px 30px !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
 
-#traderModal .trader-modal-profile-row {
-  grid-template-columns: minmax(250px, 340px) minmax(0, 1fr) !important;
-  gap: clamp(14px, 1.55vw, 22px) !important;
-}
 
-#traderModal .trader-modal-image {
-  height: clamp(300px, 47vh, 500px) !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  padding: 9px !important;
-}
 
-#traderModal .trader-modal-portrait-caption {
-  font-size: 0.86rem !important;
-  line-height: 1.3 !important;
-}
 
-#traderModal .trader-modal-reputation-card {
-  padding: 9px !important;
-}
 
-#traderModal .trader-header-title-row h2 {
-  font-size: clamp(1.76rem, 2.25vw, 2.72rem) !important;
-  line-height: 1.04 !important;
-}
 
-#traderModal .trader-modal-meta,
-#traderModal .trader-meta {
-  gap: 6px !important;
-}
 
-#traderModal .meta-item,
-#traderModal .trader-quality {
-  min-height: 23px !important;
-  padding: 3px 8px !important;
-  font-size: 0.82rem !important;
-}
 
-#traderModal .trader-modal-summary-grid {
-  grid-template-columns: repeat(4, minmax(118px, 1fr)) !important;
-  gap: 8px !important;
-}
 
-#traderModal .trader-summary-card {
-  min-height: 62px !important;
-  padding: 9px 10px !important;
-  border-radius: 12px !important;
-}
 
-#traderModal .trader-summary-card span {
-  font-size: 0.74rem !important;
-}
 
-#traderModal .trader-summary-card strong {
-  font-size: 0.98rem !important;
-  line-height: 1.1 !important;
-}
 
-#traderModal .trader-summary-card small {
-  font-size: 0.74rem !important;
-}
 
-#traderModal .trader-restock-actions {
-  gap: 8px !important;
-  margin: 10px 0 !important;
-}
 
-#traderModal .trader-restock-actions .btn {
-  min-height: 36px !important;
-  padding-inline: 14px !important;
-  font-size: 0.88rem !important;
-}
 
-#traderModal .trader-detail-section,
-#traderModal .trader-modal-description-section {
-  padding: 9px 11px !important;
-}
 
-#traderModal .tab-bar,
-#traderModal .category-tabs,
-#traderModal .trader-modal-tabs-flow > .tab-bar {
-  gap: 7px !important;
-  margin-bottom: 8px !important;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 34px !important;
-  padding: 0 13px !important;
-  font-size: 0.87rem !important;
-}
 
-#traderModal .trader-filter-drawer {
-  margin: 8px 0 8px !important;
-}
 
-#traderModal .trader-filter-drawer > summary {
-  min-height: 33px !important;
-  padding: 7px 11px !important;
-  font-size: 0.88rem !important;
-}
 
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar {
-  grid-template-columns: minmax(170px, 1.32fr) minmax(150px, 1fr) minmax(125px, 0.76fr) minmax(105px, 0.58fr) minmax(130px, 0.82fr) minmax(118px, 0.72fr) !important;
-  gap: 8px !important;
-  padding: 9px !important;
-}
 
-#traderModal .collection-toolbar label,
-#traderModal .compact-collection-toolbar label,
-#traderModal .filter-group label {
-  font-size: 0.72rem !important;
-  margin-bottom: 3px !important;
-}
 
-#traderModal .collection-toolbar input,
-#traderModal .collection-toolbar select,
-#traderModal .compact-collection-toolbar input,
-#traderModal .compact-collection-toolbar select,
-#traderModal .inline-checkbox,
-#traderModal .compact-inline-checkbox {
-  min-height: 34px !important;
-  height: 34px !important;
-  font-size: 0.86rem !important;
-  border-radius: 11px !important;
-}
 
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table {
-  overflow-x: scroll !important;
-  overflow-y: visible !important;
-  scrollbar-gutter: stable !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(104, 215, 223, 0.70) rgba(6, 12, 18, 0.72) !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar,
-#traderModal .items-table-container::-webkit-scrollbar,
-#traderModal .compact-items-table::-webkit-scrollbar {
-  width: 10px !important;
-  height: 10px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar-track,
-#traderModal .items-table-container::-webkit-scrollbar-track,
-#traderModal .compact-items-table::-webkit-scrollbar-track {
-  background: rgba(6, 12, 18, 0.74) !important;
-  border-radius: 999px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar-thumb,
-#traderModal .items-table-container::-webkit-scrollbar-thumb,
-#traderModal .compact-items-table::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(104, 215, 223, 0.78), rgba(56, 137, 151, 0.72)) !important;
-  border-radius: 999px !important;
-  border: 2px solid rgba(6, 12, 18, 0.78) !important;
-}
 
-#traderModal .items-table {
-  min-width: 1220px !important;
-  font-size: 0.84rem !important;
-  line-height: 1.25 !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  padding: 8px 9px !important;
-  font-size: 0.84rem !important;
-  line-height: 1.23 !important;
-}
 
-#traderModal .items-table th {
-  font-size: 0.86rem !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 18% !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 9% !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 9% !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 8% !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 6% !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 25% !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 5% !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 20% !important; }
 
-#traderModal .item-title-v48,
-#traderModal .item-title-round65,
-#traderModal .item-main-cell-v48,
-#traderModal .item-main-cell-round65,
-#traderModal .item-name {
-  font-size: 0.88rem !important;
-  line-height: 1.18 !important;
-}
 
-#traderModal .item-category-v48,
-#traderModal .item-category-round65 {
-  font-size: 0.76rem !important;
-}
 
-#traderModal .item-actions-stack {
-  grid-template-columns: repeat(2, minmax(90px, 1fr)) !important;
-  gap: 5px !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  min-height: 30px !important;
-  padding: 5px 8px !important;
-  font-size: 0.78rem !important;
-}
 
-#traderModal .qty-input,
-#traderModal .quantity-input {
-  width: 48px !important;
-  min-height: 31px !important;
-  font-size: 0.86rem !important;
-}
 
 @media (max-width: 1320px) {
-  #traderModal .trader-modal-profile-row {
-    grid-template-columns: minmax(240px, 310px) minmax(0, 1fr) !important;
-  }
-
-  #traderModal .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  #traderModal .collection-toolbar,
-  #traderModal .compact-collection-toolbar {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
+  
+  
+  
 }
 
 /* =========================================================
@@ -20523,484 +18169,79 @@ body.trader-modal-open {
    - floating arrows no longer cover filters/table center
    ========================================================= */
 
-#traderModal {
-  --trader-left-col: clamp(270px, 24vw, 390px);
-  --trader-gap: 12px;
-}
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  width: min(94vw, 1560px) !important;
-  max-width: min(94vw, 1560px) !important;
-  height: min(880px, calc(100dvh - 34px)) !important;
-  max-height: calc(100dvh - 34px) !important;
-  margin: 1.6vh auto !important;
-  padding: 12px 14px 14px !important;
-}
 
-#traderModal #modalContent,
-#traderModal #traderModalContent {
-  height: 100% !important;
-  max-height: 100% !important;
-  padding: 40px 8px 24px !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-layout,
-#traderModal .trader-modal-layout-round45 {
-  height: 100% !important;
-  min-height: 0 !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round64,
-#traderModal .trader-modal-header-round45 {
-  height: 100% !important;
-  min-height: 0 !important;
-  display: grid !important;
-  grid-template-columns: var(--trader-left-col) minmax(0, 1fr) !important;
-  grid-template-rows: 1fr !important;
-  gap: var(--trader-gap) !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-profile-row {
-  display: contents !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  grid-column: 1 !important;
-  min-height: 0 !important;
-  max-height: 100% !important;
-  display: grid !important;
-  grid-template-rows: minmax(230px, 0.72fr) auto minmax(92px, auto) !important;
-  gap: 8px !important;
-  overflow: hidden !important;
-  padding: 9px !important;
-}
 
-#traderModal .trader-modal-image-wrap {
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: none !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-image {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  object-fit: cover !important;
-  object-position: center 18% !important;
-}
 
-#traderModal .trader-modal-portrait-caption {
-  padding: 5px 8px !important;
-  font-size: 0.84rem !important;
-  line-height: 1.25 !important;
-}
 
-#traderModal .trader-modal-reputation-card {
-  padding: 9px 10px !important;
-}
 
-#traderModal .trader-modal-reputation-card .muted {
-  font-size: 0.76rem !important;
-}
 
-#traderModal .trader-modal-main-column {
-  grid-column: 2 !important;
-  grid-row: 1 !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  display: grid !important;
-  grid-template-rows: auto minmax(0, 1fr) !important;
-  gap: 10px !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-info {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-header-title-row {
-  margin-bottom: 7px !important;
-}
 
-#traderModal .trader-header-title-row h2,
-#traderModal .trader-modal-info h2 {
-  font-size: clamp(1.9rem, 2.25vw, 2.75rem) !important;
-  line-height: 1.02 !important;
-}
 
-#traderModal .trader-modal-meta,
-#traderModal .trader-meta {
-  gap: 6px !important;
-  margin-bottom: 6px !important;
-}
 
-#traderModal .meta-item,
-#traderModal .trader-quality {
-  min-height: 23px !important;
-  padding: 3px 8px !important;
-  font-size: 0.82rem !important;
-}
 
-#traderModal .trader-modal-summary-grid {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 8px !important;
-  margin-top: 7px !important;
-}
 
-#traderModal .trader-summary-card,
-#traderModal .trader-summary-card-wide {
-  grid-column: auto !important;
-  min-height: 56px !important;
-  padding: 8px 10px !important;
-  border-radius: 12px !important;
-}
 
-#traderModal .trader-summary-card span {
-  font-size: 0.72rem !important;
-  line-height: 1.08 !important;
-}
 
-#traderModal .trader-summary-card strong {
-  font-size: 0.94rem !important;
-  line-height: 1.08 !important;
-}
 
-#traderModal .trader-summary-card small {
-  font-size: 0.72rem !important;
-  line-height: 1.08 !important;
-}
 
-#traderModal .trader-restock-actions {
-  gap: 7px !important;
-  margin: 8px 0 7px !important;
-  padding: 7px 8px !important;
-}
 
-#traderModal .trader-restock-actions .btn,
-#traderModal .trader-modal-info .btn {
-  min-height: 32px !important;
-  padding: 5px 11px !important;
-  font-size: 0.84rem !important;
-}
 
-#traderModal .trader-detail-section,
-#traderModal .trader-modal-description-section {
-  padding: 7px 10px !important;
-  margin-bottom: 0 !important;
-}
 
-#traderModal .trader-modal-workline {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
 
-#traderModal .trader-modal-tabs-flow {
-  min-height: 0 !important;
-  overflow: hidden !important;
-  flex: 1 1 auto !important;
-  gap: 6px !important;
-}
 
-#traderModal .tab-bar,
-#traderModal .category-tabs,
-#traderModal .trader-modal-tabs-flow > .tab-bar {
-  gap: 6px !important;
-  margin-bottom: 6px !important;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 32px !important;
-  padding: 0 11px !important;
-  border-radius: 11px !important;
-  font-size: 0.84rem !important;
-}
 
-#traderModal .tab-content,
-#traderModal .tab-content.active,
-#traderModal .category-content,
-#traderModal .category-content.active {
-  min-height: 0 !important;
-  overflow: hidden !important;
-  flex: 1 1 auto !important;
-}
 
-#traderModal .collection-wrapper,
-#traderModal .collection-panel,
-#traderModal .collection-section {
-  min-height: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 1 auto !important;
-}
 
-#traderModal .trader-filter-drawer {
-  margin: 6px 0 6px !important;
-}
 
-#traderModal .trader-filter-drawer > summary {
-  min-height: 31px !important;
-  padding: 6px 10px !important;
-  font-size: 0.86rem !important;
-}
 
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar {
-  grid-template-columns:
-    minmax(150px, 1.25fr)
-    minmax(142px, 0.82fr)
-    minmax(120px, 0.66fr)
-    minmax(92px, 0.46fr)
-    minmax(120px, 0.66fr)
-    minmax(108px, 0.58fr) !important;
-  gap: 7px !important;
-  padding: 8px !important;
-  margin: 0 0 6px !important;
-}
 
-#traderModal .collection-toolbar label,
-#traderModal .compact-collection-toolbar label,
-#traderModal .filter-group label {
-  font-size: 0.71rem !important;
-  margin-bottom: 3px !important;
-}
 
-#traderModal .collection-toolbar input,
-#traderModal .collection-toolbar select,
-#traderModal .compact-collection-toolbar input,
-#traderModal .compact-collection-toolbar select,
-#traderModal .inline-checkbox,
-#traderModal .compact-inline-checkbox {
-  min-height: 31px !important;
-  height: 31px !important;
-  font-size: 0.84rem !important;
-  border-radius: 10px !important;
-}
 
-#traderModal .price-range {
-  gap: 6px !important;
-}
 
 /* Real table viewport: both axes belong to the same visible container. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table {
-  flex: 1 1 auto !important;
-  min-height: 220px !important;
-  max-height: none !important;
-  overflow: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-gutter: stable both-edges !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(104, 215, 223, 0.74) rgba(6, 12, 18, 0.74) !important;
-  border-radius: 13px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar,
-#traderModal .items-table-container::-webkit-scrollbar,
-#traderModal .compact-items-table::-webkit-scrollbar {
-  width: 11px !important;
-  height: 11px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar-track,
-#traderModal .items-table-container::-webkit-scrollbar-track,
-#traderModal .compact-items-table::-webkit-scrollbar-track {
-  background: rgba(6, 12, 18, 0.78) !important;
-  border-radius: 999px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar-thumb,
-#traderModal .items-table-container::-webkit-scrollbar-thumb,
-#traderModal .compact-items-table::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(104, 215, 223, 0.82), rgba(58, 140, 154, 0.78)) !important;
-  border-radius: 999px !important;
-  border: 2px solid rgba(6, 12, 18, 0.82) !important;
-}
 
-#traderModal .items-table {
-  width: 1320px !important;
-  min-width: 1320px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-  font-size: 0.82rem !important;
-  line-height: 1.22 !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  padding: 7px 8px !important;
-  font-size: 0.82rem !important;
-  line-height: 1.22 !important;
-  vertical-align: middle !important;
-}
 
-#traderModal .items-table th {
-  font-size: 0.84rem !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 210px !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 98px !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 100px !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 96px !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 66px !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 340px !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 58px !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 260px !important; }
 
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) {
-  position: sticky !important;
-  right: 0 !important;
-  z-index: 3 !important;
-  background: rgba(7, 17, 22, 0.98) !important;
-  box-shadow: -10px 0 16px rgba(0, 0, 0, 0.22) !important;
-}
 
-#traderModal .items-table thead th:nth-child(8) {
-  z-index: 5 !important;
-}
 
-#traderModal .item-title-v48,
-#traderModal .item-title-round65,
-#traderModal .item-main-cell-v48,
-#traderModal .item-main-cell-round65,
-#traderModal .item-name {
-  font-size: 0.86rem !important;
-  line-height: 1.17 !important;
-}
 
-#traderModal .item-category-v48,
-#traderModal .item-category-round65 {
-  font-size: 0.74rem !important;
-}
 
-#traderModal .item-actions-stack {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(104px, 1fr)) !important;
-  gap: 5px !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  width: 100% !important;
-  min-height: 30px !important;
-  padding: 5px 8px !important;
-  border-radius: 10px !important;
-  font-size: 0.78rem !important;
-  white-space: nowrap !important;
-}
 
-#traderModal .qty-input,
-#traderModal .quantity-input {
-  width: 48px !important;
-  min-height: 30px !important;
-  font-size: 0.84rem !important;
-}
 
 /* Keep modal arrows off the table's horizontal scrollbar. */
-#traderModal .trader-modal-scroll-controls {
-  position: absolute !important;
-  right: 18px !important;
-  bottom: 18px !important;
-  z-index: 28 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 7px !important;
-  opacity: 0.72 !important;
-  transform: none !important;
-}
 
-#traderModal .trader-modal-scroll-controls[hidden] {
-  display: none !important;
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-}
 
-#traderModal .trader-modal-scroll-controls:hover,
-#traderModal .trader-modal-scroll-controls:focus-within {
-  opacity: 1 !important;
-}
 
 @media (max-width: 1420px) {
-  #traderModal {
-    --trader-left-col: clamp(250px, 24vw, 330px);
-  }
-
-  #traderModal .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  #traderModal .trader-summary-card,
-  #traderModal .trader-summary-card-wide {
-    min-height: 52px !important;
-  }
-
-  #traderModal .trader-modal-image {
-    object-position: center top !important;
-  }
-
-  #traderModal .items-table {
-    width: 1240px !important;
-    min-width: 1240px !important;
-  }
+  
+  
+  
+  
+  
 }
 
 @media (max-width: 1120px) {
-  #traderModal #modalContent,
-  #traderModal #traderModalContent {
-    overflow-y: auto !important;
-  }
-
-  #traderModal .trader-modal-header,
-  #traderModal .trader-modal-header-round64,
-  #traderModal .trader-modal-header-round45 {
-    display: block !important;
-    overflow: visible !important;
-  }
-
-  #traderModal .trader-modal-profile-row {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal .trader-modal-main-column {
-    display: block !important;
-    overflow: visible !important;
-  }
-
-  #traderModal .trader-modal-workline {
-    margin-top: 12px !important;
-    overflow: visible !important;
-  }
+  
+  
+  
+  
+  
 }
 
 /* =========================================================
@@ -21014,242 +18255,40 @@ body.trader-modal-open {
    - actions column scrolls normally with table
    ========================================================= */
 
-#traderModal {
-  --trader-left-col: clamp(340px, 29vw, 500px);
-  --trader-gap: 14px;
-}
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  width: min(95vw, 1640px) !important;
-  max-width: min(95vw, 1640px) !important;
-}
 
-#traderModal #modalContent,
-#traderModal #traderModalContent {
-  padding-right: 12px !important;
-  padding-bottom: 18px !important;
-  overflow: hidden !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round64,
-#traderModal .trader-modal-header-round45 {
-  grid-template-columns: var(--trader-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-gap) !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  grid-template-rows: minmax(360px, 0.76fr) auto minmax(120px, auto) !important;
-  padding: 10px !important;
-  gap: 9px !important;
-  min-width: 0 !important;
-}
 
-#traderModal .trader-modal-image-wrap {
-  min-height: 360px !important;
-  max-height: 560px !important;
-}
 
-#traderModal .trader-modal-image {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 360px !important;
-  object-fit: cover !important;
-  object-position: center 22% !important;
-}
 
-#traderModal .trader-modal-portrait-caption {
-  font-size: 0.88rem !important;
-  line-height: 1.28 !important;
-}
 
-#traderModal .trader-modal-reputation-card {
-  min-height: 118px !important;
-}
 
 /* The right side must never force the whole modal wider than the viewport. */
-#traderModal .trader-modal-main-column,
-#traderModal .trader-modal-workline,
-#traderModal .trader-modal-tabs-flow,
-#traderModal .tab-content,
-#traderModal .tab-content.active,
-#traderModal .category-content,
-#traderModal .category-content.active,
-#traderModal .collection-wrapper,
-#traderModal .collection-panel,
-#traderModal .collection-section {
-  min-width: 0 !important;
-  max-width: 100% !important;
-}
 
 /* Make the table viewport the only horizontal scroll owner. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table,
-#traderModal .trader-items-table-round65 {
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  flex: 0 1 auto !important;
-  min-height: 300px !important;
-  height: clamp(320px, 43vh, 520px) !important;
-  max-height: clamp(320px, 43vh, 520px) !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  -webkit-overflow-scrolling: touch !important;
-  scrollbar-gutter: stable !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(104, 215, 223, 0.78) rgba(6, 12, 18, 0.82) !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar,
-#traderModal .items-table-container::-webkit-scrollbar,
-#traderModal .compact-items-table::-webkit-scrollbar,
-#traderModal .trader-items-table-round65::-webkit-scrollbar {
-  width: 12px !important;
-  height: 12px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar-track,
-#traderModal .items-table-container::-webkit-scrollbar-track,
-#traderModal .compact-items-table::-webkit-scrollbar-track,
-#traderModal .trader-items-table-round65::-webkit-scrollbar-track {
-  background: rgba(5, 12, 18, 0.86) !important;
-  border-radius: 999px !important;
-}
 
-#traderModal .collection-items-container::-webkit-scrollbar-thumb,
-#traderModal .items-table-container::-webkit-scrollbar-thumb,
-#traderModal .compact-items-table::-webkit-scrollbar-thumb,
-#traderModal .trader-items-table-round65::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(104, 215, 223, 0.86), rgba(48, 132, 151, 0.80)) !important;
-  border-radius: 999px !important;
-  border: 2px solid rgba(5, 12, 18, 0.88) !important;
-}
 
-#traderModal .items-table {
-  width: 1520px !important;
-  min-width: 1520px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-}
 
 /* Let horizontal scroll reveal the action column instead of clipping/sticky overlays. */
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8),
-#traderModal .items-table thead th:nth-child(8) {
-  position: static !important;
-  right: auto !important;
-  z-index: auto !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 240px !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 112px !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 116px !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 108px !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 78px !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 390px !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 70px !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 300px !important; }
 
-#traderModal .item-actions-stack {
-  grid-template-columns: repeat(2, minmax(112px, 1fr)) !important;
-  gap: 5px !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  min-height: 31px !important;
-  font-size: 0.8rem !important;
-}
 
 /* Kill the inherited giant pill behind the scroll arrows. */
-#traderModal .trader-modal-scroll-controls,
-#traderModal .trader-modal-scroll-controls.trader-modal-scroll-controls-bottom {
-  position: absolute !important;
-  left: auto !important;
-  top: auto !important;
-  right: 18px !important;
-  bottom: 18px !important;
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: max-content !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 6px !important;
-  transform: none !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-  opacity: 0.62 !important;
-  pointer-events: none !important;
-  z-index: 34 !important;
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  pointer-events: auto !important;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  font-size: 0.86rem !important;
-  line-height: 1 !important;
-  background: rgba(5, 12, 18, 0.82) !important;
-  border: 1px solid rgba(104, 215, 223, 0.24) !important;
-  color: rgba(239, 229, 206, 0.90) !important;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28) !important;
-}
 
-#traderModal .trader-modal-scroll-controls:hover,
-#traderModal .trader-modal-scroll-controls:focus-within,
-#traderModal .trader-modal-scroll-controls.is-visible {
-  opacity: 0.94 !important;
-}
 
 @media (max-width: 1420px) {
-  #traderModal {
-    --trader-left-col: clamp(320px, 28vw, 440px);
-  }
-
-  #traderModal .trader-modal-image-wrap,
-  #traderModal .trader-modal-image {
-    min-height: 330px !important;
-  }
-
-  #traderModal .items-table {
-    width: 1460px !important;
-    min-width: 1460px !important;
-  }
+  
+  
+  
 }
 
 @media (max-width: 1120px) {
-  #traderModal .collection-items-container,
-  #traderModal .items-table-container,
-  #traderModal .compact-items-table,
-  #traderModal .trader-items-table-round65 {
-    height: 360px !important;
-    max-height: 360px !important;
-  }
+  
 }
 
 /* =========================================================
@@ -21260,281 +18299,47 @@ body.trader-modal-open {
    occupy the full modal width below, centered and not squeezed to the right.
    ========================================================= */
 
-#traderModal {
-  --trader-left-col: clamp(340px, 28vw, 470px);
-  --trader-gap: 16px;
-}
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  width: min(95vw, 1660px) !important;
-  max-width: min(95vw, 1660px) !important;
-  height: min(900px, calc(100dvh - 30px)) !important;
-  max-height: calc(100dvh - 30px) !important;
-}
 
-#traderModal #modalContent,
-#traderModal #traderModalContent {
-  height: 100% !important;
-  max-height: 100% !important;
-  padding: 40px 10px 18px !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  scrollbar-gutter: stable !important;
-}
 
-#traderModal .trader-modal-layout,
-#traderModal .trader-modal-layout-round45 {
-  min-height: 0 !important;
-  height: auto !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round64,
-#traderModal .trader-modal-header-round45 {
-  height: auto !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-profile-row {
-  display: grid !important;
-  grid-template-columns: var(--trader-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-gap) !important;
-  align-items: stretch !important;
-  width: 100% !important;
-  min-width: 0 !important;
-}
 
-#traderModal .trader-modal-main-column {
-  grid-column: auto !important;
-  grid-row: auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: flex-start !important;
-  gap: 8px !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-info {
-  min-width: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  min-width: 0 !important;
-  max-height: none !important;
-  display: grid !important;
-  grid-template-rows: minmax(310px, 390px) auto minmax(104px, auto) !important;
-  gap: 9px !important;
-  padding: 10px !important;
-}
 
-#traderModal .trader-modal-image-wrap,
-#traderModal .trader-modal-image {
-  min-height: 310px !important;
-  height: 100% !important;
-  max-height: 390px !important;
-}
 
-#traderModal .trader-modal-image {
-  object-fit: cover !important;
-  object-position: center 20% !important;
-}
 
-#traderModal .trader-header-title-row h2,
-#traderModal .trader-modal-info h2 {
-  font-size: clamp(2rem, 2.35vw, 3rem) !important;
-}
 
-#traderModal .trader-modal-summary-grid {
-  grid-template-columns: repeat(4, minmax(120px, 1fr)) !important;
-  gap: 8px !important;
-  margin-top: 8px !important;
-}
 
-#traderModal .trader-summary-card,
-#traderModal .trader-summary-card-wide {
-  grid-column: auto !important;
-  min-height: 58px !important;
-  padding: 8px 10px !important;
-}
 
-#traderModal .trader-restock-actions {
-  margin: 8px 0 0 !important;
-}
 
-#traderModal .trader-detail-section,
-#traderModal .trader-modal-description-section {
-  margin-top: 8px !important;
-}
 
 /* The complete trading workspace is full-width below the trader intro. */
-#traderModal .trader-modal-workline {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-self: stretch !important;
-  margin-top: 2px !important;
-}
 
-#traderModal .trader-modal-tabs-flow {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: visible !important;
-  gap: 7px !important;
-}
 
-#traderModal .tab-bar,
-#traderModal .category-tabs,
-#traderModal .trader-modal-tabs-flow > .tab-bar {
-  justify-content: flex-start !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
 
-#traderModal .tab-content,
-#traderModal .tab-content.active,
-#traderModal .category-content,
-#traderModal .category-content.active,
-#traderModal .collection-wrapper,
-#traderModal .collection-panel,
-#traderModal .collection-section {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-filter-drawer {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 7px 0 !important;
-}
 
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar {
-  grid-template-columns:
-    minmax(220px, 1.45fr)
-    minmax(180px, 1fr)
-    minmax(160px, 0.75fr)
-    minmax(110px, 0.48fr)
-    minmax(170px, 0.75fr)
-    minmax(145px, 0.62fr) !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
 
 /* Full-width table viewport: horizontal scroll lives here and stays reachable. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table,
-#traderModal .trader-items-table-round65 {
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: clamp(320px, 38vh, 500px) !important;
-  max-height: clamp(320px, 38vh, 500px) !important;
-  min-height: 300px !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-gutter: stable both-edges !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(104, 215, 223, 0.82) rgba(6, 12, 18, 0.82) !important;
-}
 
-#traderModal .items-table {
-  width: max(100%, 1500px) !important;
-  min-width: 1500px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 235px !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 110px !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 115px !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 110px !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 78px !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 410px !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 70px !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 330px !important; }
 
-#traderModal .item-actions-stack {
-  grid-template-columns: repeat(2, minmax(120px, 1fr)) !important;
-  gap: 5px !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  min-height: 31px !important;
-  font-size: 0.8rem !important;
-}
 
 /* Keep vertical helper arrows tiny and away from the table center. */
-#traderModal .trader-modal-scroll-controls,
-#traderModal .trader-modal-scroll-controls.trader-modal-scroll-controls-bottom {
-  right: 12px !important;
-  bottom: 12px !important;
-  opacity: 0.42 !important;
-  gap: 5px !important;
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  width: 26px !important;
-  height: 26px !important;
-  min-width: 26px !important;
-  min-height: 26px !important;
-  font-size: 0.78rem !important;
-}
 
 @media (max-width: 1320px) {
-  #traderModal {
-    --trader-left-col: clamp(310px, 30vw, 410px);
-  }
-
-  #traderModal .trader-modal-summary-grid,
-  #traderModal .collection-toolbar,
-  #traderModal .compact-collection-toolbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  #traderModal .items-table {
-    width: max(100%, 1420px) !important;
-    min-width: 1420px !important;
-  }
+  
+  
+  
 }
 
 @media (max-width: 980px) {
-  #traderModal .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal .trader-modal-portrait-panel {
-    grid-template-rows: minmax(260px, 340px) auto minmax(96px, auto) !important;
-  }
+  
+  
 }
 
 /* =========================================================
@@ -21545,199 +18350,32 @@ body.trader-modal-open {
    not a right-column block next to the portrait.
    ========================================================= */
 
-#traderModal .trader-modal-layout,
-#traderModal .trader-modal-layout-round45 {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round64,
-#traderModal .trader-modal-header-round45 {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  display: block !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-profile-row {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  display: grid !important;
-  grid-template-columns: minmax(360px, 430px) minmax(0, 1fr) !important;
-  gap: 18px !important;
-  align-items: stretch !important;
-}
 
-#traderModal .trader-modal-main-column,
-#traderModal .trader-modal-info {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-}
 
 /* Backward-compatible guard: if an older render still places workline
    inside .trader-modal-header, force it to span the whole modal. */
-#traderModal .trader-modal-header > .trader-modal-workline,
-#traderModal .trader-modal-header > .trader-modal-workline-fullwidth {
-  grid-column: 1 / -1 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
 
 /* Canon render: workline is a sibling below the intro. */
-#traderModal .trader-modal-workline,
-#traderModal .trader-modal-workline-fullwidth {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  align-self: stretch !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  margin: 0 auto !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-tabs-flow {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-tabs-flow > .tab-bar,
-#traderModal .tab-bar,
-#traderModal .category-tabs {
-  width: 100% !important;
-  max-width: 100% !important;
-  justify-content: flex-start !important;
-}
 
-#traderModal .tab-content,
-#traderModal .tab-content.active,
-#traderModal .category-content,
-#traderModal .category-content.active,
-#traderModal .collection-wrapper,
-#traderModal .collection-panel,
-#traderModal .collection-section {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-}
 
 /* Trading panel should visually read as centered full modal workspace. */
-#traderModal .trader-filter-drawer,
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar,
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table,
-#traderModal .trader-items-table-round65 {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-}
 
 /* Horizontal table scroll owner. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table,
-#traderModal .trader-items-table-round65 {
-  display: block !important;
-  height: clamp(340px, 39vh, 520px) !important;
-  min-height: 320px !important;
-  max-height: clamp(340px, 39vh, 520px) !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-gutter: stable both-edges !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(104, 215, 223, 0.86) rgba(6, 12, 18, 0.86) !important;
-}
 
-#traderModal .items-table {
-  width: 1560px !important;
-  min-width: 1560px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-}
 
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 245px !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 115px !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 120px !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 112px !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 82px !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 420px !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 74px !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 330px !important; }
 
 /* Do not pin the action column: it must be revealed by horizontal scroll. */
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8),
-#traderModal .items-table thead th:nth-child(8) {
-  position: static !important;
-  right: auto !important;
-  z-index: auto !important;
-  box-shadow: none !important;
-}
 
 /* Keep helper arrows tiny and out of the workspace center. */
-#traderModal .trader-modal-scroll-controls,
-#traderModal .trader-modal-scroll-controls.trader-modal-scroll-controls-bottom {
-  right: 10px !important;
-  bottom: 10px !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  opacity: 0.46 !important;
-  pointer-events: none !important;
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  min-height: 24px !important;
-  font-size: 0.72rem !important;
-}
 
 @media (max-width: 1180px) {
-  #traderModal .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal .items-table {
-    width: 1420px !important;
-    min-width: 1420px !important;
-  }
+  
+  
 }
 
 /* =========================================================
@@ -21748,262 +18386,48 @@ body.trader-modal-open {
    tighter table, compact action buttons, no forced oversized table.
    ========================================================= */
 
-#traderModal .modal-content,
-#traderModal .modal-content.modal-large {
-  width: min(96vw, 1640px) !important;
-  max-width: min(96vw, 1640px) !important;
-  height: min(94vh, 900px) !important;
-  max-height: 94vh !important;
-  padding: 10px 12px 12px !important;
-}
 
-#traderModal #modalContent,
-#traderModal #traderModalContent {
-  padding: 38px 6px 18px !important;
-}
 
 /* Intro stays readable, but stops eating horizontal/vertical space. */
-#traderModal .trader-modal-profile-row {
-  grid-template-columns: minmax(310px, 390px) minmax(0, 1fr) !important;
-  gap: 14px !important;
-}
 
-#traderModal .trader-modal-image {
-  height: clamp(250px, 33vh, 390px) !important;
-}
 
-#traderModal .trader-modal-portrait-panel {
-  padding: 8px !important;
-}
 
-#traderModal .trader-modal-portrait-caption {
-  padding: 5px 7px !important;
-  font-size: 0.82rem !important;
-}
 
-#traderModal .trader-modal-reputation-card {
-  padding: 8px !important;
-}
 
-#traderModal .trader-header-title-row h2 {
-  font-size: clamp(1.55rem, 2vw, 2.35rem) !important;
-}
 
-#traderModal .trader-modal-summary-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 6px !important;
-}
 
-#traderModal .trader-summary-card {
-  min-height: 48px !important;
-  padding: 7px 8px !important;
-  border-radius: 11px !important;
-}
 
-#traderModal .trader-summary-card span {
-  font-size: 0.68rem !important;
-}
 
-#traderModal .trader-summary-card strong {
-  font-size: 0.88rem !important;
-}
 
-#traderModal .trader-summary-card small {
-  font-size: 0.68rem !important;
-}
 
-#traderModal .trader-restock-actions {
-  gap: 6px !important;
-  margin: 7px 0 !important;
-  padding: 6px 7px !important;
-}
 
-#traderModal .trader-restock-actions .btn {
-  min-height: 30px !important;
-  padding: 4px 10px !important;
-  font-size: 0.8rem !important;
-}
 
-#traderModal .trader-detail-section,
-#traderModal .trader-modal-description-section {
-  padding: 7px 9px !important;
-  font-size: 0.84rem !important;
-}
 
 /* Top tabs / category buttons: smaller, still readable. */
-#traderModal .tab-bar,
-#traderModal .category-tabs,
-#traderModal .trader-modal-tabs-flow > .tab-bar {
-  gap: 5px !important;
-  margin-bottom: 6px !important;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 29px !important;
-  padding: 0 10px !important;
-  border-radius: 10px !important;
-  font-size: 0.8rem !important;
-  line-height: 1.05 !important;
-}
 
 /* Filters: one compact row on desktop, less padding. */
-#traderModal .trader-filter-drawer {
-  margin: 6px 0 !important;
-}
 
-#traderModal .trader-filter-drawer > summary {
-  min-height: 29px !important;
-  padding: 5px 9px !important;
-  font-size: 0.8rem !important;
-}
 
-#traderModal .collection-toolbar,
-#traderModal .compact-collection-toolbar {
-  grid-template-columns:
-    minmax(160px, 1.25fr)
-    minmax(150px, 0.85fr)
-    minmax(118px, 0.70fr)
-    minmax(72px, 0.38fr)
-    minmax(112px, 0.62fr)
-    minmax(108px, 0.58fr) !important;
-  gap: 5px !important;
-  padding: 6px !important;
-}
 
-#traderModal .collection-toolbar label,
-#traderModal .compact-collection-toolbar label,
-#traderModal .filter-group label {
-  font-size: 0.66rem !important;
-  margin-bottom: 2px !important;
-}
 
-#traderModal .collection-toolbar input,
-#traderModal .collection-toolbar select,
-#traderModal .compact-collection-toolbar input,
-#traderModal .compact-collection-toolbar select,
-#traderModal .inline-checkbox,
-#traderModal .compact-inline-checkbox {
-  min-height: 28px !important;
-  height: 28px !important;
-  padding: 3px 7px !important;
-  font-size: 0.78rem !important;
-  border-radius: 9px !important;
-}
 
-#traderModal .price-range {
-  gap: 4px !important;
-}
 
 /* Table: prefer fitting inside the modal instead of forcing a too-wide 1560px sheet. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table,
-#traderModal .trader-items-table-round65 {
-  height: clamp(360px, 43vh, 560px) !important;
-  min-height: 340px !important;
-  max-height: clamp(360px, 43vh, 560px) !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-}
 
-#traderModal .items-table {
-  width: 100% !important;
-  min-width: 1180px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-  font-size: 0.76rem !important;
-  line-height: 1.18 !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  padding: 5px 6px !important;
-  font-size: 0.76rem !important;
-  line-height: 1.17 !important;
-}
 
-#traderModal .items-table th {
-  font-size: 0.78rem !important;
-}
 
 /* Compact column plan. Keeps every column usable and gives actions enough room. */
-#traderModal .items-table th:nth-child(1),
-#traderModal .items-table td:nth-child(1) { width: 17% !important; }
-#traderModal .items-table th:nth-child(2),
-#traderModal .items-table td:nth-child(2) { width: 9% !important; }
-#traderModal .items-table th:nth-child(3),
-#traderModal .items-table td:nth-child(3) { width: 8% !important; }
-#traderModal .items-table th:nth-child(4),
-#traderModal .items-table td:nth-child(4) { width: 8% !important; }
-#traderModal .items-table th:nth-child(5),
-#traderModal .items-table td:nth-child(5) { width: 6% !important; }
-#traderModal .items-table th:nth-child(6),
-#traderModal .items-table td:nth-child(6) { width: 26% !important; }
-#traderModal .items-table th:nth-child(7),
-#traderModal .items-table td:nth-child(7) { width: 5% !important; }
-#traderModal .items-table th:nth-child(8),
-#traderModal .items-table td:nth-child(8) { width: 21% !important; }
 
-#traderModal .item-title-v48,
-#traderModal .item-title-round65,
-#traderModal .item-main-cell-v48,
-#traderModal .item-main-cell-round65,
-#traderModal .item-name {
-  font-size: 0.78rem !important;
-  line-height: 1.12 !important;
-}
 
-#traderModal .item-category-v48,
-#traderModal .item-category-round65 {
-  font-size: 0.68rem !important;
-}
 
 /* Action buttons: smaller 2x2 grid. Text remains visible, but no more overflow. */
-#traderModal .item-actions-stack {
-  grid-template-columns: repeat(2, minmax(70px, 1fr)) !important;
-  gap: 4px !important;
-}
 
-#traderModal .item-actions-stack .btn,
-#traderModal .items-table .btn {
-  min-height: 25px !important;
-  height: 25px !important;
-  padding: 3px 5px !important;
-  border-radius: 8px !important;
-  font-size: 0.68rem !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
 
-#traderModal .qty-input,
-#traderModal .quantity-input {
-  width: 42px !important;
-  min-height: 26px !important;
-  height: 26px !important;
-  padding: 3px 5px !important;
-  font-size: 0.76rem !important;
-  border-radius: 8px !important;
-}
 
 /* Tiny helper arrows only. They should not look like a huge UI block. */
-#traderModal .trader-modal-scroll-controls,
-#traderModal .trader-modal-scroll-controls.trader-modal-scroll-controls-bottom {
-  right: 8px !important;
-  bottom: 8px !important;
-  opacity: 0.34 !important;
-}
 
-#traderModal .trader-modal-scroll-controls button {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px !important;
-  min-height: 22px !important;
-  font-size: 0.66rem !important;
-  border-radius: 999px !important;
-}
 
 /* Mid screens: keep fit instead of breaking into awkward giant controls. */
 @media (max-width: 1320px) {
@@ -22032,18 +18456,9 @@ body.trader-modal-open {
 }
 
 @media (max-width: 980px) {
-  #traderModal .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  #traderModal .collection-toolbar,
-  #traderModal .compact-collection-toolbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+  
+  
+  
 }
 
 /* =========================================================
@@ -22057,114 +18472,23 @@ body.trader-modal-open {
 
 /* Local rarity canon for the trader modal. Kept scoped so other modules
    are not recolored accidentally. */
-#traderModal .rarity-trash { color: #98a2ad !important; }
-#traderModal .rarity-common { color: #e6dfd0 !important; }
-#traderModal .rarity-uncommon { color: #7fdc8a !important; }
-#traderModal .rarity-rare { color: #6fb4ff !important; }
-#traderModal .rarity-veryrare,
-#traderModal .rarity-epic { color: #bb8cff !important; }
-#traderModal .rarity-legendary { color: #e0a545 !important; }
-#traderModal .rarity-artifact { color: #ff6b6b !important; }
 
-#traderModal .item-title-v48.rarity-trash,
-#traderModal .item-title-round65.rarity-trash,
-#traderModal .item-price-cell-round65.rarity-trash,
-#traderModal .item-rarity-cell-round65.rarity-trash,
-#traderModal .item-quality-cell-round65.rarity-trash { color: #98a2ad !important; }
 
-#traderModal .item-title-v48.rarity-common,
-#traderModal .item-title-round65.rarity-common,
-#traderModal .item-price-cell-round65.rarity-common,
-#traderModal .item-rarity-cell-round65.rarity-common,
-#traderModal .item-quality-cell-round65.rarity-common { color: #e6dfd0 !important; }
 
-#traderModal .item-title-v48.rarity-uncommon,
-#traderModal .item-title-round65.rarity-uncommon,
-#traderModal .item-price-cell-round65.rarity-uncommon,
-#traderModal .item-rarity-cell-round65.rarity-uncommon,
-#traderModal .item-quality-cell-round65.rarity-uncommon { color: #7fdc8a !important; }
 
-#traderModal .item-title-v48.rarity-rare,
-#traderModal .item-title-round65.rarity-rare,
-#traderModal .item-price-cell-round65.rarity-rare,
-#traderModal .item-rarity-cell-round65.rarity-rare,
-#traderModal .item-quality-cell-round65.rarity-rare { color: #6fb4ff !important; }
 
-#traderModal .item-title-v48.rarity-veryrare,
-#traderModal .item-title-round65.rarity-veryrare,
-#traderModal .item-price-cell-round65.rarity-veryrare,
-#traderModal .item-rarity-cell-round65.rarity-veryrare,
-#traderModal .item-quality-cell-round65.rarity-veryrare,
-#traderModal .item-title-v48.rarity-epic,
-#traderModal .item-title-round65.rarity-epic,
-#traderModal .item-price-cell-round65.rarity-epic,
-#traderModal .item-rarity-cell-round65.rarity-epic,
-#traderModal .item-quality-cell-round65.rarity-epic { color: #bb8cff !important; }
 
-#traderModal .item-title-v48.rarity-legendary,
-#traderModal .item-title-round65.rarity-legendary,
-#traderModal .item-price-cell-round65.rarity-legendary,
-#traderModal .item-rarity-cell-round65.rarity-legendary,
-#traderModal .item-quality-cell-round65.rarity-legendary { color: #e0a545 !important; }
 
-#traderModal .item-title-v48.rarity-artifact,
-#traderModal .item-title-round65.rarity-artifact,
-#traderModal .item-price-cell-round65.rarity-artifact,
-#traderModal .item-rarity-cell-round65.rarity-artifact,
-#traderModal .item-quality-cell-round65.rarity-artifact { color: #ff6b6b !important; }
 
-#traderModal .item-quality-cell-round65 {
-  font-weight: 700 !important;
-}
 
 /* Softer table grid: avoid the doubled full-cell border that looked like
    a stray outline/line through an item row. */
-#traderModal .items-table,
-#traderModal .items-table-compact-v48,
-#traderModal .items-table-round65 {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-}
 
-#traderModal .items-table tr,
-#traderModal .items-table tbody tr,
-#traderModal .trader-item-row-v48,
-#traderModal .trader-item-row-round65 {
-  box-shadow: none !important;
-  outline: 0 !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  border: 0 !important;
-  border-bottom: 1px solid rgba(126, 198, 214, 0.095) !important;
-  box-shadow: none !important;
-}
 
-#traderModal .items-table th + th,
-#traderModal .items-table td + td {
-  border-left: 1px solid rgba(126, 198, 214, 0.075) !important;
-}
 
-#traderModal .items-table tbody tr:last-child td {
-  border-bottom-color: transparent !important;
-}
 
-#traderModal .items-table td::before,
-#traderModal .items-table td::after,
-#traderModal .items-table th::before,
-#traderModal .items-table th::after,
-#traderModal .trader-item-row-v48::before,
-#traderModal .trader-item-row-v48::after,
-#traderModal .trader-item-row-round65::before,
-#traderModal .trader-item-row-round65::after {
-  content: none !important;
-  display: none !important;
-}
 
-#traderModal .items-table tbody tr:hover td {
-  background: rgba(126, 198, 214, 0.035) !important;
-}
 
 /* =========================================================
    ROUND 91 — HISTORY REFERENCE LAYOUT / ANALYTICS RESTORE
@@ -29865,352 +26189,61 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
    - soften table grid lines that looked like item artifacts.
    ========================================================= */
 
-#traderModal {
-  --trader-r120-left-col: clamp(310px, 24vw, 390px);
-  --trader-r120-gap: clamp(12px, 1.25vw, 18px);
-}
 
 /* Intro: portrait + compact NPC passport. Goods remain below, full width. */
-#traderModal .trader-modal-layout,
-#traderModal .trader-modal-layout-round45 {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-header,
-#traderModal .trader-modal-header-round64,
-#traderModal .trader-modal-header-round45 {
-  display: block !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-profile-row {
-  display: grid !important;
-  grid-template-columns: var(--trader-r120-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-r120-gap) !important;
-  align-items: start !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  min-height: 0 !important;
-}
 
 /* Portrait must size to content, not stretch to the whole right column height. */
-#traderModal .trader-modal-portrait-panel {
-  align-self: start !important;
-  position: sticky !important;
-  top: 8px !important;
-  display: grid !important;
-  grid-template-rows: auto auto auto !important;
-  gap: 8px !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 8px !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-image-wrap {
-  width: 100% !important;
-  height: clamp(250px, 32vh, 365px) !important;
-  min-height: 250px !important;
-  max-height: 365px !important;
-  aspect-ratio: auto !important;
-  overflow: hidden !important;
-  border-radius: 15px !important;
-  background: rgba(3, 9, 14, 0.82) !important;
-}
 
-#traderModal .trader-modal-image {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: none !important;
-  object-fit: cover !important;
-  object-position: center 22% !important;
-}
 
-#traderModal .trader-modal-portrait-caption {
-  min-height: 0 !important;
-  padding: 6px 8px !important;
-  font-size: 0.82rem !important;
-  line-height: 1.28 !important;
-}
 
-#traderModal .trader-modal-reputation-card {
-  min-height: 0 !important;
-  padding: 9px !important;
-  border-radius: 14px !important;
-}
 
-#traderModal .trader-modal-reputation-head {
-  gap: 8px !important;
-}
 
-#traderModal .trader-modal-reputation-card progress {
-  height: 8px !important;
-  margin: 5px 0 !important;
-}
 
-#traderModal .trader-modal-relation-line,
-#traderModal .trader-modal-reputation-card .muted {
-  font-size: 0.76rem !important;
-  line-height: 1.22 !important;
-}
 
 /* Right side: compact NPC passport, no giant empty top banner. */
-#traderModal .trader-modal-main-column,
-#traderModal .trader-modal-info {
-  min-width: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-height: 0 !important;
-  height: auto !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-info {
-  display: grid !important;
-  gap: 9px !important;
-  align-content: start !important;
-}
 
-#traderModal .trader-header-title-row {
-  margin-bottom: 0 !important;
-}
 
-#traderModal .trader-header-title-row h2,
-#traderModal .trader-modal-info h2 {
-  font-size: clamp(1.75rem, 2.35vw, 2.95rem) !important;
-  line-height: 1 !important;
-}
 
-#traderModal .trader-modal-meta {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 6px !important;
-  margin: 0 !important;
-}
 
-#traderModal .trader-modal-meta .meta-item {
-  min-height: 26px !important;
-  padding: 4px 8px !important;
-  font-size: 0.76rem !important;
-  line-height: 1 !important;
-}
 
-#traderModal .trader-modal-summary-grid {
-  display: grid !important;
-  grid-template-columns: minmax(130px, 0.7fr) minmax(130px, 0.7fr) minmax(250px, 1.25fr) minmax(150px, 0.78fr) !important;
-  gap: 7px !important;
-  align-items: stretch !important;
-  margin: 0 !important;
-}
 
-#traderModal .trader-summary-card {
-  min-height: 54px !important;
-  padding: 8px 10px !important;
-  border-radius: 12px !important;
-}
 
-#traderModal .trader-summary-card span {
-  font-size: 0.68rem !important;
-  line-height: 1.08 !important;
-}
 
-#traderModal .trader-summary-card strong {
-  font-size: 0.92rem !important;
-  line-height: 1.16 !important;
-}
 
-#traderModal .trader-summary-card small {
-  font-size: 0.68rem !important;
-  line-height: 1.1 !important;
-}
 
-#traderModal .trader-restock-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 7px !important;
-  margin: 2px 0 !important;
-  padding: 7px 9px !important;
-  border-radius: 14px !important;
-}
 
-#traderModal .trader-restock-actions .btn {
-  min-height: 31px !important;
-  padding: 5px 11px !important;
-  font-size: 0.82rem !important;
-  border-radius: 11px !important;
-}
 
-#traderModal .trader-detail-section,
-#traderModal .trader-modal-description-section {
-  padding: 8px 10px !important;
-  border-radius: 13px !important;
-  font-size: 0.84rem !important;
-  line-height: 1.32 !important;
-}
 
-#traderModal .trader-modal-description-section p {
-  margin: 0 !important;
-}
 
 /* The actual trade workspace: always below the intro, centered and full modal width. */
-#traderModal .trader-modal-workline,
-#traderModal .trader-modal-workline-fullwidth {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  display: block !important;
-  margin: 0 auto !important;
-  padding: 0 !important;
-  clear: both !important;
-  overflow: visible !important;
-}
 
-#traderModal .trader-modal-tabs-flow {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  display: grid !important;
-  gap: 7px !important;
-}
 
-#traderModal .tab-bar,
-#traderModal .category-tabs,
-#traderModal .trader-modal-tabs-flow > .tab-bar {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  gap: 6px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-}
 
-#traderModal .tab-btn,
-#traderModal .category-tab {
-  min-height: 31px !important;
-  padding: 0 11px !important;
-  border-radius: 11px !important;
-  font-size: 0.8rem !important;
-  line-height: 1.05 !important;
-}
 
-#traderModal .trader-filter-drawer {
-  margin: 5px 0 7px !important;
-  border-radius: 15px !important;
-}
 
-#traderModal .trader-filter-drawer > summary {
-  min-height: 31px !important;
-  padding: 6px 9px !important;
-  font-size: 0.8rem !important;
-}
 
 /* Table still uses its own horizontal scroll; it is not squeezed into the intro. */
-#traderModal .collection-items-container,
-#traderModal .items-table-container,
-#traderModal .compact-items-table,
-#traderModal .trader-items-table-round65 {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: clamp(380px, 45vh, 590px) !important;
-  min-height: 360px !important;
-  max-height: clamp(380px, 45vh, 590px) !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  scrollbar-gutter: stable both-edges !important;
-}
 
-#traderModal .items-table {
-  width: 100% !important;
-  min-width: 1240px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-}
 
 /* Softer grid: the row/column borders should not read as a line artifact through items. */
-#traderModal .items-table,
-#traderModal .items-table-compact-v48,
-#traderModal .items-table-round65 {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-}
 
-#traderModal .items-table th,
-#traderModal .items-table td {
-  border-top: 0 !important;
-  border-right: 0 !important;
-  border-left: 0 !important;
-  border-bottom: 1px solid rgba(126, 198, 214, 0.055) !important;
-  box-shadow: none !important;
-}
 
-#traderModal .items-table th + th,
-#traderModal .items-table td + td {
-  border-left: 1px solid rgba(126, 198, 214, 0.035) !important;
-}
 
-#traderModal .items-table tbody tr:hover td {
-  background: rgba(126, 198, 214, 0.028) !important;
-}
 
-#traderModal .items-table td::before,
-#traderModal .items-table td::after,
-#traderModal .items-table th::before,
-#traderModal .items-table th::after,
-#traderModal .trader-item-row-v48::before,
-#traderModal .trader-item-row-v48::after,
-#traderModal .trader-item-row-round65::before,
-#traderModal .trader-item-row-round65::after {
-  content: none !important;
-  display: none !important;
-}
 
 @media (max-width: 1320px) {
-  #traderModal {
-    --trader-r120-left-col: minmax(280px, 340px);
-  }
-
-  #traderModal .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  #traderModal .trader-modal-image-wrap {
-    height: clamp(230px, 30vh, 330px) !important;
-    min-height: 230px !important;
-  }
+  
+  
+  
 }
 
 @media (max-width: 980px) {
-  #traderModal .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal .trader-modal-portrait-panel {
-    position: static !important;
-    max-width: 460px !important;
-    margin: 0 auto !important;
-  }
+  
+  
 }
 
 /* =========================================================
@@ -30225,346 +26258,51 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
    - table row borders must not look like a line artifact through items.
    ========================================================= */
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 {
-  --trader-r121-left-col: clamp(350px, 27vw, 460px);
-  --trader-r121-gap: clamp(12px, 1.25vw, 18px);
-}
 
 /* Reset the old grid/full-height modal passes. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .modal-content,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .modal-content.modal-large {
-  width: min(96vw, 1660px) !important;
-  max-width: min(96vw, 1660px) !important;
-  height: min(94vh, 900px) !important;
-  max-height: 94vh !important;
-  overflow: hidden !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 #modalContent,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 #traderModalContent {
-  height: 100% !important;
-  max-height: 100% !important;
-  padding: 38px 8px 20px !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  scrollbar-gutter: stable !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-layout,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-layout-round45 {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-header,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-header-round64,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-header-round45 {
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-}
 
 /* Intro row: portrait left, compact NPC passport right. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-profile-row {
-  display: grid !important;
-  grid-template-columns: var(--trader-r121-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-r121-gap) !important;
-  align-items: start !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-panel {
-  grid-column: auto !important;
-  grid-row: auto !important;
-  align-self: start !important;
-  position: sticky !important;
-  top: 8px !important;
-  display: grid !important;
-  grid-template-rows: auto auto auto !important;
-  gap: 8px !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 8px !important;
-  overflow: visible !important;
-}
 
 /* The black hole was the image wrapper/image height mismatch from old passes. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap {
-  display: block !important;
-  width: 100% !important;
-  height: clamp(330px, 40vh, 450px) !important;
-  min-height: 330px !important;
-  max-height: 450px !important;
-  aspect-ratio: auto !important;
-  overflow: hidden !important;
-  border-radius: 16px !important;
-  background: rgba(3, 9, 14, 0.84) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap > img,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 img.trader-modal-image,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image {
-  display: block !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: 100% !important;
-  object-fit: cover !important;
-  object-position: center 22% !important;
-  border-radius: inherit !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-caption {
-  min-height: 0 !important;
-  padding: 6px 8px !important;
-  font-size: 0.82rem !important;
-  line-height: 1.25 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-card {
-  min-height: 0 !important;
-  padding: 9px !important;
-  border-radius: 14px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-card progress {
-  height: 8px !important;
-  margin: 5px 0 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-main-column,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info {
-  grid-column: auto !important;
-  grid-row: auto !important;
-  display: grid !important;
-  align-content: start !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info {
-  gap: 9px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-header-title-row {
-  margin: 0 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-header-title-row h2,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info h2 {
-  font-size: clamp(1.8rem, 2.35vw, 3rem) !important;
-  line-height: 1 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-meta {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 6px !important;
-  margin: 0 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-summary-grid {
-  display: grid !important;
-  grid-template-columns: minmax(130px, 0.75fr) minmax(130px, 0.75fr) minmax(250px, 1.25fr) minmax(150px, 0.8fr) !important;
-  gap: 7px !important;
-  margin: 0 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card-wide {
-  grid-column: auto !important;
-  min-height: 54px !important;
-  padding: 8px 10px !important;
-  border-radius: 12px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-restock-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 7px !important;
-  margin: 2px 0 !important;
-  padding: 7px 9px !important;
-  border-radius: 14px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-detail-section,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-description-section {
-  padding: 8px 10px !important;
-  border-radius: 13px !important;
-  font-size: 0.84rem !important;
-  line-height: 1.32 !important;
-  margin: 0 !important;
-}
 
 /* Trade workspace: below intro, not inside the left portrait column. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-workline,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-workline-fullwidth {
-  grid-column: auto !important;
-  grid-row: auto !important;
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  clear: both !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-tabs-flow {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 7px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .tab-bar,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .category-tabs,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-tabs-flow > .tab-bar {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  gap: 6px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .tab-content,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .tab-content.active,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .category-content,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .category-content.active,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-wrapper {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
 
 /* Table viewport: a contained table with horizontal scroll, but no heavy grid-line artifact. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-items-container,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table-container,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .compact-items-table,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-items-table-round65 {
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: clamp(360px, 43vh, 560px) !important;
-  min-height: 340px !important;
-  max-height: clamp(360px, 43vh, 560px) !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-gutter: stable both-edges !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table {
-  width: 100% !important;
-  min-width: 1240px !important;
-  max-width: none !important;
-  table-layout: fixed !important;
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  background: rgba(3, 9, 13, 0.52) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table tr,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table tbody tr,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-v48,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-round65 {
-  box-shadow: none !important;
-  outline: 0 !important;
-  background-image: none !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td {
-  border-top: 0 !important;
-  border-right: 0 !important;
-  border-left: 0 !important;
-  border-bottom: 1px solid rgba(126, 198, 214, 0.038) !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-  background-image: none !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th + th,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td + td {
-  border-left: 1px solid rgba(126, 198, 214, 0.028) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td::before,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td::after,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th::before,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th::after,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-v48::before,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-v48::after,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-round65::before,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-round65::after {
-  content: none !important;
-  display: none !important;
-}
 
 @media (max-width: 1320px) {
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 {
-    --trader-r121-left-col: minmax(300px, 360px);
-  }
-
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap {
-    height: clamp(280px, 34vh, 390px) !important;
-    min-height: 280px !important;
-  }
+  
+  
+  
 }
 
 @media (max-width: 980px) {
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
-
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-panel {
-    position: static !important;
-    max-width: 520px !important;
-    margin: 0 auto !important;
-  }
+  
+  
 }
 
 /* =========================================================
@@ -30577,210 +26315,47 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
    the table, and a shorter NPC intro so the shop area starts earlier.
    ========================================================= */
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .modal-content,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .modal-content.modal-large {
-  width: min(96vw, 1660px) !important;
-  max-width: min(96vw, 1660px) !important;
-  height: min(94dvh, 900px) !important;
-  max-height: min(94dvh, 900px) !important;
-  overflow: hidden !important;
-}
 
 /* One and only vertical scroll owner. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 #modalContent,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 #traderModalContent {
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  scrollbar-gutter: stable !important;
-  overscroll-behavior: contain !important;
-  padding: 34px 8px 18px !important;
-}
 
 /* Shorter portrait intro: avoids a huge empty top area and gets shop controls higher. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 {
-  --trader-r122-left-col: clamp(330px, 25vw, 430px);
-  --trader-r122-gap: clamp(12px, 1.15vw, 16px);
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-profile-row {
-  grid-template-columns: var(--trader-r122-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-r122-gap) !important;
-  align-items: start !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-panel {
-  position: static !important;
-  top: auto !important;
-  gap: 7px !important;
-  padding: 8px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap {
-  height: clamp(245px, 32vh, 350px) !important;
-  min-height: 245px !important;
-  max-height: 350px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap > img,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 img.trader-modal-image,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image {
-  height: 100% !important;
-  min-height: 100% !important;
-  object-fit: cover !important;
-  object-position: center 28% !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-caption {
-  padding: 5px 8px !important;
-  font-size: 0.78rem !important;
-  line-height: 1.2 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-card {
-  padding: 8px !important;
-  border-radius: 13px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-head strong,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-head span {
-  font-size: 0.95rem !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-relation-line {
-  gap: 3px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-card .muted {
-  font-size: 0.72rem !important;
-}
 
 /* Keep the NPC passport compact; no fake giant blank card. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info {
-  gap: 8px !important;
-  align-content: start !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-header-title-row h2,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info h2 {
-  font-size: clamp(1.75rem, 2.15vw, 2.75rem) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-summary-grid {
-  grid-template-columns: minmax(120px, 0.7fr) minmax(120px, 0.7fr) minmax(230px, 1.2fr) minmax(150px, 0.9fr) !important;
-  gap: 8px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card {
-  min-height: 54px !important;
-  padding: 7px 9px !important;
-  border-radius: 13px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card span,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card small {
-  font-size: 0.72rem !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card strong {
-  font-size: 0.92rem !important;
-  line-height: 1.16 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-detail-section,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-description-section {
-  padding: 7px 9px !important;
-}
 
 /* Trade controls are below the intro and must not create another scroll owner. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-workline,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-workline-fullwidth,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-tabs-flow,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .tab-content,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .tab-content.active,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .category-content,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .category-content.active,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-wrapper,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-panel,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-scroll {
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-}
 
 /* The table may scroll horizontally, but never vertically. The modal owns vertical scroll. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-items-container,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table-container,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .compact-items-table,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-items-table-round65 {
-  display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scrollbar-gutter: auto !important;
-  overscroll-behavior-x: contain !important;
-  overscroll-behavior-y: auto !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-items-container::-webkit-scrollbar:vertical,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table-container::-webkit-scrollbar:vertical,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .compact-items-table::-webkit-scrollbar:vertical,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-items-table-round65::-webkit-scrollbar:vertical {
-  width: 0 !important;
-  display: none !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table {
-  min-width: 1180px !important;
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-}
 
 /* Make the table grid readable but not like a hard ruled notebook. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td {
-  border-bottom-color: rgba(126, 198, 214, 0.024) !important;
-  box-shadow: none !important;
-  background-image: none !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th + th,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td + td {
-  border-left-color: rgba(126, 198, 214, 0.018) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-v48,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-round65 {
-  background-clip: padding-box !important;
-}
 
 /* Hide accidental nested scrollbars from old passes if a browser still paints them. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-items-container {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(96, 201, 214, 0.55) transparent !important;
-}
 
 @media (max-width: 1320px) {
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 {
-    --trader-r122-left-col: minmax(300px, 360px);
-  }
-
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+  
+  
 }
 
 @media (max-width: 980px) {
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
+  
 }
 
 /* =========================================================
@@ -30794,188 +26369,38 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
      table grid artifact further.
    ========================================================= */
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 {
-  --trader-r123-left-col: clamp(420px, 31vw, 540px);
-  --trader-r123-gap: clamp(16px, 1.35vw, 22px);
-}
 
 /* Reduce repaint/layout lag inside the modal. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-layout,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-header,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-workline {
-  will-change: auto !important;
-  transform: none !important;
-  backface-visibility: visible !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-profile-row {
-  grid-template-columns: var(--trader-r123-left-col) minmax(0, 1fr) !important;
-  gap: var(--trader-r123-gap) !important;
-  align-items: start !important;
-}
 
 /* The portrait card should read as a real NPC card, not a tiny thumbnail next to empty space. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-panel {
-  width: 100% !important;
-  padding: 10px !important;
-  gap: 9px !important;
-  position: static !important;
-  top: auto !important;
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap {
-  height: clamp(330px, 38vh, 430px) !important;
-  min-height: 330px !important;
-  max-height: 430px !important;
-  border-radius: 17px !important;
-  background: rgba(2, 8, 11, 0.92) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap > img,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 img.trader-modal-image,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  display: block !important;
-  object-fit: cover !important;
-  object-position: center 30% !important;
-  filter: none !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-portrait-caption {
-  padding: 7px 10px !important;
-  font-size: 0.86rem !important;
-  line-height: 1.23 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-card {
-  padding: 10px 11px !important;
-  border-radius: 15px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-head strong {
-  font-size: 1.03rem !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-head span {
-  font-size: 1.1rem !important;
-}
 
 /* Right passport: compact, but visually purposeful. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-main-column,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info {
-  min-height: 0 !important;
-  align-self: start !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info {
-  padding-top: 2px !important;
-  gap: 10px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-header-title-row h2,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-info h2 {
-  font-size: clamp(2rem, 2.35vw, 3.05rem) !important;
-  line-height: 1.02 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-meta {
-  gap: 7px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-summary-grid {
-  grid-template-columns:
-    minmax(126px, 0.62fr)
-    minmax(126px, 0.62fr)
-    minmax(270px, 1.25fr)
-    minmax(160px, 0.78fr) !important;
-  gap: 9px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card {
-  min-height: 58px !important;
-  padding: 8px 10px !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-summary-card strong {
-  font-size: 0.98rem !important;
-}
 
 /* Do not let table/sidebar scrollbars multiply again. Modal owns vertical scroll. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-wrapper,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-panel,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-scroll,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .tab-content.active,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .category-content.active {
-  overflow: visible !important;
-  max-height: none !important;
-}
 
 /* Table performance: horizontal overflow only, with less expensive paint. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .collection-items-container,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table-container,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .compact-items-table,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-items-table-round65 {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  contain: paint !important;
-  background-image: none !important;
-  box-shadow: inset 0 0 0 1px rgba(100, 180, 192, 0.055) !important;
-}
 
 /* The visible line across item rows was a too-strong table grid/border. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table tbody,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table tr,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th {
-  background-image: none !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table tbody tr,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-v48,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-item-row-round65 {
-  border: 0 !important;
-  box-shadow: inset 0 -1px 0 rgba(126, 198, 214, 0.025) !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td {
-  border-top: 0 !important;
-  border-bottom: 0 !important;
-  border-left-color: rgba(126, 198, 214, 0.018) !important;
-  border-right: 0 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table th + th,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .items-table td + td {
-  border-left-color: rgba(126, 198, 214, 0.022) !important;
-}
 
 /* The floating up/down buttons should not sit on the content like a second scrollbar. */
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-scroll-controls {
-  right: 10px !important;
-  bottom: 14px !important;
-  gap: 6px !important;
-  opacity: 0.34 !important;
-  pointer-events: auto !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-scroll-controls:hover,
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-scroll-controls.is-visible {
-  opacity: 0.82 !important;
-}
 
-#traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-scroll-controls button {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
-}
 
 /* 15.6 / 1080p guard: keep the card stronger, but avoid pushing goods too far down. */
 @media (max-height: 880px) and (min-width: 1180px) {
@@ -30995,18 +26420,11 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 }
 
 @media (max-width: 1320px) {
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 {
-    --trader-r123-left-col: minmax(340px, 420px);
-  }
-
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+  
+  
 }
 
 @media (max-width: 980px) {
-  #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-profile-row {
-    grid-template-columns: 1fr !important;
-  }
+  
 }
 
