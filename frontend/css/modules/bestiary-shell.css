@@ -1,17 +1,30 @@
 /* ======================================================================
-   D&D Trader / Encyclopedia shell CSS
-   Split pass 02.
-   Source: frontend/css/styles.css lines 26501-27072.
-   Scope: #cabinet-codex .bestiari-ref-* shell/layout/search/sidebar/detail.
-   NOTE: copied first, not removed from styles.css yet.
+   D&D Trader — модуль оболочки Энциклопедии / Бестиария
+   Файл: frontend/css/modules/bestiary-shell.css
+
+   Отвечает за:
+   - общий каркас справочника внутри кабинета;
+   - верхнюю панель, поиск, счётчики и категории;
+   - левый список, центральную область чтения и правую колонку;
+   - плотность карточек и базовую адаптивность справочника.
+
+   Не отвечает за:
+   - визуал классов, рас, происхождений, монстров, предметов и заклинаний;
+   - торговцев, корзину, инвентарь, карту, LSS/Персонажа и Master Room;
+   - глобальные кнопки, базовые модалки и общий фон приложения.
+
+   Источник:
+   - вынесено из frontend/css/styles.css, блок
+     "ROUND 104 — BESTIARY / ENCYCLOPEDIA DENSITY + SEARCH FIX";
+   - дубль из монолита удалён в коммите
+     "Remove duplicated encyclopedia shell styles from monolith".
+
+   Правило правок:
+   - можно править размеры, сетки, отступы и плотность справочника;
+   - нельзя добавлять сюда стили конкретных сущностей, если для них уже есть
+     отдельный bestiary-*.css модуль.
    ====================================================================== */
 
-/* =========================================================
-   ROUND 104 — BESTIARY / ENCYCLOPEDIA DENSITY + SEARCH FIX
-   Scope: #cabinet-bestiari / #cabinet-codex only.
-   Base: round103_map_native_fullscreen_fix.
-   Goal: closer to reference scale, compact codex layout, working search field.
-   ========================================================= */
 
 #cabinet-bestiari .bestiari-ref-shell,
 #cabinet-codex .bestiari-ref-shell {
@@ -19,7 +32,7 @@
   min-width: 0 !important;
 }
 
-/* Compact topbar: title/search/metrics should not eat the whole screen. */
+/* Верхняя панель: заголовок, поиск и счётчики не должны съедать весь экран. */
 #cabinet-bestiari .bestiari-ref-topbar,
 #cabinet-codex .bestiari-ref-topbar {
   grid-template-columns: minmax(230px, 0.58fr) minmax(320px, 1fr) auto !important;
@@ -43,7 +56,7 @@
   letter-spacing: 0.085em !important;
 }
 
-/* Search: actual interactive field, no nested fake input border, clear button. */
+/* Поиск: настоящее интерактивное поле без вложенной фальш-рамки, с кнопкой очистки. */
 #cabinet-bestiari .bestiari-ref-global-search,
 #cabinet-codex .bestiari-ref-global-search {
   position: relative !important;
@@ -129,7 +142,7 @@
   white-space: nowrap !important;
 }
 
-/* Metrics: smaller RPG counters. */
+/* Счётчики: компактные RPG-метрики в верхней панели. */
 #cabinet-bestiari .bestiari-ref-top-metrics,
 #cabinet-codex .bestiari-ref-top-metrics {
   gap: 7px !important;
@@ -154,7 +167,7 @@
   font-size: 0.66rem !important;
 }
 
-/* Categories: compact two-row codex bar, not giant tiles. */
+/* Категории: компактная панель справочника, а не огромные плитки. */
 #cabinet-bestiari .bestiari-ref-category-bar,
 #cabinet-codex .bestiari-ref-category-bar {
   display: grid !important;
@@ -199,7 +212,7 @@
   font-size: 0.66rem !important;
 }
 
-/* Management drawer: collapsed by default visually small. */
+/* Служебная шторка управления: по умолчанию визуально маленькая и не мешает чтению. */
 #cabinet-bestiari .bestiari-ref-tools-drawer,
 #cabinet-codex .bestiari-ref-tools-drawer {
   display: block !important;
@@ -252,7 +265,7 @@
   font-size: 0.76rem !important;
 }
 
-/* Main reading layout: list/detail/rail balance closer to reference. */
+/* Основная область чтения: баланс списка, карточки деталей и правой колонки ближе к референсу. */
 #cabinet-bestiari .bestiari-ref-layout,
 #cabinet-codex .bestiari-ref-layout {
   grid-template-columns: minmax(270px, 320px) minmax(0, 1fr) !important;
@@ -343,7 +356,7 @@
   overflow: hidden !important;
 }
 
-/* Detail card density. */
+/* Плотность детальной карточки: меньше пустоты, больше полезного текста. */
 #cabinet-bestiari .bestiari-ref-entry-shell,
 #cabinet-codex .bestiari-ref-entry-shell {
   grid-template-columns: minmax(0, 1fr) minmax(240px, 285px) !important;
@@ -466,7 +479,7 @@
   line-height: 1.22 !important;
 }
 
-/* Right rail. */
+/* Правая колонка справочника. */
 #cabinet-bestiari .bestiari-ref-right-rail,
 #cabinet-codex .bestiari-ref-right-rail {
   top: 8px !important;
@@ -521,7 +534,7 @@
   border-radius: 11px !important;
 }
 
-/* Responsive fallback. */
+/* Адаптив: запасной режим для узких экранов. */
 @media (max-width: 1420px) {
   #cabinet-bestiari .bestiari-ref-topbar,
   #cabinet-codex .bestiari-ref-topbar {
