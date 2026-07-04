@@ -1,0 +1,494 @@
+/* ==========================================================================
+   D&D Trader — модуль главной торговой страницы
+
+   Назначение:
+   - верхние панели золота, корзины и инвентаря на главном экране;
+   - фильтры торговцев и предметов на главном экране;
+   - сетка карточек торговцев;
+   - визуальная совместимость старых карточек товаров, которые пока используют
+     общие классы .trader-card / .item-card-common.
+
+   Не входит в этот модуль:
+   - внутренняя модалка торговца с таблицей товаров -> будущий trader-modal.css;
+   - кабинет и вкладки кабинета -> будущий cabinet-shell.css / account.css;
+   - инвентарь и экипировка внутри кабинета -> будущий inventory.css;
+   - энциклопедия / бестиарий -> modules/bestiary-*.css.
+
+   Референсы для проверки:
+   - Referens/Общий страницы.png
+   - Referens/Торговец модалка.png только как входная точка карточки торговца,
+     но не как проверка внутренней модалки.
+
+   Источник:
+   - вынесено из frontend/css/styles.css после cleanup bestiary-shell;
+   - старый блок в монолите пока НЕ удалён намеренно;
+   - этот pass только подключает модуль и проверяет, что визуал не меняется.
+
+   Безопасно менять здесь:
+   - ширину/отступы верхних торговых панелей;
+   - сетку фильтров главного экрана;
+   - размер и плотность карточек торговцев;
+   - адаптив главной торговой страницы.
+
+   Опасно менять здесь без отдельной проверки:
+   - базовые кнопки, поля ввода, .modal, .toast;
+   - стили таблицы товаров внутри модалки торговца;
+   - карточки предметов в инвентаре, если они начнут отличаться от торговых.
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. Верхние торговые панели: золото, корзина, быстрый инвентарь
+   ========================================================================== */
+
+
+.cart-widget {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 18px;
+  align-items: center;
+}
+
+.inventory-widget {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.cart-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  min-width: 0;
+}
+
+.cart-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.stats-label {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.stats-value,
+#cartCount,
+#cart-total,
+#cartTotal,
+#cartCountModal,
+#cartTotalModal,
+#inventoryCount,
+#inventoryCountModal,
+#user-money {
+  color: var(--title-soft);
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.gold-input,
+#playerGoldInput {
+  width: 108px;
+  min-width: 108px;
+  text-align: center;
+}
+
+
+/* ==========================================================================
+   2. Фильтры главной торговой страницы
+
+   Важно: здесь оставлены только фильтры верхнего экрана. Общие .filter-group
+   в монолите пока не удаляем, потому что похожие группы могут использоваться
+   в модалках, коллекциях и будущих вкладках кабинета.
+   ========================================================================== */
+
+
+.filters-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(13, 22, 28, 0.96), rgba(9, 16, 21, 0.98));
+  border-color: rgba(214, 181, 122, 0.12);
+}
+
+.filters-left,
+.filters-right {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+}
+
+.filters-left {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.filters-right {
+  grid-template-columns:
+    minmax(240px, 1.45fr)
+    minmax(180px, 0.9fr)
+    repeat(4, minmax(160px, 1fr));
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.filter-group label {
+  color: #c9d7dc;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.price-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+
+/* ==========================================================================
+   3. Сетка и карточки торговцев
+
+   Исторически часть карточек предметов использует .item-card-common вместе
+   с .trader-card. Пока сохраняем совместимость и ничего не удаляем из монолита.
+   Когда появится отдельный inventory.css / trader-modal.css, этот общий хвост
+   можно будет разнести аккуратнее.
+   ========================================================================== */
+
+
+/* =========================================================
+   TRADERS GRID / CARDS
+   ========================================================= */
+
+.traders-grid,
+#tradersGrid,
+#traders-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--trader-card-min), var(--trader-card-max)));
+  justify-content: center;
+  gap: 16px;
+  align-items: start;
+}
+
+.trader-card,
+.item-card-common {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  max-width: var(--trader-card-max);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.06), transparent 24%),
+    radial-gradient(circle at top right, rgba(134, 203, 211, 0.05), transparent 22%),
+    linear-gradient(180deg, rgba(13, 21, 29, 0.96), rgba(8, 14, 20, 0.99));
+  border: 1px solid rgba(214, 181, 122, 0.10);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 12px 32px rgba(4, 8, 12, 0.28);
+  transition:
+    transform var(--speed-fast),
+    box-shadow var(--speed-fast),
+    border-color var(--speed-fast);
+}
+
+.trader-card::before,
+.item-card-common::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(134, 203, 211, 0.035), transparent 22%),
+    radial-gradient(circle at top right, rgba(167, 223, 229, 0.05), transparent 26%),
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.08), transparent 28%);
+}
+
+.trader-card:hover,
+.item-card-common:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 0 1px rgba(116, 175, 188, 0.10),
+    0 18px 38px rgba(5, 10, 14, 0.34);
+  border-color: rgba(133, 194, 204, 0.22);
+}
+
+.trader-card-clickable {
+  cursor: pointer;
+}
+
+.trader-card-image-wrap,
+.trader-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(18, 29, 35, 0.98), rgba(9, 15, 20, 0.98));
+  border-bottom: 1px solid rgba(214, 181, 122, 0.09);
+}
+
+.trader-card-image,
+.trader-modal-image,
+.trader-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trader-image {
+  display: block;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+.trader-card-image-fallback,
+.item-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 62px;
+  color: var(--title-soft);
+}
+
+.trader-info {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 14px 15px;
+  min-width: 0;
+}
+
+.trader-name {
+  color: #ebe3d5;
+  font-size: var(--fs-name);
+  line-height: 1.14;
+  font-weight: 800;
+  text-wrap: balance;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.28),
+    0 0 12px rgba(134, 203, 211, 0.05);
+}
+
+.trader-card:hover .trader-name,
+.item-card-common:hover .trader-name {
+  color: var(--title-strong);
+}
+
+.trader-card-topline {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trader-type {
+  color: #c3a56f;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.trader-desc,
+.trader-description {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  line-height: 1.38;
+}
+
+.trader-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+.trader-meta-footer {
+  margin-top: 8px;
+}
+
+.trader-card-economy {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.trader-card-economy-cell,
+.trader-economy-cell {
+  padding: 9px 10px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(132, 206, 216, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(18, 27, 34, 0.96), rgba(9, 15, 20, 0.995));
+  border: 1px solid rgba(184, 197, 205, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.trader-card-economy-cell span,
+.trader-economy-cell span {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trader-card-economy-cell strong,
+.trader-economy-cell strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--title-strong);
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.trader-economy-cell small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(24, 34, 42, 0.96), rgba(10, 16, 22, 0.99));
+  border: 1px solid rgba(214, 181, 122, 0.10);
+  color: #d9e2e6;
+  font-size: 11px;
+  line-height: 1.1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.trader-quality,
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(86, 68, 36, 0.42), rgba(38, 29, 14, 0.52));
+  border: 1px solid rgba(214, 181, 122, 0.22);
+  color: #f2e4c8;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.trader-reputation-chip-low,
+.trader-reputation-value-low {
+  color: #e6b38f;
+}
+
+.trader-reputation-chip-mid,
+.trader-reputation-value-mid {
+  color: #9cd4d9;
+}
+
+.trader-reputation-chip-high,
+.trader-reputation-value-high {
+  color: #89d29c;
+}
+
+
+/* ==========================================================================
+   4. Совместимость старых контейнеров торговцев
+   ========================================================================== */
+
+
+/* =========================================================
+   OLD / EXTRA COMPATIBILITY
+   ========================================================= */
+
+#tradersGrid .trader-card,
+#traders-container .trader-card {
+  justify-self: center;
+}
+
+#tradersGrid .trader-image,
+#traders-container .trader-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  height: auto;
+}
+
+#cartTotal {
+  color: var(--title-soft);
+  font-weight: 800;
+}
+
+
+/* ==========================================================================
+   5. Адаптив главной торговой страницы
+   ========================================================================== */
+
+
+@media (max-width: 1240px) {
+  .filters-left {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filters-right {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .cart-widget {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-buttons {
+    justify-content: flex-start;
+  }
+
+  .filters-left,
+  .filters-right {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .filters-left,
+  .filters-right {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-right {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .traders-grid,
+  #tradersGrid,
+  #traders-container {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trader-card,
+  .item-card-common {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .trader-economy-strip,
+  .trader-card-economy {
+    grid-template-columns: 1fr 1fr;
+  }
+}
