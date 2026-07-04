@@ -491,111 +491,16 @@ button:not(:disabled):hover {
   border-color: var(--line-danger);
 }
 
-.cart-widget {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px 18px;
-  align-items: center;
-}
-
-.inventory-widget {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.cart-info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px 10px;
-  min-width: 0;
-}
-
-.cart-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.stats-label {
-  color: var(--text-soft);
-  font-size: 0.88rem;
-}
-
-.stats-value,
-#cartCount,
-#cart-total,
-#cartTotal,
-#cartCountModal,
-#cartTotalModal,
-#inventoryCount,
-#inventoryCountModal,
-#user-money {
-  color: var(--title-soft);
-  font-weight: 800;
-  font-size: 0.92rem;
-}
-
-.gold-input,
-#playerGoldInput {
-  width: 108px;
-  min-width: 108px;
-  text-align: center;
-}
+/* Главные торговые панели (.cart-widget / .cart-info / .cart-buttons)
+   вынесены в modules/market.css. */
 
 /* =========================================================
    FILTERS
    ========================================================= */
 
-.filters-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background:
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.06), transparent 22%),
-    linear-gradient(180deg, rgba(13, 22, 28, 0.96), rgba(9, 16, 21, 0.98));
-  border-color: rgba(214, 181, 122, 0.12);
-}
-
-.filters-left,
-.filters-right {
-  display: grid;
-  gap: 12px;
-  align-items: end;
-}
-
-.filters-left {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.filters-right {
-  grid-template-columns:
-    minmax(240px, 1.45fr)
-    minmax(180px, 0.9fr)
-    repeat(4, minmax(160px, 1fr));
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-}
-
-.filter-group label {
-  color: #c9d7dc;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.price-range {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
-}
+/* Главные фильтры (.filters-panel / .filters-left / .filters-right)
+   вынесены в modules/market.css.
+   Ниже остаются общие панели коллекций и формы, которые пока не выносим. */
 
 .collection-toolbar,
 .compact-collection-toolbar,
@@ -729,240 +634,8 @@ button:not(:disabled):hover {
    TRADERS GRID / CARDS
    ========================================================= */
 
-.traders-grid,
-#tradersGrid,
-#traders-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--trader-card-min), var(--trader-card-max)));
-  justify-content: center;
-  gap: 16px;
-  align-items: start;
-}
-
-.trader-card,
-.item-card-common {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  width: 100%;
-  max-width: var(--trader-card-max);
-  overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.06), transparent 24%),
-    radial-gradient(circle at top right, rgba(134, 203, 211, 0.05), transparent 22%),
-    linear-gradient(180deg, rgba(13, 21, 29, 0.96), rgba(8, 14, 20, 0.99));
-  border: 1px solid rgba(214, 181, 122, 0.10);
-  border-radius: var(--radius-lg);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.03),
-    0 12px 32px rgba(4, 8, 12, 0.28);
-  transition:
-    transform var(--speed-fast),
-    box-shadow var(--speed-fast),
-    border-color var(--speed-fast);
-}
-
-.trader-card::before,
-.item-card-common::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(134, 203, 211, 0.035), transparent 22%),
-    radial-gradient(circle at top right, rgba(167, 223, 229, 0.05), transparent 26%),
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.08), transparent 28%);
-}
-
-.trader-card:hover,
-.item-card-common:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.04),
-    0 0 0 1px rgba(116, 175, 188, 0.10),
-    0 18px 38px rgba(5, 10, 14, 0.34);
-  border-color: rgba(133, 194, 204, 0.22);
-}
-
-.trader-card-clickable {
-  cursor: pointer;
-}
-
-.trader-card-image-wrap,
-.trader-image {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(18, 29, 35, 0.98), rgba(9, 15, 20, 0.98));
-  border-bottom: 1px solid rgba(214, 181, 122, 0.09);
-}
-
-.trader-card-image,
-.trader-modal-image,
-.trader-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.trader-image {
-  display: block;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-}
-
-.trader-card-image-fallback,
-.item-image-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 62px;
-  color: var(--title-soft);
-}
-
-.trader-info {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 14px 14px 15px;
-  min-width: 0;
-}
-
-.trader-name {
-  color: #ebe3d5;
-  font-size: var(--fs-name);
-  line-height: 1.14;
-  font-weight: 800;
-  text-wrap: balance;
-  text-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.28),
-    0 0 12px rgba(134, 203, 211, 0.05);
-}
-
-.trader-card:hover .trader-name,
-.item-card-common:hover .trader-name {
-  color: var(--title-strong);
-}
-
-.trader-card-topline {
-  justify-content: space-between;
-  align-items: center;
-}
-
-.trader-type {
-  color: #c3a56f;
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
-.trader-desc,
-.trader-description {
-  color: var(--text-soft);
-  font-size: 0.82rem;
-  line-height: 1.38;
-}
-
-.trader-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 2px 0 0;
-}
-
-.trader-meta-footer {
-  margin-top: 8px;
-}
-
-.trader-card-economy {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.trader-card-economy-cell,
-.trader-economy-cell {
-  padding: 9px 10px;
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at top left, rgba(132, 206, 216, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(18, 27, 34, 0.96), rgba(9, 15, 20, 0.995));
-  border: 1px solid rgba(184, 197, 205, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-
-.trader-card-economy-cell span,
-.trader-economy-cell span {
-  display: block;
-  color: var(--text-dim);
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.trader-card-economy-cell strong,
-.trader-economy-cell strong {
-  display: block;
-  margin-top: 6px;
-  color: var(--title-strong);
-  font-size: 0.95rem;
-  line-height: 1.15;
-}
-
-.trader-economy-cell small {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-dim);
-  font-size: 0.72rem;
-}
-
-.meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 26px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(24, 34, 42, 0.96), rgba(10, 16, 22, 0.99));
-  border: 1px solid rgba(214, 181, 122, 0.10);
-  color: #d9e2e6;
-  font-size: 11px;
-  line-height: 1.1;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-
-.trader-quality,
-.quality-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(86, 68, 36, 0.42), rgba(38, 29, 14, 0.52));
-  border: 1px solid rgba(214, 181, 122, 0.22);
-  color: #f2e4c8;
-  font-size: 0.66rem;
-  font-weight: 800;
-}
-
-.trader-reputation-chip-low,
-.trader-reputation-value-low {
-  color: #e6b38f;
-}
-
-.trader-reputation-chip-mid,
-.trader-reputation-value-mid {
-  color: #9cd4d9;
-}
-
-.trader-reputation-chip-high,
-.trader-reputation-value-high {
-  color: #89d29c;
-}
+/* Сетка и карточки торговцев вынесены в modules/market.css.
+   Ниже остаются старые списки предметов и общие хвосты, которые пока не трогаем. */
 
 .items-list {
   margin-top: 8px;
@@ -6511,36 +6184,16 @@ footer a:hover {
    OLD / EXTRA COMPATIBILITY
    ========================================================= */
 
-#tradersGrid .trader-card,
-#traders-container .trader-card {
-  justify-self: center;
-}
-
-#tradersGrid .trader-image,
-#traders-container .trader-image {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  min-height: 0;
-  height: auto;
-}
-
-#cartTotal {
-  color: var(--title-soft);
-  font-weight: 800;
-}
+/* Совместимость #tradersGrid / #traders-container вынесена в modules/market.css. */
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
-@media (max-width: 1240px) {
-  .filters-left {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* Адаптив главной торговой страницы вынесен в modules/market.css.
+   Ниже остаются адаптивы авторизации, кабинета, модалок и других экранов. */
 
-  .filters-right {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+@media (max-width: 1240px) {
 
   .cabinet-layout {
     grid-template-columns: 220px minmax(0, 1fr);
@@ -6553,19 +6206,6 @@ footer a:hover {
 
 @media (max-width: 980px) {
   .auth-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .cart-widget {
-    grid-template-columns: 1fr;
-  }
-
-  .cart-buttons {
-    justify-content: flex-start;
-  }
-
-  .filters-left,
-  .filters-right {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -6595,27 +6235,6 @@ footer a:hover {
   .page-shell,
   .main-container {
     width: min(100%, calc(100% - 18px));
-  }
-
-  .filters-left,
-  .filters-right {
-    grid-template-columns: 1fr;
-  }
-
-  .filters-right {
-    padding-top: 0;
-    border-top: 0;
-  }
-
-  .traders-grid,
-  #tradersGrid,
-  #traders-container {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .trader-card,
-  .item-card-common {
-    max-width: 100%;
   }
 
   .collection-toolbar,
@@ -7278,7 +6897,6 @@ td .item-description-short,
   }
 }
 
-
 /* =========================================================
    ROUND 7 — TRADER MODAL SLIGHTLY BIGGER
    Добавлено поверх текущего styles.css:
@@ -7352,7 +6970,6 @@ td .item-description-short,
     margin: 0 auto;
   }
 }
-
 
 /* =========================================================
    TUNING — trader modal size rollback to balanced middle
@@ -9151,7 +8768,6 @@ td .item-description-short,
     0 0 24px rgba(69, 136, 149, 0.10);
 }
 
-
 /* =========================================================
    ROUND 10 — ACCOUNT / CABINET REFERENCE PASS
    Цель: приблизить account-layer к референсам без ломания живой структуры.
@@ -9750,7 +9366,6 @@ td .item-description-short,
   }
 }
 
-
 /* =========================================================
    ROUND 15 — PLAYER NOTES REFERENCE / FUNCTIONALITY PASS
    Цель: подтянуть модуль «Заметки» к текущему визуальному канону
@@ -10056,8 +9671,6 @@ td .item-description-short,
     min-height: 320px;
   }
 }
-
-
 
 /* =========================================================
    ROUND 80 — HISTORY / ACTIVITY LOG COMPACT TIMELINE PASS
@@ -10901,7 +10514,6 @@ td .item-description-short,
     grid-template-columns: 1fr;
   }
 }
-
 
 /* =========================================================
    ROUND 17 — FILES / PARTY ARCHIVE REFERENCE PASS
@@ -11990,7 +11602,6 @@ body.cabinet-tab-inventory #cabinet-inventory {
   }
 }
 
-
 /* =========================================================
    ROUND 19 — INVENTORY OVERLAP / READABILITY FIX
    Цель: убрать наезжающий текст, сделать перечисления в 2 колонки,
@@ -12239,7 +11850,6 @@ body.cabinet-tab-inventory #cabinet-inventory {
   }
 }
 
-
 /* =========================================================
    ROUND 20 — UX CLEANUP: CABINET MODULES / MAP / TRADER NAV
    Scope:
@@ -12361,7 +11971,6 @@ body.trader-modal-open .main-container {
 }
 
 /* ---------- cabinet module cleanup / anchors ---------- */
-
 
 .cabinet-floating-scroll {
   position: fixed;
@@ -12600,9 +12209,7 @@ body.trader-modal-open .main-container {
     bottom: 10px;
   }
 
-
 }
-
 
 /* =========================================================
    ROUND 21 — CABINET CORE CLEANUP / ALL REMAINING MODULES
@@ -13048,7 +12655,6 @@ body.trader-modal-open .main-container {
   }
 }
 
-
 /* =========================================================
    ROUND 22 — NAV FIX / REFERENCE RECOVERY
    Scope: рабочая навигация кабинета + единая шапка торговца.
@@ -13069,7 +12675,6 @@ body.trader-modal-open .main-container {
 }
 
 /* Верхняя навигация раздела — без фейковых стрелок, только чипы и шторка. */
-
 
 /* Единственные рабочие стрелки внутри кабинета. */
 .cabinet-floating-scroll-clean {
@@ -13200,7 +12805,6 @@ body.trader-modal-open #traderModal .modal-content.modal-large {
   }
 }
 
-
 /* =========================================================
    ROUND 23 — REAL DISCLOSURE / LESS OVERLOAD
    Scope: кабинетные модули, map control drawers, компактные прозрачные стрелки.
@@ -13248,12 +12852,9 @@ body.trader-modal-open #traderModal .modal-content.modal-large {
 
 /* Верхняя панель навигации раздела остаётся компактной. Не тащим туда вторую пару стрелок. */
 
-
 /* Настоящие шторки: secondary-блоки больше не торчат с обрезанным текстом. */
 
-
 /* Старый обрезанный режим больше не нужен, но оставляем совместимость без визуального мусора. */
-
 
 /* Карта: фильтры и редактор — в шторках, карта и выбранная точка остаются главными. */
 .map-control-drawer {
@@ -13351,7 +12952,6 @@ body.trader-modal-open #traderModal .modal-content.modal-large {
   }
 }
 
-
 /* =========================================================
    ROUND 24 — BOTTOM NAV + DISCLOSURE ACROSS CABINET MODULES
    Scope: меньше перегруза во всех кабинетных модулях, кроме LSS.
@@ -13430,7 +13030,6 @@ body.trader-modal-open #traderModal .modal-content.modal-large {
 
 /* Главный принцип: настраиваемое/редактируемое/добавляемое прячем в шторки. */
 
-
 /* Инвентарь: фильтры и слоты теперь не вываливаются сразу. */
 #cabinet-inventory .inventory-ref-toolbar {
   margin-bottom: 0;
@@ -13448,7 +13047,6 @@ body.trader-modal-open #traderModal .modal-content.modal-large {
   min-width: 0;
 }
 
-
 #cabinet-inventory .inventory-ref-slot-grid-compact {
   max-height: 305px;
   overflow: auto;
@@ -13461,12 +13059,9 @@ body.trader-modal-open #traderModal .modal-content.modal-large {
 
 /* Модули с редакторами: делаем их визуально вторичными, пока не раскрыты. */
 
-
 /* Верхний toolbar оставляем компактным: он про навигацию, а не про содержимое. */
 
-
 /* LSS исключаем из cleanup-шторок и нижней навигации по смыслу sheet-first модуля. */
-
 
 body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
   display: none !important;
@@ -14629,7 +14224,6 @@ body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
   }
 }
 
-
 /* =========================================================
    ROUND 28 — LSS / LONG STORY SHORT REFERENCE PASS
    Цель: приблизить LSS к референсу без ломания импорта, кубов,
@@ -15248,7 +14842,6 @@ body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
 
 /* =========================================================
    ROUND 29 — MASTER ROOM / COMBAT REFERENCE PASS
@@ -16842,7 +16435,6 @@ body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
   }
 }
 
-
 /* =========================================================
    ROUND 31 — MASTER ROOM ESCAPE / DENSITY + TRADER MODAL CLEANUP
    Цели: не ловить пользователя в Master Room, уплотнить UI под 15.6/1920-ish,
@@ -17871,7 +17463,6 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
     position: static;
   }
 }
-
 
 /* =========================================================
    ROUND 34 — PROJECT / ABOUT MODULE REFERENCE PASS
@@ -19284,8 +18875,6 @@ body,
   }
 }
 
-
-
 /* ROUND 78 — account profile drawers + avatar stability */
 .account-clean-avatar {
   flex: 0 0 86px;
@@ -19339,7 +18928,6 @@ body,
 .account-hub-media-drawer .account-media-preview {
   min-height: 180px;
 }
-
 
 /* =========================================================
    ROUND 79 — INVENTORY MODULE DENSITY / QUICKBAR / EQUIPMENT SCROLL
@@ -19672,7 +19260,6 @@ body.trader-modal-open .traders-page-scroll-controls {
     transition: none !important;
   }
 }
-
 
 /* =========================================================
    ROUND 82 — TRADER MODAL SCROLL + LAYOUT REGRESSION FIX
@@ -20660,7 +20247,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 84 — TRADER MODAL SAFE DENSITY PASS FROM ROUND83
    Scope: #traderModal only.
@@ -20926,7 +20512,6 @@ body.trader-modal-open {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
-
 
 /* =========================================================
    ROUND 85 — TRADER MODAL LAYOUT REPAIR FROM ROUND84 CANON
@@ -21418,7 +21003,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 86 — TRADER MODAL PORTRAIT / TABLE SCROLL / ARROWS RETUNE
    Scope: #traderModal only.
@@ -21667,7 +21251,6 @@ body.trader-modal-open {
     max-height: 360px !important;
   }
 }
-
 
 /* =========================================================
    ROUND 87 — TRADER MODAL FULL-WIDTH TRADE WORKSPACE
@@ -21954,7 +21537,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 88 — TRADER MODAL WORKSPACE STRUCTURE REPAIR
    Scope: #traderModal only.
@@ -22157,7 +21739,6 @@ body.trader-modal-open {
     min-width: 1420px !important;
   }
 }
-
 
 /* =========================================================
    ROUND 89 — TRADER MODAL COMPACT FIT PASS
@@ -22465,7 +22046,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 90 — TRADER TABLE RARITY COLOR CONSISTENCY / GRID ARTIFACT CLEANUP
    Scope: #traderModal only.
@@ -22585,7 +22165,6 @@ body.trader-modal-open {
 #traderModal .items-table tbody tr:hover td {
   background: rgba(126, 198, 214, 0.035) !important;
 }
-
 
 /* =========================================================
    ROUND 91 — HISTORY REFERENCE LAYOUT / ANALYTICS RESTORE
@@ -22866,7 +22445,6 @@ body.trader-modal-open {
     grid-template-columns: 42px minmax(0, 1fr) !important;
   }
 }
-
 
 /* =========================================================
    ROUND 94 — QUESTS REFERENCE LAYOUT / DENSITY PASS
@@ -23443,7 +23021,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 95 — QUESTS SAFE FORM / AUTO CHECKPOINTS UI
    Scope: #cabinet-quests only.
@@ -23493,7 +23070,6 @@ body.trader-modal-open {
   width: 15px !important;
   height: 15px !important;
 }
-
 
 /* =========================================================
    ROUND 96 — MAP MODULE REFERENCE UX / FUNCTIONAL LAYOUT
@@ -24345,7 +23921,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 97 — MAP CONTROLS / LEGEND / MARKER LABEL FIX
    Scope: #cabinet-map only.
@@ -24683,7 +24258,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 98 — MAP COMPASS CARDINAL CLICKS / ROTATION SLIDER
    Scope: #cabinet-map only.
@@ -24909,7 +24483,6 @@ body.trader-modal-open {
     max-width: calc(100vw - 40px) !important;
   }
 }
-
 
 /* =========================================================
    ROUND 99 — MAP OVERLAY DRAWERS / FULLSCREEN MODE
@@ -25232,7 +24805,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 100 — MAP FULLSCREEN STABILITY / OVERLAY TEXT FIX
    Scope: #cabinet-map only, plus one body lock class used by map.
@@ -25489,7 +25061,6 @@ body.trader-modal-open {
     width: min(185px, calc(100% - 16px)) !important;
   }
 }
-
 
 /* =========================================================
    ROUND 101 — MAP OVERLAY LAYOUT / FULLSCREEN CONTENT FIX
@@ -26240,7 +25811,6 @@ body.trader-modal-open {
     display: none !important;
   }
 }
-
 
 /* =========================================================
    ROUND 103 — MAP NATIVE FULLSCREEN / OVERLAY COLLISION FIX
@@ -27143,7 +26713,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 106 — NOTES MODULE COMPACT JOURNAL / QUICK TEMPLATES
    Scope: #cabinet-playernotes only.
@@ -27565,7 +27134,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 107 — PROJECT / ABOUT MODULE DENSITY SCALE PASS
    Scope: #cabinet-project only.
@@ -27934,7 +27502,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 108 — ACCOUNT HUB / MY ACCOUNT CLEANUP
    Scope: account module only.
@@ -28117,7 +27684,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 109 — ACCOUNT / FRIENDS DISCORD-LIKE LAYOUT
    Scope: friends tab only.
@@ -28270,7 +27836,6 @@ body.trader-modal-open {
     justify-content: flex-start !important;
   }
 }
-
 
 /* =========================================================
    ROUND 110 — ACCOUNT / SOCIAL PROFILE + ONLINE STATUS FIX
@@ -28745,7 +28310,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 111 — ACCOUNT PROFILE REFERENCE LAYOUT
    Scope: account profile only.
@@ -29154,7 +28718,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 112 — ACCOUNT PROFILE REGRESSION FIX
    Scope: account/profile only.
@@ -29321,7 +28884,6 @@ body.trader-modal-open {
     grid-template-columns: 1fr !important;
   }
 }
-
 
 /* =========================================================
    ROUND 114 — SUPPORT / BUGTRACKER MODULE
@@ -29912,7 +29474,6 @@ body.trader-modal-open {
   }
 }
 
-
 /* =========================================================
    ROUND 115 — MASTER ROOM CABINET RAIL COLLAPSE FIX
    Scope: cabinet sidebar only while Master Room tab is active.
@@ -30020,7 +29581,6 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
     grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)) !important;
   }
 }
-
 
 /* =========================================================
    ROUND 116 — LSS CONSTRUCTOR / CREATE-SAVE SYNC CLEANUP
@@ -30653,7 +30213,6 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
   }
 }
 
-
 /* =========================================================
    ROUND 121 — TRADER MODAL HARD OVERRIDE / REAL CURRENT CSS FIX
    Scope: #traderModal only.
@@ -31008,7 +30567,6 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
   }
 }
 
-
 /* =========================================================
    ROUND 122 — TRADER MODAL SINGLE VERTICAL SCROLL / COMPACT TOP
    Scope: #traderModal only.
@@ -31224,7 +30782,6 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
     grid-template-columns: 1fr !important;
   }
 }
-
 
 /* =========================================================
    ROUND 123 — TRADER MODAL SCALE / PERFORMANCE / CARD BALANCE
