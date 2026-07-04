@@ -818,9 +818,6 @@ button:not(:disabled):hover {
    ========================================================= */
 
 
-
-
-
 .trader-header-title-row {
   display: flex;
   align-items: flex-start;
@@ -1105,24 +1102,6 @@ button:not(:disabled):hover {
   font-weight: 800;
 }
 
-.inv-item-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 5px;
-}
-
-.inv-item-details span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 4px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--text-soft);
-  font-size: 0.74rem;
-}
 
 .qty-control {
   display: flex;
@@ -6864,85 +6843,9 @@ td .item-description-short,
    - не трогаем кабинет и другие модалки
    ========================================================= */
 
-
-
-
-
-
-
-
-@media (max-width: 1100px) {
-  
-  
-}
-
-@media (max-width: 900px) {
-  
-  
-  
-  
-}
-
 /* =========================================================
    TUNING — trader modal size rollback to balanced middle
    ========================================================= */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@media (max-width: 1200px) {
-  
-  
-  
-  
-  
-}
-
-@media (max-width: 860px) {
-  
-  
-  
-  
-  
-  
-  
-}
 
 .account-media-slot {
   padding: 14px;
@@ -10559,933 +10462,13 @@ td .item-description-short,
 }
 
 /* =========================================================
-   ROUND 18 — INVENTORY REFERENCE PASS
-   Большой модуль инвентаря: RPG layout без Raid Shadow Legends перегруза.
+   Модуль вынесен: инвентарь
+   Основные стили инвентаря и экипировки теперь лежат в:
+   frontend/css/modules/inventory.css
+
+   В монолите ниже могут оставаться только соседние или непроверенные
+   правила, которые не были точным дублем inventory.css.
    ========================================================= */
-
-body.cabinet-tab-inventory #cabinet-inventory {
-  min-height: 100%;
-}
-
-.inventory-ref-shell {
-  display: grid;
-  gap: 12px;
-}
-
-.inventory-ref-hero,
-.inventory-ref-toolbar,
-.inventory-ref-results,
-.inventory-ref-panel,
-.inventory-ref-empty {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(205, 170, 103, 0.18);
-  background:
-    radial-gradient(circle at top right, rgba(70, 188, 210, 0.07), transparent 28%),
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.055), transparent 22%),
-    linear-gradient(180deg, rgba(8, 15, 23, 0.96), rgba(5, 10, 16, 0.985));
-  box-shadow:
-    0 20px 52px rgba(0, 0, 0, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.025),
-    inset 0 0 28px rgba(82, 183, 202, 0.035);
-}
-
-.inventory-ref-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 700px);
-  gap: 14px;
-  align-items: start;
-  padding: 16px 20px;
-  border-radius: 20px;
-}
-
-.inventory-ref-kicker {
-  color: rgba(214, 181, 122, 0.86);
-  font-size: 0.72rem;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.inventory-ref-hero h2 {
-  margin: 6px 0 8px;
-  color: #f3e2b5;
-  font-size: clamp(1.65rem, 2.35vw, 2.45rem);
-  line-height: 1;
-  letter-spacing: 0.01em;
-  text-align: left;
-}
-
-.inventory-ref-hero p {
-  max-width: 700px;
-  margin: 0;
-  color: rgba(221, 229, 231, 0.78);
-  font-size: 0.88rem;
-}
-
-.inventory-ref-hero-tags,
-.inventory-ref-card-tags,
-.inventory-ref-card-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.inventory-ref-hero-tags {
-  margin-top: 10px;
-}
-
-.inventory-ref-hero-tags span,
-.inventory-ref-card-tags span,
-.inventory-ref-card-stats span,
-.inventory-ref-rarity-line,
-.inventory-ref-count-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 5px 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(132, 195, 207, 0.16);
-  background: rgba(6, 13, 20, 0.62);
-  color: rgba(226, 233, 235, 0.82);
-  font-size: 0.78rem;
-}
-
-.inventory-ref-resource-bar {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.inventory-ref-metric {
-  min-height: 62px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(205, 170, 103, 0.16);
-  background:
-    linear-gradient(180deg, rgba(10, 18, 28, 0.92), rgba(6, 12, 18, 0.98));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
-}
-
-.inventory-ref-metric span,
-.inventory-ref-metric small {
-  display: block;
-  color: rgba(189, 202, 207, 0.72);
-  font-size: 0.74rem;
-}
-
-.inventory-ref-metric strong {
-  display: block;
-  margin-top: 5px;
-  color: #f0dfb5;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.05rem;
-  line-height: 1.08;
-}
-
-.inventory-ref-rarity-line {
-  grid-column: 1 / -1;
-  justify-self: start;
-  min-height: 34px;
-  color: rgba(240, 224, 186, 0.86);
-}
-
-.inventory-ref-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(270px, 310px);
-  gap: 14px;
-  align-items: start;
-}
-
-.inventory-ref-main {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-.inventory-ref-rail {
-  position: sticky;
-  top: 10px;
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
-.inventory-ref-toolbar {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
-}
-
-.inventory-ref-toolbar-top,
-.inventory-ref-panel-head,
-.inventory-ref-results-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.inventory-ref-toolbar h3,
-.inventory-ref-panel h3,
-.inventory-ref-results h3 {
-  margin: 4px 0 0;
-  color: #efdfb5;
-  font-size: 1.06rem;
-}
-
-.inventory-ref-toolbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.inventory-ref-category-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(95, 192, 210, 0.48) rgba(5, 10, 16, 0.45);
-}
-
-.inventory-ref-category-tab {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 9px;
-  flex: 0 0 auto;
-  min-width: 132px;
-  min-height: 38px;
-  padding: 7px 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(205, 170, 103, 0.12);
-  background: linear-gradient(180deg, rgba(8, 15, 23, 0.92), rgba(5, 11, 17, 0.98));
-  color: rgba(224, 230, 232, 0.76);
-  cursor: pointer;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
-}
-
-.inventory-ref-category-tab:hover,
-.inventory-ref-category-tab.active {
-  border-color: rgba(98, 197, 214, 0.36);
-  background:
-    radial-gradient(circle at top left, rgba(78, 190, 211, 0.12), transparent 42%),
-    linear-gradient(180deg, rgba(10, 30, 38, 0.94), rgba(6, 14, 21, 0.98));
-  box-shadow: inset 0 0 18px rgba(79, 190, 211, 0.08), 0 10px 26px rgba(0, 0, 0, 0.22);
-}
-
-.inventory-ref-category-tab:hover {
-  transform: translateY(-1px);
-}
-
-.inventory-ref-category-tab span {
-  color: #d8bd7e;
-}
-
-.inventory-ref-category-tab strong {
-  overflow: hidden;
-  color: inherit;
-  font-size: 0.84rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.inventory-ref-category-tab em {
-  min-width: 28px;
-  padding: 4px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(205, 170, 103, 0.16);
-  color: #f1e1ba;
-  font-style: normal;
-  text-align: center;
-}
-
-.inventory-ref-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-  gap: 10px;
-  align-items: end;
-}
-
-.inventory-ref-filter-grid .filter-group label,
-.inventory-ref-slot-select span {
-  color: rgba(214, 181, 122, 0.84);
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.inventory-ref-equipped-toggle {
-  min-height: 42px;
-  align-self: end;
-}
-
-.inventory-ref-results {
-  padding: 16px;
-  border-radius: 20px;
-}
-
-.inventory-ref-results-head {
-  margin-bottom: 14px;
-}
-
-.inventory-ref-results-head > span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(205, 170, 103, 0.15);
-  color: rgba(240, 224, 186, 0.84);
-}
-
-.inventory-ref-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 14px;
-}
-
-.inventory-ref-list {
-  display: grid;
-  gap: 10px;
-}
-
-.inventory-ref-list .inventory-ref-card {
-  grid-template-columns: 92px minmax(0, 1fr);
-  min-height: 150px;
-}
-
-.inventory-ref-card {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-  min-height: 292px;
-  border-radius: 18px;
-  border: 1px solid rgba(205, 170, 103, 0.14);
-  background:
-    radial-gradient(circle at top, rgba(255,255,255,0.025), transparent 34%),
-    linear-gradient(180deg, rgba(11, 19, 28, 0.94), rgba(5, 10, 16, 0.985));
-  box-shadow: 0 16px 38px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.02);
-}
-
-.inventory-ref-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.55;
-  background: linear-gradient(135deg, rgba(214,181,122,0.07), transparent 36%, rgba(87,190,212,0.045));
-}
-
-.inventory-ref-card.rarity-common { border-color: rgba(225, 218, 200, 0.15); }
-.inventory-ref-card.rarity-uncommon { border-color: rgba(97, 192, 118, 0.24); }
-.inventory-ref-card.rarity-rare { border-color: rgba(93, 161, 230, 0.30); }
-.inventory-ref-card.rarity-veryrare { border-color: rgba(184, 126, 226, 0.32); }
-.inventory-ref-card.rarity-legendary { border-color: rgba(230, 171, 68, 0.42); box-shadow: 0 18px 44px rgba(0,0,0,0.40), inset 0 0 28px rgba(230,171,68,0.08); }
-.inventory-ref-card.rarity-artifact { border-color: rgba(238, 90, 90, 0.34); }
-
-.inventory-ref-card-equipped {
-  border-color: rgba(96, 198, 214, 0.38) !important;
-  box-shadow: 0 18px 44px rgba(0,0,0,0.38), inset 0 0 26px rgba(77, 190, 211, 0.09);
-}
-
-.inventory-ref-card-art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 112px;
-  background:
-    radial-gradient(circle at center, rgba(86, 190, 211, 0.10), transparent 52%),
-    linear-gradient(180deg, rgba(8, 16, 24, 0.52), rgba(5, 10, 15, 0.82));
-  border-bottom: 1px solid rgba(205, 170, 103, 0.10);
-}
-
-.inventory-ref-card-art span {
-  font-size: 2.35rem;
-  opacity: 0.86;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));
-}
-
-.inventory-ref-card-art img {
-  width: 100%;
-  height: 142px;
-  object-fit: contain;
-  padding: 14px;
-  filter: drop-shadow(0 14px 22px rgba(0,0,0,0.46));
-}
-
-.inventory-ref-card-body {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-}
-
-.inventory-ref-card-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 24px;
-}
-
-.inventory-ref-rarity-label,
-.inventory-ref-equipped-badge,
-.inventory-ref-slot-hint {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  min-height: 24px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(205, 170, 103, 0.14);
-  background: rgba(7, 13, 20, 0.66);
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.inventory-ref-equipped-badge {
-  border-color: rgba(95, 201, 214, 0.32);
-  color: #a6eff5;
-}
-
-.inventory-ref-card-title {
-  margin: 0;
-  color: #f0e2c0;
-  font-size: 1.02rem;
-  line-height: 1.14;
-  text-align: center;
-}
-
-.inventory-ref-card-type {
-  color: rgba(220, 226, 228, 0.62);
-  font-size: 0.83rem;
-  text-align: center;
-}
-
-.inventory-ref-card-stats {
-  justify-content: center;
-}
-
-.inventory-ref-card-stats span {
-  min-height: 24px;
-  padding: 4px 8px;
-  font-size: 0.72rem;
-}
-
-.inventory-ref-card-effect,
-.inventory-ref-card-desc {
-  margin: 0;
-  color: rgba(222, 229, 231, 0.76);
-  font-size: 0.82rem;
-  line-height: 1.42;
-  text-align: center;
-}
-
-.inventory-ref-card-desc {
-  color: rgba(188, 204, 210, 0.68);
-}
-
-.inventory-ref-card-tags {
-  justify-content: center;
-}
-
-.inventory-ref-card-tags span {
-  min-height: 22px;
-  padding: 3px 8px;
-  font-size: 0.68rem;
-}
-
-.inventory-ref-item-actions {
-  display: grid;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.inventory-ref-action-row,
-.inventory-ref-equip-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-
-.inventory-ref-item-actions .btn,
-.inventory-ref-wide-btn,
-.inventory-ref-toolbar-actions .btn {
-  min-height: 32px;
-  padding: 6px 10px;
-  border-radius: 12px;
-  font-size: 0.76rem;
-}
-
-.inventory-ref-slot-select {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: min(100%, 210px);
-}
-
-.inventory-ref-slot-select select {
-  min-height: 32px;
-  padding: 4px 28px 4px 8px;
-  font-size: 0.76rem;
-}
-
-.inventory-ref-panel {
-  padding: 14px;
-  border-radius: 20px;
-}
-
-.inventory-ref-panel-head-compact {
-  margin-bottom: 10px;
-}
-
-.inventory-ref-equipment-meter {
-  overflow: hidden;
-  height: 6px;
-  margin: 10px 0 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-}
-
-.inventory-ref-equipment-meter span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(93, 198, 214, 0.65), rgba(214, 181, 122, 0.72));
-}
-
-.inventory-ref-slot-grid {
-  display: grid;
-  gap: 8px;
-  max-height: 560px;
-  overflow: auto;
-  padding-right: 2px;
-}
-
-.inventory-ref-slot-grid-compact .inventory-ref-slot:nth-child(n + 8) {
-  display: none;
-}
-
-.inventory-ref-slot {
-  position: relative;
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 9px;
-  align-items: center;
-  min-height: 56px;
-  padding: 8px;
-  border-radius: 14px;
-  border: 1px solid rgba(205, 170, 103, 0.12);
-  background: linear-gradient(180deg, rgba(8, 15, 23, 0.88), rgba(5, 10, 16, 0.96));
-}
-
-.inventory-ref-slot-filled {
-  border-color: rgba(96, 198, 214, 0.26);
-  background:
-    radial-gradient(circle at top left, rgba(83, 190, 211, 0.10), transparent 48%),
-    linear-gradient(180deg, rgba(9, 22, 31, 0.93), rgba(5, 12, 18, 0.98));
-}
-
-.inventory-ref-slot-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid rgba(205, 170, 103, 0.14);
-  background: rgba(8, 14, 20, 0.72);
-}
-
-.inventory-ref-slot-label {
-  overflow: hidden;
-  color: rgba(227, 235, 235, 0.74);
-  font-size: 0.76rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.inventory-ref-slot-item {
-  overflow: hidden;
-  font-size: 0.82rem;
-  font-weight: 800;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.inventory-ref-slot-empty {
-  color: rgba(151, 169, 175, 0.68);
-  font-size: 0.78rem;
-}
-
-.inventory-ref-slot-clear {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid rgba(194, 93, 113, 0.24);
-  border-radius: 9px;
-  background: rgba(70, 24, 34, 0.42);
-  color: #ffd1d9;
-  cursor: pointer;
-}
-
-.inventory-ref-wide-btn {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.inventory-ref-effects-panel .muted {
-  color: rgba(198, 210, 214, 0.74);
-}
-
-.inventory-ref-empty {
-  display: grid;
-  place-items: center;
-  min-height: 180px;
-  padding: 24px;
-  border-radius: 20px;
-  text-align: center;
-}
-
-.inventory-ref-empty-icon {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(205, 170, 103, 0.18);
-  color: #f0dfb5;
-  font-size: 1.8rem;
-}
-
-.inventory-ref-table-wrap {
-  overflow: auto;
-  border-radius: 16px;
-}
-
-.inventory-ref-table .inventory-ref-item-actions {
-  min-width: 320px;
-}
-
-.inventory-ref-table-desc {
-  margin-top: 4px;
-  font-size: 0.76rem;
-}
-
-#cabinetCustomItemFormBlock.custom-item-form {
-  border-color: rgba(96, 198, 214, 0.20);
-  background:
-    radial-gradient(circle at top left, rgba(94, 192, 211, 0.075), transparent 28%),
-    linear-gradient(180deg, rgba(8, 15, 23, 0.96), rgba(5, 10, 16, 0.98));
-}
-
-@media (max-width: 1280px) {
-  .inventory-ref-workspace,
-  .inventory-ref-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .inventory-ref-rail {
-    position: static;
-  }
-
-  .inventory-ref-slot-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    max-height: none;
-  }
-}
-
-@media (max-width: 860px) {
-  .inventory-ref-resource-bar,
-  .inventory-ref-filter-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .inventory-ref-search-field {
-    grid-column: 1 / -1;
-  }
-
-  .inventory-ref-hero {
-    padding: 18px;
-  }
-}
-
-@media (max-width: 620px) {
-  .inventory-ref-resource-bar,
-  .inventory-ref-filter-grid,
-  .inventory-ref-category-tabs,
-  .inventory-ref-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .inventory-ref-toolbar-top,
-  .inventory-ref-panel-head,
-  .inventory-ref-results-head {
-    flex-direction: column;
-  }
-
-  .inventory-ref-toolbar-actions,
-  .inventory-ref-action-row,
-  .inventory-ref-equip-row {
-    justify-content: flex-start;
-  }
-}
-
-/* =========================================================
-   ROUND 19 — INVENTORY OVERLAP / READABILITY FIX
-   Цель: убрать наезжающий текст, сделать перечисления в 2 колонки,
-   сохранить reference-визуал без Raid Shadow Legends перегруза.
-   ========================================================= */
-
-.inventory-ref-shell,
-.inventory-ref-shell * {
-  min-width: 0;
-}
-
-.inventory-ref-workspace {
-  align-items: start;
-}
-
-.inventory-ref-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.inventory-ref-card {
-  min-height: 268px;
-  grid-template-rows: auto 1fr;
-}
-
-.inventory-ref-card-art {
-  min-height: 96px;
-}
-
-.inventory-ref-card-art img {
-  height: 118px;
-  padding: 12px;
-}
-
-.inventory-ref-card-body {
-  align-content: start;
-  gap: 9px;
-  min-width: 0;
-}
-
-.inventory-ref-card-title,
-.inventory-ref-card-type,
-.inventory-ref-card-desc,
-.inventory-ref-card-effect,
-.inventory-ref-card-tags span,
-.inventory-ref-card-stats span,
-.inventory-ref-slot-item,
-.inventory-ref-slot-label,
-.inventory-ref-slot-copy,
-.inventory-ref-table-desc {
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
-.inventory-ref-card-title {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 2.3em;
-}
-
-.inventory-ref-card-type {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.inventory-ref-card-effect,
-.inventory-ref-card-desc {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-align: left;
-}
-
-.inventory-ref-card-effect {
-  -webkit-line-clamp: 3;
-}
-
-.inventory-ref-card-desc {
-  -webkit-line-clamp: 2;
-}
-
-.inventory-ref-card-stats,
-.inventory-ref-card-tags {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  justify-content: stretch;
-}
-
-.inventory-ref-card-stats span,
-.inventory-ref-card-tags span {
-  width: 100%;
-  justify-content: center;
-  text-align: center;
-  white-space: normal;
-  line-height: 1.18;
-}
-
-.inventory-ref-item-actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-  align-self: end;
-}
-
-.inventory-ref-item-actions .btn,
-.inventory-ref-action-row .btn,
-.inventory-ref-equip-row .btn {
-  width: 100%;
-  min-width: 0;
-  min-height: 36px;
-  padding: 7px 9px;
-  white-space: normal;
-  line-height: 1.15;
-}
-
-.inventory-ref-list .inventory-ref-card {
-  grid-template-columns: 86px minmax(0, 1fr);
-  grid-template-rows: 1fr;
-  min-height: 132px;
-}
-
-.inventory-ref-list .inventory-ref-card-art {
-  min-height: 100%;
-  border-right: 1px solid rgba(205, 170, 103, 0.10);
-  border-bottom: 0;
-}
-
-.inventory-ref-list .inventory-ref-card-body {
-  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
-  grid-template-areas:
-    "topline actions"
-    "title actions"
-    "type actions"
-    "stats actions"
-    "effect actions"
-    "tags actions";
-  align-items: start;
-}
-
-.inventory-ref-list .inventory-ref-card-topline { grid-area: topline; }
-.inventory-ref-list .inventory-ref-card-title { grid-area: title; text-align: left; min-height: auto; }
-.inventory-ref-list .inventory-ref-card-type { grid-area: type; text-align: left; }
-.inventory-ref-list .inventory-ref-card-stats { grid-area: stats; grid-template-columns: repeat(2, minmax(0, 160px)); justify-content: start; }
-.inventory-ref-list .inventory-ref-card-effect { grid-area: effect; }
-.inventory-ref-list .inventory-ref-card-desc { grid-area: effect; }
-.inventory-ref-list .inventory-ref-card-tags { grid-area: tags; grid-template-columns: repeat(2, minmax(0, 150px)); justify-content: start; }
-.inventory-ref-list .inventory-ref-item-actions { grid-area: actions; align-self: stretch; }
-
-.inventory-ref-table-wrap {
-  overflow-x: auto;
-}
-
-.inventory-ref-table {
-  min-width: 980px;
-}
-
-.inventory-ref-table td,
-.inventory-ref-table th {
-  vertical-align: top;
-}
-
-.inventory-ref-table-desc {
-  max-width: 440px;
-  line-height: 1.3;
-}
-
-.inventory-ref-rail {
-  min-width: 280px;
-}
-
-.inventory-ref-slot-grid,
-.inventory-ref-slot-grid-compact {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.inventory-ref-slot {
-  min-height: 78px;
-}
-
-.inventory-ref-slot-filled {
-  align-items: start;
-}
-
-.inventory-ref-slot-item {
-  line-height: 1.2;
-}
-
-.inventory-ref-slot-copy {
-  font-size: 0.72rem;
-  line-height: 1.22;
-}
-
-.inventory-ref-effects-panel {
-  max-height: 360px;
-  overflow: auto;
-}
-
-@media (max-width: 1280px) {
-  .inventory-ref-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .inventory-ref-rail {
-    min-width: 0;
-  }
-
-  .inventory-ref-slot-grid,
-  .inventory-ref-slot-grid-compact {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 860px) {
-  .inventory-ref-grid {
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  }
-
-  .inventory-ref-list .inventory-ref-card {
-    grid-template-columns: 1fr;
-  }
-
-  .inventory-ref-list .inventory-ref-card-art {
-    border-right: 0;
-    border-bottom: 1px solid rgba(205, 170, 103, 0.10);
-  }
-
-  .inventory-ref-list .inventory-ref-card-body {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "topline"
-      "title"
-      "type"
-      "stats"
-      "effect"
-      "tags"
-      "actions";
-  }
-
-  .inventory-ref-slot-grid,
-  .inventory-ref-slot-grid-compact {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
 /* =========================================================
    ROUND 20 — UX CLEANUP: CABINET MODULES / MAP / TRADER NAV
@@ -11496,18 +10479,6 @@ body.cabinet-tab-inventory #cabinet-inventory {
    ========================================================= */
 
 /* ---------- global modal/body stabilization ---------- */
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* ---------- cabinet module cleanup / anchors ---------- */
@@ -12241,21 +11212,6 @@ body.cabinet-tab-inventory #cabinet-inventory {
 
 /* Торговец: всё управление в одной шапке, без блуждающих крестиков. */
 
-
-
-
-
-
-
-
-
-
-@media (max-width: 760px) {
-  
-  
-  
-}
-
 /* =========================================================
    ROUND 23 — REAL DISCLOSURE / LESS OVERLOAD
    Scope: кабинетные модули, map control drawers, компактные прозрачные стрелки.
@@ -12482,31 +11438,7 @@ body.cabinet-tab-inventory #cabinet-inventory {
 /* Главный принцип: настраиваемое/редактируемое/добавляемое прячем в шторки. */
 
 /* Инвентарь: фильтры и слоты теперь не вываливаются сразу. */
-#cabinet-inventory .inventory-ref-toolbar {
-  margin-bottom: 0;
-}
 
-#cabinet-inventory .inventory-ref-toolbar-top {
-  gap: 12px;
-}
-
-#cabinet-inventory .inventory-ref-toolbar-actions {
-  flex-wrap: wrap;
-}
-
-#cabinet-inventory .inventory-ref-rail {
-  min-width: 0;
-}
-
-#cabinet-inventory .inventory-ref-slot-grid-compact {
-  max-height: 305px;
-  overflow: auto;
-  padding-right: 3px;
-}
-
-#cabinet-inventory .inventory-ref-slot {
-  min-width: 0;
-}
 
 /* Модули с редакторами: делаем их визуально вторичными, пока не раскрыты. */
 
@@ -16258,17 +15190,6 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
 /* Торговая модалка: один визуальный слой, один крестик, компактный header */
 
 
-
-
-
-
-
-
-
-
-
-
-
 @media (max-width: 1540px) {
   body.cabinet-tab-masterroom #cabinetModal .cabinet-layout {
     grid-template-columns: minmax(170px, 200px) minmax(0, 1fr) !important;
@@ -16639,20 +15560,6 @@ body.cabinet-tab-masterroom #cabinetModal .cabinet-main {
 }
 
 /* Trader modal: one chrome, no visual layer clash */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 @media (max-width: 1500px) {
@@ -17191,8 +16098,6 @@ body,
 /* Старые дефолтные белые/серые кнопки больше не должны пробиваться в канон-зонах. */
 
 
-
-
 /* ---------------------------------------------------------------------------
    02. CABINET RAIL CANON — стрелка реально сжимает левый столбец
    --------------------------------------------------------------------------- */
@@ -17506,56 +16411,13 @@ body,
    --------------------------------------------------------------------------- */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* Нижний дубль экономики скрыт: верхняя economy-strip является источником правды. */
-
-
-
-
-
-
-
-
-
-
 
 
 /* Фильтры ассортимента — компактные, не забирают высоту таблицы. */
 
 
-
-
-
-
 /* Таблица ассортимента: больше видимых строк, внутренний скролл, sticky header. */
-
-
-
-
-
-
-
 
 
 /* ---------------------------------------------------------------------------
@@ -17589,13 +16451,6 @@ body,
   #traderModal .compact-collection-toolbar {
     grid-template-columns: minmax(170px, 1fr) minmax(160px, 0.8fr) minmax(120px, 0.65fr) minmax(120px, 0.65fr) !important;
   }
-}
-
-@media (max-width: 1100px) {
-  
-  
-  
-  
 }
 
 @media (max-width: 760px) {
@@ -17681,149 +16536,6 @@ body,
 }
 
 /* =========================================================
-   ROUND 79 — INVENTORY MODULE DENSITY / QUICKBAR / EQUIPMENT SCROLL
-   Scope: #cabinet-inventory only. Keeps other modules untouched.
-   ========================================================= */
-
-#cabinet-inventory .inventory-ref-hero-compact {
-  min-height: auto;
-}
-
-#cabinet-inventory .inventory-ref-resource-bar {
-  align-self: start;
-}
-
-#cabinet-inventory .inventory-ref-hero-tags span:last-child {
-  color: rgba(240, 224, 186, 0.82);
-}
-
-#cabinet-inventory .inventory-ref-quickbar {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(150px, 190px) minmax(135px, 170px);
-  gap: 10px;
-  align-items: end;
-  padding: 10px;
-  border-radius: 16px;
-  border: 1px solid rgba(126, 198, 214, 0.12);
-  background: linear-gradient(180deg, rgba(8, 16, 24, 0.70), rgba(5, 10, 16, 0.90));
-}
-
-#cabinet-inventory .inventory-ref-quickbar .filter-group label,
-#cabinet-inventory .inventory-ref-advanced-filters .filter-group label {
-  color: rgba(213, 226, 229, 0.78);
-}
-
-#cabinet-inventory .inventory-ref-quickbar input,
-#cabinet-inventory .inventory-ref-quickbar select,
-#cabinet-inventory .inventory-ref-advanced-filters select {
-  min-height: 36px;
-}
-
-#cabinet-inventory .inventory-ref-advanced-filters {
-  padding: 10px;
-  border-radius: 16px;
-  border: 1px solid rgba(205, 170, 103, 0.10);
-  background: rgba(6, 12, 18, 0.58);
-}
-
-#cabinet-inventory .inventory-ref-toolbar-actions .btn {
-  min-height: 34px;
-}
-
-#cabinet-inventory .inventory-ref-toolbar h3 {
-  font-size: 0.98rem;
-}
-
-#cabinet-inventory .inventory-ref-results-head {
-  margin-bottom: 10px;
-}
-
-#cabinet-inventory .inventory-ref-empty h3 {
-  margin: 0 0 6px;
-  font-size: 1.08rem;
-}
-
-#cabinet-inventory .inventory-ref-empty p {
-  margin: 0;
-  font-size: 0.88rem;
-}
-
-#cabinet-inventory .inventory-ref-empty-icon {
-  width: 50px;
-  height: 50px;
-  margin-bottom: 10px;
-  border-radius: 16px;
-  font-size: 1.35rem;
-}
-
-#cabinet-inventory .inventory-ref-rail,
-#cabinet-inventory .inventory-ref-slot-grid,
-#cabinet-inventory .inventory-ref-effects-panel,
-#cabinet-inventory .inventory-ref-table-wrap,
-#cabinet-inventory .inventory-ref-category-tabs {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(95, 192, 210, 0.48) rgba(5, 10, 16, 0.40);
-}
-
-#cabinet-inventory .inventory-ref-slot-grid::-webkit-scrollbar,
-#cabinet-inventory .inventory-ref-effects-panel::-webkit-scrollbar,
-#cabinet-inventory .inventory-ref-table-wrap::-webkit-scrollbar,
-#cabinet-inventory .inventory-ref-category-tabs::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-#cabinet-inventory .inventory-ref-slot-grid::-webkit-scrollbar-track,
-#cabinet-inventory .inventory-ref-effects-panel::-webkit-scrollbar-track,
-#cabinet-inventory .inventory-ref-table-wrap::-webkit-scrollbar-track,
-#cabinet-inventory .inventory-ref-category-tabs::-webkit-scrollbar-track {
-  background: rgba(5, 10, 16, 0.45);
-  border-radius: 999px;
-}
-
-#cabinet-inventory .inventory-ref-slot-grid::-webkit-scrollbar-thumb,
-#cabinet-inventory .inventory-ref-effects-panel::-webkit-scrollbar-thumb,
-#cabinet-inventory .inventory-ref-table-wrap::-webkit-scrollbar-thumb,
-#cabinet-inventory .inventory-ref-category-tabs::-webkit-scrollbar-thumb {
-  background: rgba(95, 192, 210, 0.45);
-  border-radius: 999px;
-  border: 2px solid rgba(5, 10, 16, 0.50);
-}
-
-#cabinet-inventory .inventory-ref-panel-head-compact {
-  align-items: center;
-}
-
-#cabinet-inventory .inventory-ref-slot {
-  min-height: 64px;
-}
-
-#cabinet-inventory .inventory-ref-slot-grid-compact .inventory-ref-slot:nth-child(n + 9) {
-  display: none;
-}
-
-@media (max-width: 1180px) {
-  #cabinet-inventory .inventory-ref-quickbar {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  #cabinet-inventory .inventory-ref-search-field {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 720px) {
-  #cabinet-inventory .inventory-ref-quickbar,
-  #cabinet-inventory .inventory-ref-advanced-filters {
-    grid-template-columns: 1fr;
-  }
-
-  #cabinet-inventory .inventory-ref-hero h2 {
-    font-size: 1.85rem;
-  }
-}
-
-/* =========================================================
    TRADER FLOATING SCROLL CONTROLS FIX
    Scope: only trader page + trader modal arrows.
    Fixes arrows that were rendered as normal bottom blocks instead of
@@ -17906,22 +16618,6 @@ body,
   transform: translateY(-1px) !important;
 }
 
-
-
-
-
-
-
-
-@media (max-width: 720px) {
-  
-  
-}
-
-@media (prefers-reduced-motion: reduce) {
-  
-}
-
 /* =========================================================
    ROUND 82 — TRADER MODAL SCROLL + LAYOUT REGRESSION FIX
    Scope: only #traderModal.
@@ -17933,57 +16629,6 @@ body,
    - modal arrows must float over the modal, not inside the table.
    ========================================================= */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@media (max-width: 1180px) {
-  
-  
-  
-  
-  
-  
-}
-
-@media (max-width: 760px) {
-  
-  
-  
-}
 /* ============================================================
    TRADER MODAL STABILIZATION — round83
    Scope: only #traderModal and trader page floating arrows.
@@ -17993,55 +16638,6 @@ body,
    - #modalContent is the single vertical scroll owner
    - table/buttons returned to readable size
    ============================================================ */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 .traders-page-scroll-controls {
@@ -18091,73 +16687,12 @@ body,
   font-weight: 900 !important;
 }
 
-@media (max-width: 1180px) {
-  
-  
-  
-  
-  
-  
-  
-}
-
-@media (max-width: 720px) {
-  
-  
-  
-  
-}
-
 /* =========================================================
    ROUND 84 — TRADER MODAL SAFE DENSITY PASS FROM ROUND83
    Scope: #traderModal only.
    Base: previous stable scroll layout. Does NOT rewrite modal structure.
    Goals: slightly smaller 100% scale, stable columns, visible horizontal table scroll.
    ========================================================= */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@media (max-width: 1320px) {
-  
-  
-  
-}
 
 /* =========================================================
    ROUND 85 — TRADER MODAL LAYOUT REPAIR FROM ROUND84 CANON
@@ -18170,79 +16705,10 @@ body,
    ========================================================= */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* Real table viewport: both axes belong to the same visible container. */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* Keep modal arrows off the table's horizontal scrollbar. */
-
-
-
-
-@media (max-width: 1420px) {
-  
-  
-  
-  
-  
-}
-
-@media (max-width: 1120px) {
-  
-  
-  
-  
-  
-}
 
 /* =========================================================
    ROUND 86 — TRADER MODAL PORTRAIT / TABLE SCROLL / ARROWS RETUNE
@@ -18256,40 +16722,15 @@ body,
    ========================================================= */
 
 
-
-
-
-
-
-
-
-
 /* The right side must never force the whole modal wider than the viewport. */
 
 /* Make the table viewport the only horizontal scroll owner. */
 
 
-
-
-
 /* Let horizontal scroll reveal the action column instead of clipping/sticky overlays. */
 
 
-
-
 /* Kill the inherited giant pill behind the scroll arrows. */
-
-
-
-@media (max-width: 1420px) {
-  
-  
-  
-}
-
-@media (max-width: 1120px) {
-  
-}
 
 /* =========================================================
    ROUND 87 — TRADER MODAL FULL-WIDTH TRADE WORKSPACE
@@ -18300,47 +16741,13 @@ body,
    ========================================================= */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* The complete trading workspace is full-width below the trader intro. */
-
-
-
-
 
 
 /* Full-width table viewport: horizontal scroll lives here and stays reachable. */
 
 
-
-
-
 /* Keep vertical helper arrows tiny and away from the table center. */
-
-
-@media (max-width: 1320px) {
-  
-  
-  
-}
-
-@media (max-width: 980px) {
-  
-  
-}
 
 /* =========================================================
    ROUND 88 — TRADER MODAL WORKSPACE STRUCTURE REPAIR
@@ -18351,15 +16758,10 @@ body,
    ========================================================= */
 
 
-
-
-
 /* Backward-compatible guard: if an older render still places workline
    inside .trader-modal-header, force it to span the whole modal. */
 
 /* Canon render: workline is a sibling below the intro. */
-
-
 
 
 /* Trading panel should visually read as centered full modal workspace. */
@@ -18371,12 +16773,6 @@ body,
 /* Do not pin the action column: it must be revealed by horizontal scroll. */
 
 /* Keep helper arrows tiny and out of the workspace center. */
-
-
-@media (max-width: 1180px) {
-  
-  
-}
 
 /* =========================================================
    ROUND 89 — TRADER MODAL COMPACT FIT PASS
@@ -18391,31 +16787,13 @@ body,
 /* Intro stays readable, but stops eating horizontal/vertical space. */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* Top tabs / category buttons: smaller, still readable. */
 
 
 /* Filters: one compact row on desktop, less padding. */
 
 
-
-
-
-
 /* Table: prefer fitting inside the modal instead of forcing a too-wide 1560px sheet. */
-
-
 
 
 /* Compact column plan. Keeps every column usable and gives actions enough room. */
@@ -18455,12 +16833,6 @@ body,
   }
 }
 
-@media (max-width: 980px) {
-  
-  
-  
-}
-
 /* =========================================================
    ROUND 90 — TRADER TABLE RARITY COLOR CONSISTENCY / GRID ARTIFACT CLEANUP
    Scope: #traderModal only.
@@ -18474,20 +16846,8 @@ body,
    are not recolored accidentally. */
 
 
-
-
-
-
-
-
-
 /* Softer table grid: avoid the doubled full-cell border that looked like
    a stray outline/line through an item row. */
-
-
-
-
-
 
 
 /* =========================================================
@@ -26197,54 +24557,16 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 /* Portrait must size to content, not stretch to the whole right column height. */
 
 
-
-
-
-
-
-
 /* Right side: compact NPC passport, no giant empty top banner. */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* The actual trade workspace: always below the intro, centered and full modal width. */
-
-
-
-
 
 
 /* Table still uses its own horizontal scroll; it is not squeezed into the intro. */
 
 
 /* Softer grid: the row/column borders should not read as a line artifact through items. */
-
-
-
-
-
-@media (max-width: 1320px) {
-  
-  
-  
-}
-
-@media (max-width: 980px) {
-  
-  
-}
 
 /* =========================================================
    ROUND 121 — TRADER MODAL HARD OVERRIDE / REAL CURRENT CSS FIX
@@ -26262,48 +24584,16 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 /* Reset the old grid/full-height modal passes. */
 
 
-
-
 /* Intro row: portrait left, compact NPC passport right. */
 
 
 /* The black hole was the image wrapper/image height mismatch from old passes. */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* Trade workspace: below intro, not inside the left portrait column. */
 
 
-
-
 /* Table viewport: a contained table with horizontal scroll, but no heavy grid-line artifact. */
-
-
-
-
-
-
-@media (max-width: 1320px) {
-  
-  
-  
-}
-
-@media (max-width: 980px) {
-  
-  
-}
 
 /* =========================================================
    ROUND 122 — TRADER MODAL SINGLE VERTICAL SCROLL / COMPACT TOP
@@ -26321,20 +24611,7 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 /* Shorter portrait intro: avoids a huge empty top area and gets shop controls higher. */
 
 
-
-
-
-
-
-
-
-
 /* Keep the NPC passport compact; no fake giant blank card. */
-
-
-
-
-
 
 
 /* Trade controls are below the intro and must not create another scroll owner. */
@@ -26348,15 +24625,6 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 
 
 /* Hide accidental nested scrollbars from old passes if a browser still paints them. */
-
-@media (max-width: 1320px) {
-  
-  
-}
-
-@media (max-width: 980px) {
-  
-}
 
 /* =========================================================
    ROUND 123 — TRADER MODAL SCALE / PERFORMANCE / CARD BALANCE
@@ -26376,17 +24644,7 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 /* The portrait card should read as a real NPC card, not a tiny thumbnail next to empty space. */
 
 
-
-
-
-
-
 /* Right passport: compact, but visually purposeful. */
-
-
-
-
-
 
 
 /* Do not let table/sidebar scrollbars multiply again. Modal owns vertical scroll. */
@@ -26394,8 +24652,6 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
 /* Table performance: horizontal overflow only, with less expensive paint. */
 
 /* The visible line across item rows was a too-strong table grid/border. */
-
-
 
 
 /* The floating up/down buttons should not sit on the content like a second scrollbar. */
@@ -26417,14 +24673,5 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
   #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-reputation-card {
     padding: 8px 10px !important;
   }
-}
-
-@media (max-width: 1320px) {
-  
-  
-}
-
-@media (max-width: 980px) {
-  
 }
 
