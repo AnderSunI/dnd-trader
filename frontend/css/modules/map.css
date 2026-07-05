@@ -1,0 +1,4101 @@
+/* ==========================================================================
+   D&D Trader — модуль карты
+   ========================================================================== 
+   Назначение:
+   - визуал вкладки «Карта» внутри личного кабинета;
+   - карта/сцена, маркеры, подписи, zoom/rotation/fullscreen;
+   - правая панель локаций и быстрый редактор маркеров;
+   - нижние списки связанных квестов/событий.
+
+   Область ответственности:
+   - body.cabinet-tab-map;
+   - #cabinet-map;
+   - .map-* правила, относящиеся к карте.
+
+   Не трогает:
+   - оболочку кабинета в cabinet-shell.css;
+   - инвентарь в inventory.css;
+   - лист персонажа/LSS в character.css;
+   - Master Room и боевой модуль;
+   - историю, задания, файлы и заметки.
+
+   Визуальные референсы:
+   - Referens/Карта.png;
+   - общий тёмный fantasy/glass стиль проекта.
+
+   Источник:
+   - вынесено из frontend/css/styles.css;
+   - старый CSS в монолите пока оставлен как страховка;
+   - после визуальной проверки отдельным pass будет cleanup styles.css.
+
+   Безопасно править здесь:
+   - размеры и сетку карты;
+   - правую панель локаций;
+   - маркеры, подписи, легенду, zoom/fullscreen controls;
+   - адаптив вкладки карты.
+
+   Опасно править здесь:
+   - глобальные .modal/.btn/input/select;
+   - базовую сетку кабинета;
+   - стили Master Room/боевого режима.
+   ========================================================================== */
+
+body.cabinet-tab-map #cabinetModal[data-cabinet-layout-mode="modal"] .cabinet-modal-content {
+  padding: 14px;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(214, 181, 122, 0.07), transparent 22%),
+    radial-gradient(circle at 80% 8%, rgba(134, 203, 211, 0.08), transparent 20%),
+    linear-gradient(180deg, rgba(7, 13, 18, 0.995), rgba(3, 7, 11, 0.998));
+}
+
+body.cabinet-tab-map .cabinet-header {
+  display: none;
+}
+
+body.cabinet-tab-map .cabinet-layout {
+  grid-template-columns: 238px minmax(0, 1fr);
+  gap: 14px;
+}
+
+body.cabinet-tab-map .cabinet-sidebar {
+  min-height: calc(100vh - 52px);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at center 8%, rgba(134, 203, 211, 0.12), transparent 18%),
+    linear-gradient(180deg, rgba(11, 18, 23, 0.98), rgba(4, 8, 12, 0.998));
+  border-color: rgba(214, 181, 122, 0.24);
+}
+
+/* =========================================================
+   МОДУЛЬ КАРТЫ
+   ========================================================= */
+
+#cabinet-map {
+  min-width: 0;
+}
+
+.map-reference-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 294px;
+  gap: 14px;
+  min-height: calc(100vh - 52px);
+  color: #d8d1c4;
+}
+
+.map-main-panel,
+.map-location-rail {
+  min-width: 0;
+}
+
+.map-main-panel {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+}
+
+.map-reference-head {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.25fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.map-title-block h2 {
+  margin: 0;
+  color: #ead7ad;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.56rem;
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+.map-title-block h2 span {
+  color: #d6b57a;
+  font-size: 1rem;
+}
+
+.map-title-block p {
+  margin: 5px 0 0;
+  color: #9da7a5;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.88rem;
+}
+
+.map-search {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  height: 46px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(214, 181, 122, 0.27);
+  background: linear-gradient(180deg, rgba(11, 18, 22, 0.92), rgba(5, 9, 13, 0.98));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025);
+}
+
+.map-search span {
+  color: #c2a168;
+  font-size: 1.16rem;
+}
+
+.map-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e9e2d4;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.map-head-actions,
+.map-filter-actions,
+.map-create-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.map-filter-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.map-filter-tabs {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.map-filter-tab {
+  appearance: none;
+  min-height: 38px;
+  padding: 8px 14px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border-radius: 6px;
+  color: #b9ad98;
+  border: 1px solid rgba(214, 181, 122, 0.18);
+  background: linear-gradient(180deg, rgba(14, 22, 27, 0.94), rgba(6, 11, 15, 0.98));
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-filter-tab.active,
+.map-filter-tab:hover {
+  color: #f1eadc;
+  border-color: rgba(134, 203, 211, 0.42);
+  background: linear-gradient(180deg, rgba(22, 57, 60, 0.9), rgba(9, 34, 38, 0.98));
+  box-shadow: 0 0 18px rgba(82, 200, 206, 0.12);
+}
+
+.map-status-strip,
+.map-viewport-info {
+  display: none;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #8f9a99;
+  font-size: 0.75rem;
+}
+
+.map-status-strip span,
+.map-viewport-info {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(4, 10, 14, 0.58);
+  border: 1px solid rgba(214, 181, 122, 0.10);
+}
+
+.map-create-panel {
+  padding: 12px;
+  border: 1px solid rgba(214, 181, 122, 0.18);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at top left, rgba(134, 203, 211, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(11, 18, 23, 0.96), rgba(5, 9, 13, 0.99));
+}
+
+.map-create-panel[hidden] {
+  display: none;
+}
+
+.map-panel-title,
+.map-card-heading span {
+  color: #d7b77c;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+}
+
+.map-create-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(220px, 1fr) minmax(180px, 0.7fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.map-stage-shell {
+  min-height: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(214, 181, 122, 0.22);
+  background: linear-gradient(180deg, rgba(11, 18, 22, 0.94), rgba(5, 9, 13, 0.99));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 22px 48px rgba(0,0,0,0.32);
+}
+
+.map-stage-outer {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 590px;
+  height: min(64vh, 620px);
+  border-radius: 8px;
+  user-select: none;
+  touch-action: none;
+  background:
+    radial-gradient(circle at center, rgba(214, 181, 122, 0.10), transparent 28%),
+    linear-gradient(180deg, rgba(8, 14, 18, 0.98), rgba(3, 7, 11, 0.99));
+}
+
+.map-stage-outer::before,
+.map-stage-outer::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  z-index: 5;
+  pointer-events: none;
+  border: 1px solid rgba(214, 181, 122, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(1, 5, 8, 0.55);
+}
+
+.map-stage-outer::after {
+  inset: 0;
+  border: 0;
+  background:
+    linear-gradient(90deg, rgba(1, 4, 7, 0.50), transparent 10%, transparent 90%, rgba(1, 4, 7, 0.56)),
+    linear-gradient(180deg, rgba(1, 4, 7, 0.42), transparent 12%, transparent 86%, rgba(1, 4, 7, 0.62));
+}
+
+.map-transform-layer {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.map-active-image,
+.map-fallback-board {
+  width: 100%;
+  height: 100%;
+  min-height: 590px;
+  object-fit: cover;
+  border-radius: 7px;
+  filter: saturate(0.86) contrast(1.05) brightness(0.72);
+  user-select: none;
+  pointer-events: auto;
+}
+
+.map-fallback-board {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 34% 52%, rgba(196, 147, 77, 0.30), transparent 12%),
+    radial-gradient(ellipse at 62% 42%, rgba(104, 144, 128, 0.26), transparent 16%),
+    radial-gradient(ellipse at 72% 70%, rgba(72, 105, 122, 0.30), transparent 18%),
+    radial-gradient(ellipse at 22% 72%, rgba(35, 71, 87, 0.38), transparent 22%),
+    linear-gradient(135deg, rgba(16, 25, 20, 0.92), rgba(41, 39, 28, 0.96) 46%, rgba(10, 28, 34, 0.98));
+}
+
+.map-fallback-board::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(240, 215, 154, 0.18), transparent 4%),
+    radial-gradient(circle at 49% 49%, rgba(240, 215, 154, 0.28), transparent 5%),
+    radial-gradient(circle at 78% 56%, rgba(240, 215, 154, 0.18), transparent 4%),
+    repeating-linear-gradient(28deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 21px);
+  opacity: 0.65;
+}
+
+.map-region-label {
+  position: absolute;
+  z-index: 2;
+  color: #e6d2a6;
+  font-family: Georgia, "Times New Roman", serif;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.75);
+  border-bottom: 1px solid rgba(214, 181, 122, 0.4);
+}
+
+.map-region-label-main { left: 31%; top: 26%; }
+.map-region-label-west { left: 16%; top: 40%; }
+.map-region-label-east { right: 15%; top: 43%; }
+
+.map-route {
+  position: absolute;
+  z-index: 1;
+  border-top: 3px dotted rgba(236, 198, 126, 0.78);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
+}
+
+.map-route-a { left: 24%; top: 46%; width: 54%; transform: rotate(11deg); }
+.map-route-b { left: 34%; top: 62%; width: 46%; transform: rotate(-17deg); }
+.map-route-c { left: 43%; top: 36%; width: 28%; transform: rotate(24deg); }
+
+.map-compass {
+  position: absolute;
+  z-index: 7;
+  left: 28px;
+  top: 24px;
+  width: 92px;
+  height: 92px;
+  color: #c8b083;
+  pointer-events: none;
+}
+
+.map-compass span {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  transform: translateX(-50%);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.map-compass i {
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(214, 181, 122, 0.36);
+  transform: rotate(45deg);
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.42);
+}
+
+.map-world-marker {
+  position: absolute;
+  z-index: 8;
+  transform: translate(-50%, -50%);
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #f0e8d8;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.map-world-marker-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #f3e4c8;
+  border: 2px solid currentColor;
+  background: radial-gradient(circle at center, rgba(6, 12, 15, 0.92), rgba(2, 5, 8, 0.98));
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.42), 0 0 20px var(--marker-glow, rgba(214, 181, 122, 0.35));
+}
+
+.map-world-marker-label {
+  position: absolute;
+  top: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 150px;
+  color: #eadfc9;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.78rem;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.92);
+}
+
+.map-world-marker-active .map-world-marker-icon {
+  color: #9ee8ef;
+  box-shadow: 0 0 0 7px rgba(214, 181, 122, 0.22), 0 0 28px rgba(134, 203, 211, 0.42);
+}
+
+.map-zoom-dock,
+.map-world-chip,
+.map-legend-toggle {
+  position: absolute;
+  z-index: 9;
+  bottom: 18px;
+}
+
+.map-zoom-dock {
+  left: 160px;
+  width: 280px;
+  min-height: 42px;
+  padding: 7px 10px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 10px;
+  align-items: center;
+  border-radius: 7px;
+  border: 1px solid rgba(214, 181, 122, 0.20);
+  background: rgba(5, 10, 14, 0.86);
+}
+
+.map-zoom-dock .btn {
+  min-height: 28px;
+  padding: 2px 9px;
+}
+
+.map-zoom-track {
+  position: relative;
+  height: 2px;
+  background: rgba(214, 181, 122, 0.34);
+}
+
+.map-zoom-track span {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: #d6b57a;
+  border: 1px solid #f2e0aa;
+}
+
+.map-world-chip,
+.map-legend-toggle {
+  min-height: 42px;
+  padding: 8px 18px;
+  color: #d8c39a;
+  border-radius: 7px;
+  border: 1px solid rgba(214, 181, 122, 0.22);
+  background: rgba(5, 10, 14, 0.86);
+  font-family: Georgia, "Times New Roman", serif;
+  cursor: pointer;
+}
+
+.map-world-chip { left: 18px; }
+
+.map-legend-toggle {
+  right: 18px;
+  min-width: 184px;
+}
+
+.map-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 0.78fr;
+  gap: 14px;
+}
+
+.map-bottom-card,
+.map-location-card {
+  border-radius: 8px;
+  border: 1px solid rgba(214, 181, 122, 0.20);
+  background:
+    radial-gradient(circle at top left, rgba(214, 181, 122, 0.05), transparent 26%),
+    linear-gradient(180deg, rgba(9, 16, 21, 0.95), rgba(4, 8, 12, 0.99));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+}
+
+.map-bottom-card,
+.map-location-card {
+  padding: 12px;
+}
+
+.map-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.map-card-heading strong {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-grid;
+  place-items: center;
+  color: #d9bf86;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 181, 122, 0.28);
+}
+
+.map-bottom-row,
+.map-event-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.map-bottom-row button,
+.map-event-row > div,
+.map-event-row button,
+.map-card-link {
+  min-height: 46px;
+  padding: 8px 10px;
+  color: #cfc6b6;
+  border-radius: 7px;
+  border: 1px solid rgba(214, 181, 122, 0.12);
+  background: rgba(5, 10, 14, 0.58);
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-bottom-row button,
+.map-event-row > div {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.map-bottom-row strong,
+.map-bottom-row small,
+.map-event-row strong,
+.map-event-row small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-bottom-row small,
+.map-event-row small {
+  color: #928d84;
+  font-size: 0.74rem;
+}
+
+.map-location-rail {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.map-location-image {
+  aspect-ratio: 16 / 6;
+  overflow: hidden;
+  border-radius: 7px;
+  border: 1px solid rgba(214, 181, 122, 0.22);
+}
+
+.map-location-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.88) brightness(0.78);
+}
+
+.map-location-title-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.map-location-title-row h3 {
+  margin: 0;
+  color: #ead7ad;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.18rem;
+}
+
+.map-location-title-row span {
+  padding: 3px 8px;
+  color: #d8c28e;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 181, 122, 0.26);
+  font-size: 0.72rem;
+}
+
+.map-location-meta {
+  margin-top: 10px;
+  display: grid;
+  gap: 7px;
+  color: #9da7a5;
+  font-size: 0.82rem;
+}
+
+.map-location-meta p,
+.map-location-copy {
+  margin: 0;
+}
+
+.map-location-meta strong {
+  color: #86c989;
+}
+
+.map-location-copy {
+  margin-top: 12px;
+  color: #a69c8c;
+  line-height: 1.52;
+}
+
+.map-location-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.map-location-actions .btn {
+  min-height: 58px;
+  padding: 7px;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  font-size: 0.72rem;
+}
+
+.map-compact-list,
+.map-quest-list,
+.map-list-stack,
+.map-marker-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.map-compact-row,
+.map-quest-list > div,
+.map-list-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-height: 48px;
+  padding: 7px;
+  border-bottom: 1px solid rgba(214, 181, 122, 0.08);
+}
+
+.map-compact-row img {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(214, 181, 122, 0.22);
+}
+
+.map-compact-row strong,
+.map-compact-row small,
+.map-quest-list strong,
+.map-quest-list small,
+.map-list-row strong,
+.map-list-row small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-compact-row small,
+.map-quest-list small,
+.map-list-row small {
+  color: #918b80;
+  font-size: 0.75rem;
+}
+
+.map-card-link {
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.map-quest-list > div {
+  grid-template-columns: 32px minmax(0, 1fr);
+}
+
+.map-quest-list p {
+  margin: 0;
+}
+
+.map-management-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.48fr);
+  gap: 14px;
+}
+
+.map-list-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border: 1px solid rgba(214, 181, 122, 0.10);
+  border-radius: 7px;
+  background: rgba(4, 9, 13, 0.55);
+}
+
+.map-list-row-active {
+  border-color: rgba(134, 203, 211, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(134, 203, 211, 0.08);
+}
+
+.map-list-row > div:last-child {
+  display: flex;
+  gap: 6px;
+}
+
+.map-marker-row {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: #d9d0bf;
+  border: 1px solid rgba(214, 181, 122, 0.12);
+  background: rgba(5, 10, 14, 0.56);
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-marker-row span {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--marker-color, #98dfe3);
+  box-shadow: 0 0 10px var(--marker-color, #98dfe3);
+}
+
+.map-marker-row.active {
+  border-color: rgba(134, 203, 211, 0.34);
+}
+
+.map-marker-edit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.map-marker-edit-grid input[type="color"] {
+  min-height: 38px;
+  padding: 4px;
+}
+
+.map-marker-coords {
+  margin-top: 8px;
+  color: #928b7f;
+  font-size: 0.78rem;
+}
+
+
+/* Карта: фильтры и редактор — в шторках, карта и выбранная точка остаются главными. */
+.map-control-drawer {
+  margin: 10px 0 12px;
+  border: 1px solid rgba(214, 181, 122, 0.13);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(126, 205, 220, 0.06), transparent 32%),
+    linear-gradient(180deg, rgba(8, 16, 25, 0.74), rgba(5, 10, 16, 0.9));
+  overflow: hidden;
+}
+
+.map-control-drawer > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.map-control-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.map-control-drawer > summary::before {
+  content: "▸";
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 205, 220, 0.14);
+  background: rgba(126, 205, 220, 0.08);
+  color: rgba(126, 205, 220, 0.82);
+  transition: transform 140ms ease;
+}
+
+.map-control-drawer[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.map-control-drawer > summary span {
+  flex: 1 1 auto;
+  color: rgba(238, 231, 204, 0.92);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+}
+
+.map-control-drawer > summary strong {
+  min-height: 26px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 205, 220, 0.16);
+  background: rgba(5, 12, 19, 0.62);
+  color: rgba(190, 235, 242, 0.86);
+  font-size: 11px;
+}
+
+.map-control-drawer > .map-filter-row,
+.map-control-drawer > .map-management-grid {
+  margin: 0;
+  padding: 0 12px 12px;
+}
+
+.map-marker-editor-drawer .map-management-grid {
+  grid-template-columns: minmax(260px, 0.82fr) minmax(320px, 1.18fr);
+}
+
+.map-location-rail-clean .map-side-section:not([open]) {
+  background: rgba(6, 13, 20, 0.48);
+}
+
+.map-side-section > summary {
+  cursor: pointer;
+}
+
+/* По умолчанию модули не должны выглядеть как простыня форм. */
+#cabinetModal[data-active-cabinet-tab="map"] .map-create-panel[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  
+
+  .map-marker-editor-drawer .map-management-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   ROUND 25 — КАРТА / ПРАВАЯ ПАНЕЛЬ МАРКЕРОВ И КОМПАКТНЫЕ КОНТРОЛЫ
+   ========================================================= */
+
+#cabinet-map .map-reference-layout {
+  align-items: start;
+}
+
+#cabinet-map .map-main-panel {
+  min-width: 0;
+}
+
+#cabinet-map .map-location-rail-clean {
+  display: grid;
+  gap: 12px;
+  max-height: min(78vh, 940px);
+  overflow: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+#cabinet-map .map-location-rail-clean::-webkit-scrollbar {
+  width: 8px;
+}
+
+#cabinet-map .map-location-rail-clean::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(126, 205, 220, 0.18);
+}
+
+#cabinet-map .map-location-card {
+  border-color: rgba(214, 181, 122, 0.15);
+  background:
+    radial-gradient(circle at top right, rgba(126, 205, 220, 0.06), transparent 30%),
+    linear-gradient(180deg, rgba(8, 16, 25, 0.88), rgba(5, 10, 16, 0.96));
+}
+
+#cabinet-map .map-quick-marker-panel,
+#cabinet-map .map-marker-quick-editor {
+  padding: 13px;
+  border-radius: 18px;
+}
+
+#cabinet-map .map-quick-marker-grid,
+#cabinet-map .map-marker-edit-grid-compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(118px, 0.7fr) 74px;
+  gap: 10px;
+  align-items: end;
+}
+
+#cabinet-map .map-marker-edit-grid-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#cabinet-map .map-quick-marker-grid .filter-group,
+#cabinet-map .map-marker-quick-editor .filter-group {
+  gap: 5px;
+  margin: 0;
+}
+
+#cabinet-map .map-quick-marker-grid input,
+#cabinet-map .map-quick-marker-grid select,
+#cabinet-map .map-marker-quick-editor input,
+#cabinet-map .map-marker-quick-editor select,
+#cabinet-map .map-marker-quick-editor textarea {
+  min-height: 36px;
+  font-size: 12px;
+  background: rgba(5, 12, 19, 0.78);
+}
+
+#cabinet-map .map-quick-marker-color input,
+#cabinet-map .map-marker-quick-editor input[type="color"] {
+  min-height: 36px;
+  padding: 4px;
+}
+
+#cabinet-map .map-quick-marker-actions,
+#cabinet-map .map-marker-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+#cabinet-map .map-quick-marker-actions .btn,
+#cabinet-map .map-marker-quick-actions .btn {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+#cabinet-map .map-quick-marker-note {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#cabinet-map .map-marker-quick-full {
+  display: grid;
+  margin-top: 10px;
+}
+
+#cabinet-map .map-marker-links-drawer {
+  margin-top: 10px;
+  border-color: rgba(126, 205, 220, 0.12);
+  background: rgba(5, 12, 19, 0.45);
+}
+
+#cabinet-map .map-marker-links-drawer > summary {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+#cabinet-map .map-marker-links-drawer > .map-marker-edit-grid,
+#cabinet-map .map-marker-links-drawer > .filter-group {
+  padding: 0 10px 10px;
+}
+
+#cabinet-map .map-marker-quick-editor-empty,
+#cabinet-map .map-marker-quick-editor-preview {
+  opacity: 0.82;
+}
+
+#cabinet-map .map-management-grid-compact {
+  grid-template-columns: 1fr;
+}
+
+#cabinet-map .map-marker-editor-drawer .map-location-card:nth-child(2) {
+  opacity: 0.78;
+}
+
+#cabinet-map .map-world-chip,
+#cabinet-map .map-legend-toggle {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: rgba(5, 10, 14, 0.72);
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+
+#cabinet-map .map-world-chip {
+  left: 14px;
+  bottom: 14px;
+}
+
+#cabinet-map .map-legend-toggle {
+  right: 14px;
+  bottom: 14px;
+  min-width: 132px;
+}
+
+#cabinet-map .map-zoom-dock {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: min(250px, calc(100% - 320px));
+  min-width: 180px;
+  background: rgba(5, 10, 14, 0.70);
+  backdrop-filter: blur(10px);
+}
+
+#cabinet-map .map-active-markers-dock {
+  max-width: min(420px, calc(100% - 28px));
+}
+
+#cabinet-map .map-active-marker-chip strong {
+  max-width: 145px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#cabinet-map .map-side-stack-clean {
+  display: grid;
+  gap: 8px;
+}
+
+#cabinet-map .map-side-section {
+  border-radius: 15px;
+}
+
+#cabinet-map .map-side-section summary {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+#cabinet-map .map-side-section > :not(summary) {
+  padding: 0 10px 10px;
+}
+
+#cabinet-map .map-location-actions-clean .btn {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+#cabinet-map .map-marker-coords {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(190, 235, 242, 0.74);
+}
+
+#cabinet-map .map-transform-layer {
+  transition: transform 180ms ease;
+}
+
+@media (max-width: 1180px) {
+  #cabinet-map .map-quick-marker-grid,
+  #cabinet-map .map-marker-edit-grid-compact {
+    grid-template-columns: 1fr;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    width: 190px;
+    left: 50%;
+  }
+}
+
+@media (max-width: 760px) {
+  #cabinet-map .map-world-chip,
+  #cabinet-map .map-legend-toggle,
+  #cabinet-map .map-zoom-dock {
+    position: static;
+    transform: none;
+    margin: 8px;
+  }
+
+  #cabinet-map .map-stage-outer {
+    display: grid;
+  }
+}
+
+/* =========================================================
+   ROUND 96 — МОДУЛЬ КАРТЫ REFERENCE UX / FUNCTIONAL LAYOUT
+   Область: только #cabinet-map.
+   Цель: компактная шапка, карта как главный экран, правая панель без наложений,
+   удобное создание/редактирование маркеров, нижняя полоса квестов/событий.
+   ========================================================= */
+
+#cabinet-map {
+  --map-r96-gap: 10px;
+  --map-r96-panel-bg:
+    radial-gradient(circle at 100% 0%, rgba(101, 195, 207, 0.06), transparent 34%),
+    linear-gradient(145deg, rgba(6, 15, 20, 0.96), rgba(2, 7, 11, 0.992));
+  --map-r96-border: rgba(101, 195, 207, 0.18);
+  --map-r96-gold-border: rgba(205, 169, 103, 0.18);
+  --map-r96-muted: rgba(201, 215, 216, 0.72);
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-reference-layout,
+#cabinet-map .map-reference-layout-round96 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 360px) !important;
+  gap: 12px !important;
+  align-items: start !important;
+  min-height: auto !important;
+  color: rgba(232, 226, 210, 0.92) !important;
+}
+
+#cabinet-map .map-main-panel,
+#cabinet-map .map-main-panel-round96 {
+  display: grid !important;
+  grid-template-rows: auto auto auto minmax(420px, 1fr) auto auto !important;
+  gap: 9px !important;
+  min-width: 0 !important;
+}
+
+/* Шапка: компактная верхняя строка по референсу. */
+#cabinet-map .map-reference-head {
+  display: grid !important;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(320px, 1.05fr) auto !important;
+  gap: 10px !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+}
+
+#cabinet-map .map-title-block {
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-title-block h2 {
+  margin: 0 !important;
+  color: var(--rpg-gold-2) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: clamp(1.45rem, 1.85vw, 2rem) !important;
+  line-height: 1.02 !important;
+  font-weight: 800 !important;
+}
+
+#cabinet-map .map-title-block h2 span {
+  font-size: 0.78rem !important;
+  opacity: 0.85 !important;
+}
+
+#cabinet-map .map-title-block p {
+  margin: 3px 0 0 !important;
+  max-width: 42ch !important;
+  color: var(--map-r96-muted) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.25 !important;
+}
+
+#cabinet-map .map-search {
+  height: 38px !important;
+  min-height: 38px !important;
+  grid-template-columns: 26px minmax(0, 1fr) !important;
+  padding: 0 10px !important;
+  border-radius: 11px !important;
+  border: 1px solid rgba(205, 169, 103, 0.19) !important;
+  background: rgba(4, 10, 15, 0.84) !important;
+}
+
+#cabinet-map .map-search span {
+  font-size: 1rem !important;
+  color: rgba(205, 169, 103, 0.9) !important;
+}
+
+#cabinet-map .map-search input {
+  font-size: 0.86rem !important;
+  color: rgba(232, 226, 210, 0.92) !important;
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-head-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 7px !important;
+  flex-wrap: nowrap !important;
+}
+
+#cabinet-map .map-head-actions .btn,
+#cabinet-map #mapsRefreshBtn,
+#cabinet-map #mapsToggleCreateBtn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 6px 12px !important;
+  border-radius: 14px !important;
+  font-size: 0.82rem !important;
+  white-space: nowrap !important;
+}
+
+/* Filter drawer: compact closed strip, useful open state. */
+#cabinet-map .map-control-drawer,
+#cabinet-map .map-filter-drawer,
+#cabinet-map .map-marker-editor-drawer {
+  border-radius: 14px !important;
+  background: var(--map-r96-panel-bg) !important;
+  border: 1px solid var(--map-r96-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025) !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-filter-drawer > summary,
+#cabinet-map .map-marker-editor-drawer > summary {
+  min-height: 36px !important;
+  padding: 7px 11px !important;
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  color: var(--rpg-gold-2) !important;
+}
+
+#cabinet-map .map-filter-drawer > summary::before,
+#cabinet-map .map-marker-editor-drawer > summary::before {
+  content: "▸" !important;
+  color: rgba(101, 195, 207, 0.88) !important;
+  font-size: 0.78rem !important;
+}
+
+#cabinet-map .map-filter-drawer[open] > summary::before,
+#cabinet-map .map-marker-editor-drawer[open] > summary::before {
+  content: "▾" !important;
+}
+
+#cabinet-map .map-filter-drawer > summary span,
+#cabinet-map .map-marker-editor-drawer > summary span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+}
+
+#cabinet-map .map-filter-drawer > summary strong,
+#cabinet-map .map-marker-editor-drawer > summary strong {
+  min-height: 22px !important;
+  padding: 2px 9px !important;
+  border-radius: 999px !important;
+  color: rgba(207, 235, 239, 0.92) !important;
+  background: rgba(6, 18, 24, 0.86) !important;
+  border: 1px solid rgba(101, 195, 207, 0.18) !important;
+  font-size: 0.72rem !important;
+}
+
+#cabinet-map .map-filter-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  padding: 0 10px 10px !important;
+  align-items: center !important;
+}
+
+#cabinet-map .map-filter-tabs,
+#cabinet-map .map-filter-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-filter-tab {
+  min-height: 29px !important;
+  padding: 5px 9px !important;
+  border-radius: 10px !important;
+  font-size: 0.76rem !important;
+  white-space: nowrap !important;
+  background: rgba(3, 10, 14, 0.82) !important;
+  border: 1px solid rgba(205, 169, 103, 0.15) !important;
+  color: rgba(232, 226, 210, 0.86) !important;
+}
+
+#cabinet-map .map-filter-tab.active {
+  background:
+    radial-gradient(circle at 0% 50%, rgba(101, 195, 207, 0.20), transparent 44%),
+    linear-gradient(180deg, rgba(11, 64, 72, 0.86), rgba(4, 18, 24, 0.98)) !important;
+  border-color: rgba(101, 195, 207, 0.50) !important;
+  color: #efffff !important;
+}
+
+/* Create map form: compact drawer-like panel. */
+#cabinet-map .map-create-panel {
+  padding: 10px 12px !important;
+  border-radius: 15px !important;
+  background: var(--map-r96-panel-bg) !important;
+  border: 1px solid var(--map-r96-border) !important;
+}
+
+#cabinet-map .map-panel-title {
+  margin-bottom: 8px !important;
+  font-size: 0.88rem !important;
+  color: var(--rpg-gold-2) !important;
+}
+
+#cabinet-map .map-create-grid {
+  display: grid !important;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr) minmax(180px, 0.8fr) !important;
+  gap: 8px !important;
+}
+
+#cabinet-map .map-create-actions {
+  display: flex !important;
+  gap: 7px !important;
+  flex-wrap: wrap !important;
+  margin-top: 9px !important;
+}
+
+/* Stage: map is the hero, not a tiny canvas. */
+#cabinet-map .map-stage-shell {
+  min-width: 0 !important;
+  border-radius: 16px !important;
+}
+
+#cabinet-map .map-stage-outer {
+  min-height: 520px !important;
+  height: clamp(520px, 59vh, 690px) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(205, 169, 103, 0.19) !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(205, 169, 103, 0.09), transparent 30%),
+    linear-gradient(180deg, rgba(7, 14, 18, 0.98), rgba(2, 6, 10, 0.99)) !important;
+}
+
+#cabinet-map .map-stage-outer::before {
+  inset: 9px !important;
+  border-radius: 12px !important;
+  border-color: rgba(205, 169, 103, 0.15) !important;
+}
+
+#cabinet-map .map-stage-outer::after {
+  border-radius: 16px !important;
+}
+
+#cabinet-map .map-active-image,
+#cabinet-map .map-fallback-board {
+  min-height: 520px !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 14px !important;
+}
+
+#cabinet-map .map-compass {
+  transform: scale(0.78) !important;
+  transform-origin: top left !important;
+  opacity: 0.82 !important;
+}
+
+#cabinet-map .map-world-chip,
+#cabinet-map .map-legend-toggle {
+  min-height: 31px !important;
+  padding: 5px 10px !important;
+  border-radius: 11px !important;
+  font-size: 0.78rem !important;
+  background: rgba(5, 12, 18, 0.84) !important;
+  border: 1px solid rgba(205, 169, 103, 0.16) !important;
+}
+
+#cabinet-map .map-zoom-dock {
+  height: 38px !important;
+  min-width: 250px !important;
+  padding: 5px 8px !important;
+  border-radius: 12px !important;
+  background: rgba(4, 10, 14, 0.78) !important;
+  border: 1px solid rgba(205, 169, 103, 0.13) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+#cabinet-map .map-zoom-dock .btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+}
+
+#cabinet-map .map-active-markers-dock {
+  max-width: min(520px, calc(100% - 32px)) !important;
+  min-height: 42px !important;
+  padding: 7px 9px !important;
+  border-radius: 13px !important;
+  background: rgba(4, 10, 14, 0.72) !important;
+  border: 1px solid rgba(101, 195, 207, 0.14) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+#cabinet-map .map-active-markers-dock-head {
+  font-size: 0.72rem !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  min-height: 27px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  font-size: 0.72rem !important;
+}
+
+/* Markers/labels: less overlap, better readability. */
+#cabinet-map .map-marker-btn {
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.50)) !important;
+}
+
+#cabinet-map .map-marker-label,
+#cabinet-map .map-marker-btn strong,
+#cabinet-map .map-marker-btn span + span {
+  max-width: 150px !important;
+  padding: 2px 7px !important;
+  border-radius: 8px !important;
+  background: rgba(3, 8, 12, 0.56) !important;
+  text-shadow: 0 1px 7px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.75) !important;
+  line-height: 1.12 !important;
+}
+
+/* Right rail: compact, no white scrollbar, no field overlaps. */
+#cabinet-map .map-location-rail,
+#cabinet-map .map-location-rail-round96 {
+  min-width: 0 !important;
+  max-height: calc(100dvh - 46px) !important;
+  overflow: auto !important;
+  padding-right: 2px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.62) rgba(4, 10, 14, 0.86) !important;
+}
+
+#cabinet-map .map-location-rail::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+#cabinet-map .map-location-rail::-webkit-scrollbar-track {
+  background: rgba(4, 10, 14, 0.86) !important;
+  border-radius: 999px !important;
+}
+
+#cabinet-map .map-location-rail::-webkit-scrollbar-thumb {
+  background: rgba(101, 195, 207, 0.56) !important;
+  border-radius: 999px !important;
+  border: 2px solid rgba(4, 10, 14, 0.86) !important;
+}
+
+#cabinet-map .map-location-card,
+#cabinet-map .map-location-card-round96 {
+  padding: 10px !important;
+  border-radius: 15px !important;
+  background: var(--map-r96-panel-bg) !important;
+  border: 1px solid var(--map-r96-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025) !important;
+}
+
+#cabinet-map .map-location-card-main {
+  display: grid !important;
+  gap: 9px !important;
+}
+
+#cabinet-map .map-location-image {
+  height: 118px !important;
+  margin: -5px -5px 0 !important;
+  border-radius: 13px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(205, 169, 103, 0.14) !important;
+}
+
+#cabinet-map .map-location-image img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  filter: saturate(0.85) contrast(0.94) brightness(0.78) !important;
+}
+
+#cabinet-map .map-location-title-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: start !important;
+}
+
+#cabinet-map .map-location-title-row h3 {
+  min-width: 0 !important;
+  margin: 0 !important;
+  font-size: clamp(1.15rem, 1.3vw, 1.45rem) !important;
+  line-height: 1.08 !important;
+  color: var(--rpg-gold-2) !important;
+  overflow-wrap: anywhere !important;
+}
+
+#cabinet-map .map-location-title-row span {
+  min-height: 22px !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  font-size: 0.7rem !important;
+  white-space: nowrap !important;
+}
+
+#cabinet-map .map-location-meta {
+  display: grid !important;
+  gap: 3px !important;
+}
+
+#cabinet-map .map-location-meta p,
+#cabinet-map .map-location-copy,
+#cabinet-map .map-quick-marker-note,
+#cabinet-map .map-demo-note,
+#cabinet-map .map-side-section .muted {
+  margin: 0 !important;
+  color: var(--map-r96-muted) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.28 !important;
+}
+
+#cabinet-map .map-location-meta strong {
+  color: rgba(119, 224, 142, 0.95) !important;
+}
+
+#cabinet-map .map-location-actions,
+#cabinet-map .map-location-actions-clean,
+#cabinet-map .map-quick-marker-actions,
+#cabinet-map .map-marker-quick-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+#cabinet-map .map-location-actions .btn,
+#cabinet-map .map-quick-marker-actions .btn,
+#cabinet-map .map-marker-quick-actions .btn,
+#cabinet-map .map-card-link {
+  min-height: 31px !important;
+  padding: 5px 8px !important;
+  border-radius: 11px !important;
+  font-size: 0.76rem !important;
+  white-space: nowrap !important;
+}
+
+/* Quick marker flow: no overlap; clear "click on map" state. */
+#cabinet-map .map-quick-marker-panel {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(101, 195, 207, 0.10), transparent 38%),
+    linear-gradient(145deg, rgba(6, 16, 22, 0.95), rgba(3, 9, 13, 0.99)) !important;
+}
+
+#cabinet-map .map-quick-marker-panel-active {
+  border-color: rgba(101, 195, 207, 0.58) !important;
+  box-shadow: 0 0 18px rgba(72, 196, 211, 0.12), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+#cabinet-map .map-card-heading {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+  margin-bottom: 7px !important;
+}
+
+#cabinet-map .map-card-heading span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: var(--rpg-gold) !important;
+  font-size: 0.76rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+}
+
+#cabinet-map .map-card-heading strong {
+  min-height: 21px !important;
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  font-size: 0.68rem !important;
+  color: var(--rpg-gold-2) !important;
+  background: rgba(205, 169, 103, 0.10) !important;
+  border: 1px solid rgba(205, 169, 103, 0.14) !important;
+}
+
+#cabinet-map .map-quick-marker-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 68px !important;
+  gap: 7px !important;
+  align-items: end !important;
+}
+
+#cabinet-map .map-quick-marker-name {
+  grid-column: 1 / -1 !important;
+}
+
+#cabinet-map .map-quick-marker-grid .filter-group:nth-child(2) {
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-quick-marker-color {
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-quick-marker-grid .filter-group,
+#cabinet-map .map-marker-quick-editor .filter-group {
+  display: grid !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-quick-marker-grid .filter-group > span,
+#cabinet-map .map-marker-quick-editor .filter-group > span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: var(--rpg-gold) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+#cabinet-map .map-quick-marker-grid input,
+#cabinet-map .map-quick-marker-grid select,
+#cabinet-map .map-marker-quick-editor input,
+#cabinet-map .map-marker-quick-editor select,
+#cabinet-map .map-marker-quick-editor textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 32px !important;
+  height: auto !important;
+  padding: 5px 8px !important;
+  border-radius: 10px !important;
+  font-size: 0.76rem !important;
+  background: rgba(4, 10, 15, 0.86) !important;
+  border: 1px solid rgba(101, 195, 207, 0.15) !important;
+  color: rgba(232, 226, 210, 0.92) !important;
+}
+
+#cabinet-map .map-quick-marker-grid input[type="color"],
+#cabinet-map .map-marker-quick-editor input[type="color"] {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 3px !important;
+}
+
+#cabinet-map .map-marker-edit-grid,
+#cabinet-map .map-marker-edit-grid-compact {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+#cabinet-map .map-marker-quick-full {
+  grid-column: 1 / -1 !important;
+}
+
+#cabinet-map .map-marker-quick-editor textarea {
+  min-height: 62px !important;
+  resize: vertical !important;
+}
+
+#cabinet-map .map-marker-links-drawer {
+  margin: 0 !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(205, 169, 103, 0.13) !important;
+  background: rgba(4, 10, 14, 0.58) !important;
+}
+
+#cabinet-map .map-marker-links-drawer > summary,
+#cabinet-map .map-side-section > summary {
+  min-height: 30px !important;
+  padding: 6px 8px !important;
+}
+
+#cabinet-map .map-marker-coords {
+  font-size: 0.72rem !important;
+  color: rgba(101, 195, 207, 0.88) !important;
+}
+
+/* Right side accordions/lists. */
+#cabinet-map .map-side-stack-clean {
+  display: grid !important;
+  gap: 7px !important;
+}
+
+#cabinet-map .map-side-section {
+  border-radius: 12px !important;
+  border: 1px solid rgba(101, 195, 207, 0.12) !important;
+  background: rgba(3, 9, 13, 0.62) !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-side-section > summary {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+  cursor: pointer !important;
+}
+
+#cabinet-map .map-side-section > summary span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: var(--rpg-gold) !important;
+  font-size: 0.75rem !important;
+}
+
+#cabinet-map .map-side-section > summary strong {
+  font-size: 0.7rem !important;
+  color: var(--rpg-gold-2) !important;
+}
+
+#cabinet-map .map-compact-list,
+#cabinet-map .map-compact-list-clean,
+#cabinet-map .map-quest-list,
+#cabinet-map .map-event-row-clean {
+  display: grid !important;
+  gap: 6px !important;
+  padding: 0 8px 8px !important;
+}
+
+#cabinet-map .map-side-marker-row,
+#cabinet-map .map-compact-row,
+#cabinet-map .map-event-row-clean > div {
+  min-width: 0 !important;
+  border-radius: 10px !important;
+  padding: 6px 7px !important;
+  background: rgba(4, 11, 16, 0.70) !important;
+  border: 1px solid rgba(205, 169, 103, 0.10) !important;
+}
+
+#cabinet-map .map-side-marker-row {
+  display: grid !important;
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  text-align: left !important;
+  color: rgba(232, 226, 210, 0.88) !important;
+}
+
+#cabinet-map .map-side-marker-row.active {
+  border-color: rgba(101, 195, 207, 0.46) !important;
+  background: rgba(12, 58, 66, 0.34) !important;
+}
+
+#cabinet-map .map-side-marker-row strong,
+#cabinet-map .map-compact-row strong,
+#cabinet-map .map-event-row-clean strong {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.78rem !important;
+}
+
+#cabinet-map .map-side-marker-row small,
+#cabinet-map .map-compact-row small,
+#cabinet-map .map-event-row-clean small {
+  display: block !important;
+  color: var(--map-r96-muted) !important;
+  font-size: 0.68rem !important;
+}
+
+/* Bottom panels under map: alive world strip like reference. */
+#cabinet-map .map-bottom-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr) !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-bottom-card {
+  min-width: 0 !important;
+  padding: 9px 10px !important;
+  border-radius: 15px !important;
+  background: var(--map-r96-panel-bg) !important;
+  border: 1px solid var(--map-r96-border) !important;
+}
+
+#cabinet-map .map-bottom-row,
+#cabinet-map .map-event-row {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  overflow: auto hidden !important;
+  padding-bottom: 2px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.42) rgba(4, 10, 14, 0.80) !important;
+}
+
+#cabinet-map .map-bottom-row button,
+#cabinet-map .map-event-row button,
+#cabinet-map .map-event-row > div {
+  min-width: 150px !important;
+  max-width: 210px !important;
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  gap: 6px !important;
+  align-items: center !important;
+  padding: 6px 8px !important;
+  border-radius: 11px !important;
+  background: rgba(4, 11, 16, 0.74) !important;
+  border: 1px solid rgba(205, 169, 103, 0.12) !important;
+  color: rgba(232, 226, 210, 0.88) !important;
+}
+
+#cabinet-map .map-bottom-row button.active {
+  border-color: rgba(101, 195, 207, 0.50) !important;
+  background: rgba(12, 58, 66, 0.34) !important;
+}
+
+#cabinet-map .map-bottom-row button strong,
+#cabinet-map .map-event-row button strong,
+#cabinet-map .map-event-row > div strong {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.77rem !important;
+}
+
+#cabinet-map .map-bottom-row button small,
+#cabinet-map .map-event-row button small,
+#cabinet-map .map-event-row > div small {
+  grid-column: 2 !important;
+  color: var(--map-r96-muted) !important;
+  font-size: 0.67rem !important;
+}
+
+#cabinet-map #mapAddEventToMarkerBtnBottom {
+  min-width: 124px !important;
+  grid-template-columns: 1fr !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+/* Management drawer after map should not dominate the page. */
+#cabinet-map .map-marker-editor-drawer {
+  margin-top: 0 !important;
+}
+
+#cabinet-map .map-management-grid,
+#cabinet-map .map-management-grid-compact {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.55fr) !important;
+  gap: 8px !important;
+  padding: 0 10px 10px !important;
+}
+
+#cabinet-map .map-list-stack {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+#cabinet-map .map-list-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  padding: 7px 8px !important;
+  border-radius: 11px !important;
+}
+
+#cabinet-map .map-list-row small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: var(--map-r96-muted) !important;
+  font-size: 0.7rem !important;
+}
+
+#cabinet-map .map-list-row .btn {
+  min-height: 28px !important;
+  padding: 4px 8px !important;
+  font-size: 0.72rem !important;
+}
+
+/* Responsive but still practical. */
+@media (max-width: 1420px) {
+  #cabinet-map .map-reference-layout,
+  #cabinet-map .map-reference-layout-round96 {
+    grid-template-columns: minmax(0, 1fr) 320px !important;
+  }
+
+  #cabinet-map .map-reference-head {
+    grid-template-columns: minmax(210px, 0.7fr) minmax(260px, 1fr) auto !important;
+  }
+
+  #cabinet-map .map-stage-outer {
+    height: clamp(500px, 56vh, 640px) !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  #cabinet-map .map-reference-layout,
+  #cabinet-map .map-reference-layout-round96,
+  #cabinet-map .map-reference-head,
+  #cabinet-map .map-bottom-grid,
+  #cabinet-map .map-management-grid,
+  #cabinet-map .map-management-grid-compact {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cabinet-map .map-location-rail,
+  #cabinet-map .map-location-rail-round96 {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #cabinet-map .map-stage-outer {
+    min-height: 420px !important;
+    height: clamp(420px, 54vh, 600px) !important;
+  }
+}
+
+@media (max-width: 780px) {
+  #cabinet-map .map-create-grid,
+  #cabinet-map .map-filter-row,
+  #cabinet-map .map-marker-edit-grid,
+  #cabinet-map .map-marker-edit-grid-compact,
+  #cabinet-map .map-location-actions,
+  #cabinet-map .map-quick-marker-actions,
+  #cabinet-map .map-marker-quick-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cabinet-map .map-head-actions {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+}
+
+/* =========================================================
+   ROUND 97 — КАРТА / УПРАВЛЕНИЕ, ЛЕГЕНДА, ПОДПИСИ МАРКЕРОВ
+   Область: только #cabinet-map.
+   Base: round96_world_map_layout_ux.
+   Fixes: control clicks stolen by map pan, zoom/rotate/reset usability,
+   marker label overlap, compass feedback, map legend drawer.
+   ========================================================= */
+
+#cabinet-map .map-stage-outer {
+  isolation: isolate !important;
+}
+
+/* Stage controls must always be clickable above map layers. */
+#cabinet-map .map-stage-control,
+#cabinet-map .map-zoom-dock,
+#cabinet-map .map-world-chip,
+#cabinet-map .map-rotate-button,
+#cabinet-map .map-legend-drawer,
+#cabinet-map .map-stage-actions,
+#cabinet-map .map-active-markers-dock {
+  pointer-events: auto !important;
+}
+
+/* Map labels: remove text collisions around icons and keep labels readable. */
+#cabinet-map .map-world-marker {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  display: block !important;
+  overflow: visible !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+#cabinet-map .map-world-marker-icon {
+  position: absolute !important;
+  left: 50% !important;
+  top: 0 !important;
+  transform: translateX(-50%) !important;
+  width: 36px !important;
+  height: 36px !important;
+  z-index: 2 !important;
+}
+
+#cabinet-map .map-world-marker-label {
+  position: absolute !important;
+  left: 50% !important;
+  top: 35px !important;
+  transform: translateX(-50%) !important;
+  width: max-content !important;
+  max-width: 120px !important;
+  padding: 2px 6px !important;
+  border-radius: 8px !important;
+  color: rgba(239, 229, 206, 0.96) !important;
+  background: rgba(3, 8, 12, 0.72) !important;
+  border: 1px solid rgba(205, 169, 103, 0.12) !important;
+  font-size: 0.68rem !important;
+  line-height: 1.05 !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.95) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+#cabinet-map .map-world-marker-active .map-world-marker-label {
+  color: #efffff !important;
+  background: rgba(8, 49, 58, 0.78) !important;
+  border-color: rgba(101, 195, 207, 0.32) !important;
+}
+
+/* Keep bottom controls separated: active marker dock no longer overlaps reset/zoom. */
+#cabinet-map .map-active-markers-dock {
+  left: 14px !important;
+  right: auto !important;
+  bottom: 62px !important;
+  max-width: min(430px, calc(100% - 28px)) !important;
+  min-height: 36px !important;
+  padding: 7px 9px !important;
+  gap: 6px !important;
+  z-index: 11 !important;
+}
+
+#cabinet-map .map-active-markers-dock-head {
+  font-size: 0.68rem !important;
+}
+
+#cabinet-map .map-active-markers-scroll {
+  gap: 6px !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  max-width: 150px !important;
+  min-height: 28px !important;
+  padding: 4px 8px !important;
+  font-size: 0.72rem !important;
+}
+
+/* Reset / zoom / rotate: compact, click-safe, no overlap. */
+#cabinet-map .map-world-chip {
+  left: 14px !important;
+  bottom: 14px !important;
+  z-index: 12 !important;
+  min-height: 34px !important;
+  max-width: 150px !important;
+  padding: 6px 12px !important;
+  border-radius: 12px !important;
+  font-size: 0.78rem !important;
+  line-height: 1 !important;
+  background: rgba(5, 12, 18, 0.88) !important;
+  border: 1px solid rgba(205, 169, 103, 0.20) !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+}
+
+#cabinet-map .map-zoom-dock {
+  left: 50% !important;
+  bottom: 14px !important;
+  z-index: 12 !important;
+  transform: translateX(-50%) !important;
+  width: min(260px, calc(100% - 390px)) !important;
+  min-width: 190px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 4px 7px !important;
+  display: grid !important;
+  grid-template-columns: 30px minmax(0, 1fr) 30px !important;
+  gap: 9px !important;
+  background: rgba(5, 12, 18, 0.84) !important;
+  border: 1px solid rgba(205, 169, 103, 0.16) !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.28) !important;
+}
+
+#cabinet-map .map-zoom-dock .btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  line-height: 1 !important;
+}
+
+#cabinet-map .map-zoom-track {
+  height: 3px !important;
+  border-radius: 999px !important;
+  background: rgba(205, 169, 103, 0.34) !important;
+}
+
+#cabinet-map .map-zoom-track span {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 3px !important;
+  background: var(--rpg-gold-2, #ead7ad) !important;
+}
+
+/* Right bottom action stack: legend + rotate. */
+#cabinet-map .map-stage-actions {
+  position: absolute !important;
+  right: 14px !important;
+  bottom: 14px !important;
+  z-index: 13 !important;
+  display: flex !important;
+  gap: 7px !important;
+  align-items: flex-end !important;
+}
+
+#cabinet-map .map-rotate-button,
+#cabinet-map .map-legend-drawer > summary {
+  min-height: 34px !important;
+  padding: 6px 11px !important;
+  border-radius: 12px !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(5, 12, 18, 0.88) !important;
+  border: 1px solid rgba(205, 169, 103, 0.20) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.78rem !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.28) !important;
+}
+
+#cabinet-map .map-rotate-button span {
+  color: rgba(101, 195, 207, 0.95) !important;
+  font-weight: 900 !important;
+}
+
+#cabinet-map .map-legend-drawer {
+  position: relative !important;
+  display: block !important;
+}
+
+#cabinet-map .map-legend-drawer > summary {
+  list-style: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+#cabinet-map .map-legend-drawer > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+#cabinet-map .map-legend-content {
+  position: absolute !important;
+  right: 0 !important;
+  bottom: 42px !important;
+  width: 230px !important;
+  max-height: min(320px, 52vh) !important;
+  overflow: auto !important;
+  display: grid !important;
+  gap: 6px !important;
+  padding: 8px !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(101, 195, 207, 0.10), transparent 36%),
+    linear-gradient(145deg, rgba(6, 15, 20, 0.98), rgba(2, 7, 11, 0.995)) !important;
+  border: 1px solid rgba(101, 195, 207, 0.24) !important;
+  box-shadow: 0 20px 38px rgba(0,0,0,0.42) !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.56) rgba(4, 10, 14, 0.86) !important;
+}
+
+#cabinet-map .map-legend-row {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 26px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  align-items: center !important;
+  padding: 7px 8px !important;
+  border-radius: 11px !important;
+  text-align: left !important;
+  background: rgba(4, 11, 16, 0.76) !important;
+  border: 1px solid rgba(205, 169, 103, 0.12) !important;
+  color: rgba(232, 226, 210, 0.9) !important;
+}
+
+#cabinet-map .map-legend-row span {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 999px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  background: rgba(101, 195, 207, 0.10) !important;
+  border: 1px solid rgba(101, 195, 207, 0.18) !important;
+}
+
+#cabinet-map .map-legend-row strong {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.78rem !important;
+}
+
+#cabinet-map .map-legend-row small {
+  grid-column: 2 !important;
+  color: rgba(201, 215, 216, 0.70) !important;
+  font-size: 0.68rem !important;
+}
+
+/* Compass: visible but quieter; inner diamond reflects map rotation. */
+#cabinet-map .map-compass {
+  left: 22px !important;
+  top: 20px !important;
+  width: 76px !important;
+  height: 76px !important;
+  opacity: 0.78 !important;
+}
+
+#cabinet-map .map-compass span {
+  font-size: 0.82rem !important;
+  color: rgba(239, 229, 206, 0.88) !important;
+}
+
+#cabinet-map .map-compass i {
+  inset: 18px !important;
+  transform: rotate(calc(45deg + var(--map-compass-rotation, 0deg))) !important;
+  transition: transform 160ms ease !important;
+}
+
+/* Avoid old rotate class affecting new legend/rotate controls. */
+#cabinet-map .map-legend-toggle {
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  #cabinet-map .map-active-markers-dock {
+    position: absolute !important;
+    bottom: 58px !important;
+    max-width: calc(100% - 28px) !important;
+  }
+
+  #cabinet-map .map-world-chip,
+  #cabinet-map .map-zoom-dock,
+  #cabinet-map .map-stage-actions {
+    position: absolute !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    width: 200px !important;
+    min-width: 160px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #cabinet-map .map-active-markers-dock {
+    display: none !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    left: 50% !important;
+    width: 168px !important;
+    min-width: 168px !important;
+  }
+
+  #cabinet-map .map-stage-actions {
+    right: 8px !important;
+    bottom: 56px !important;
+    flex-direction: column !important;
+  }
+
+  #cabinet-map .map-world-chip {
+    left: 8px !important;
+    bottom: 10px !important;
+  }
+
+  #cabinet-map .map-legend-content {
+    right: 0 !important;
+    bottom: 40px !important;
+    width: min(230px, calc(100vw - 52px)) !important;
+  }
+}
+
+/* =========================================================
+   ROUND 98 — КАРТА / КОМПАС, КЛИКИ ПО СТОРОНАМ СВЕТА, ПОВОРОТ
+   Область: только #cabinet-map.
+   Base: round97_controls_legend_fix.
+   Goal: compass cardinal buttons set rotation; rotation has horizontal
+   draggable degree slider.
+   ========================================================= */
+
+#cabinet-map .map-compass {
+  pointer-events: auto !important;
+  z-index: 14 !important;
+  left: 18px !important;
+  top: 18px !important;
+  width: 86px !important;
+  height: 86px !important;
+  opacity: 0.92 !important;
+  color: rgba(239, 229, 206, 0.92) !important;
+  border-radius: 999px !important;
+  background: radial-gradient(circle at center, rgba(4, 11, 16, 0.72), rgba(2, 6, 10, 0.16) 68%, transparent 70%) !important;
+}
+
+#cabinet-map .map-compass i {
+  inset: 24px !important;
+  border-color: rgba(205, 169, 103, 0.35) !important;
+  background: rgba(4, 10, 14, 0.36) !important;
+  transform: rotate(calc(45deg + var(--map-compass-rotation, 0deg))) !important;
+  pointer-events: none !important;
+}
+
+#cabinet-map .map-compass > span {
+  display: none !important;
+}
+
+#cabinet-map .map-compass-btn,
+#cabinet-map .map-compass-center {
+  position: absolute !important;
+  z-index: 2 !important;
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(205, 169, 103, 0.22) !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(4, 11, 16, 0.86) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.66rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.28) !important;
+}
+
+#cabinet-map .map-compass-btn:hover,
+#cabinet-map .map-compass-center:hover {
+  color: #efffff !important;
+  border-color: rgba(101, 195, 207, 0.55) !important;
+  background: rgba(9, 54, 62, 0.88) !important;
+  box-shadow: 0 0 18px rgba(72, 196, 211, 0.16), 0 8px 18px rgba(0,0,0,0.32) !important;
+}
+
+#cabinet-map .map-compass-n { left: 50% !important; top: 0 !important; transform: translateX(-50%) !important; }
+#cabinet-map .map-compass-e { right: 0 !important; top: 50% !important; transform: translateY(-50%) !important; }
+#cabinet-map .map-compass-s { left: 50% !important; bottom: 0 !important; transform: translateX(-50%) !important; }
+#cabinet-map .map-compass-w { left: 0 !important; top: 50% !important; transform: translateY(-50%) !important; }
+
+#cabinet-map .map-compass-center {
+  left: 50% !important;
+  top: 50% !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  transform: translate(-50%, -50%) !important;
+  color: rgba(101, 195, 207, 0.98) !important;
+}
+
+/* Rotation controls become a real horizontal slider dock. */
+#cabinet-map .map-stage-actions {
+  align-items: flex-end !important;
+  gap: 8px !important;
+}
+
+#cabinet-map .map-rotation-dock {
+  min-width: 245px !important;
+  max-width: 300px !important;
+  padding: 7px 9px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "head button"
+    "range range" !important;
+  gap: 5px 8px !important;
+  border-radius: 14px !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(5, 12, 18, 0.90) !important;
+  border: 1px solid rgba(205, 169, 103, 0.20) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.32) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+#cabinet-map .map-rotation-head {
+  grid-area: head !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: rgba(201, 215, 216, 0.74) !important;
+  font-size: 0.72rem !important;
+  line-height: 1 !important;
+}
+
+#cabinet-map .map-rotation-head span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#cabinet-map .map-rotation-head strong {
+  color: rgba(101, 195, 207, 0.96) !important;
+  font-size: 0.82rem !important;
+  font-weight: 900 !important;
+}
+
+#cabinet-map .map-rotation-dock .map-rotate-button {
+  grid-area: button !important;
+  position: static !important;
+  min-width: 64px !important;
+  min-height: 26px !important;
+  height: 26px !important;
+  padding: 3px 8px !important;
+  border-radius: 10px !important;
+  font-size: 0.72rem !important;
+  box-shadow: none !important;
+}
+
+#cabinet-map .map-rotation-range {
+  grid-area: range !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 18px !important;
+  padding: 0 !important;
+  cursor: ew-resize !important;
+  accent-color: rgba(101, 195, 207, 0.95) !important;
+  background: transparent !important;
+}
+
+#cabinet-map .map-rotation-range::-webkit-slider-runnable-track {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, rgba(205, 169, 103, 0.35), rgba(101, 195, 207, 0.70)) !important;
+  border: 1px solid rgba(205, 169, 103, 0.12) !important;
+}
+
+#cabinet-map .map-rotation-range::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 15px !important;
+  height: 15px !important;
+  margin-top: -6px !important;
+  border-radius: 4px !important;
+  transform: rotate(45deg) !important;
+  background: var(--rpg-gold-2, #ead7ad) !important;
+  border: 1px solid rgba(255,255,255,0.55) !important;
+  box-shadow: 0 0 16px rgba(101, 195, 207, 0.24) !important;
+}
+
+#cabinet-map .map-rotation-range::-moz-range-track {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, rgba(205, 169, 103, 0.35), rgba(101, 195, 207, 0.70)) !important;
+  border: 1px solid rgba(205, 169, 103, 0.12) !important;
+}
+
+#cabinet-map .map-rotation-range::-moz-range-thumb {
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 4px !important;
+  transform: rotate(45deg) !important;
+  background: var(--rpg-gold-2, #ead7ad) !important;
+  border: 1px solid rgba(255,255,255,0.55) !important;
+  box-shadow: 0 0 16px rgba(101, 195, 207, 0.24) !important;
+}
+
+/* Legend stays next to the new rotation panel. */
+#cabinet-map .map-legend-drawer > summary {
+  min-height: 38px !important;
+}
+
+#cabinet-map .map-legend-content {
+  bottom: 46px !important;
+}
+
+/* Keep old rotate class hidden unless it is inside the new rotation dock. */
+#cabinet-map .map-legend-toggle {
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  #cabinet-map .map-rotation-dock {
+    min-width: 215px !important;
+    max-width: 240px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #cabinet-map .map-compass {
+    transform: scale(0.82) !important;
+    transform-origin: top left !important;
+  }
+
+  #cabinet-map .map-stage-actions {
+    flex-direction: column !important;
+    align-items: flex-end !important;
+  }
+
+  #cabinet-map .map-rotation-dock {
+    min-width: 200px !important;
+    max-width: calc(100vw - 40px) !important;
+  }
+}
+
+/* =========================================================
+   ROUND 99 — КАРТА / OVERLAY-ШТОРКИ И FULLSCREEN
+   Область: только #cabinet-map.
+   Base: round98_compass_rotation_slider.
+   Fixes: overlap in bottom controls, active markers hidden in drawer,
+   fullscreen map mode, tighter control typography.
+   ========================================================= */
+
+/* Stage overlays: no text collision between active markers / zoom / legend / rotation. */
+#cabinet-map .map-active-markers-dock {
+  position: absolute !important;
+  left: 14px !important;
+  bottom: 58px !important;
+  right: auto !important;
+  z-index: 16 !important;
+  width: min(330px, calc(100% - 28px)) !important;
+  max-width: min(330px, calc(100% - 28px)) !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  background: rgba(4, 10, 14, 0.70) !important;
+  border: 1px solid rgba(101, 195, 207, 0.16) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.30) !important;
+  backdrop-filter: blur(10px) !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary {
+  list-style: none !important;
+  min-height: 34px !important;
+  padding: 7px 10px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+  cursor: pointer !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary::after {
+  content: "▾" !important;
+  color: rgba(101, 195, 207, 0.88) !important;
+  font-size: 0.72rem !important;
+}
+
+#cabinet-map .map-active-markers-dock:not([open]) > summary::after {
+  content: "▸" !important;
+}
+
+#cabinet-map .map-active-markers-dock-head span {
+  min-width: 0 !important;
+  color: rgba(239, 229, 206, 0.92) !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.045em !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+#cabinet-map .map-active-markers-dock-head strong {
+  min-width: 24px !important;
+  height: 20px !important;
+  padding: 1px 7px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  color: var(--rpg-gold-2, #ead7ad) !important;
+  background: rgba(205, 169, 103, 0.10) !important;
+  border: 1px solid rgba(205, 169, 103, 0.15) !important;
+  font-size: 0.7rem !important;
+}
+
+#cabinet-map .map-active-markers-scroll {
+  display: flex !important;
+  gap: 6px !important;
+  max-height: 94px !important;
+  overflow: auto !important;
+  padding: 0 9px 9px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.50) rgba(4, 10, 14, 0.78) !important;
+}
+
+#cabinet-map .map-active-markers-scroll::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+}
+
+#cabinet-map .map-active-markers-scroll::-webkit-scrollbar-track {
+  background: rgba(4, 10, 14, 0.78) !important;
+  border-radius: 999px !important;
+}
+
+#cabinet-map .map-active-markers-scroll::-webkit-scrollbar-thumb {
+  background: rgba(101, 195, 207, 0.48) !important;
+  border-radius: 999px !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  max-width: 150px !important;
+  min-width: 0 !important;
+  min-height: 27px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  gap: 5px !important;
+}
+
+#cabinet-map .map-active-marker-chip strong {
+  max-width: 105px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.7rem !important;
+}
+
+/* Bottom controls: compact and visually separated. */
+#cabinet-map .map-world-chip {
+  bottom: 14px !important;
+  left: 14px !important;
+  max-width: 140px !important;
+  min-height: 32px !important;
+  padding: 5px 11px !important;
+  font-size: 0.74rem !important;
+}
+
+#cabinet-map .map-zoom-dock {
+  bottom: 14px !important;
+  width: min(235px, calc(100% - 560px)) !important;
+  min-width: 178px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+#cabinet-map .map-stage-actions {
+  right: 14px !important;
+  bottom: 14px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 7px !important;
+}
+
+#cabinet-map .map-fullscreen-toggle,
+#cabinet-map .map-legend-drawer > summary {
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  border-radius: 12px !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(5, 12, 18, 0.88) !important;
+  border: 1px solid rgba(205, 169, 103, 0.20) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.74rem !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.26) !important;
+}
+
+#cabinet-map .map-fullscreen-toggle:hover,
+#cabinet-map .map-legend-drawer > summary:hover {
+  border-color: rgba(101, 195, 207, 0.48) !important;
+  color: #efffff !important;
+}
+
+#cabinet-map .map-rotation-dock {
+  min-width: 220px !important;
+  max-width: 250px !important;
+  padding: 6px 8px !important;
+  gap: 4px 7px !important;
+}
+
+#cabinet-map .map-rotation-head {
+  font-size: 0.68rem !important;
+}
+
+#cabinet-map .map-rotation-head strong {
+  font-size: 0.78rem !important;
+}
+
+#cabinet-map .map-rotation-dock .map-rotate-button {
+  min-width: 58px !important;
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 2px 7px !important;
+  font-size: 0.68rem !important;
+}
+
+#cabinet-map .map-rotation-range {
+  height: 16px !important;
+}
+
+/* Fullscreen map mode: hide the surrounding module chrome and give map the screen. */
+#cabinet-map.map-fullscreen-mode {
+  position: fixed !important;
+  inset: 10px !important;
+  z-index: 9999 !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(101, 195, 207, 0.09), transparent 36%),
+    linear-gradient(145deg, rgba(5, 13, 18, 0.99), rgba(1, 4, 7, 0.995)) !important;
+  border: 1px solid rgba(205, 169, 103, 0.26) !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 28px 80px rgba(0,0,0,0.62) !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-reference-layout,
+#cabinet-map.map-fullscreen-mode .map-reference-layout-round96,
+#cabinet-map.map-fullscreen-mode .map-reference-fullscreen {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-main-panel,
+#cabinet-map.map-fullscreen-mode .map-main-panel-round96 {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-reference-head,
+#cabinet-map.map-fullscreen-mode .map-filter-drawer,
+#cabinet-map.map-fullscreen-mode .map-create-panel,
+#cabinet-map.map-fullscreen-mode .map-bottom-grid,
+#cabinet-map.map-fullscreen-mode .map-marker-editor-drawer,
+#cabinet-map.map-fullscreen-mode .map-location-rail {
+  display: none !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-stage-shell,
+#cabinet-map.map-fullscreen-mode .map-stage-outer {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-stage-outer {
+  border-radius: 16px !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-active-image,
+#cabinet-map.map-fullscreen-mode .map-fallback-board {
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-fullscreen-toggle {
+  border-color: rgba(101, 195, 207, 0.50) !important;
+  background: rgba(8, 60, 70, 0.88) !important;
+  color: #efffff !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-active-markers-dock {
+  width: min(360px, calc(100% - 28px)) !important;
+  max-width: min(360px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-zoom-dock {
+  width: 260px !important;
+  min-width: 220px !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-rotation-dock {
+  min-width: 250px !important;
+  max-width: 300px !important;
+}
+
+@media (max-width: 1280px) {
+  #cabinet-map .map-stage-actions {
+    flex-wrap: wrap !important;
+    max-width: min(520px, calc(100% - 180px)) !important;
+    justify-content: flex-end !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    width: 190px !important;
+    min-width: 170px !important;
+  }
+
+  #cabinet-map .map-rotation-dock {
+    min-width: 200px !important;
+    max-width: 220px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  #cabinet-map .map-active-markers-dock {
+    width: min(250px, calc(100% - 28px)) !important;
+    bottom: 54px !important;
+  }
+
+  #cabinet-map .map-stage-actions {
+    right: 8px !important;
+    bottom: 52px !important;
+    max-width: min(260px, calc(100% - 16px)) !important;
+    flex-direction: column !important;
+  }
+
+  #cabinet-map .map-rotation-dock {
+    min-width: 205px !important;
+    max-width: 225px !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    left: 50% !important;
+    width: 168px !important;
+    min-width: 168px !important;
+  }
+}
+
+/* =========================================================
+   ROUND 100 — КАРТА / СТАБИЛЬНОСТЬ FULLSCREEN И ТЕКСТ OVERLAY
+   Scope: #cabinet-map only, plus one body lock class used by map.
+   Base: round99_fullscreen_overlay_drawers.
+   Fixes: fullscreen root freeze, bottom font overlap, drawer scrollbars.
+   ========================================================= */
+
+/* The previous fullscreen mode fixed #cabinet-map itself. In the cabinet/modal shell
+   that can trap layout and make the UI feel frozen. Keep the module root stable. */
+#cabinet-map.map-fullscreen-mode {
+  position: relative !important;
+  inset: auto !important;
+  z-index: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Fullscreen is now a fixed overlay on the map layout itself. */
+#cabinet-map .map-reference-layout.map-reference-fullscreen,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen {
+  position: fixed !important;
+  inset: 10px !important;
+  z-index: 99999 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 0 !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(205, 169, 103, 0.26) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(101, 195, 207, 0.09), transparent 36%),
+    linear-gradient(145deg, rgba(5, 13, 18, 0.99), rgba(1, 4, 7, 0.995)) !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 28px 80px rgba(0,0,0,0.62) !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-main-panel,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen .map-main-panel-round96 {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-reference-head,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-filter-drawer,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-create-panel,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-bottom-grid,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-marker-editor-drawer,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-location-rail {
+  display: none !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-shell,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-outer {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-image,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-fallback-board {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-fullscreen-toggle {
+  border-color: rgba(101, 195, 207, 0.50) !important;
+  background: rgba(8, 60, 70, 0.88) !important;
+  color: #efffff !important;
+}
+
+/* Fix summary text overlap: pseudo arrow gets its own column. */
+#cabinet-map .map-active-markers-dock > summary {
+  grid-template-columns: minmax(0, 1fr) auto 14px !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary::after {
+  grid-column: 3 !important;
+  justify-self: end !important;
+}
+
+#cabinet-map .map-active-markers-dock-head span {
+  grid-column: 1 !important;
+  max-width: 100% !important;
+}
+
+#cabinet-map .map-active-markers-dock-head strong {
+  grid-column: 2 !important;
+  justify-self: end !important;
+}
+
+/* Active markers drawer: compact closed state, clean open state. */
+#cabinet-map .map-active-markers-dock {
+  width: min(285px, calc(100% - 28px)) !important;
+  max-width: min(285px, calc(100% - 28px)) !important;
+  bottom: 56px !important;
+}
+
+#cabinet-map .map-active-markers-dock:not([open]) {
+  width: min(210px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map .map-active-markers-dock:not([open]) .map-active-markers-scroll {
+  display: none !important;
+}
+
+#cabinet-map .map-active-markers-scroll {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  max-height: 128px !important;
+  overflow: auto !important;
+  padding: 0 8px 8px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.56) rgba(4, 10, 14, 0.92) !important;
+}
+
+#cabinet-map .map-active-markers-scroll::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+}
+
+#cabinet-map .map-active-markers-scroll::-webkit-scrollbar-track {
+  background: rgba(4, 10, 14, 0.92) !important;
+  border-radius: 999px !important;
+}
+
+#cabinet-map .map-active-markers-scroll::-webkit-scrollbar-thumb {
+  background: rgba(101, 195, 207, 0.55) !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(4, 10, 14, 0.92) !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  width: 100% !important;
+  max-width: none !important;
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  text-align: left !important;
+}
+
+#cabinet-map .map-active-marker-chip strong {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Make the bottom action group able to breathe without overlapping text. */
+#cabinet-map .map-stage-actions {
+  max-width: min(560px, calc(100% - 250px)) !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+}
+
+#cabinet-map .map-fullscreen-toggle,
+#cabinet-map .map-legend-drawer > summary {
+  min-width: 86px !important;
+  text-align: center !important;
+}
+
+#cabinet-map .map-rotation-dock {
+  min-width: 205px !important;
+  max-width: 235px !important;
+}
+
+#cabinet-map .map-rotation-head span {
+  max-width: 80px !important;
+}
+
+/* Zoom stays centered, but never runs under reset or right controls. */
+#cabinet-map .map-zoom-dock {
+  width: clamp(170px, 17vw, 230px) !important;
+  min-width: 170px !important;
+}
+
+#cabinet-map .map-world-chip {
+  min-width: 116px !important;
+}
+
+/* Fullscreen gets more room for controls. */
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-actions {
+  max-width: min(680px, calc(100% - 270px)) !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-markers-dock {
+  width: min(330px, calc(100% - 28px)) !important;
+  max-width: min(330px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-markers-dock:not([open]) {
+  width: min(220px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-zoom-dock {
+  width: 260px !important;
+  min-width: 220px !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-rotation-dock {
+  min-width: 250px !important;
+  max-width: 310px !important;
+}
+
+@media (max-width: 1050px) {
+  #cabinet-map .map-active-markers-dock {
+    bottom: 96px !important;
+  }
+
+  #cabinet-map .map-stage-actions {
+    right: 10px !important;
+    bottom: 50px !important;
+    max-width: min(330px, calc(100% - 20px)) !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+  }
+
+  #cabinet-map .map-rotation-dock {
+    min-width: 220px !important;
+    max-width: 250px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #cabinet-map .map-reference-layout.map-reference-fullscreen,
+  #cabinet-map .map-reference-layout-round96.map-reference-fullscreen {
+    inset: 4px !important;
+    padding: 6px !important;
+    border-radius: 14px !important;
+  }
+
+  #cabinet-map .map-active-markers-dock {
+    width: min(220px, calc(100% - 16px)) !important;
+    max-width: min(220px, calc(100% - 16px)) !important;
+    left: 8px !important;
+  }
+
+  #cabinet-map .map-active-markers-dock:not([open]) {
+    width: min(185px, calc(100% - 16px)) !important;
+  }
+}
+
+/* =========================================================
+   ROUND 101 — КАРТА / LAYOUT OVERLAY И СОДЕРЖИМОЕ FULLSCREEN
+   Область: только #cabinet-map.
+   Base: round100_fullscreen_stability_fix.
+   Fixes: bottom font/control overlap, fullscreen blank stage, control drawer.
+   ========================================================= */
+
+/* Держим содержимое карты видимым в fullscreen: transform-layer должен заполнять сцену. */
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-shell,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen .map-stage-shell {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-outer,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen .map-stage-outer {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(205, 169, 103, 0.09), transparent 34%),
+    linear-gradient(180deg, rgba(7, 14, 18, 0.98), rgba(2, 6, 10, 0.99)) !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-transform-layer,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen .map-transform-layer {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  z-index: 2 !important;
+  transform-origin: center center !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-image,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen .map-active-image,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-fallback-board,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen .map-fallback-board {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+  filter: saturate(0.92) contrast(1.03) brightness(0.86) !important;
+}
+
+/* Active markers are no longer a bottom overlay: keep them as a small drawer under the compass. */
+#cabinet-map .map-active-markers-dock,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-markers-dock {
+  left: 14px !important;
+  top: 108px !important;
+  bottom: auto !important;
+  right: auto !important;
+  width: 150px !important;
+  max-width: 150px !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border-radius: 13px !important;
+  overflow: hidden !important;
+  z-index: 18 !important;
+}
+
+#cabinet-map .map-active-markers-dock[open],
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-markers-dock[open] {
+  width: min(260px, calc(100% - 28px)) !important;
+  max-width: min(260px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary {
+  min-height: 32px !important;
+  padding: 6px 8px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto 12px !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+#cabinet-map .map-active-markers-dock-head span {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.035em !important;
+}
+
+#cabinet-map .map-active-markers-dock-head strong {
+  min-width: 22px !important;
+  height: 18px !important;
+  padding: 0 6px !important;
+  font-size: 0.68rem !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary::after {
+  grid-column: 3 !important;
+  justify-self: end !important;
+}
+
+#cabinet-map .map-active-markers-dock:not([open]) .map-active-markers-scroll {
+  display: none !important;
+}
+
+#cabinet-map .map-active-markers-scroll {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  max-height: 138px !important;
+  overflow: auto !important;
+  padding: 0 7px 7px !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  width: 100% !important;
+  max-width: none !important;
+  display: grid !important;
+  grid-template-columns: 18px minmax(0, 1fr) !important;
+  gap: 5px !important;
+  text-align: left !important;
+}
+
+/* Stage actions are now top-right. Bottom stays clean: reset + zoom only. */
+#cabinet-map .map-stage-actions,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-actions {
+  position: absolute !important;
+  right: 14px !important;
+  top: 14px !important;
+  bottom: auto !important;
+  z-index: 22 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  max-width: min(360px, calc(100% - 28px)) !important;
+  flex-wrap: nowrap !important;
+}
+
+#cabinet-map .map-fullscreen-toggle {
+  min-width: 92px !important;
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  border-radius: 12px !important;
+  text-align: center !important;
+}
+
+/* New collapsible control panel: hides legend + rotation until needed. */
+#cabinet-map .map-stage-controls-drawer {
+  position: relative !important;
+  display: block !important;
+  width: auto !important;
+  max-width: min(330px, calc(100vw - 34px)) !important;
+}
+
+#cabinet-map .map-stage-controls-drawer > summary {
+  list-style: none !important;
+  min-width: 116px !important;
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border-radius: 12px !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(5, 12, 18, 0.88) !important;
+  border: 1px solid rgba(205, 169, 103, 0.20) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.74rem !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.26) !important;
+}
+
+#cabinet-map .map-stage-controls-drawer > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+#cabinet-map .map-stage-controls-drawer > summary::after {
+  content: "▸" !important;
+  color: rgba(101, 195, 207, 0.88) !important;
+  font-size: 0.7rem !important;
+}
+
+#cabinet-map .map-stage-controls-drawer[open] > summary::after {
+  content: "▾" !important;
+}
+
+#cabinet-map .map-stage-controls-panel {
+  position: absolute !important;
+  top: 41px !important;
+  right: 0 !important;
+  width: min(320px, calc(100vw - 34px)) !important;
+  display: grid !important;
+  gap: 8px !important;
+  padding: 9px !important;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(101, 195, 207, 0.10), transparent 36%),
+    linear-gradient(145deg, rgba(6, 15, 20, 0.98), rgba(2, 7, 11, 0.995)) !important;
+  border: 1px solid rgba(101, 195, 207, 0.24) !important;
+  box-shadow: 0 20px 38px rgba(0,0,0,0.42) !important;
+}
+
+/* The legend is now inside the control drawer, not floating over the zoom bar. */
+#cabinet-map .map-stage-controls-panel .map-legend-drawer {
+  position: relative !important;
+  width: 100% !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-drawer > summary {
+  width: 100% !important;
+  min-height: 32px !important;
+  padding: 6px 9px !important;
+  justify-content: space-between !important;
+  box-shadow: none !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-content {
+  position: static !important;
+  width: 100% !important;
+  max-height: 190px !important;
+  margin-top: 7px !important;
+  padding: 7px !important;
+  box-shadow: none !important;
+}
+
+/* Rotation panel sits in drawer and no longer competes with zoom/fullscreen. */
+#cabinet-map .map-stage-controls-panel .map-rotation-dock,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-controls-panel .map-rotation-dock {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 7px 8px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "head button"
+    "range range" !important;
+  gap: 5px 8px !important;
+  box-shadow: none !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-rotation-range {
+  width: 100% !important;
+}
+
+/* Bottom controls: separated and stable. */
+#cabinet-map .map-world-chip,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-world-chip {
+  left: 14px !important;
+  bottom: 14px !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: 18 !important;
+  min-width: 112px !important;
+  max-width: 132px !important;
+  min-height: 32px !important;
+  padding: 5px 10px !important;
+  font-size: 0.72rem !important;
+}
+
+#cabinet-map .map-zoom-dock,
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-zoom-dock {
+  left: 50% !important;
+  bottom: 14px !important;
+  top: auto !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 18 !important;
+  width: clamp(170px, 19vw, 250px) !important;
+  min-width: 170px !important;
+  max-width: min(250px, calc(100% - 300px)) !important;
+}
+
+/* In fullscreen give a little more safe area around overlay controls. */
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-fullscreen-toggle {
+  min-width: 96px !important;
+}
+
+#cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-controls-panel {
+  width: min(340px, calc(100vw - 34px)) !important;
+}
+
+@media (max-width: 900px) {
+  #cabinet-map .map-stage-actions,
+  #cabinet-map .map-reference-layout.map-reference-fullscreen .map-stage-actions {
+    right: 8px !important;
+    top: 8px !important;
+    max-width: min(260px, calc(100% - 16px)) !important;
+  }
+
+  #cabinet-map .map-stage-controls-panel {
+    width: min(260px, calc(100vw - 24px)) !important;
+  }
+
+  #cabinet-map .map-active-markers-dock,
+  #cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-markers-dock {
+    left: 8px !important;
+    top: 94px !important;
+    width: 132px !important;
+    max-width: 132px !important;
+  }
+
+  #cabinet-map .map-active-markers-dock[open],
+  #cabinet-map .map-reference-layout.map-reference-fullscreen .map-active-markers-dock[open] {
+    width: min(230px, calc(100% - 16px)) !important;
+    max-width: min(230px, calc(100% - 16px)) !important;
+  }
+
+  #cabinet-map .map-zoom-dock,
+  #cabinet-map .map-reference-layout.map-reference-fullscreen .map-zoom-dock {
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+  }
+
+  #cabinet-map .map-world-chip,
+  #cabinet-map .map-reference-layout.map-reference-fullscreen .map-world-chip {
+    min-width: 92px !important;
+    max-width: 104px !important;
+    font-size: 0.66rem !important;
+  }
+}
+
+/* =========================================================
+   ROUND 102 — КАРТА / ФИНАЛЬНЫЙ OVERLAY И БЕЗОПАСНЫЙ FULLSCREEN
+   Область: только #cabinet-map.
+   Base: round101_overlay_fullscreen_fix.
+   Fixes: bottom overlay collisions, empty management drawer, fullscreen black/stuck state.
+   ========================================================= */
+
+/* Undo older fullscreen-on-root strategy. Fullscreen is now only the stage shell. */
+#cabinet-map.map-fullscreen-mode {
+  position: relative !important;
+  inset: auto !important;
+  z-index: auto !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border-radius: inherit !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-reference-layout,
+#cabinet-map.map-fullscreen-mode .map-reference-layout-round96,
+#cabinet-map.map-fullscreen-mode .map-reference-fullscreen {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 360px) !important;
+  gap: 12px !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+#cabinet-map.map-fullscreen-mode .map-reference-head,
+#cabinet-map.map-fullscreen-mode .map-filter-drawer,
+#cabinet-map.map-fullscreen-mode .map-create-panel,
+#cabinet-map.map-fullscreen-mode .map-bottom-grid,
+#cabinet-map.map-fullscreen-mode .map-marker-editor-drawer,
+#cabinet-map.map-fullscreen-mode .map-location-rail {
+  display: initial !important;
+}
+
+#cabinet-map .map-stage-shell-fullscreen {
+  position: fixed !important;
+  inset: 10px !important;
+  z-index: 10050 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 10px !important;
+  border-radius: 18px !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(101, 195, 207, 0.08), transparent 36%),
+    linear-gradient(145deg, rgba(5, 13, 18, 0.99), rgba(1, 4, 7, 0.995)) !important;
+  border: 1px solid rgba(205, 169, 103, 0.26) !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.66), 0 28px 80px rgba(0,0,0,0.68) !important;
+}
+
+#cabinet-map .map-stage-shell-fullscreen .map-stage-outer {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border-radius: 15px !important;
+}
+
+#cabinet-map .map-stage-shell-fullscreen .map-transform-layer {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  z-index: 2 !important;
+  display: block !important;
+}
+
+#cabinet-map .map-stage-shell-fullscreen .map-active-image,
+#cabinet-map .map-stage-shell-fullscreen .map-fallback-board {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: saturate(0.92) contrast(1.03) brightness(0.86) !important;
+}
+
+/* Put top utilities away from bottom zoom/reset. */
+#cabinet-map .map-stage-actions {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  bottom: auto !important;
+  z-index: 25 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  max-width: min(620px, calc(100% - 130px)) !important;
+  pointer-events: auto !important;
+}
+
+#cabinet-map .map-fullscreen-toggle,
+#cabinet-map .map-stage-controls-drawer > summary {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 6px 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border-radius: 12px !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(5, 12, 18, 0.90) !important;
+  border: 1px solid rgba(205, 169, 103, 0.22) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.28) !important;
+}
+
+#cabinet-map .map-stage-controls-drawer {
+  position: relative !important;
+  display: block !important;
+  width: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+
+#cabinet-map .map-stage-controls-drawer > summary {
+  list-style: none !important;
+  min-width: 126px !important;
+}
+
+#cabinet-map .map-stage-controls-drawer > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+#cabinet-map .map-stage-controls-drawer > summary::after {
+  content: "▸" !important;
+  color: rgba(101, 195, 207, 0.88) !important;
+  font-size: 0.7rem !important;
+}
+
+#cabinet-map .map-stage-controls-drawer[open] > summary::after {
+  content: "▾" !important;
+}
+
+#cabinet-map .map-stage-controls-panel {
+  position: absolute !important;
+  top: 42px !important;
+  right: 0 !important;
+  width: 310px !important;
+  max-width: min(310px, calc(100vw - 36px)) !important;
+  min-height: 260px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 9px !important;
+  padding: 10px !important;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(101, 195, 207, 0.10), transparent 36%),
+    linear-gradient(145deg, rgba(6, 15, 20, 0.99), rgba(2, 7, 11, 0.998)) !important;
+  border: 1px solid rgba(101, 195, 207, 0.26) !important;
+  box-shadow: 0 22px 42px rgba(0,0,0,0.48) !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+  z-index: 40 !important;
+}
+
+/* No nested empty details: both blocks are visible when Управление is open. */
+#cabinet-map .map-stage-panel-title {
+  color: var(--rpg-gold, #d6b57a) !important;
+  font-family: var(--rpg-font-title, Georgia, "Times New Roman", serif) !important;
+  font-size: 0.78rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.065em !important;
+  margin-bottom: 6px !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-rotation-dock,
+#cabinet-map .map-stage-controls-panel .map-legend-panel {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 8px !important;
+  border-radius: 13px !important;
+  background: rgba(4, 10, 14, 0.72) !important;
+  border: 1px solid rgba(205, 169, 103, 0.14) !important;
+  box-shadow: none !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-rotation-dock {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "head button"
+    "range range" !important;
+  gap: 6px 8px !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-rotation-range {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-content {
+  position: static !important;
+  width: 100% !important;
+  max-height: 172px !important;
+  display: grid !important;
+  gap: 5px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.50) rgba(4, 10, 14, 0.78) !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-row {
+  min-height: 32px !important;
+  padding: 5px 7px !important;
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  align-items: center !important;
+  border-radius: 10px !important;
+  background: rgba(7, 16, 22, 0.78) !important;
+  border: 1px solid rgba(205, 169, 103, 0.11) !important;
+  text-align: left !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-row strong,
+#cabinet-map .map-stage-controls-panel .map-legend-row small {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-row strong {
+  font-size: 0.76rem !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-legend-row small {
+  grid-column: 2 !important;
+  font-size: 0.65rem !important;
+  color: rgba(201, 215, 216, 0.68) !important;
+}
+
+/* Keep only reset + zoom on the bottom row. */
+#cabinet-map .map-world-chip {
+  position: absolute !important;
+  left: 14px !important;
+  bottom: 14px !important;
+  top: auto !important;
+  z-index: 18 !important;
+  min-height: 32px !important;
+  max-width: 140px !important;
+  padding: 5px 11px !important;
+  font-size: 0.74rem !important;
+}
+
+#cabinet-map .map-zoom-dock {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 14px !important;
+  top: auto !important;
+  z-index: 18 !important;
+  transform: translateX(-50%) !important;
+  width: 230px !important;
+  min-width: 180px !important;
+  max-width: min(230px, calc(100% - 330px)) !important;
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+/* Move marker drawer near compass and prevent title/count overlap. */
+#cabinet-map .map-active-markers-dock,
+#cabinet-map .map-stage-shell-fullscreen .map-active-markers-dock {
+  position: absolute !important;
+  left: 14px !important;
+  top: 112px !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 19 !important;
+  width: 132px !important;
+  max-width: 132px !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-active-markers-dock[open],
+#cabinet-map .map-stage-shell-fullscreen .map-active-markers-dock[open] {
+  width: min(260px, calc(100% - 28px)) !important;
+  max-width: min(260px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary {
+  min-height: 31px !important;
+  padding: 6px 7px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto 11px !important;
+  gap: 5px !important;
+  align-items: center !important;
+}
+
+#cabinet-map .map-active-markers-dock-head span {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.66rem !important;
+}
+
+#cabinet-map .map-active-markers-dock-head strong {
+  min-width: 22px !important;
+  height: 19px !important;
+  padding: 1px 6px !important;
+  font-size: 0.66rem !important;
+  justify-self: end !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary::after {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  font-size: 0.64rem !important;
+}
+
+#cabinet-map .map-active-markers-dock:not([open]) .map-active-markers-scroll {
+  display: none !important;
+}
+
+#cabinet-map .map-active-markers-scroll {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  max-height: 135px !important;
+  overflow: auto !important;
+  padding: 0 7px 8px !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 27px !important;
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  gap: 6px !important;
+}
+
+#cabinet-map .map-active-marker-chip strong {
+  max-width: 100% !important;
+}
+
+@media (max-width: 1180px) {
+  #cabinet-map .map-stage-actions {
+    top: 10px !important;
+    right: 10px !important;
+    max-width: min(500px, calc(100% - 120px)) !important;
+    flex-wrap: wrap !important;
+  }
+
+  #cabinet-map .map-stage-controls-panel {
+    width: min(300px, calc(100vw - 28px)) !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    width: 190px !important;
+    max-width: min(190px, calc(100% - 280px)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #cabinet-map .map-stage-actions {
+    top: 8px !important;
+    right: 8px !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    max-width: min(220px, calc(100% - 100px)) !important;
+  }
+
+  #cabinet-map .map-stage-controls-panel {
+    right: 0 !important;
+    width: min(285px, calc(100vw - 28px)) !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    left: 50% !important;
+    width: 164px !important;
+    min-width: 164px !important;
+    max-width: 164px !important;
+  }
+
+  #cabinet-map .map-active-markers-dock {
+    display: none !important;
+  }
+}
+
+/* =========================================================
+   ROUND 103 — КАРТА / НАТИВНЫЙ FULLSCREEN И ФИКС НАЛОЖЕНИЙ
+   Область: только #cabinet-map.
+   Base: round102_overlay_fullscreen_repair.
+   Goal: stop fake fixed fullscreen black artifact; use browser fullscreen
+   on the map stage itself. Also remove bottom overlay text collisions.
+   ========================================================= */
+
+/* Kill old fake fullscreen layers from earlier rounds. They caused the black empty frame. */
+#cabinet-map.map-fullscreen-mode,
+#cabinet-map .map-reference-layout.map-reference-fullscreen,
+#cabinet-map .map-reference-layout-round96.map-reference-fullscreen,
+#cabinet-map .map-stage-shell-fullscreen,
+#cabinet-map .map-stage-outer-fullscreen {
+  position: revert !important;
+  inset: auto !important;
+  z-index: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: initial !important;
+  max-height: initial !important;
+  padding: initial !important;
+  border-radius: initial !important;
+  background: initial !important;
+  border: initial !important;
+  box-shadow: initial !important;
+}
+
+/* Нативный fullscreen: браузер применяет :fullscreen к .map-stage-outer. */
+#cabinet-map .map-stage-outer:fullscreen,
+#cabinet-map .map-stage-outer:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(205, 169, 103, 0.09), transparent 34%),
+    linear-gradient(180deg, rgba(7, 14, 18, 0.98), rgba(2, 6, 10, 0.99)) !important;
+}
+
+#cabinet-map .map-stage-outer:fullscreen .map-transform-layer,
+#cabinet-map .map-stage-outer:-webkit-full-screen .map-transform-layer {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  z-index: 2 !important;
+  display: block !important;
+  transform-origin: center center !important;
+}
+
+#cabinet-map .map-stage-outer:fullscreen .map-active-image,
+#cabinet-map .map-stage-outer:-webkit-full-screen .map-active-image,
+#cabinet-map .map-stage-outer:fullscreen .map-fallback-board,
+#cabinet-map .map-stage-outer:-webkit-full-screen .map-fallback-board {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: saturate(0.92) contrast(1.03) brightness(0.86) !important;
+}
+
+/* Fullscreen control placement. */
+#cabinet-map .map-stage-outer:fullscreen .map-stage-actions,
+#cabinet-map .map-stage-outer:-webkit-full-screen .map-stage-actions {
+  top: 16px !important;
+  right: 16px !important;
+  bottom: auto !important;
+  z-index: 80 !important;
+}
+
+#cabinet-map .map-stage-outer:fullscreen .map-fullscreen-toggle,
+#cabinet-map .map-stage-outer:-webkit-full-screen .map-fullscreen-toggle,
+#cabinet-map .map-fullscreen-toggle.active {
+  border-color: rgba(101, 195, 207, 0.56) !important;
+  background: rgba(8, 60, 70, 0.92) !important;
+  color: #efffff !important;
+}
+
+/* Active markers as a true compact drawer under compass; no text/count overlap. */
+#cabinet-map .map-active-markers-dock {
+  left: 14px !important;
+  top: 112px !important;
+  bottom: auto !important;
+  right: auto !important;
+  z-index: 24 !important;
+  width: 128px !important;
+  max-width: 128px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 13px !important;
+}
+
+#cabinet-map .map-active-markers-dock[open] {
+  width: min(280px, calc(100% - 28px)) !important;
+  max-width: min(280px, calc(100% - 28px)) !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary,
+#cabinet-map .map-active-markers-dock-head {
+  min-height: 31px !important;
+  padding: 0 7px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto 12px !important;
+  gap: 5px !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+#cabinet-map .map-active-markers-dock > summary::after {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  font-size: 0.62rem !important;
+  line-height: 1 !important;
+}
+
+#cabinet-map .map-active-markers-dock-head span {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.64rem !important;
+  letter-spacing: 0.045em !important;
+}
+
+#cabinet-map .map-active-markers-dock-head strong {
+  min-width: 21px !important;
+  height: 19px !important;
+  padding: 1px 6px !important;
+  justify-self: end !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  font-size: 0.64rem !important;
+  line-height: 1 !important;
+}
+
+/* Collapsed means really collapsed. */
+#cabinet-map .map-active-markers-dock:not([open]) .map-active-markers-scroll {
+  display: none !important;
+}
+
+#cabinet-map .map-active-markers-scroll {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  max-height: 150px !important;
+  overflow: auto !important;
+  padding: 0 7px 8px !important;
+  scrollbar-width: thin !important;
+}
+
+#cabinet-map .map-active-marker-chip {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 27px !important;
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  gap: 6px !important;
+}
+
+#cabinet-map .map-active-marker-chip strong {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Keep bottom row minimal and separated. */
+#cabinet-map .map-world-chip {
+  left: 14px !important;
+  bottom: 14px !important;
+  right: auto !important;
+  top: auto !important;
+  z-index: 24 !important;
+  max-width: 138px !important;
+  min-height: 32px !important;
+  padding: 5px 10px !important;
+  font-size: 0.72rem !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+#cabinet-map .map-zoom-dock {
+  left: 50% !important;
+  bottom: 14px !important;
+  top: auto !important;
+  z-index: 24 !important;
+  transform: translateX(-50%) !important;
+  width: 226px !important;
+  min-width: 180px !important;
+  max-width: min(226px, calc(100% - 330px)) !important;
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+#cabinet-map .map-stage-actions {
+  top: 14px !important;
+  right: 14px !important;
+  bottom: auto !important;
+  z-index: 30 !important;
+  max-width: min(600px, calc(100% - 128px)) !important;
+}
+
+/* Панель «Управление» должна быть видимой и не выглядеть пустой. */
+#cabinet-map .map-stage-controls-panel {
+  min-height: 0 !important;
+  width: 310px !important;
+  max-width: min(310px, calc(100vw - 36px)) !important;
+  display: grid !important;
+  gap: 9px !important;
+}
+
+#cabinet-map .map-stage-controls-panel .map-rotation-dock,
+#cabinet-map .map-stage-controls-panel .map-legend-panel {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 920px) {
+  #cabinet-map .map-stage-actions {
+    top: 8px !important;
+    right: 8px !important;
+    max-width: min(230px, calc(100% - 16px)) !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+  }
+
+  #cabinet-map .map-stage-controls-panel {
+    width: min(292px, calc(100vw - 28px)) !important;
+  }
+
+  #cabinet-map .map-zoom-dock {
+    width: 168px !important;
+    min-width: 168px !important;
+    max-width: 168px !important;
+  }
+
+  #cabinet-map .map-active-markers-dock {
+    display: none !important;
+  }
+}
