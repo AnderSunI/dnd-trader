@@ -1,0 +1,930 @@
+/* ==========================================================================
+   D&D Trader — модуль «Задания»
+   --------------------------------------------------------------------------
+   Назначение:
+   - визуал вкладки «Задания» внутри личного кабинета;
+   - герой-блок, фильтры, статусные вкладки, список квестов;
+   - карточка выбранного задания, детали, форма и чекпоинты.
+
+   Где править:
+   - если поехали карточки/фильтры/статусы/детали заданий — править здесь;
+   - если нужно менять общий каркас кабинета, sidebar или header — это cabinet-shell.css;
+   - если нужно менять историю, карту, персонажа или Master Room — это другие модули.
+
+   Референс:
+   - Referens/Задания.png
+
+   Источник:
+   - вынесено из frontend/css/styles.css;
+   - старый дубль в монолите пока оставлен как страховка до визуальной проверки;
+   - после успешной проверки отдельным pass удаляем совпадающие правила из styles.css.
+
+   Безопасно менять:
+   - плотность карточек, отступы, сетки, высоту панелей;
+   - цвета локальных quest-панелей и статусов в рамках #cabinet-quests;
+   - адаптив только для вкладки «Задания».
+
+   Опасно менять без отдельной проверки:
+   - глобальные кнопки, .modal, .cabinet-layout, sidebar кабинета;
+   - стили Master Room / combat log, потому что они живут рядом по смыслу, но не здесь.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   03. QUESTS CANON — цвета как у остальной экосистемы + кнопки в 2 ряда
+   --------------------------------------------------------------------------- */
+#cabinet-quests {
+  color: var(--rpg-text) !important;
+  --quest-panel: linear-gradient(145deg, rgba(6, 15, 20, 0.96), rgba(3, 8, 12, 0.988));
+  --quest-panel-soft: linear-gradient(145deg, rgba(7, 18, 24, 0.92), rgba(3, 8, 12, 0.98));
+  --quest-border: rgba(101, 195, 207, 0.19);
+  --quest-border-active: rgba(101, 195, 207, 0.52);
+  --quest-border-gold: rgba(205, 169, 103, 0.19);
+}
+
+#cabinet-quests .quest-ref-shell,
+#cabinet-quests .quest-ref-shell-reference,
+#cabinet-quests .quest-ref-v39,
+#cabinet-quests .quest-ref-v41 {
+  display: grid !important;
+  gap: 13px !important;
+  color: var(--rpg-text) !important;
+  background: transparent !important;
+}
+
+#cabinet-quests .quest-ref-hero-v39,
+#cabinet-quests .quest-ref-toolbar-v39,
+#cabinet-quests .quest-ref-card-v39,
+#cabinet-quests .quest-ref-detail-v39,
+#cabinet-quests .quest-ref-empty,
+#cabinet-quests .quest-ref-form,
+#cabinet-quests .quest-ref-active-card-v39 {
+  color: var(--rpg-text) !important;
+  background: var(--quest-panel) !important;
+  border: 1px solid var(--quest-border) !important;
+  border-radius: var(--rpg-radius-lg) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 16px 34px rgba(0,0,0,0.26) !important;
+}
+
+#cabinet-quests .quest-ref-hero-v39 {
+  display: grid !important;
+  grid-template-columns: minmax(300px, 1fr) minmax(290px, 0.72fr) minmax(270px, 0.58fr) !important;
+  align-items: center !important;
+  gap: 13px !important;
+  min-height: 106px !important;
+  padding: 14px 17px !important;
+  background:
+    radial-gradient(circle at left top, rgba(101, 195, 207, 0.08), transparent 33%),
+    linear-gradient(145deg, rgba(7, 18, 24, 0.94), rgba(3, 8, 12, 0.985)) !important;
+}
+
+#cabinet-quests .quest-ref-kicker,
+#cabinet-quests .quest-ref-card-kicker,
+#cabinet-quests .quest-ref-toolbar-head-v39 > span,
+#cabinet-quests .quest-ref-filter-field > span,
+#cabinet-quests .filter-group > span {
+  color: var(--rpg-gold) !important;
+  font-family: var(--rpg-font-title) !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.11em !important;
+  text-transform: uppercase !important;
+}
+
+#cabinet-quests .quest-ref-title,
+#cabinet-quests .quest-ref-hero-main h2 {
+  margin: 0 0 5px !important;
+  color: var(--rpg-gold-2) !important;
+  font-family: var(--rpg-font-title) !important;
+  font-size: clamp(2.1rem, 2.35vw, 2.75rem) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.02em !important;
+}
+
+#cabinet-quests .quest-ref-hero-main p,
+#cabinet-quests .quest-ref-subtitle,
+#cabinet-quests .quest-ref-card-description,
+#cabinet-quests .quest-ref-detail-hero p,
+#cabinet-quests .quest-ref-empty p {
+  color: var(--rpg-text-2) !important;
+  font-size: 0.94rem !important;
+  line-height: 1.38 !important;
+  max-width: 82ch !important;
+  overflow-wrap: anywhere !important;
+}
+
+#cabinet-quests .quest-ref-hero-meta,
+#cabinet-quests .quest-ref-pills,
+#cabinet-quests .quest-ref-card-meta,
+#cabinet-quests .quest-ref-detail-meta,
+#cabinet-quests .quest-ref-detail-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+
+#cabinet-quests .quest-ref-pill,
+#cabinet-quests .quest-ref-chip,
+#cabinet-quests .quest-ref-meta-pill,
+#cabinet-quests .quest-ref-status-pill,
+#cabinet-quests .pill,
+#cabinet-quests .tag,
+#cabinet-quests .badge {
+  max-width: 100% !important;
+  min-height: 24px !important;
+  padding: 4px 9px !important;
+  border-radius: 999px !important;
+  color: rgba(239, 229, 206, 0.94) !important;
+  background: rgba(3, 9, 13, 0.82) !important;
+  border: 1px solid var(--quest-border-gold) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#cabinet-quests .quest-ref-metrics-v39 {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(112px, 1fr)) !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+#cabinet-quests .quest-ref-metric {
+  min-height: 50px !important;
+  padding: 8px 10px !important;
+  border-radius: var(--rpg-radius-md) !important;
+  background: rgba(3, 9, 13, 0.84) !important;
+  border: 1px solid rgba(101, 195, 207, 0.16) !important;
+}
+
+#cabinet-quests .quest-ref-metric span {
+  color: var(--rpg-muted) !important;
+  font-size: 0.74rem !important;
+}
+
+#cabinet-quests .quest-ref-metric strong {
+  display: inline-block !important;
+  color: var(--rpg-gold-2) !important;
+  font-size: 1.05rem !important;
+  line-height: 1.1 !important;
+  margin-left: 4px !important;
+}
+
+#cabinet-quests .quest-ref-active-card-v39 {
+  min-height: 74px !important;
+  padding: 12px 14px !important;
+  border-color: rgba(205, 169, 103, 0.24) !important;
+  background: linear-gradient(145deg, rgba(5, 13, 18, 0.94), rgba(2, 7, 11, 0.99)) !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-v39 {
+  padding: 13px 16px !important;
+  background:
+    radial-gradient(circle at right top, rgba(101, 195, 207, 0.07), transparent 38%),
+    linear-gradient(145deg, rgba(7, 18, 24, 0.96), rgba(3, 8, 12, 0.985)) !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-head-v39 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 10px !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-head-v39 h3,
+#cabinet-quests .quest-ref-card-title,
+#cabinet-quests .quest-ref-detail-title,
+#cabinet-quests .quest-ref-empty h3 {
+  margin: 0 !important;
+  color: var(--rpg-gold-2) !important;
+  font-family: var(--rpg-font-title) !important;
+  font-size: 1.15rem !important;
+  line-height: 1.06 !important;
+}
+
+#cabinet-quests .quest-ref-filter-grid-v39 {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(160px, 0.55fr) minmax(160px, 0.55fr) !important;
+  gap: 9px !important;
+  align-items: end !important;
+}
+
+#cabinet-quests .quest-ref-filter-field input,
+#cabinet-quests .quest-ref-filter-field select,
+#cabinet-quests input,
+#cabinet-quests select,
+#cabinet-quests textarea {
+  min-height: var(--rpg-control-h) !important;
+  border-radius: 12px !important;
+  color: var(--rpg-text) !important;
+  background: rgba(2, 8, 12, 0.90) !important;
+  border: 1px solid rgba(101, 195, 207, 0.19) !important;
+}
+
+/* Статусы — не одна длинная рейка, а 3 + 2 как рабочая MMO/RPG панель. */
+#cabinet-quests .quest-ref-status-tabs-v39 {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-top: 9px !important;
+  max-width: 960px !important;
+}
+
+#cabinet-quests .quest-ref-tab,
+#cabinet-quests .quest-ref-tab-v39 {
+  min-height: 34px !important;
+  padding: 7px 9px !important;
+  border-radius: 13px !important;
+  color: rgba(232, 238, 238, 0.94) !important;
+  background: rgba(3, 9, 13, 0.86) !important;
+  border: 1px solid rgba(205, 169, 103, 0.18) !important;
+  display: grid !important;
+  grid-template-columns: 22px minmax(0, 1fr) 26px !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-align: left !important;
+}
+
+#cabinet-quests .quest-ref-tab.active,
+#cabinet-quests .quest-ref-tab-v39.active {
+  border-color: var(--quest-border-active) !important;
+  background:
+    radial-gradient(circle at left center, rgba(101, 195, 207, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(10, 55, 63, 0.92), rgba(4, 18, 24, 0.98)) !important;
+}
+
+#cabinet-quests .quest-ref-tab span,
+#cabinet-quests .quest-ref-tab-v39 span {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#cabinet-quests .quest-ref-workspace {
+  display: grid !important;
+  grid-template-columns: minmax(360px, 1.05fr) minmax(330px, 0.9fr) !important;
+  gap: 13px !important;
+  align-items: start !important;
+}
+
+#cabinet-quests .quest-ref-card-v39,
+#cabinet-quests .quest-ref-empty {
+  padding: 14px 16px !important;
+  min-height: 118px !important;
+}
+
+#cabinet-quests .quest-ref-card-v39 {
+  display: grid !important;
+  grid-template-columns: 110px minmax(0, 1fr) auto !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+#cabinet-quests .quest-ref-image-slot,
+#cabinet-quests .quest-ref-detail-image,
+#cabinet-quests .quest-ref-empty-icon {
+  background:
+    radial-gradient(circle at center, rgba(205, 169, 103, 0.16), transparent 42%),
+    linear-gradient(145deg, rgba(13, 27, 34, 0.78), rgba(3, 8, 12, 0.96)) !important;
+  border: 1px solid rgba(205, 169, 103, 0.18) !important;
+  border-radius: 14px !important;
+}
+
+#cabinet-quests .quest-ref-detail-v39 {
+  padding: 15px 16px !important;
+  min-height: 118px !important;
+  background: linear-gradient(145deg, rgba(5, 14, 19, 0.96), rgba(2, 7, 11, 0.99)) !important;
+}
+
+#cabinet-quests .quest-ref-detail-title,
+#cabinet-quests .quest-ref-empty h3 {
+  overflow-wrap: anywhere !important;
+}
+
+ROUND 94 — QUESTS REFERENCE LAYOUT / DENSITY PASS
+   Scope: #cabinet-quests only.
+   Goal: bring quests closer to the reference:
+   compact hero, compact filters, left list + right detail, readable RPG cards.
+   ========================================================= */
+
+#cabinet-quests {
+  --quest-r94-gap: 10px;
+  --quest-r94-panel-bg:
+    radial-gradient(circle at 100% 0%, rgba(101, 195, 207, 0.055), transparent 36%),
+    linear-gradient(145deg, rgba(6, 15, 20, 0.96), rgba(2, 7, 11, 0.99));
+  --quest-r94-panel-border: rgba(101, 195, 207, 0.18);
+  --quest-r94-gold-border: rgba(205, 169, 103, 0.18);
+}
+
+#cabinet-quests .quest-ref-shell,
+#cabinet-quests .quest-ref-shell-reference,
+#cabinet-quests .quest-ref-round94 {
+  display: grid !important;
+  gap: var(--quest-r94-gap) !important;
+  min-width: 0 !important;
+  align-content: start !important;
+}
+
+/* Top hero: no more giant admin header. */
+#cabinet-quests .quest-ref-hero-v39 {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(360px, 0.95fr) minmax(250px, 0.62fr) !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+  min-height: 86px !important;
+  padding: 11px 13px !important;
+  border-radius: 16px !important;
+  background: var(--quest-r94-panel-bg) !important;
+}
+
+#cabinet-quests .quest-ref-hero-main {
+  min-width: 0 !important;
+}
+
+#cabinet-quests .quest-ref-hero-main h2 {
+  font-size: clamp(1.75rem, 2.05vw, 2.35rem) !important;
+  line-height: 0.98 !important;
+  margin: 0 0 3px !important;
+}
+
+#cabinet-quests .quest-ref-hero-main p {
+  margin: 0 !important;
+  max-width: 74ch !important;
+  font-size: 0.82rem !important;
+  line-height: 1.28 !important;
+}
+
+#cabinet-quests .quest-ref-kicker,
+#cabinet-quests .quest-ref-card-kicker,
+#cabinet-quests .quest-ref-filter-field > span,
+#cabinet-quests .filter-group > span {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.105em !important;
+}
+
+#cabinet-quests .quest-ref-hero-meta-v39 {
+  margin-top: 8px !important;
+  gap: 5px !important;
+}
+
+#cabinet-quests .quest-ref-pill,
+#cabinet-quests .quest-ref-chip,
+#cabinet-quests .quest-ref-status,
+#cabinet-quests .quest-ref-status-pill {
+  min-height: 22px !important;
+  padding: 3px 8px !important;
+  font-size: 0.76rem !important;
+  border-radius: 999px !important;
+}
+
+/* Hero metrics: small row, not chunky boxes. */
+#cabinet-quests .quest-ref-metrics-v39 {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(62px, 1fr)) !important;
+  gap: 6px !important;
+  align-self: center !important;
+}
+
+#cabinet-quests .quest-ref-metric {
+  min-height: 44px !important;
+  padding: 7px 8px !important;
+  border-radius: 12px !important;
+  background: rgba(3, 9, 13, 0.78) !important;
+  border: 1px solid rgba(101, 195, 207, 0.15) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+#cabinet-quests .quest-ref-metric span {
+  font-size: 0.68rem !important;
+  line-height: 1.1 !important;
+}
+
+#cabinet-quests .quest-ref-metric strong {
+  font-size: 1.05rem !important;
+  line-height: 1.05 !important;
+  margin: 2px 0 0 !important;
+}
+
+#cabinet-quests .quest-ref-active-card-v39 {
+  min-height: 74px !important;
+  padding: 10px 12px !important;
+  border-radius: 15px !important;
+}
+
+#cabinet-quests .quest-ref-active-card-v39 h3 {
+  margin: 2px 0 7px !important;
+  font-size: 1.05rem !important;
+  line-height: 1.05 !important;
+}
+
+/* Filter bar: compact working toolbar. */
+#cabinet-quests .quest-ref-toolbar-v39 {
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  background: var(--quest-r94-panel-bg) !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-head-v39 {
+  display: grid !important;
+  grid-template-columns: minmax(160px, 1fr) auto !important;
+  gap: 10px !important;
+  align-items: center !important;
+  margin-bottom: 8px !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-head-v39 h3 {
+  font-size: 1.02rem !important;
+  line-height: 1.05 !important;
+  margin: 0 !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-actions {
+  display: flex !important;
+  gap: 7px !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+#cabinet-quests .quest-ref-toolbar-actions .btn,
+#cabinet-quests .quest-ref-create-main,
+#cabinet-quests #questsRefreshBtn,
+#cabinet-quests #questsToggleFormBtn,
+#cabinet-quests #questsHeroCreateBtn {
+  min-height: 32px !important;
+  padding: 6px 12px !important;
+  border-radius: 14px !important;
+  font-size: 0.84rem !important;
+}
+
+#cabinet-quests .quest-ref-filter-grid-v39 {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1.25fr) minmax(150px, 0.42fr) minmax(150px, 0.42fr) !important;
+  gap: 8px !important;
+  align-items: end !important;
+}
+
+#cabinet-quests .quest-ref-filter-field input,
+#cabinet-quests .quest-ref-filter-field select,
+#cabinet-quests input,
+#cabinet-quests select {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 6px 10px !important;
+  border-radius: 11px !important;
+  font-size: 0.84rem !important;
+}
+
+#cabinet-quests .quest-ref-status-tabs-v39 {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+  max-width: none !important;
+  margin-top: 8px !important;
+}
+
+#cabinet-quests .quest-ref-status-tab {
+  min-width: 0 !important;
+  min-height: 31px !important;
+  padding: 5px 9px !important;
+  border-radius: 13px !important;
+  color: rgba(236, 231, 214, 0.92) !important;
+  background: rgba(3, 9, 13, 0.82) !important;
+  border: 1px solid rgba(205, 169, 103, 0.16) !important;
+  display: grid !important;
+  grid-template-columns: 18px minmax(0, 1fr) auto !important;
+  gap: 6px !important;
+  align-items: center !important;
+  text-align: left !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025) !important;
+}
+
+#cabinet-quests .quest-ref-status-tab strong {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.78rem !important;
+}
+
+#cabinet-quests .quest-ref-status-tab em {
+  min-width: 24px !important;
+  padding: 1px 7px !important;
+  border-radius: 999px !important;
+  color: var(--rpg-gold-2) !important;
+  background: rgba(205, 169, 103, 0.10) !important;
+  border: 1px solid rgba(205, 169, 103, 0.16) !important;
+  font-style: normal !important;
+  font-size: 0.76rem !important;
+  text-align: center !important;
+}
+
+#cabinet-quests .quest-ref-status-tab.active {
+  border-color: rgba(101, 195, 207, 0.55) !important;
+  color: #f5ffff !important;
+  background:
+    radial-gradient(circle at 0% 50%, rgba(101, 195, 207, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(10, 61, 69, 0.92), rgba(4, 18, 24, 0.98)) !important;
+  box-shadow: 0 0 18px rgba(72, 196, 211, 0.12), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+/* Workspace: reference-style list left, details right. */
+#cabinet-quests .quest-ref-workspace {
+  display: grid !important;
+  grid-template-columns: minmax(430px, 0.96fr) minmax(460px, 1.04fr) !important;
+  gap: 11px !important;
+  align-items: start !important;
+  min-width: 0 !important;
+}
+
+#cabinet-quests .quest-ref-list-panel-round94,
+#cabinet-quests .quest-ref-list-panel {
+  min-width: 0 !important;
+  max-height: calc(100dvh - 350px) !important;
+  min-height: 260px !important;
+  overflow: auto !important;
+  padding-right: 3px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(101, 195, 207, 0.42) rgba(4, 10, 14, 0.82) !important;
+}
+
+#cabinet-quests .quest-ref-list {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+#cabinet-quests .quest-ref-card-v39 {
+  display: grid !important;
+  grid-template-columns: 150px minmax(0, 1fr) 92px !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+  min-height: 118px !important;
+  padding: 8px !important;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(101, 195, 207, 0.055), transparent 36%),
+    linear-gradient(145deg, rgba(7, 18, 24, 0.93), rgba(3, 8, 12, 0.985)) !important;
+}
+
+#cabinet-quests .quest-ref-card-selected {
+  border-color: rgba(101, 195, 207, 0.56) !important;
+  box-shadow: 0 0 20px rgba(72, 196, 211, 0.14), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+#cabinet-quests .quest-ref-art {
+  position: relative !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  border-radius: 12px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  border: 1px solid rgba(205, 169, 103, 0.18) !important;
+  background-color: rgba(5, 13, 18, 0.82) !important;
+}
+
+#cabinet-quests .quest-ref-art-card {
+  min-height: 100px !important;
+  height: 100% !important;
+}
+
+#cabinet-quests .quest-ref-art-detail {
+  height: 146px !important;
+  margin: -4px -4px 10px !important;
+}
+
+#cabinet-quests .quest-ref-art-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.44)),
+    radial-gradient(circle at center, rgba(101,195,207,0.06), transparent 46%) !important;
+  pointer-events: none !important;
+}
+
+#cabinet-quests .quest-ref-art-icon {
+  position: absolute !important;
+  left: 9px !important;
+  top: 9px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(3, 9, 13, 0.76) !important;
+  border: 1px solid rgba(205, 169, 103, 0.22) !important;
+  font-size: 1rem !important;
+  z-index: 1 !important;
+}
+
+#cabinet-quests .quest-ref-art span {
+  position: absolute !important;
+  left: 9px !important;
+  right: 9px !important;
+  bottom: 8px !important;
+  z-index: 1 !important;
+  color: rgba(239, 229, 206, 0.9) !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.75) !important;
+}
+
+#cabinet-quests .quest-ref-card-main {
+  min-width: 0 !important;
+  display: grid !important;
+  align-content: start !important;
+  gap: 5px !important;
+}
+
+#cabinet-quests .quest-ref-card-topline {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+}
+
+#cabinet-quests .quest-ref-card-titleblock h3,
+#cabinet-quests .quest-ref-card-v39 h3 {
+  font-size: 1.08rem !important;
+  line-height: 1.08 !important;
+  margin: 1px 0 0 !important;
+  color: var(--rpg-gold-2) !important;
+}
+
+#cabinet-quests .quest-ref-card-description {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  font-size: 0.78rem !important;
+  line-height: 1.25 !important;
+}
+
+#cabinet-quests .quest-ref-card-meta-v39 {
+  gap: 5px !important;
+  font-size: 0.72rem !important;
+}
+
+#cabinet-quests .quest-ref-card-side-v39 {
+  display: grid !important;
+  align-content: center !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+
+#cabinet-quests .quest-ref-card-progress-inline {
+  display: grid !important;
+  gap: 4px !important;
+}
+
+#cabinet-quests .quest-ref-card-progress-inline strong {
+  font-size: 0.74rem !important;
+  color: var(--rpg-gold-2) !important;
+}
+
+#cabinet-quests .quest-ref-card-date {
+  color: var(--rpg-muted) !important;
+  font-size: 0.68rem !important;
+}
+
+#cabinet-quests .quest-ref-card-mini-edit {
+  min-height: 26px !important;
+  padding: 4px 7px !important;
+  border-radius: 9px !important;
+  font-size: 0.72rem !important;
+}
+
+#cabinet-quests .quest-ref-detail-v39 {
+  min-width: 0 !important;
+  min-height: 260px !important;
+  padding: 12px !important;
+  border-radius: 16px !important;
+  position: sticky !important;
+  top: 0 !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(205, 169, 103, 0.055), transparent 35%),
+    linear-gradient(145deg, rgba(6, 15, 20, 0.96), rgba(2, 7, 11, 0.992)) !important;
+}
+
+#cabinet-quests .quest-ref-detail-hero {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+#cabinet-quests .quest-ref-detail-hero h3 {
+  margin: 2px 0 5px !important;
+  color: var(--rpg-gold-2) !important;
+  font-family: var(--rpg-font-title) !important;
+  font-size: clamp(1.25rem, 1.45vw, 1.7rem) !important;
+  line-height: 1.05 !important;
+}
+
+#cabinet-quests .quest-ref-detail-hero p {
+  margin: 0 !important;
+  font-size: 0.82rem !important;
+  line-height: 1.33 !important;
+}
+
+#cabinet-quests .quest-ref-detail-tags {
+  gap: 6px !important;
+  margin: 7px 0 !important;
+}
+
+#cabinet-quests .quest-ref-detail-tags span {
+  min-height: 22px !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(3, 9, 13, 0.74) !important;
+  border: 1px solid rgba(205, 169, 103, 0.14) !important;
+  color: rgba(239, 229, 206, 0.86) !important;
+  font-size: 0.74rem !important;
+}
+
+#cabinet-quests .quest-ref-detail-grid-v39 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.48fr) !important;
+  gap: 9px !important;
+  margin-top: 8px !important;
+}
+
+#cabinet-quests .quest-ref-detail-card {
+  padding: 9px 10px !important;
+  border-radius: 13px !important;
+  background: rgba(3, 9, 13, 0.66) !important;
+  border: 1px solid rgba(101, 195, 207, 0.13) !important;
+}
+
+#cabinet-quests .quest-ref-detail-card h4 {
+  margin: 0 0 7px !important;
+  color: var(--rpg-gold) !important;
+  font-size: 0.88rem !important;
+}
+
+#cabinet-quests .quest-ref-detail-actions {
+  margin-top: 9px !important;
+  gap: 6px !important;
+}
+
+#cabinet-quests .quest-ref-detail-actions .btn {
+  min-height: 29px !important;
+  padding: 5px 9px !important;
+  border-radius: 10px !important;
+  font-size: 0.77rem !important;
+}
+
+#cabinet-quests .quest-ref-empty {
+  min-height: 126px !important;
+  padding: 14px 16px !important;
+  display: grid !important;
+  grid-template-columns: 54px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  border-radius: 16px !important;
+}
+
+#cabinet-quests .quest-ref-empty-icon {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#cabinet-quests .quest-ref-empty h3 {
+  font-size: 1.15rem !important;
+  margin: 0 0 4px !important;
+}
+
+#cabinet-quests .quest-ref-empty p {
+  margin: 0 0 8px !important;
+  font-size: 0.84rem !important;
+  line-height: 1.32 !important;
+}
+
+/* Form stays functional, but less huge. */
+#cabinet-quests .quest-ref-form {
+  padding: 12px !important;
+  border-radius: 16px !important;
+}
+
+#cabinet-quests .quest-ref-form-grid {
+  gap: 8px !important;
+}
+
+#cabinet-quests .quest-ref-form textarea {
+  min-height: 92px !important;
+  font-size: 0.84rem !important;
+}
+
+@media (max-width: 1450px) {
+  #cabinet-quests .quest-ref-hero-v39 {
+    grid-template-columns: minmax(260px, 1fr) minmax(310px, 0.72fr) !important;
+  }
+
+  #cabinet-quests .quest-ref-active-card-v39 {
+    grid-column: 1 / -1 !important;
+  }
+
+  #cabinet-quests .quest-ref-metrics-v39 {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+
+  #cabinet-quests .quest-ref-workspace {
+    grid-template-columns: minmax(390px, 0.95fr) minmax(410px, 1.05fr) !important;
+  }
+
+  #cabinet-quests .quest-ref-card-v39 {
+    grid-template-columns: 132px minmax(0, 1fr) 84px !important;
+  }
+}
+
+@media (max-width: 1120px) {
+  #cabinet-quests .quest-ref-hero-v39,
+  #cabinet-quests .quest-ref-workspace {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cabinet-quests .quest-ref-detail-v39 {
+    position: static !important;
+  }
+
+  #cabinet-quests .quest-ref-status-tabs-v39 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 780px) {
+  #cabinet-quests .quest-ref-metrics-v39,
+  #cabinet-quests .quest-ref-filter-grid-v39,
+  #cabinet-quests .quest-ref-status-tabs-v39,
+  #cabinet-quests .quest-ref-detail-grid-v39,
+  #cabinet-quests .quest-ref-card-v39 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #cabinet-quests .quest-ref-art-card {
+    min-height: 120px !important;
+  }
+}
+
+/* =========================================================
+
+ROUND 95 — QUESTS SAFE FORM / AUTO CHECKPOINTS UI
+   Scope: #cabinet-quests only.
+   Adds compact helper controls for BG3-like quest stages.
+   ========================================================= */
+
+#cabinet-quests .quest-ref-checkpoint-builder {
+  gap: 6px !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint-builder textarea {
+  min-height: 94px !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint-builder-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint-builder-actions .btn {
+  min-height: 28px !important;
+  padding: 4px 10px !important;
+  border-radius: 10px !important;
+  font-size: 0.76rem !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint-builder-actions small {
+  color: var(--rpg-muted) !important;
+  font-size: 0.72rem !important;
+  line-height: 1.25 !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint-list {
+  gap: 5px !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint {
+  min-height: 28px !important;
+  padding: 5px 7px !important;
+  border-radius: 10px !important;
+}
+
+#cabinet-quests .quest-ref-checkpoint input {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+/* =========================================================
