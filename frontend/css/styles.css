@@ -5737,6 +5737,14 @@ body.cabinet-masterroom-battle-focus .master-room-combat-log-tags {
 }
 
 #cabinet-masterroom .stat-box,
+/* ==========================================================================
+   Модуль вынесен: лист персонажа / LSS
+   Основные стили вкладки «Персонаж», листа, портрета, кубов и конструктора теперь лежат в:
+   frontend/css/modules/character.css
+
+   В монолите ниже оставлены только соседние или ещё не проверенные стили.
+   ========================================================================== */
+
 #cabinet-masterroom .lss-rich-block {
   background:
     radial-gradient(circle at top right, rgba(185, 199, 207, 0.04), transparent 28%),
@@ -5756,43 +5764,10 @@ body.cabinet-masterroom-battle-focus .master-room-combat-log-tags {
   font-size: 10.5px;
 }
 
-.lss-jump-rail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
 
-#cabinet-lss .lss-jump-rail .btn {
-  min-height: 31px;
-  padding: 5px 10px;
-  border-radius: 10px;
-  font-size: 12px;
-}
 
-.lss-editor-shell {
-  background:
-    radial-gradient(circle at top left, rgba(214, 181, 122, 0.07), transparent 22%),
-    radial-gradient(circle at top right, rgba(185, 199, 207, 0.05), transparent 26%),
-    linear-gradient(180deg, rgba(15, 25, 32, 0.98), rgba(8, 14, 19, 0.995));
-}
 
-.lss-editor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 12px;
-}
 
-.lss-editor-section {
-  padding: 12px;
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(18, 29, 36, 0.96), rgba(9, 15, 20, 0.99));
-  border: 1px solid rgba(185, 199, 207, 0.14);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.03),
-    0 10px 24px rgba(0,0,0,0.16);
-}
 
 .quest-list {
   margin: 12px 0 0;
@@ -6320,42 +6295,10 @@ body {
 
 /* ------- LSS system separation ------- */
 
-#cabinet-lss .cabinet-block {
-  background:
-    radial-gradient(circle at top right, rgba(185, 199, 207, 0.03), transparent 24%),
-    linear-gradient(180deg, rgba(16, 27, 34, 0.96), rgba(8, 14, 19, 0.985));
-  border: 1px solid rgba(185, 199, 207, 0.13);
-}
 
-#cabinet-lss .lss-rich-block,
-#cabinet-lss .stat-box {
-  background:
-    linear-gradient(180deg, rgba(18, 29, 36, 0.96), rgba(9, 15, 20, 0.99));
-  border-color: rgba(185, 199, 207, 0.14);
-}
 
-#cabinet-lss [data-lss-tab],
-#cabinet-lss .lss-tab-btn {
-  background:
-    linear-gradient(180deg, rgba(18, 29, 36, 0.98), rgba(8, 14, 19, 0.995)) !important;
-  color: var(--steel-1) !important;
-  border: 1px solid rgba(185, 199, 207, 0.15) !important;
-}
 
-#cabinet-lss [data-lss-tab].active,
-#cabinet-lss .lss-tab-btn.active,
-#cabinet-lss .btn.active[data-lss-tab] {
-  background:
-    linear-gradient(180deg, #d7e2e8, #bccad2) !important;
-  color: #102029 !important;
-  border-color: rgba(255,255,255,0.15) !important;
-}
 
-#cabinet-lss .meta-item {
-  background: rgba(185, 199, 207, 0.06);
-  border-color: rgba(185, 199, 207, 0.14);
-  color: #dbe5ea;
-}
 
 /* -------- trader table readability -------- */
 
@@ -6588,11 +6531,7 @@ td .item-description-short,
     grid-template-columns: 1fr !important;
   }
 
-  #cabinet-lss .profile-grid,
-  #cabinet-lss .stats-grid {
-    grid-template-columns: 1fr !important;
   }
-}
 
 /* =========================================================
    ROUND 7 — TRADER MODAL SLIGHTLY BIGGER
@@ -9109,9 +9048,6 @@ td .item-description-short,
 
 /* LSS исключаем из cleanup-шторок и нижней навигации по смыслу sheet-first модуля. */
 
-body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
-  display: none !important;
-}
 
 @media (max-width: 760px) {
   #cabinetModal .cabinet-floating-scroll,
@@ -10276,618 +10212,89 @@ body.cabinet-tab-lss #cabinetModal .cabinet-floating-scroll {
    фото, локального сохранения и базового конструктора.
    ========================================================= */
 
-#cabinet-lss {
-  --lss-bg-deep: rgba(3, 9, 13, 0.98);
-  --lss-bg-panel: rgba(8, 18, 24, 0.94);
-  --lss-bg-panel-2: rgba(11, 24, 31, 0.92);
-  --lss-border-gold: rgba(205, 163, 92, 0.28);
-  --lss-border-cyan: rgba(91, 207, 220, 0.24);
-  --lss-text-gold: #f1dfb5;
-  --lss-text-main: #e7ecec;
-  --lss-text-muted: #9daeb3;
-  --lss-cyan: #76d5e1;
-  --lss-green: #78d894;
-  --lss-blue: #5aa7ff;
-  --lss-red: #e97475;
-}
 
-#cabinet-lss .lss-root,
-#cabinet-lss .lss-ref-root {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
 
-#cabinet-lss .cabinet-block {
-  border-color: var(--lss-border-gold);
-  background:
-    radial-gradient(circle at top left, rgba(105, 222, 232, 0.055), transparent 25%),
-    radial-gradient(circle at top right, rgba(205, 163, 92, 0.06), transparent 28%),
-    linear-gradient(180deg, rgba(8, 17, 23, 0.96), rgba(4, 10, 15, 0.985));
-  box-shadow:
-    0 18px 42px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255,255,255,0.025);
-}
 
 /* topbar */
-#cabinet-lss .lss-ref-topbar {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px 18px;
-  align-items: center;
-  padding: 14px 16px;
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  backdrop-filter: blur(12px);
-}
 
-#cabinet-lss .lss-ref-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 220px;
-}
 
-#cabinet-lss .lss-ref-mark {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  color: var(--lss-text-gold);
-  border: 1px solid var(--lss-border-gold);
-  background:
-    radial-gradient(circle at center, rgba(118, 213, 225, 0.16), transparent 58%),
-    linear-gradient(180deg, rgba(10, 23, 30, 0.96), rgba(4, 9, 14, 0.98));
-}
 
-#cabinet-lss .lss-ref-title {
-  color: var(--lss-text-gold);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 3vw, 3.1rem);
-  line-height: 0.94;
-  letter-spacing: 0.03em;
-}
 
-#cabinet-lss .lss-ref-subtitle {
-  color: rgba(241, 223, 181, 0.84);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1rem;
-  margin-top: 2px;
-}
 
-#cabinet-lss .lss-ref-top-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
 
-#cabinet-lss .lss-ref-top-actions .btn,
-#cabinet-lss .lss-ref-character-pool .btn {
-  min-height: 38px;
-  padding: 7px 12px;
-  border-radius: 12px;
-}
 
-#cabinet-lss .lss-ref-character-pool {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 430px;
-  min-width: 0;
-  padding: 4px;
-  border-radius: 14px;
-  border: 1px solid rgba(205, 163, 92, 0.16);
-  background: rgba(2, 8, 12, 0.45);
-}
 
-#cabinet-lss .lss-ref-character-pool label {
-  color: var(--lss-text-gold);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 2px 0 6px;
-}
 
-#cabinet-lss .lss-ref-character-pool select {
-  min-width: 150px;
-  max-width: 260px;
-  height: 34px;
-}
 
-#cabinet-lss .lss-ref-source-pill {
-  justify-self: end;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(205, 163, 92, 0.18);
-  background: rgba(5, 12, 18, 0.72);
-  color: rgba(231, 236, 236, 0.86);
-  font-size: 12px;
-  white-space: nowrap;
-}
 
-#cabinet-lss .lss-ref-jump-rail {
-  grid-column: 1 / -1;
-  padding-top: 8px;
-  border-top: 1px solid rgba(205, 163, 92, 0.12);
-}
 
 /* Empty / starter constructor */
-#cabinet-lss .lss-ref-empty-state {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
-  gap: 18px;
-  align-items: stretch;
-  padding: 22px;
-}
 
-#cabinet-lss .lss-ref-empty-copy h3 {
-  color: var(--lss-text-gold);
-  font-size: clamp(1.7rem, 2.4vw, 2.6rem);
-  margin: 4px 0 10px;
-}
 
-#cabinet-lss .lss-ref-kicker {
-  color: rgba(205, 163, 92, 0.88);
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-size: 11px;
-  font-weight: 900;
-}
 
-#cabinet-lss .lss-ref-starter-card {
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(91, 207, 220, 0.18);
-  background: linear-gradient(180deg, rgba(8, 20, 28, 0.88), rgba(4, 10, 16, 0.96));
-}
 
-#cabinet-lss .lss-ref-starter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
 
-#cabinet-lss .lss-ref-field-main {
-  grid-column: span 2;
-}
 
-#cabinet-lss .lss-ref-starter-actions {
-  margin: 14px 0 10px;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 
 /* Hero */
-#cabinet-lss .lss-ref-hero-card {
-  display: grid;
-  grid-template-columns: 184px minmax(0, 1fr) minmax(320px, 0.72fr);
-  gap: 18px;
-  align-items: stretch;
-  padding: 16px;
-  min-height: 222px;
-}
 
-#cabinet-lss .lss-ref-portrait-frame {
-  position: relative;
-  min-height: 190px;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid rgba(205, 163, 92, 0.34);
-  background:
-    radial-gradient(circle at center, rgba(118, 213, 225, 0.08), transparent 60%),
-    linear-gradient(180deg, rgba(13, 25, 31, 0.96), rgba(4, 9, 13, 0.98));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 16px 32px rgba(0,0,0,0.32);
-}
 
-#cabinet-lss .lss-ref-portrait {
-  width: 100%;
-  height: 100%;
-  min-height: 190px;
-  object-fit: cover;
-}
 
-#cabinet-lss .lss-ref-portrait-fallback {
-  height: 100%;
-  min-height: 190px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 54px;
-}
 
-#cabinet-lss .lss-ref-photo-btn {
-  position: absolute;
-  right: 9px;
-  bottom: 9px;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  border: 1px solid rgba(118, 213, 225, 0.32);
-  background: rgba(6, 17, 23, 0.86);
-  color: #e8f7fa;
-  cursor: pointer;
-}
 
-#cabinet-lss .lss-ref-identity-panel,
-#cabinet-lss .lss-ref-combat-panel {
-  min-width: 0;
-  border-radius: 18px;
-  border: 1px solid rgba(205, 163, 92, 0.16);
-  background: linear-gradient(180deg, rgba(7, 16, 22, 0.72), rgba(3, 8, 12, 0.78));
-  padding: 16px;
-}
 
-#cabinet-lss .lss-ref-name-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
 
-#cabinet-lss .lss-ref-name-row h2 {
-  color: var(--lss-text-gold);
-  font-size: clamp(2rem, 3vw, 3rem);
-  line-height: 0.98;
-  margin: 4px 0 8px;
-}
 
-#cabinet-lss .lss-ref-edit-name {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  border: 1px solid rgba(205, 163, 92, 0.18);
-  background: rgba(4, 10, 15, 0.72);
-  color: var(--lss-text-gold);
-  cursor: pointer;
-}
 
-#cabinet-lss .lss-ref-level-row {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  margin: 10px 0 12px;
-}
 
-#cabinet-lss .lss-ref-level-badge {
-  width: 82px;
-  height: 82px;
-  border-radius: 22px;
-  border: 1px solid rgba(205, 163, 92, 0.34);
-  display: grid;
-  place-items: center;
-  align-content: center;
-  color: var(--lss-text-gold);
-  background: radial-gradient(circle at center, rgba(205, 163, 92, 0.16), transparent 62%);
-}
 
-#cabinet-lss .lss-ref-level-badge span {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: rgba(241, 223, 181, 0.75);
-}
 
-#cabinet-lss .lss-ref-level-badge strong {
-  font-size: 2rem;
-  line-height: 1;
-  font-family: Georgia, "Times New Roman", serif;
-}
 
-#cabinet-lss .lss-ref-xp-text {
-  display: flex;
-  justify-content: flex-end;
-  color: rgba(231,236,236,0.84);
-  font-size: 13px;
-  margin-bottom: 6px;
-}
 
-#cabinet-lss .lss-ref-xp-track,
-#cabinet-lss .lss-ref-hp-track {
-  height: 8px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.06);
-}
 
-#cabinet-lss .lss-ref-xp-track i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, rgba(118,213,225,0.86), rgba(205,163,92,0.84));
-}
 
-#cabinet-lss .lss-ref-tags,
-#cabinet-lss .lss-ref-mini-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
-#cabinet-lss .lss-ref-tags span,
-#cabinet-lss .lss-ref-mini-row span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(5, 13, 19, 0.72);
-  border: 1px solid rgba(118, 213, 225, 0.14);
-  color: rgba(231,236,236,0.86);
-  font-size: 12px;
-}
 
-#cabinet-lss .lss-ref-tag-warning {
-  border-color: rgba(233, 116, 117, 0.22) !important;
-  color: #ffd8d8 !important;
-}
 
-#cabinet-lss .lss-ref-combat-panel {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  align-content: start;
-}
 
-#cabinet-lss .lss-ref-combat-stat {
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(205, 163, 92, 0.14);
-  background: rgba(5, 13, 19, 0.66);
-}
 
-#cabinet-lss .lss-ref-combat-stat span,
-#cabinet-lss .lss-ref-hp-title {
-  display: block;
-  color: rgba(241, 223, 181, 0.72);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
 
-#cabinet-lss .lss-ref-combat-stat strong {
-  display: block;
-  margin-top: 6px;
-  color: var(--lss-text-gold);
-  font-size: 1.45rem;
-  font-family: Georgia, "Times New Roman", serif;
-}
 
-#cabinet-lss .lss-ref-hp-block,
-#cabinet-lss .lss-ref-mini-row,
-#cabinet-lss .lss-ref-death-row {
-  grid-column: 1 / -1;
-}
 
-#cabinet-lss .lss-ref-hp-value {
-  color: var(--lss-green);
-  font-size: 2rem;
-  font-weight: 900;
-  margin: 4px 0 8px;
-}
 
-#cabinet-lss .lss-ref-hp-track i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, rgba(93, 224, 128, 0.92), rgba(146, 242, 166, 0.98));
-}
 
-#cabinet-lss .lss-ref-hp-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
 
-#cabinet-lss .lss-ref-hp-actions .btn {
-  min-height: 28px;
-  padding: 4px 8px;
-  border-radius: 10px;
-}
 
-#cabinet-lss .lss-ref-death-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: rgba(231,236,236,0.82);
-  font-size: 12px;
-}
 
-#cabinet-lss .lss-ref-death-dots {
-  display: inline-flex;
-  gap: 5px;
-}
 
-#cabinet-lss .lss-ref-death-dots i {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.05);
-}
 
-#cabinet-lss .lss-ref-death-dots i.is-on {
-  background: var(--lss-green);
-  border-color: rgba(120, 216, 148, 0.5);
-}
 
-#cabinet-lss .lss-ref-death-fails i.is-on {
-  background: var(--lss-red);
-  border-color: rgba(233, 116, 117, 0.5);
-}
 
 /* tabs */
-#cabinet-lss .lss-ref-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-}
 
-#cabinet-lss .lss-ref-tab {
-  flex: 1 1 112px;
-  min-height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-right: 1px solid rgba(205, 163, 92, 0.14);
-  background: rgba(5, 13, 19, 0.54);
-  color: rgba(231,236,236,0.78);
-  cursor: pointer;
-  transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease;
-}
 
-#cabinet-lss .lss-ref-tab:hover,
-#cabinet-lss .lss-ref-tab.active {
-  background:
-    radial-gradient(circle at top, rgba(118, 213, 225, 0.22), transparent 64%),
-    linear-gradient(180deg, rgba(14, 56, 64, 0.92), rgba(4, 16, 22, 0.96));
-  color: #f6ffff;
-  box-shadow: inset 0 -2px 0 rgba(118, 213, 225, 0.72);
-}
 
-#cabinet-lss .lss-ref-tab-icon {
-  color: var(--lss-text-gold);
-}
 
 /* active blocks */
-#cabinet-lss .lss-ref-active-panel {
-  min-width: 0;
-}
 
-#cabinet-lss .lss-ref-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(270px, 0.75fr);
-  gap: 14px;
-  align-items: start;
-}
 
-#cabinet-lss .lss-ref-overview-main,
-#cabinet-lss .lss-ref-overview-side {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
 
-#cabinet-lss .stats-grid {
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
-}
 
-#cabinet-lss .stat-box,
-#cabinet-lss .lss-rich-block {
-  border-radius: 16px;
-}
 
-#cabinet-lss .lss-inline-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(118, 213, 225, 0.12);
-  background: rgba(4, 12, 18, 0.58);
-}
 
 /* constructor */
-#cabinet-lss .lss-editor-shell {
-  border-color: rgba(118, 213, 225, 0.24);
-  background:
-    radial-gradient(circle at top left, rgba(118, 213, 225, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(8, 18, 25, 0.96), rgba(4, 10, 15, 0.99));
-}
 
-#cabinet-lss .lss-editor-grid {
-  grid-template-columns: repeat(2, minmax(300px, 1fr));
-  align-items: start;
-}
 
-#cabinet-lss .lss-editor-section {
-  border-radius: 18px;
-  border-color: rgba(205, 163, 92, 0.16);
-}
 
-#cabinet-lss .lss-editor-section .profile-grid {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-}
 
-#cabinet-lss .lss-editor-section textarea {
-  min-height: 104px;
-}
 
-#cabinet-lss input,
-#cabinet-lss select,
-#cabinet-lss textarea {
-  background: rgba(3, 10, 15, 0.86);
-  border-color: rgba(118, 213, 225, 0.15);
-}
 
 /* dice */
-#cabinet-lss #lssDiceToggleInlineBtn {
-  min-height: 30px;
-}
 
 /* responsive */
-@media (max-width: 1280px) {
-  #cabinet-lss .lss-ref-topbar {
-    grid-template-columns: 1fr;
-  }
 
-  #cabinet-lss .lss-ref-source-pill {
-    justify-self: start;
-  }
 
-  #cabinet-lss .lss-ref-hero-card {
-    grid-template-columns: 160px minmax(0, 1fr);
-  }
 
-  #cabinet-lss .lss-ref-combat-panel {
-    grid-column: 1 / -1;
-  }
-
-  #cabinet-lss .lss-ref-overview-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 780px) {
-  #cabinet-lss .lss-ref-empty-state,
-  #cabinet-lss .lss-ref-hero-card,
-  #cabinet-lss .lss-editor-grid {
-    grid-template-columns: 1fr;
-  }
-
-  #cabinet-lss .lss-ref-starter-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  #cabinet-lss .lss-ref-field-main {
-    grid-column: 1 / -1;
-  }
-
-  #cabinet-lss .lss-ref-portrait-frame {
-    max-width: 220px;
-  }
-
-  #cabinet-lss .lss-ref-combat-panel {
-    grid-template-columns: 1fr;
-  }
-
-  #cabinet-lss .lss-ref-level-row {
-    grid-template-columns: 1fr;
-  }
-
-  #cabinet-lss .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
 /* =========================================================
    ROUND 29 — MASTER ROOM / COMBAT REFERENCE PASS
@@ -20740,267 +20147,50 @@ body.cabinet-tab-masterroom #cabinetModal:not(.cabinet-rail-collapsed) .cabinet-
    - gently reduce scale on 1080p/100% without touching other modules
    ========================================================= */
 
-#cabinet-lss .lss-ref-topbar-compact {
-  grid-template-columns: minmax(160px, auto) minmax(0, 1fr) auto !important;
-  padding: 12px 14px !important;
-  gap: 10px 14px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-brand {
-  min-width: 170px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-mark {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 13px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-title {
-  font-size: clamp(1.8rem, 2.5vw, 2.65rem) !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-subtitle {
-  font-size: 0.9rem !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-top-actions {
-  justify-content: center !important;
-  gap: 7px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .btn,
-#cabinet-lss .lss-ref-character-pool .btn {
-  min-height: 34px !important;
-  padding: 6px 10px !important;
-  border-radius: 11px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-character-pool {
-  max-width: 390px !important;
-  padding: 3px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-character-pool select {
-  height: 32px !important;
-  min-width: 145px !important;
-}
 
-#cabinet-lss .lss-ref-topbar-compact .lss-ref-source-pill {
-  padding: 6px 10px !important;
-  font-size: 11px !important;
-}
 
-#cabinet-lss .lss-ref-create-state {
-  grid-template-columns: minmax(230px, 0.55fr) minmax(0, 1.45fr) !important;
-  gap: 16px !important;
-  padding: 18px !important;
-}
 
-#cabinet-lss .lss-ref-create-state .lss-ref-empty-copy h3 {
-  font-size: clamp(1.55rem, 2.2vw, 2.35rem) !important;
-}
 
-#cabinet-lss .lss-ref-starter-grid-wide {
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  gap: 9px !important;
-}
 
-#cabinet-lss .lss-ref-starter-grid-wide .lss-ref-field-main {
-  grid-column: span 2 !important;
-}
 
-#cabinet-lss .lss-ref-starter-stats {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(205, 163, 92, 0.12);
-}
 
-#cabinet-lss .lss-ref-hero-card {
-  grid-template-columns: 170px minmax(0, 1fr) minmax(280px, 0.66fr) !important;
-  gap: 14px !important;
-  padding: 14px !important;
-  min-height: 202px !important;
-}
 
-#cabinet-lss .lss-ref-portrait-frame,
-#cabinet-lss .lss-ref-portrait,
-#cabinet-lss .lss-ref-portrait-fallback {
-  min-height: 170px !important;
-}
 
-#cabinet-lss .lss-ref-identity-panel,
-#cabinet-lss .lss-ref-combat-panel {
-  padding: 14px !important;
-  border-radius: 16px !important;
-}
 
-#cabinet-lss .lss-ref-name-row h2 {
-  font-size: clamp(1.85rem, 2.55vw, 2.65rem) !important;
-}
 
-#cabinet-lss .lss-ref-level-badge {
-  width: 74px !important;
-  height: 74px !important;
-  border-radius: 20px !important;
-}
 
-#cabinet-lss .lss-ref-combat-stat {
-  min-height: 70px !important;
-  padding: 11px !important;
-}
 
-#cabinet-lss .lss-ref-hp-value {
-  font-size: clamp(1.55rem, 2.3vw, 2.2rem) !important;
-}
 
-#cabinet-lss .lss-ref-tabs .lss-ref-tab {
-  min-height: 42px !important;
-  flex-basis: 104px !important;
-  font-size: 0.88rem !important;
-}
 
-#cabinet-lss .lss-ref-dice-dock {
-  width: min(100%, 520px);
-  margin: 0 0 12px auto;
-  padding: 10px 12px;
-  box-shadow: 0 10px 26px rgba(0,0,0,0.22);
-}
 
-#cabinet-lss .lss-ref-dice-dock #lssDiceToggleInlineBtn {
-  min-height: 30px !important;
-  padding: 4px 9px !important;
-  border-radius: 10px !important;
-}
 
-#cabinet-lss .lss-ref-dice-buttons {
-  margin-top: 8px;
-  flex-wrap: wrap;
-  gap: 5px;
-  justify-content: flex-start;
-}
 
-#cabinet-lss .lss-ref-dice-buttons .btn {
-  min-height: 28px !important;
-  padding: 4px 8px !important;
-  border-radius: 10px !important;
-  font-size: 12px !important;
-}
 
-#cabinet-lss .lss-editor-shell {
-  margin-bottom: 12px !important;
-}
 
-#cabinet-lss .lss-editor-grid {
-  grid-template-columns: repeat(2, minmax(280px, 1fr)) !important;
-  gap: 12px !important;
-}
 
-#cabinet-lss .lss-editor-section {
-  padding: 12px !important;
-}
 
-#cabinet-lss .lss-editor-checks-block {
-  margin-top: 12px;
-  padding-top: 11px;
-  border-top: 1px solid rgba(205, 163, 92, 0.12);
-}
 
-#cabinet-lss .lss-editor-check-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 7px;
-}
 
-#cabinet-lss .lss-editor-check-grid-stats {
-  grid-template-columns: repeat(6, minmax(90px, 1fr));
-}
 
-#cabinet-lss .lss-editor-check {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  padding: 7px 9px;
-  border-radius: 11px;
-  border: 1px solid rgba(118, 213, 225, 0.13);
-  background: rgba(3, 10, 15, 0.62);
-  color: rgba(231, 236, 236, 0.88);
-  cursor: pointer;
-}
 
-#cabinet-lss .lss-editor-check input {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-}
 
-#cabinet-lss .lss-editor-check span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-#cabinet-lss .lss-editor-check small {
-  color: rgba(205, 163, 92, 0.78);
-  font-size: 0.72em;
-}
 
-#cabinet-lss input[type="number"] {
-  -moz-appearance: textfield;
-}
 
-#cabinet-lss input[type="number"]::-webkit-inner-spin-button,
-#cabinet-lss input[type="number"]::-webkit-outer-spin-button {
-  opacity: 0.45;
-}
 
-@media (max-width: 1260px) {
-  #cabinet-lss .lss-ref-topbar-compact {
-    grid-template-columns: 1fr !important;
-  }
 
-  #cabinet-lss .lss-ref-topbar-compact .lss-ref-source-pill {
-    justify-self: start !important;
-  }
 
-  #cabinet-lss .lss-ref-hero-card,
-  #cabinet-lss .lss-ref-create-state {
-    grid-template-columns: 1fr !important;
-  }
-}
 
-@media (max-width: 900px) {
-  #cabinet-lss .lss-ref-starter-grid-wide,
-  #cabinet-lss .lss-ref-starter-stats,
-  #cabinet-lss .lss-editor-grid,
-  #cabinet-lss .lss-editor-check-grid-stats {
-    grid-template-columns: 1fr 1fr !important;
-  }
 
-  #cabinet-lss .lss-ref-starter-grid-wide .lss-ref-field-main {
-    grid-column: span 2 !important;
-  }
-}
 
-@media (max-width: 620px) {
-  #cabinet-lss .lss-ref-starter-grid-wide,
-  #cabinet-lss .lss-ref-starter-stats,
-  #cabinet-lss .lss-editor-grid,
-  #cabinet-lss .lss-editor-check-grid,
-  #cabinet-lss .lss-editor-check-grid-stats {
-    grid-template-columns: 1fr !important;
-  }
-
-  #cabinet-lss .lss-ref-starter-grid-wide .lss-ref-field-main {
-    grid-column: auto !important;
-  }
-}
 
 /* =========================================================
    ROUND 120 — TRADER MODAL HEADER / PORTRAIT / WORKSPACE BALANCE
