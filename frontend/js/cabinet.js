@@ -1803,6 +1803,10 @@ function renderSupportTracker() {
             Полный саппорт-центр для проекта: что сломано, что ожидалось, шаги воспроизведения,
             скриншот, приоритет, модуль и автоматический отчёт окружения.
           </p>
+          <div class="support-beta-notice" role="note" aria-label="Статус модуля поддержки">
+            <strong>Бета</strong>
+            <span>Пока это локальный QA-инструмент: тикеты сохраняются в браузере и не отправляются разработчику/на сервер автоматически.</span>
+          </div>
         </div>
         <div class="support-summary-grid">
           <div><span>Всего</span><strong>${escapeHtml(String(summary.total))}</strong></div>
