@@ -25,7 +25,13 @@ const BESTIARI_STATE = {
   detailScrollTop: 0,
   modalScrollTop: 0,
   searchRenderTimer: null,
+  loadingPromise: null,
 };
+
+// Быстрые настройки производительности энциклопедии.
+// Не рендерим тысячи строк списка за один ввод: это убирает лаг и потерю фокуса поиска.
+const BESTIARI_LIST_RENDER_LIMIT = 120;
+const BESTIARI_SEARCH_RENDER_DELAY_MS = 220;
 
 // round153_class_css_restore: class UI UX guardrails
 const BESTIARI_CATEGORY_LABELS = {
@@ -1837,7 +1843,7 @@ function extractBestiariEntriesFromSeed(payload) {
 async function loadFirstAvailableBestiariSeed(urls = [], label = "seed") {
   for (const url of urls) {
     try {
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url, { cache: "default" });
       if (!res.ok) continue;
       const payload = await res.json();
       const entries = extractBestiariEntriesFromSeed(payload);
@@ -1854,22 +1860,30 @@ async function loadFirstAvailableBestiariSeed(urls = [], label = "seed") {
 }
 
 async function loadExternalBestiariSeeds() {
-  const monsterSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_MONSTER_SEED_URLS, "monster");
-  const deitySeeds = await loadFirstAvailableBestiariSeed(BESTIARI_DEITY_SEED_URLS, "deity");
-  const raceSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_RACE_SEED_URLS, "race");
-  const backgroundSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_BACKGROUND_SEED_URLS, "background");
-  const classSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_CLASS_SEED_URLS, "class");
-  const factionSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_FACTION_SEED_URLS, "faction");
-  const conditionSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_CONDITION_SEED_URLS, "condition");
-  const mechanicSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_MECHANIC_SEED_URLS, "mechanic");
-  const loreSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_LORE_SEED_URLS, "lore");
-  const locationSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_LOCATION_SEED_URLS, "location");
-  const spellSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_SPELL_SEED_URLS, "spell");
-  const featSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_FEAT_SEED_URLS, "feat");
-  const itemSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_ITEM_SEED_URLS, "item");
-  const magicItemSeeds = await loadFirstAvailableBestiariSeed(BESTIARI_MAGIC_ITEM_SEED_URLS, "magic item");
+  const seedGroups = [
+    ["monster", BESTIARI_MONSTER_SEED_URLS],
+    ["deity", BESTIARI_DEITY_SEED_URLS],
+    ["race", BESTIARI_RACE_SEED_URLS],
+    ["background", BESTIARI_BACKGROUND_SEED_URLS],
+    ["class", BESTIARI_CLASS_SEED_URLS],
+    ["faction", BESTIARI_FACTION_SEED_URLS],
+    ["condition", BESTIARI_CONDITION_SEED_URLS],
+    ["mechanic", BESTIARI_MECHANIC_SEED_URLS],
+    ["lore", BESTIARI_LORE_SEED_URLS],
+    ["location", BESTIARI_LOCATION_SEED_URLS],
+    ["spell", BESTIARI_SPELL_SEED_URLS],
+    ["feat", BESTIARI_FEAT_SEED_URLS],
+    ["item", BESTIARI_ITEM_SEED_URLS],
+    ["magic item", BESTIARI_MAGIC_ITEM_SEED_URLS],
+  ];
 
-  return [...monsterSeeds, ...deitySeeds, ...raceSeeds, ...backgroundSeeds, ...classSeeds, ...factionSeeds, ...conditionSeeds, ...mechanicSeeds, ...loreSeeds, ...locationSeeds, ...spellSeeds, ...featSeeds, ...itemSeeds, ...magicItemSeeds].map(normalizeEntry);
+  // Раньше группы грузились строго по очереди.
+  // Теперь каждая категория ищет первый доступный seed параллельно с другими категориями.
+  const loadedGroups = await Promise.all(
+    seedGroups.map(([label, urls]) => loadFirstAvailableBestiariSeed(urls, label))
+  );
+
+  return loadedGroups.flat().map(normalizeEntry);
 }
 
 function mergeEntryLists(...lists) {
@@ -1905,6 +1919,32 @@ function ensureEntries() {
   if (!Array.isArray(BESTIARI_STATE.entries)) BESTIARI_STATE.entries = [];
 }
 
+function getBestiariSearchText(entry = {}) {
+  if (typeof entry._searchText === "string") return entry._searchText;
+
+  const haystack = [
+    entry.title,
+    entry.subtitle,
+    entry.summary,
+    ...(entry.body || []),
+    ...(entry.full_description || []),
+    ...(entry.tags || []),
+    ...(entry.related || []),
+    ...(entry.deity_data?.portfolio || []),
+    ...(entry.deity_data?.worshippers || []),
+    ...(entry.deity_data?.allies || []),
+    ...(entry.deity_data?.enemies || []),
+    ...(entry.deity_data?.domains_5e_candidate || []),
+    ...(entry.deity_data?.domains_legacy_raw || []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  // Кэшируем поисковую строку, чтобы ввод в поиске не пересобирал большой текст заново.
+  entry._searchText = haystack;
+  return haystack;
+}
+
 function getVisibleEntries() {
   ensureEntries();
   const role = BESTIARI_STATE.role;
@@ -1920,25 +1960,7 @@ function getVisibleEntries() {
       if (category !== "all" && entry.category !== category) return false;
       if (!query) return true;
 
-      const haystack = [
-        entry.title,
-        entry.subtitle,
-        entry.summary,
-        ...(entry.body || []),
-        ...(entry.full_description || []),
-        ...(entry.tags || []),
-        ...(entry.related || []),
-        ...(entry.deity_data?.portfolio || []),
-        ...(entry.deity_data?.worshippers || []),
-        ...(entry.deity_data?.allies || []),
-        ...(entry.deity_data?.enemies || []),
-        ...(entry.deity_data?.domains_5e_candidate || []),
-        ...(entry.deity_data?.domains_legacy_raw || []),
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(query);
+      return getBestiariSearchText(entry).includes(query);
     })
     .sort((a, b) => a.title.localeCompare(b.title, "ru"));
 }
@@ -2548,9 +2570,12 @@ function renderEntryList(entries, selected) {
     `;
   }
 
+  const visibleRows = entries.slice(0, BESTIARI_LIST_RENDER_LIMIT);
+  const hiddenCount = Math.max(0, entries.length - visibleRows.length);
+
   return `
     <div class="bestiari-ref-list">
-      ${entries
+      ${visibleRows
         .map((entry) => {
           const active = entry.id === selected?.id ? "active" : "";
           const icon = getCategoryIcon(entry.category);
@@ -2572,6 +2597,12 @@ function renderEntryList(entries, selected) {
           `;
         })
         .join("")}
+      ${hiddenCount ? `
+        <div class="bestiari-ref-empty">
+          <strong>Показаны первые ${visibleRows.length}</strong>
+          <span>Ещё ${hiddenCount} записей скрыто ради скорости. Уточни поиск или категорию.</span>
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -4434,7 +4465,7 @@ function bindActions() {
       BESTIARI_STATE.searchRenderTimer = window.setTimeout(() => {
         BESTIARI_STATE.searchRenderTimer = null;
         renderCodex({ preserveScroll: true, preserveFocus: true });
-      }, 80);
+      }, BESTIARI_SEARCH_RENDER_DELAY_MS);
     });
   }
 
@@ -4687,31 +4718,48 @@ function bindActions() {
 export async function loadCodex() {
   BESTIARI_STATE.role = getCurrentRole();
 
-  const defaultEntries = BESTIARI_DEFAULT_ENTRIES.map(normalizeEntry);
-  const localEntriesRaw = loadLocalEntries();
-  const localEntries = Array.isArray(localEntriesRaw) && localEntriesRaw.length
-    ? localEntriesRaw.map(normalizeEntry)
-    : [];
-  const externalSeedEntries = await loadExternalBestiariSeeds();
-
-  BESTIARI_STATE.entries = mergeEntryLists(
-    defaultEntries,
-    localEntries,
-    externalSeedEntries
-  );
-
-  if (externalSeedEntries.length) {
-    BESTIARI_STATE.source = localEntries.length ? "local + external-seed" : "seed + external-seed";
-  } else if (localEntries.length) {
-    BESTIARI_STATE.source = "local";
-  } else {
-    BESTIARI_STATE.source = "seed";
+  if (BESTIARI_STATE.loaded && Array.isArray(BESTIARI_STATE.entries) && BESTIARI_STATE.entries.length) {
+    return BESTIARI_STATE;
   }
 
-  saveLocalEntries();
-  BESTIARI_STATE.loaded = true;
-  BESTIARI_STATE.selectedId = BESTIARI_STATE.selectedId || BESTIARI_STATE.entries[0]?.id || "";
-  return BESTIARI_STATE;
+  if (BESTIARI_STATE.loadingPromise) {
+    return BESTIARI_STATE.loadingPromise;
+  }
+
+  BESTIARI_STATE.loadingPromise = (async () => {
+    const defaultEntries = BESTIARI_DEFAULT_ENTRIES.map(normalizeEntry);
+    const localEntriesRaw = loadLocalEntries();
+    const localEntries = Array.isArray(localEntriesRaw) && localEntriesRaw.length
+      ? localEntriesRaw.map(normalizeEntry)
+      : [];
+    const externalSeedEntries = await loadExternalBestiariSeeds();
+
+    BESTIARI_STATE.entries = mergeEntryLists(
+      defaultEntries,
+      localEntries,
+      externalSeedEntries
+    );
+
+    if (externalSeedEntries.length) {
+      BESTIARI_STATE.source = localEntries.length ? "local + external-seed" : "seed + external-seed";
+    } else if (localEntries.length) {
+      BESTIARI_STATE.source = "local";
+    } else {
+      BESTIARI_STATE.source = "seed";
+    }
+
+    // Не пишем весь внешний справочник обратно в localStorage при каждой загрузке.
+    // Это раньше могло давать лишний фриз на холодном старте энциклопедии.
+    BESTIARI_STATE.loaded = true;
+    BESTIARI_STATE.selectedId = BESTIARI_STATE.selectedId || BESTIARI_STATE.entries[0]?.id || "";
+    return BESTIARI_STATE;
+  })();
+
+  try {
+    return await BESTIARI_STATE.loadingPromise;
+  } finally {
+    BESTIARI_STATE.loadingPromise = null;
+  }
 }
 
 export function renderCodex(options = {}) {

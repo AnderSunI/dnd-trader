@@ -5566,3 +5566,168 @@ body.trader-modal-open {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ==========================================================================
+   Микрофикс: колонка «Действия» в таблице торговца
+   --------------------------------------------------------------------------
+   Причина:
+   - при горизонтальном скролле правая колонка действий выглядела как отдельная
+     тяжёлая тёмная плита;
+   - предыдущие точечные фиксы били по кнопкам/ячейке, но визуально проблема
+     была в общей компоновке таблицы и слишком широкой actions-колонке.
+
+   Что меняем:
+   - делаем таблицу компактнее;
+   - уменьшаем ширину колонки «Действия»;
+   - убираем ощущение отдельного чёрного блока;
+   - оставляем кнопки, покупку, резерв, корзину и описание без изменения логики.
+   ========================================================================== */
+
+#traderModal.trader-modal-refined .collection-items-container,
+#traderModal.trader-modal-refined .items-table-container,
+#traderModal.trader-modal-refined .compact-items-table,
+#traderModal.trader-modal-refined .trader-items-table-round65 {
+  background:
+    radial-gradient(circle at right top, rgba(91, 200, 209, 0.045), transparent 34%),
+    linear-gradient(180deg, rgba(4, 12, 16, 0.58), rgba(3, 9, 13, 0.68)) !important;
+  border-color: rgba(96, 183, 194, 0.14) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 183, 194, 0.045),
+    0 12px 30px rgba(0, 0, 0, 0.20) !important;
+}
+
+#traderModal.trader-modal-refined .items-table.items-table-compact-v48.items-table-round65,
+#traderModal.trader-modal-refined .trader-items-table-round65 .items-table,
+#traderModal.trader-modal-refined .items-table {
+  min-width: 980px !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+#traderModal.trader-modal-refined .items-table tbody tr,
+#traderModal.trader-modal-refined .items-table tbody tr.trader-item-row-v48,
+#traderModal.trader-modal-refined .items-table tbody tr.trader-item-row-round65 {
+  background: rgba(4, 12, 16, 0.28) !important;
+}
+
+#traderModal.trader-modal-refined .items-table tbody tr:nth-child(even),
+#traderModal.trader-modal-refined .items-table tbody tr:nth-child(even).trader-item-row-v48,
+#traderModal.trader-modal-refined .items-table tbody tr:nth-child(even).trader-item-row-round65 {
+  background: rgba(7, 17, 21, 0.36) !important;
+}
+
+#traderModal.trader-modal-refined .items-table tbody tr:hover,
+#traderModal.trader-modal-refined .items-table tbody tr.trader-item-row-v48:hover,
+#traderModal.trader-modal-refined .items-table tbody tr.trader-item-row-round65:hover {
+  background: rgba(30, 86, 94, 0.18) !important;
+}
+
+#traderModal.trader-modal-refined .items-table th,
+#traderModal.trader-modal-refined .items-table td {
+  background-image: none !important;
+}
+
+#traderModal.trader-modal-refined .items-table th:nth-child(1),
+#traderModal.trader-modal-refined .items-table td:nth-child(1) { width: 20% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(2),
+#traderModal.trader-modal-refined .items-table td:nth-child(2) { width: 10% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(3),
+#traderModal.trader-modal-refined .items-table td:nth-child(3) { width: 9% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(4),
+#traderModal.trader-modal-refined .items-table td:nth-child(4) { width: 9% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(5),
+#traderModal.trader-modal-refined .items-table td:nth-child(5) { width: 6% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(6),
+#traderModal.trader-modal-refined .items-table td:nth-child(6) { width: 24% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(7),
+#traderModal.trader-modal-refined .items-table td:nth-child(7) { width: 7% !important; }
+
+#traderModal.trader-modal-refined .items-table th:nth-child(8),
+#traderModal.trader-modal-refined .items-table td:nth-child(8),
+#traderModal.trader-modal-refined .items-table td.add-cell[class*="item-actions-cell"],
+#traderModal.trader-modal-refined .items-table td[class*="item-actions-cell"] {
+  width: 15% !important;
+  min-width: 138px !important;
+  max-width: 158px !important;
+  background:
+    linear-gradient(180deg, rgba(8, 20, 24, 0.38), rgba(5, 13, 17, 0.46)) !important;
+  border-left: 1px solid rgba(111, 204, 214, 0.10) !important;
+  box-shadow: none !important;
+  position: static !important;
+  right: auto !important;
+  z-index: auto !important;
+}
+
+#traderModal.trader-modal-refined .items-table th:nth-child(8) {
+  background:
+    linear-gradient(180deg, rgba(9, 23, 27, 0.56), rgba(5, 13, 17, 0.64)) !important;
+}
+
+#traderModal.trader-modal-refined .items-table td.add-cell[class*="item-actions-cell"]::before,
+#traderModal.trader-modal-refined .items-table td.add-cell[class*="item-actions-cell"]::after,
+#traderModal.trader-modal-refined .items-table td[class*="item-actions-cell"]::before,
+#traderModal.trader-modal-refined .items-table td[class*="item-actions-cell"]::after {
+  display: none !important;
+  content: none !important;
+}
+
+#traderModal.trader-modal-refined .item-actions,
+#traderModal.trader-modal-refined .item-actions-stack,
+#traderModal.trader-modal-refined td[class*="item-actions-cell"] > .item-actions,
+#traderModal.trader-modal-refined td[class*="item-actions-cell"] > .item-actions-stack {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(58px, 1fr)) !important;
+  gap: 6px !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+#traderModal.trader-modal-refined td[class*="item-actions-cell"] .btn,
+#traderModal.trader-modal-refined .item-actions .btn,
+#traderModal.trader-modal-refined .item-actions-stack .btn {
+  min-width: 0 !important;
+  min-height: 30px !important;
+  padding: 5px 7px !important;
+  font-size: 0.76rem !important;
+  line-height: 1.05 !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 920px) {
+  #traderModal.trader-modal-refined .items-table.items-table-compact-v48.items-table-round65,
+  #traderModal.trader-modal-refined .trader-items-table-round65 .items-table,
+  #traderModal.trader-modal-refined .items-table {
+    min-width: 920px !important;
+  }
+
+  #traderModal.trader-modal-refined .items-table th:nth-child(8),
+  #traderModal.trader-modal-refined .items-table td:nth-child(8),
+  #traderModal.trader-modal-refined .items-table td[class*="item-actions-cell"] {
+    min-width: 128px !important;
+    max-width: 146px !important;
+  }
+
+  #traderModal.trader-modal-refined .item-actions,
+  #traderModal.trader-modal-refined .item-actions-stack {
+    grid-template-columns: repeat(2, minmax(54px, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  #traderModal.trader-modal-refined td[class*="item-actions-cell"] .btn,
+  #traderModal.trader-modal-refined .item-actions .btn,
+  #traderModal.trader-modal-refined .item-actions-stack .btn {
+    min-height: 28px !important;
+    padding: 4px 6px !important;
+    font-size: 0.72rem !important;
+  }
+}
+
