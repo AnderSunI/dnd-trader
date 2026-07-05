@@ -302,11 +302,13 @@
   overflow-wrap: anywhere !important;
 }
 
-ROUND 94 — QUESTS REFERENCE LAYOUT / DENSITY PASS
-   Scope: #cabinet-quests only.
-   Goal: bring quests closer to the reference:
-   compact hero, compact filters, left list + right detail, readable RPG cards.
-   ========================================================= */
+/* ---------------------------------------------------------------------------
+   ROUND 94 — QUESTS REFERENCE LAYOUT / DENSITY PASS
+   Область: только #cabinet-quests.
+   Цель: приблизить вкладку «Задания» к референсу:
+   компактный hero, компактные фильтры, список слева + детали справа,
+   читаемые RPG-карточки.
+   --------------------------------------------------------------------------- */
 
 #cabinet-quests {
   --quest-r94-gap: 10px;
@@ -927,4 +929,3 @@ ROUND 95 — QUESTS SAFE FORM / AUTO CHECKPOINTS UI
   height: 15px !important;
 }
 
-/* =========================================================
