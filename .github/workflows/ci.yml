@@ -1,0 +1,42 @@
+name: D&D Trader CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - local-work
+      - work/local-gm
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  syntax-check:
+    name: Python and JS syntax check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Python syntax check
+        run: |
+          python -m compileall app
+
+      - name: JavaScript syntax check
+        run: |
+          if [ -d "frontend/js" ]; then
+            find frontend/js -name "*.js" -print0 | xargs -0 -r -n 1 node --check
+          fi
+
+          if [ -d "js" ]; then
+            find js -name "*.js" -print0 | xargs -0 -r -n 1 node --check
+          fi
