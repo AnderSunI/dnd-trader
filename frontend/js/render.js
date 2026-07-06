@@ -640,6 +640,44 @@ function getTraderReputationTone(reputation) {
   return "high";
 }
 
+function getTraderRelationshipLabel(trader) {
+  return (
+    trader?.relationship_label ||
+    trader?.relation_label ||
+    getTraderQuality(trader?.reputation)
+  );
+}
+
+function getTraderRelationshipProgress(trader) {
+  const current = Number.isFinite(Number(trader?.relationship_progress))
+    ? Number(trader.relationship_progress)
+    : Math.max(0, Math.min(100, Number(trader?.reputation ?? 0) || 0));
+  const max = Number.isFinite(Number(trader?.relationship_progress_max))
+    ? Math.max(1, Number(trader.relationship_progress_max))
+    : 100;
+  const percent = Number.isFinite(Number(trader?.relationship_progress_percent))
+    ? Math.max(0, Math.min(100, Number(trader.relationship_progress_percent)))
+    : Math.max(0, Math.min(100, Math.round((current / max) * 100)));
+  const toNext = Number.isFinite(Number(trader?.relationship_to_next))
+    ? Math.max(0, Number(trader.relationship_to_next))
+    : Math.max(0, max - current);
+
+  return { current, max, percent, toNext };
+}
+
+function getTraderRelationshipTone(trader) {
+  const tone = String(trader?.relationship_tone || "").trim();
+  if (tone) return tone;
+  return getTraderReputationTone(trader?.reputation);
+}
+
+function getTraderDiscountDisplay(trader) {
+  if (Number.isFinite(Number(trader?.discount_percent))) {
+    return Math.max(0, Number(trader.discount_percent));
+  }
+  return getTraderDiscountPercent(trader?.reputation);
+}
+
 function getTraderEmoji(type) {
   const raw = String(type || "").trim().toLowerCase();
 
@@ -1415,6 +1453,331 @@ function groupItemsByCategory(items) {
   return grouped;
 }
 
+
+// ------------------------------------------------------------
+// 🧭 TRADER ATMOSPHERE / COUNTER NOTES
+// ------------------------------------------------------------
+function normalizeTraderText(value) {
+  return String(value ?? "").toLowerCase().trim();
+}
+
+function traderTextIncludes(haystack, needles) {
+  const source = normalizeTraderText(haystack);
+  return (needles || []).some((needle) => source.includes(normalizeTraderText(needle)));
+}
+
+function getTraderSearchText(trader) {
+  return [
+    trader?.name,
+    trader?.type,
+    trader?.region,
+    trader?.settlement,
+    trader?.race,
+    trader?.class_name,
+    trader?.description,
+    trader?.personality,
+    parseJsonArray(trader?.specialization).join(" "),
+    parseJsonArray(trader?.abilities).join(" "),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getTraderCounterProfile(trader) {
+  const name = normalizeTraderText(trader?.name);
+  const text = getTraderSearchText(trader);
+
+  const byName = [
+    {
+      match: ["тарм громовой молот"],
+      focus: "щит, крепёж, ремонт походного железа",
+      rumor: "По южной дороге снова идут слухи о пропавших повозках. Хороший щит там ценнее красивой речи.",
+      advice: "Перед выходом проверь ремни и заклёпки: дорога ломает снаряжение быстрее, чем враг."
+    },
+    {
+      match: ["албери миллико"],
+      focus: "каменотёсный инструмент, крепкие припасы, редкие куски породы",
+      rumor: "В каменоломне камень стал звенеть глуше обычного. Местные говорят: под землёй что-то снова шевелится.",
+      advice: "Если путь ведёт в шахты, бери клинья, верёвку и свет. Камень любит тех, кто не спешит."
+    },
+    {
+      match: ["шоалар куандерил"],
+      focus: "речной товар, припасы, сомнительные находки с пристани",
+      rumor: "На реке сейчас лучше меньше спрашивать и больше слушать. Вода приносит не только брёвна и рыбу.",
+      advice: "В лодке лишний металл тянет вниз. Бери только то, что сумеешь удержать одной рукой."
+    },
+    {
+      match: ["гариена"],
+      focus: "травы, зелья, природные реагенты",
+      rumor: "В роще звери молчат перед бурей. Когда лес замолкает — он не пуст, он слушает.",
+      advice: "Не пей незнакомый отвар залпом. Даже добрая трава сначала проверяет сердце."
+    },
+    {
+      match: ["элдрас тантур"],
+      focus: "надёжное железо, ремонт, простая броня",
+      rumor: "Металл из северных поставок задерживается. Кто-то скупает железо раньше, чем оно доходит до кузниц.",
+      advice: "Лучший клинок — тот, который не подведёт на третьем ударе, а не тот, что красиво блестит."
+    },
+    {
+      match: ["фенг железноголовый"],
+      focus: "оружие, щиты, бывшее военное снаряжение",
+      rumor: "Старые наёмники стали чаще спрашивать про копья и арбалеты. Такие вещи не покупают просто для охоты.",
+      advice: "Если не знаешь, что выбрать, бери то, что сможешь починить в поле."
+    },
+    {
+      match: ["мэйгла тарнлар", "хельвур тарнлар"],
+      focus: "одежда, плащи, дорожные перчатки",
+      rumor: "Хорошая ткань приходит с караванами, а караваны нынче всё чаще приходят поздно.",
+      advice: "Плащ должен греть, скрывать и не цепляться за клинок. Всё остальное — vanity."
+    },
+    {
+      match: ["фаендра чансирл"],
+      focus: "кожа, сбруя, сумки, дорожные ремни",
+      rumor: "Путники стали брать больше запасных ремней. Значит, дорога впереди длиннее, чем они говорят.",
+      advice: "Порванный ремень в пути стоит дороже, чем новый в лавке."
+    },
+    {
+      match: ["кайлесса иркелл", "гарлен харлатурл", "херивин дардрагон", "нешор флёрдин"],
+      focus: "ночлег, еда, слухи и дорожные припасы",
+      rumor: "За соседними столами часто знают больше, чем на доске объявлений. Главное — слушать до третьей кружки.",
+      advice: "Сытый отряд спорит тише и идёт дальше. Иногда это важнее стали."
+    },
+    {
+      match: ["мангобарл лоррен", "яланта дрин", "нахазлья дроут", "минтра мандивьер", "ялесса орнра"],
+      focus: "еда, припасы, свежие продукты, бытовые мелочи",
+      rumor: "Когда деревни начинают считать яйца и муку, значит, беда уже рядом, просто ещё не вошла в дверь.",
+      advice: "Голодный герой сначала делает глупость, а потом ищет виноватых."
+    },
+    {
+      match: ["эндрит валливой", "марландро"],
+      focus: "подержанные вещи, редкости, старые бумаги, странные находки",
+      rumor: "Иногда самая важная вещь выглядит как мусор, пока кто-нибудь не узнает знак на обороте.",
+      advice: "Смотри не только на цену. Смотри на следы рук, печати и царапины."
+    },
+    {
+      match: ["аэрего кейлин", "эйриго бетендур"],
+      focus: "складской товар, карты, снаряжение для дороги",
+      rumor: "Опасные тропы редко пустуют. Если дорога кажется забытой, значит, её кто-то старательно забывает.",
+      advice: "Карта не ведёт за руку. Она только честно показывает, где можно пропасть."
+    },
+    {
+      match: ["тёрск телорн", "асдан телорн", "ильмет вэльвур"],
+      focus: "фургоны, колёса, оси, ремонт транспорта",
+      rumor: "На трактах всё чаще ломаются не колёса, а расписания. Кто-то мешает караванам идти вовремя.",
+      advice: "Если ось скрипит здесь, на перевале она будет кричать."
+    },
+    {
+      match: ["хазлия ханадроум", "хаэлия ханадроум"],
+      focus: "банные мелочи, ткань, масла, чистая одежда",
+      rumor: "Чистая одежда не спасает от беды, но помогает войти туда, куда грязного не пустят.",
+      advice: "Не всякая подготовка звенит железом. Иногда запах мыла открывает больше дверей."
+    },
+    {
+      match: ["улро лурут"],
+      focus: "кожа, шкуры, дубильные материалы",
+      rumor: "Шкуры в последнее время приходят странные: будто звери бежали не от охотников, а от земли под лапами.",
+      advice: "Кожа помнит страх животного. Хороший мастер это видит."
+    },
+  ];
+
+  for (const entry of byName) {
+    if (entry.match.some((part) => name.includes(part))) return entry;
+  }
+
+  if (traderTextIncludes(text, ["оружие и броня", "кузнец", "оружей", "брон", "воинские"])) {
+    return {
+      focus: "оружие, броня, ремонт и крепкое походное железо",
+      rumor: "Железо дорожает всякий раз, когда дороги становятся опаснее. Сегодня оно снова смотрит вверх.",
+      advice: "Не покупай самый красивый клинок. Покупай тот, который переживёт грязь, дождь и плохой бросок."
+    };
+  }
+
+  if (traderTextIncludes(text, ["одежда и кожа", "портн", "кожа", "сбру", "плащ", "ткан"])) {
+    return {
+      focus: "одежда, кожа, плащи, ремни и дорожные мелочи",
+      rumor: "Караваны с тканью задерживаются. Значит, впереди либо плохая дорога, либо хорошие лжецы.",
+      advice: "Снаряжение должно сидеть тихо. Всё, что натирает в городе, в походе станет врагом."
+    };
+  }
+
+  if (traderTextIncludes(text, ["еда и ночлег", "трактир", "пекар", "мясник", "припас", "еда", "птицевод"])) {
+    return {
+      focus: "еда, напитки, лагерь и припасы на дорогу",
+      rumor: "Люди с дороги чаще просят не эль, а тёплую воду и место у стены. Это плохой знак.",
+      advice: "Перед боем спорят о стали. После боя все ищут хлеб, воду и сухое место."
+    };
+  }
+
+  if (traderTextIncludes(text, ["травы и алхимия", "алхим", "трав", "зель", "яд", "друид"])) {
+    return {
+      focus: "травы, зелья, яды, противоядия и редкие реагенты",
+      rumor: "В болотной воде цветы раскрылись не по сезону. Природа редко ошибается без причины.",
+      advice: "У зелья две цены: золотом до беды и кровью после неё."
+    };
+  }
+
+  if (traderTextIncludes(text, ["ремесло и транспорт", "фургон", "колес", "камень", "камен", "ремесл", "склад", "картограф"])) {
+    return {
+      focus: "инструменты, транспорт, карты и крепкое дорожное снаряжение",
+      rumor: "Старые дороги не исчезают. Их просто перестают отмечать на новых картах.",
+      advice: "Верёвка, фонарь и запасной крюк выглядят скучно ровно до первой пропасти."
+    };
+  }
+
+  if (traderTextIncludes(text, ["река", "контрабанд", "лод", "пристан", "вода"])) {
+    return {
+      focus: "речной товар, припасы, инструменты и вещи без лишних вопросов",
+      rumor: "По воде слухи идут быстрее караванов. Только часть из них всплывает целой.",
+      advice: "Всё, что может утонуть, однажды попытается."
+    };
+  }
+
+  return {
+    focus: "ходовые товары, дорожные мелочи и то, что оказалось под рукой",
+    rumor: "Чем тише день на рынке, тем внимательнее стоит слушать тех, кто пришёл с дороги.",
+    advice: "Плохой товар кричит о себе громче хорошего."
+  };
+}
+
+function buildTraderCounterPanel(trader) {
+  const profile = getTraderCounterProfile(trader);
+  const title = traderTextIncludes(trader?.type, ["еда", "ночлег"])
+    ? "У стойки"
+    : traderTextIncludes(trader?.type, ["река", "контрабанда"])
+      ? "С пристани"
+      : "У прилавка";
+
+  return `
+    <div class="trader-detail-section trader-modal-counter-note" aria-label="Заметка торговца">
+      <div class="trader-modal-counter-note-head">
+        <span>${escapeHtml(title)}</span>
+        <small>заметка для путников</small>
+      </div>
+      <div class="trader-modal-counter-note-grid">
+        <div class="trader-modal-counter-note-card">
+          <strong>На виду</strong>
+          <span>${escapeHtml(profile.focus)}</span>
+        </div>
+        <div class="trader-modal-counter-note-card">
+          <strong>Слух</strong>
+          <span>${escapeHtml(profile.rumor)}</span>
+        </div>
+        <div class="trader-modal-counter-note-card trader-modal-counter-note-card-wide">
+          <strong>Совет</strong>
+          <span>${escapeHtml(profile.advice)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function ensureTraderAtmosphereStyles() {
+  if (document.getElementById("trader-atmosphere-style-round1")) return;
+  const style = document.createElement("style");
+  style.id = "trader-atmosphere-style-round1";
+  style.textContent = `
+    #traderModal .trader-modal-counter-note {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(108, 202, 213, 0.16);
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(73, 190, 197, 0.075), transparent 34%),
+        linear-gradient(135deg, rgba(5, 18, 22, 0.76), rgba(4, 11, 14, 0.9));
+      box-shadow: inset 0 0 0 1px rgba(255, 220, 150, 0.035);
+    }
+
+    #traderModal .trader-modal-counter-note-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 11px;
+      color: rgba(255, 231, 181, 0.96);
+      font-family: var(--font-title, Georgia, serif);
+      letter-spacing: 0.03em;
+    }
+
+    #traderModal .trader-modal-counter-note-head span {
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    #traderModal .trader-modal-counter-note-head small {
+      color: rgba(211, 225, 226, 0.62);
+      font-family: var(--font-ui, system-ui, sans-serif);
+      font-size: 0.78rem;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    #traderModal .trader-modal-counter-note-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 10px;
+    }
+
+    #traderModal .trader-modal-counter-note-card {
+      min-width: 0;
+      padding: 10px 11px;
+      border: 1px solid rgba(255, 220, 150, 0.105);
+      border-radius: 13px;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    #traderModal .trader-modal-counter-note-card-wide {
+      grid-column: 1 / -1;
+    }
+
+    #traderModal .trader-modal-counter-note-card strong {
+      display: block;
+      margin-bottom: 4px;
+      color: rgba(137, 229, 235, 0.94);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    #traderModal .trader-modal-counter-note-card span {
+      display: block;
+      color: rgba(232, 239, 236, 0.9);
+      line-height: 1.42;
+      font-size: 0.94rem;
+    }
+
+    #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap,
+    #traderModal .trader-modal-image-wrap {
+      background:
+        radial-gradient(circle at 50% 18%, rgba(67, 184, 191, 0.1), transparent 42%),
+        linear-gradient(180deg, rgba(8, 22, 27, 0.92), rgba(2, 8, 11, 0.98));
+    }
+
+    #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image-wrap > img,
+    #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 img.trader-modal-image,
+    #traderModal.trader-modal-refined.trader-modal-round82.trader-modal-round83 .trader-modal-image,
+    #traderModal .trader-modal-image {
+      object-fit: contain !important;
+      object-position: center center !important;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    #traderModal .trader-modal-portrait-caption {
+      line-height: 1.28;
+    }
+
+    @media (max-width: 980px) {
+      #traderModal .trader-modal-counter-note-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #traderModal .trader-modal-counter-note-card-wide {
+        grid-column: auto;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 // ------------------------------------------------------------
 // 🧑‍💼 TRADER MODAL BLOCKS
 // ------------------------------------------------------------
@@ -1426,18 +1789,20 @@ function buildTraderHeader(trader, tabsMarkup = "") {
   const imageUrl = getTraderImageUrl(trader);
   const hasImage = Boolean(imageUrl);
 
-  const repStars = getReputationStars(trader?.reputation);
-  const repTitle = getTraderQuality(trader?.reputation);
+  const relationshipProgress = getTraderRelationshipProgress(trader);
+  const repStars = getReputationStars(Math.round(relationshipProgress.percent / 20));
+  const repTitle = getTraderRelationshipLabel(trader);
   const skillTitle = trader?.skill_label || getTraderLevelLabel(trader?.trader_level || trader?.level || 1);
-  const currentDiscount = Number.isFinite(Number(trader?.discount_percent))
-    ? Number(trader?.discount_percent)
-    : getTraderDiscountPercent(trader?.reputation);
+  const currentDiscount = getTraderDiscountDisplay(trader);
   const traderEmoji = getTraderEmoji(trader?.type);
   const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
   const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
-  const reputationValue = Math.max(0, Math.min(100, Number(trader?.reputation ?? 0) || 0));
+  const reputationValue = relationshipProgress.percent;
   const portraitQuote = trader?.quote || trader?.motto || trader?.personality || "Честная сделка держится на доверии, золоте и правильном моменте.";
   const walletLabel = trader?.money_label || trader?.gold_label || trader?.gold || "—";
+  const counterPanelMarkup = buildTraderCounterPanel(trader);
+
+  ensureTraderAtmosphereStyles();
 
   return `
     <div class="trader-modal-header trader-modal-header-round64">
@@ -1455,14 +1820,14 @@ function buildTraderHeader(trader, tabsMarkup = "") {
             <div class="trader-modal-reputation-card">
               <div class="trader-modal-reputation-head">
                 <strong>Репутация</strong>
-                <span>${escapeHtml(String(trader?.reputation ?? 0))}%</span>
+                <span>${escapeHtml(String(relationshipProgress.percent))}%</span>
               </div>
               <div class="trader-modal-relation-line">
                 <strong>${escapeHtml(repTitle)}</strong>
                 <span>отношение к торговцу</span>
               </div>
-              <progress value="${escapeHtml(String(reputationValue))}" max="100"></progress>
-              <div class="muted">До следующего уровня: ${escapeHtml(String(Math.max(0, 100 - reputationValue)))} / 100</div>
+              <progress value="${escapeHtml(String(relationshipProgress.current))}" max="${escapeHtml(String(relationshipProgress.max))}"></progress>
+              <div class="muted">Прогресс: ${escapeHtml(String(relationshipProgress.current))} / ${escapeHtml(String(relationshipProgress.max))}${relationshipProgress.toNext ? ` • до следующего: ${escapeHtml(String(relationshipProgress.toNext))}` : ""}</div>
             </div>
           </aside>
         `
@@ -1510,6 +1875,8 @@ function buildTraderHeader(trader, tabsMarkup = "") {
             <div class="trader-detail-section trader-modal-description-section">
               <p><strong>📜 Описание:</strong> ${escapeHtml(trader?.description || "—")}</p>
             </div>
+
+            ${counterPanelMarkup}
           </div>
         </section>
       </div>
@@ -1870,15 +2237,18 @@ export async function openTraderModal(traderId) {
 function buildTraderCard(trader) {
   const imageUrl = getTraderImageUrl(trader);
   const hasImage = Boolean(imageUrl);
-  const repTitle = getTraderQuality(trader?.reputation);
-  const repStars = getReputationStars(trader?.reputation);
+  const relationshipProgress = getTraderRelationshipProgress(trader);
+  const repTitle = getTraderRelationshipLabel(trader);
+  const repStars = getReputationStars(Math.round(relationshipProgress.percent / 20));
   const traderEmoji = getTraderEmoji(trader?.type);
   const preview = specializationPreview(trader);
   const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
   const traderLevelLabel = getTraderLevelLabel(traderLevel);
-  const buyDiscount = getTraderDiscountPercent(trader?.reputation);
-  const sellBonus = getTraderSellBonusPercent(trader?.reputation);
-  const reputationTone = getTraderReputationTone(trader?.reputation);
+  const buyDiscount = getTraderDiscountDisplay(trader);
+  const sellBonus = Number.isFinite(Number(trader?.sell_bonus_percent))
+    ? Math.max(0, Number(trader.sell_bonus_percent))
+    : getTraderSellBonusPercent(trader?.reputation);
+  const reputationTone = getTraderRelationshipTone(trader);
 
   return `
     <article
@@ -1902,7 +2272,7 @@ function buildTraderCard(trader) {
         <div class="trader-meta trader-card-topline">
           <span class="trader-quality">${escapeHtml(getTraderLevelLabel(traderLevel))}</span>
           <span class="meta-item">lvl ${escapeHtml(String(traderLevel))}</span>
-          <span class="meta-item trader-reputation-chip trader-reputation-chip-${escapeHtml(reputationTone)}">${escapeHtml(String(trader?.reputation ?? 0))}%</span>
+          <span class="meta-item trader-reputation-chip trader-reputation-chip-${escapeHtml(reputationTone)}">${escapeHtml(String(buyDiscount))}%</span>
         </div>
         <div class="trader-name">${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</div>
         <div class="trader-type">${escapeHtml(trader?.type || "—")}</div>

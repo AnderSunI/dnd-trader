@@ -165,13 +165,582 @@ function showToast(message) {
 
 window.showToast = showToast;
 
+
+// ------------------------------------------------------------
+// 🗣️ TRADER DIALOGUE / STAGE LINE
+// ------------------------------------------------------------
+// Лёгкий клиентский слой реплик торговцев.
+// Сейчас работает без миграций и без новых полей БД:
+// - берёт trader.name / trader.type / активное событие;
+// - показывает короткую фразу в центре экрана с эффектом печати;
+// - не ломает старые toast-уведомления и торговую логику.
+// Позже этот словарь можно перенести в seed/API как trader.dialogue.
+const TRADER_DIALOGUE_TYPEWRITER_SPEED_MS = 28;
+const TRADER_DIALOGUE_HOLD_MS = 2600;
+const TRADER_DIALOGUE_BIG_QUANTITY = 5;
+const TRADER_DIALOGUE_BIG_TRADE_CP = 5 * COPPER_IN_GOLD;
+
+let traderDialogueTypeTimer = null;
+let traderDialogueHideTimer = null;
+let lastTraderDialogueKey = "";
+let lastTraderDialogueAt = 0;
+let traderDialogueCloseWatcherBound = false;
+let traderDialogueActionWrappersBound = false;
+
+const TRADER_DIALOGUE_GENERIC = {
+  open: [
+    "Смотри спокойно. Хороший товар сам себя не нахвалит.",
+    "Заходи. Дорога редко прощает пустые руки.",
+  ],
+  close: [
+    "Будет нужда — найдёшь меня здесь.",
+    "Береги кошель и спину. Обычно пропадает что-то одно.",
+  ],
+  buy_success: [
+    "Хороший выбор. Эта вещь ещё сослужит службу.",
+    "Договорились. Пусть послужит тебе лучше, чем прошлому хозяину.",
+  ],
+  sell_success: [
+    "Заберу. Найдётся тот, кому это нужнее.",
+    "Хм. Не лучший вид, но цену оно ещё держит.",
+  ],
+  reserve_success: [
+    "Отложу. Но не заставляй меня ждать слишком долго.",
+    "Ладно, придержу за тобой.",
+  ],
+  cart_add: [
+    "Сложу к остальному. Только не передумай у самой стойки.",
+    "В корзину так в корзину. Вес уже чувствуешь?",
+  ],
+  no_money: [
+    "Монет не хватает. Уговоры я в оплату не принимаю.",
+    "Красивый взгляд, но касса считает металл.",
+  ],
+  big_purchase: [
+    "Вот это уже не покупка, а подготовка к войне.",
+    "Такой заказ люди делают либо перед дорогой, либо перед бедой.",
+  ],
+  big_sale: [
+    "Неплохая добыча. Даже спрашивать не стану, где взял.",
+    "Много несёшь. Значит, где-то стало сильно пустее.",
+  ],
+};
+
+const TRADER_DIALOGUE_BY_TYPE = {
+  "Оружие и броня": {
+    open: ["Если идёшь туда, где спорят сталью, выбирай без спешки."],
+    buy_success: ["Сталь любит твёрдую руку. Не разочаруй её."],
+    sell_success: ["Проверю кромку. Если не врёшь — заплачу честно."],
+    no_money: ["Хорошее железо не дешевеет от твоей бедности."],
+    big_purchase: ["Так закупаются не путники. Так закупается отряд."],
+  },
+  "Одежда и кожа": {
+    open: ["Дорога начинается не с меча, а с того, что не натирает плечи."],
+    buy_success: ["Сядет как надо. Если нет — вернёшься на подгонку."],
+    sell_success: ["Кожа многое помнит. Посмотрим, что из этого ещё можно спасти."],
+    reserve_success: ["Отложу отдельно, чтобы чужие руки не мяли."],
+  },
+  "Еда и ночлег": {
+    open: ["Садись ближе к теплу. Пустой желудок плохо думает."],
+    buy_success: ["Вот. В дороге это ценнее красивых речей."],
+    sell_success: ["Если это съедобно — разберёмся. Если нет — тем более."],
+    no_money: ["Кормить в долг могу, но недолго и не всех."],
+    big_purchase: ["С такими припасами можно пережить и бурю, и компанию бардов."],
+  },
+  "Товары и редкости": {
+    open: ["Не всё на полках имеет цену. Но за всё можно поторговаться."],
+    buy_success: ["Редкая вещица. Главное — не спрашивай слишком громко, откуда она."],
+    sell_success: ["Люблю предметы с историей. Даже если история пахнет подвалом."],
+    no_money: ["Редкости любят полные кошели."],
+    big_sale: ["Ого. С таким мешком ты либо герой, либо бедствие."],
+  },
+  "Ремесло и транспорт": {
+    open: ["Если колесо отвалится в грязи, вспоминать будешь не богов, а мастера."],
+    buy_success: ["Проверено руками. Не молитвами."],
+    sell_success: ["Починить можно почти всё. Кроме дурной головы."],
+    reserve_success: ["Отложу, но место в мастерской не резиновое."],
+  },
+  "Травы и алхимия": {
+    open: ["Не нюхай незнакомые склянки. Второй раз это правило не объясняют."],
+    buy_success: ["Доза важнее храбрости. Запомни это."],
+    sell_success: ["Покажи. Если не ядовито — узнаем, почему пахнет как ядовитое."],
+    no_money: ["Лечение бесплатно бывает только в сказках и после смерти."],
+    big_purchase: ["Столько зелий берут те, кто уже видел, как быстро кончается удача."],
+  },
+  "Река и контрабанда": {
+    open: ["Говори тише. Вода далеко несёт не только лодки."],
+    close: ["Если кто спросит — ты меня не видел."],
+    buy_success: ["Забирай и не свети на пристани."],
+    sell_success: ["Хм. Это можно пустить вниз по реке."],
+    no_money: ["На реке без платы перевозят только трупы."],
+    big_purchase: ["Такой груз лучше не показывать страже."],
+    big_sale: ["Не хочу знать, откуда это. И тебе советую забыть."],
+  },
+};
+
+const TRADER_DIALOGUE_BY_NAME = {
+  "Элдрас Тантур": {
+    open: ["Кузня горит. Говори, что нужно, пока железо горячее."],
+    buy_success: ["Держи. Не бей плашмя, если только не хочешь выглядеть глупо."],
+    close: ["Вернёшься с трещиной на клинке — не говори, что я не предупреждал."],
+  },
+  "Фенг Железноголовый": {
+    open: ["Заходи. Здесь вещи для тех, кто возвращается, а не только уходит."],
+    buy_success: ["Хорошая хватка. Видно, не просто для красоты берёшь."],
+    no_money: ["Не обижайся, друг. Наёмники тоже едят за деньги."],
+  },
+  "Хельвур Тарнлар": {
+    open: ["Прошу, не трогай ткань грязными перчатками."],
+    buy_success: ["Наконец-то выбор с намёком на вкус."],
+    no_money: ["Высокая мода и пустой кошель редко ходят вместе."],
+  },
+  "Мэйгла Тарнлар": {
+    open: ["Подойди ближе, я посмотрю, что тебе подойдёт в дороге."],
+    buy_success: ["Вот так лучше. Вещь должна помогать, а не спорить с хозяином."],
+    close: ["Береги швы. Дорога любит рвать самое нужное."],
+  },
+  "Фаендра Чансирл": {
+    open: ["Ремни, сумки, сапоги — всё, что держит путника целым."],
+    buy_success: ["Крепкая работа. С ней можно идти дальше, чем кажется."],
+    big_purchase: ["Ого. Похоже, кто-то собирается не в соседнюю деревню."],
+  },
+  "Улро Лурут": {
+    open: ["Смотри сам. Я лишнего не расхваливаю."],
+    buy_success: ["Прочная кожа. Без красоты, зато надолго."],
+    close: ["Закрой дверь. Растворы быстро выветриваются."],
+  },
+  "Кайлесса Иркелл": {
+    open: ["Проходи. У огня места хватит, если не приносишь с собой беду."],
+    buy_success: ["Сытный путь — живой путь."],
+    big_purchase: ["Такой запас берут перед долгой дорогой. Или перед плохими новостями."],
+  },
+  "Гарлен Харлатурл": {
+    open: ["Плати сразу, жалуйся потом. Так всем проще."],
+    buy_success: ["Вот и славно. Деньги любят быстрые руки."],
+    no_money: ["За красивые истории у меня даже мыши не питаются."],
+  },
+  "Мангобарл Лоррен": {
+    open: ["Свежий хлеб, свежие слухи. Второе иногда горячее первого."],
+    buy_success: ["Бери, пока корка хрустит."],
+    big_purchase: ["Столько хлеба? Ты кормишь отряд или прячешься от осады?"],
+  },
+  "Ялесса Орнра": {
+    open: ["Выбирай быстро. Ножи не любят праздных разговоров."],
+    buy_success: ["Свежее. Настолько, насколько тебе нужно знать."],
+    close: ["Не стой у двери, там сквозняк мясо портит."],
+  },
+  "Эндрит Валливой": {
+    open: ["Осторожнее со свитками. Некоторые старше твоих долгов."],
+    buy_success: ["Интересный выбор. У этой вещи, кажется, была жизнь до тебя."],
+    sell_success: ["О, занятно. Пыль на ней говорит почти так же много, как ты."],
+  },
+  "Марландро Газлькур": {
+    open: ["Стрижка, зеркальце, сомнительная удача — всё по разумной цене."],
+    buy_success: ["Замечательно. И никому не обязательно знать, где ты это взял."],
+    sell_success: ["Хм. На витрину не поставлю, но нужный человек найдётся."],
+  },
+  "Хазлия Ханадроум": {
+    open: ["Тише, путник. Иногда горячая вода лечит лучше меча."],
+    buy_success: ["Пусть эта мелочь сделает дорогу мягче."],
+    close: ["Возвращайся, когда пыль снова победит приличия."],
+  },
+  "Тёрск Телорн": {
+    open: ["Фургон не врёт. Если скрипит — значит, просит мастера."],
+    buy_success: ["Добротная вещь. Не бросай в грязь без нужды."],
+  },
+  "Асдан Телорн": {
+    open: ["Если путь дальний, проверь оси сейчас, а не в канаве."],
+    buy_success: ["Подойдёт. Я бы сам взял в дорогу."],
+  },
+  "Ильмет Вэльвур": {
+    open: ["Дешево — не значит плохо. Иногда значит просто честно плохо."],
+    buy_success: ["Ну вот. Ещё один доволен, пока не доехал."],
+    no_money: ["Даже мои цены требуют хотя бы каких-то денег."],
+  },
+  "Эйриго Бетендур": {
+    open: ["Склад открыт. Вопросы оставь у двери."],
+    buy_success: ["Запишу как обычную отгрузку. Обычную, понял?"],
+    close: ["Если кто спросит, ты забирал ящик с гвоздями."],
+  },
+  "Шоалар Куандерил": {
+    open: ["Говори тихо. Река слушает лучше людей."],
+    buy_success: ["Забирай. И не показывай это там, где задают вопросы."],
+    sell_success: ["Это уйдёт вниз по течению быстрее, чем ты думаешь."],
+    no_money: ["Без монет на моей лодке место только за бортом."],
+    big_purchase: ["Хороший груз. Плохая идея светить им на дороге."],
+  },
+  "Гариена": {
+    open: ["Не трогай синие листья. Они кусаются хуже собак."],
+    buy_success: ["Запомни дозировку. Природа не любит самоуверенных."],
+    sell_success: ["Хм. Это росло не здесь. Интересно."],
+    no_money: ["Я могу помочь советом. Зелья стоят дороже."],
+  },
+  "Тарм Громовой Молот": {
+    open: ["Громкое имя, тихая работа. Что нужно починить?"],
+    buy_success: ["Крепко сделано. Я бы не стыдился такой вещи."],
+  },
+  "Аэрего Кейлин": {
+    open: ["Карты, сухие пайки, верёвки. Сначала маршрут, потом геройство."],
+    buy_success: ["Хорошо. Значит, хотя бы один человек сегодня подумал заранее."],
+    big_purchase: ["Так собираются те, кто знает: назад может быть другой дорогой."],
+    close: ["Не сворачивай на тропу с тремя сухими соснами. Просто поверь."],
+  },
+};
+
+function getTraderDisplayName(trader) {
+  return String(trader?.name || trader?.trader_name || "Торговец").trim() || "Торговец";
+}
+
+function chooseTraderDialogueLine(trader, eventName, context = {}) {
+  const eventKey = String(eventName || "open").trim() || "open";
+  const name = getTraderDisplayName(trader);
+  const type = String(trader?.type || "").trim();
+
+  const nameLines = TRADER_DIALOGUE_BY_NAME[name]?.[eventKey];
+  const typeLines = TRADER_DIALOGUE_BY_TYPE[type]?.[eventKey];
+  const genericLines = TRADER_DIALOGUE_GENERIC[eventKey];
+  const pool = [
+    ...(Array.isArray(nameLines) ? nameLines : []),
+    ...(Array.isArray(typeLines) ? typeLines : []),
+    ...(Array.isArray(genericLines) ? genericLines : []),
+  ].filter(Boolean);
+
+  if (!pool.length) return "";
+
+  const quantity = Math.max(1, safeNumber(context.quantity, 1));
+  const itemName = String(context.itemName || context.item?.name || "").trim();
+  const seed = `${name}:${eventKey}:${itemName}:${quantity}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+
+  return pool[hash % pool.length];
+}
+
+function ensureTraderStageLine() {
+  let style = document.getElementById("trader-stage-line-style");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "trader-stage-line-style";
+    style.textContent = `
+      #traderStageLine {
+        position: fixed;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        z-index: 2600;
+        max-width: min(760px, calc(100vw - 36px));
+        min-width: min(420px, calc(100vw - 36px));
+        padding: 18px 22px;
+        border: 1px solid rgba(210, 174, 104, 0.36);
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 16% 0%, rgba(34, 139, 148, 0.18), transparent 34%),
+          linear-gradient(135deg, rgba(7, 17, 22, 0.96), rgba(2, 8, 11, 0.96));
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58), inset 0 0 0 1px rgba(140, 217, 224, 0.08);
+        color: #f2e3c3;
+        font-size: 18px;
+        line-height: 1.45;
+        letter-spacing: 0.015em;
+        text-align: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease, transform 220ms ease;
+      }
+
+      #traderStageLine.is-visible {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      #traderStageLine .trader-stage-line-name {
+        display: block;
+        margin-bottom: 8px;
+        color: #d8b16a;
+        font-size: 13px;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      #traderStageLine .trader-stage-line-text::after {
+        content: "▌";
+        display: inline-block;
+        margin-left: 3px;
+        color: rgba(242, 227, 195, 0.72);
+        animation: traderStageCaret 900ms steps(2, start) infinite;
+      }
+
+      #traderStageLine.is-done .trader-stage-line-text::after {
+        display: none;
+      }
+
+      @keyframes traderStageCaret {
+        0%, 45% { opacity: 1; }
+        46%, 100% { opacity: 0; }
+      }
+
+      @media (max-width: 720px) {
+        #traderStageLine {
+          top: 50%;
+          min-width: auto;
+          padding: 15px 16px;
+          font-size: 15px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  let box = document.getElementById("traderStageLine");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "traderStageLine";
+    box.setAttribute("aria-live", "polite");
+    box.innerHTML = `
+      <span class="trader-stage-line-name"></span>
+      <span class="trader-stage-line-text"></span>
+    `;
+    document.body.appendChild(box);
+  }
+
+  return box;
+}
+
+function showTraderStageLine(trader, line, options = {}) {
+  const text = String(line || "").trim();
+  if (!text) return;
+
+  const name = getTraderDisplayName(trader);
+  const now = Date.now();
+  const duplicateKey = `${name}:${text}`;
+  if (duplicateKey === lastTraderDialogueKey && now - lastTraderDialogueAt < 900) return;
+  lastTraderDialogueKey = duplicateKey;
+  lastTraderDialogueAt = now;
+
+  const box = ensureTraderStageLine();
+  const nameEl = box.querySelector(".trader-stage-line-name");
+  const textEl = box.querySelector(".trader-stage-line-text");
+  if (!nameEl || !textEl) return;
+
+  window.clearTimeout(traderDialogueTypeTimer);
+  window.clearTimeout(traderDialogueHideTimer);
+
+  nameEl.textContent = name;
+  textEl.textContent = "";
+  box.classList.remove("is-done");
+  box.classList.add("is-visible");
+
+  let index = 0;
+  const speed = Math.max(8, safeNumber(options.speed, TRADER_DIALOGUE_TYPEWRITER_SPEED_MS));
+
+  const tick = () => {
+    index += 1;
+    textEl.textContent = text.slice(0, index);
+
+    if (index < text.length) {
+      traderDialogueTypeTimer = window.setTimeout(tick, speed);
+      return;
+    }
+
+    box.classList.add("is-done");
+    traderDialogueHideTimer = window.setTimeout(() => {
+      box.classList.remove("is-visible");
+    }, Math.max(900, safeNumber(options.holdMs, TRADER_DIALOGUE_HOLD_MS)));
+  };
+
+  traderDialogueTypeTimer = window.setTimeout(tick, 40);
+}
+
+function showTraderDialogue(trader, eventName, context = {}) {
+  if (!trader) return;
+  const line = chooseTraderDialogueLine(trader, eventName, context);
+  showTraderStageLine(trader, line, context);
+}
+
+function getItemTradeCp(item, quantity = 1) {
+  if (!item) return 0;
+  const qty = Math.max(1, safeNumber(quantity, 1));
+  return (
+    moneyPartsToCp(
+      item.buy_price_gold ?? item.price_gold,
+      item.buy_price_silver ?? item.price_silver,
+      item.buy_price_copper ?? item.price_copper
+    ) * qty
+  );
+}
+
+function getActiveTraderForDialogue() {
+  return getTraderById(STATE.activeTraderId) || null;
+}
+
+function shouldUseBigTradeLine(item, quantity = 1, totalCp = 0) {
+  const qty = Math.max(1, safeNumber(quantity, 1));
+  const cp = Math.max(0, safeNumber(totalCp, 0));
+  return qty >= TRADER_DIALOGUE_BIG_QUANTITY || cp >= TRADER_DIALOGUE_BIG_TRADE_CP;
+}
+
+function bindTraderDialogueCloseWatcher() {
+  if (traderDialogueCloseWatcherBound) return;
+  traderDialogueCloseWatcherBound = true;
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      if (!target || typeof target.closest !== "function") return;
+      const modal = getEl("traderModal");
+      if (!modal || modal.style.display === "none") return;
+
+      const isCloseClick = Boolean(
+        target.closest("#traderModal [data-trader-modal-close]") ||
+          target.closest("#traderModal .close") ||
+          target === modal
+      );
+
+      if (isCloseClick) {
+        showTraderDialogue(getActiveTraderForDialogue(), "close");
+      }
+    },
+    true
+  );
+}
+
+function installTraderDialogueActionWrappers() {
+  if (traderDialogueActionWrappersBound) return;
+  traderDialogueActionWrappersBound = true;
+  bindTraderDialogueCloseWatcher();
+
+  if (typeof window.openTraderModal === "function") {
+    const originalOpenTraderModal = window.openTraderModal;
+    window.openTraderModal = async function openTraderModalWithDialogue(traderId, ...rest) {
+      const result = await originalOpenTraderModal.call(this, traderId, ...rest);
+      const trader = getTraderById(traderId) || getActiveTraderForDialogue();
+      showTraderDialogue(trader, "open");
+      return result;
+    };
+    window.openTrader = window.openTraderModal;
+  }
+
+  if (typeof window.buyItem === "function") {
+    const originalBuyItem = window.buyItem;
+    window.buyItem = async function buyItemWithDialogue(traderId, itemId, quantity = 1, options = {}) {
+      const qty = Math.max(1, safeNumber(quantity, 1));
+      const trader = getTraderById(traderId);
+      const item = getTraderItem(traderId, itemId);
+      const totalCp = getItemTradeCp(item, qty);
+
+      try {
+        const result = await originalBuyItem.call(this, traderId, itemId, quantity, options);
+        if (result?.cancelled) return result;
+        showTraderDialogue(
+          trader || getTraderById(traderId),
+          shouldUseBigTradeLine(item, qty, totalCp) ? "big_purchase" : "buy_success",
+          { item, itemName: item?.name, quantity: qty, totalCp }
+        );
+        return result;
+      } catch (error) {
+        const message = String(error?.message || "").toLowerCase();
+        const isNoMoney =
+          message.includes("недостаточно") ||
+          message.includes("money") ||
+          message.includes("средств");
+
+        if (isNoMoney) {
+          showTraderDialogue(trader || getTraderById(traderId), "no_money", {
+            item,
+            itemName: item?.name,
+            quantity: qty,
+            totalCp,
+          });
+
+          // Это ожидаемый игровой отказ, а не ошибка JS.
+          // Не пробрасываем дальше, чтобы браузер не писал
+          // Uncaught (in promise) после обычного “не хватает денег”.
+          return {
+            cancelled: true,
+            reason: "no_money",
+            error,
+          };
+        }
+
+        throw error;
+      }
+    };
+  }
+
+  if (typeof window.sellItem === "function") {
+    const originalSellItem = window.sellItem;
+    window.sellItem = async function sellItemWithDialogue(itemId, quantity = 1, options = {}) {
+      const qty = Math.max(1, safeNumber(quantity, 1));
+      const inventoryItem = findInventoryItemById(STATE.inventory, itemId);
+      const traderId = Number(options?.traderId ?? inventoryItem?.trader_id ?? STATE.activeTraderId);
+      const trader = Number.isFinite(traderId) ? getTraderById(traderId) : getActiveTraderForDialogue();
+      const totalCp = inventoryItem ? getSellTotalCp(inventoryItem, qty) : 0;
+
+      const result = await originalSellItem.call(this, itemId, quantity, options);
+      if (result?.cancelled) return result;
+      showTraderDialogue(
+        trader || getActiveTraderForDialogue(),
+        shouldUseBigTradeLine(inventoryItem, qty, totalCp) ? "big_sale" : "sell_success",
+        { item: inventoryItem, itemName: inventoryItem?.name, quantity: qty, totalCp }
+      );
+      return result;
+    };
+  }
+
+  if (typeof window.reserveItem === "function") {
+    const originalReserveItem = window.reserveItem;
+    window.reserveItem = function reserveItemWithDialogue(itemId, traderId = null, quantity = 1) {
+      const resolvedTraderId = traderId ?? STATE.activeTraderId;
+      const trader = getTraderById(resolvedTraderId) || getActiveTraderForDialogue();
+      const item = resolvedTraderId != null ? getTraderItem(resolvedTraderId, itemId) : null;
+      const result = originalReserveItem.call(this, itemId, traderId, quantity);
+      if (item) {
+        showTraderDialogue(trader, "reserve_success", {
+          item,
+          itemName: item?.name,
+          quantity,
+        });
+      }
+      return result;
+    };
+  }
+
+  if (typeof window.addToCart === "function") {
+    const originalAddToCart = window.addToCart;
+    window.addToCart = function addToCartWithDialogue(traderId, itemId, quantity = 1) {
+      const trader = getTraderById(traderId);
+      const item = getTraderItem(traderId, itemId);
+      const result = originalAddToCart.call(this, traderId, itemId, quantity);
+      if (item) {
+        showTraderDialogue(trader, "cart_add", {
+          item,
+          itemName: item?.name,
+          quantity,
+        });
+      }
+      return result;
+    };
+  }
+}
+
+window.showTraderStageLine = showTraderStageLine;
+window.showTraderDialogue = showTraderDialogue;
+
 function openModal(modalId) {
   const modal = getEl(modalId);
   if (modal) modal.style.display = "block";
 }
 
 function closeModal(modal) {
-  if (modal) modal.style.display = "none";
+  if (!modal) return;
+
+  if (modal.id === "traderModal" && modal.style.display !== "none") {
+    showTraderDialogue(getActiveTraderForDialogue(), "close");
+  }
+
+  modal.style.display = "none";
 }
 
 function cpToMoneyParts(cp = 0) {
@@ -1552,6 +2121,8 @@ Object.assign(
     getCartTotalUnits,
   })
 );
+
+installTraderDialogueActionWrappers();
 
 // ------------------------------------------------------------
 // 🚀 INIT

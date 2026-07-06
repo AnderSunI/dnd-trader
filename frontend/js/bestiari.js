@@ -26,12 +26,21 @@ const BESTIARI_STATE = {
   modalScrollTop: 0,
   searchRenderTimer: null,
   loadingPromise: null,
+  // Ленивая загрузка seed-данных по разделам.
+  // Справочник больше не тянет монстров/предметы/заклинания на холодном старте.
+  loadedSeedCategories: new Set(),
+  loadingSeedCategories: new Set(),
+  seedCategoryPromises: new Map(),
+  allSeedCategoriesLoaded: false,
 };
 
 // Быстрые настройки производительности энциклопедии.
 // Не рендерим тысячи строк списка за один ввод: это убирает лаг и потерю фокуса поиска.
 const BESTIARI_LIST_RENDER_LIMIT = 120;
 const BESTIARI_SEARCH_RENDER_DELAY_MS = 220;
+// На холодном старте подтягиваем только лёгкие и часто нужные разделы.
+// Тяжёлые монстры/предметы/заклинания грузятся при открытии раздела или поиске.
+const BESTIARI_INITIAL_LAZY_CATEGORIES = ["classes", "races", "backgrounds"];
 
 // round153_class_css_restore: class UI UX guardrails
 const BESTIARI_CATEGORY_LABELS = {
@@ -1859,31 +1868,151 @@ async function loadFirstAvailableBestiariSeed(urls = [], label = "seed") {
   return [];
 }
 
-async function loadExternalBestiariSeeds() {
-  const seedGroups = [
-    ["monster", BESTIARI_MONSTER_SEED_URLS],
-    ["deity", BESTIARI_DEITY_SEED_URLS],
-    ["race", BESTIARI_RACE_SEED_URLS],
-    ["background", BESTIARI_BACKGROUND_SEED_URLS],
-    ["class", BESTIARI_CLASS_SEED_URLS],
-    ["faction", BESTIARI_FACTION_SEED_URLS],
-    ["condition", BESTIARI_CONDITION_SEED_URLS],
-    ["mechanic", BESTIARI_MECHANIC_SEED_URLS],
-    ["lore", BESTIARI_LORE_SEED_URLS],
-    ["location", BESTIARI_LOCATION_SEED_URLS],
-    ["spell", BESTIARI_SPELL_SEED_URLS],
-    ["feat", BESTIARI_FEAT_SEED_URLS],
-    ["item", BESTIARI_ITEM_SEED_URLS],
-    ["magic item", BESTIARI_MAGIC_ITEM_SEED_URLS],
-  ];
+const BESTIARI_SEED_GROUPS = [
+  { category: "monsters", label: "monster", urls: BESTIARI_MONSTER_SEED_URLS },
+  { category: "gods", label: "deity", urls: BESTIARI_DEITY_SEED_URLS },
+  { category: "races", label: "race", urls: BESTIARI_RACE_SEED_URLS },
+  { category: "backgrounds", label: "background", urls: BESTIARI_BACKGROUND_SEED_URLS },
+  { category: "classes", label: "class", urls: BESTIARI_CLASS_SEED_URLS },
+  { category: "factions", label: "faction", urls: BESTIARI_FACTION_SEED_URLS },
+  { category: "conditions", label: "condition", urls: BESTIARI_CONDITION_SEED_URLS },
+  { category: "mechanics", label: "mechanic", urls: BESTIARI_MECHANIC_SEED_URLS },
+  { category: "lore", label: "lore", urls: BESTIARI_LORE_SEED_URLS },
+  { category: "locations", label: "location", urls: BESTIARI_LOCATION_SEED_URLS },
+  { category: "spells", label: "spell", urls: BESTIARI_SPELL_SEED_URLS },
+  { category: "feats", label: "feat", urls: BESTIARI_FEAT_SEED_URLS },
+  { category: "items", label: "item", urls: BESTIARI_ITEM_SEED_URLS },
+  { category: "items", label: "magic item", urls: BESTIARI_MAGIC_ITEM_SEED_URLS },
+];
 
-  // Раньше группы грузились строго по очереди.
-  // Теперь каждая категория ищет первый доступный seed параллельно с другими категориями.
-  const loadedGroups = await Promise.all(
-    seedGroups.map(([label, urls]) => loadFirstAvailableBestiariSeed(urls, label))
+function getBestiariSeedCategories() {
+  return [...new Set(BESTIARI_SEED_GROUPS.map((group) => group.category))];
+}
+
+function getBestiariSeedGroupsForCategory(category) {
+  return BESTIARI_SEED_GROUPS.filter((group) => group.category === category);
+}
+
+function isBestiariSeedCategoryLoaded(category) {
+  if (!category || category === "all") return BESTIARI_STATE.allSeedCategoriesLoaded === true;
+  return BESTIARI_STATE.loadedSeedCategories instanceof Set && BESTIARI_STATE.loadedSeedCategories.has(category);
+}
+
+function isBestiariSeedCategoryLoading(category) {
+  if (!category || category === "all") {
+    return BESTIARI_STATE.loadingSeedCategories instanceof Set && BESTIARI_STATE.loadingSeedCategories.size > 0;
+  }
+  return BESTIARI_STATE.loadingSeedCategories instanceof Set && BESTIARI_STATE.loadingSeedCategories.has(category);
+}
+
+function markBestiariSourceAsLazySeed() {
+  const current = String(BESTIARI_STATE.source || "");
+  if (current.includes("lazy-seed")) return;
+  BESTIARI_STATE.source = current && current !== "empty" ? `${current} + lazy-seed` : "lazy-seed";
+}
+
+function mergeEntriesIntoBestiariState(entries = []) {
+  if (!Array.isArray(entries) || !entries.length) return;
+  BESTIARI_STATE.entries = mergeEntryLists(BESTIARI_STATE.entries || [], entries);
+  markBestiariSourceAsLazySeed();
+}
+
+async function loadBestiariSeedCategory(category, options = {}) {
+  if (!category || category === "all") return [];
+  if (isBestiariSeedCategoryLoaded(category)) return [];
+
+  if (BESTIARI_STATE.seedCategoryPromises instanceof Map && BESTIARI_STATE.seedCategoryPromises.has(category)) {
+    return BESTIARI_STATE.seedCategoryPromises.get(category);
+  }
+
+  const groups = getBestiariSeedGroupsForCategory(category);
+  if (!groups.length) {
+    BESTIARI_STATE.loadedSeedCategories.add(category);
+    return [];
+  }
+
+  BESTIARI_STATE.loadingSeedCategories.add(category);
+  const promise = (async () => {
+    const loadedGroups = await Promise.all(
+      groups.map((group) => loadFirstAvailableBestiariSeed(group.urls, group.label))
+    );
+    const entries = loadedGroups.flat().map(normalizeEntry);
+    mergeEntriesIntoBestiariState(entries);
+    BESTIARI_STATE.loadedSeedCategories.add(category);
+    return entries;
+  })();
+
+  BESTIARI_STATE.seedCategoryPromises.set(category, promise);
+
+  try {
+    const result = await promise;
+    if (options.renderWhenDone) {
+      if (!BESTIARI_STATE.selectedId) BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || "";
+      renderCodex({ preserveScroll: true, preserveFocus: true });
+    }
+    return result;
+  } catch (err) {
+    console.warn(`[bestiari] lazy category failed: ${category}`, err);
+    return [];
+  } finally {
+    BESTIARI_STATE.loadingSeedCategories.delete(category);
+    BESTIARI_STATE.seedCategoryPromises.delete(category);
+  }
+}
+
+async function loadBestiariSeedCategories(categories = [], options = {}) {
+  const unique = [...new Set((categories || []).filter((category) => category && category !== "all"))];
+  if (!unique.length) return [];
+  const renderWhenDone = options.renderWhenDone === true;
+  const loaded = await Promise.all(
+    unique.map((category) => loadBestiariSeedCategory(category, { ...options, renderWhenDone: false }))
   );
+  const result = loaded.flat();
+  if (renderWhenDone) {
+    if (!BESTIARI_STATE.selectedId) BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || "";
+    renderCodex({ preserveScroll: true, preserveFocus: true });
+  }
+  return result;
+}
 
-  return loadedGroups.flat().map(normalizeEntry);
+async function loadAllBestiariSeedCategories(options = {}) {
+  if (BESTIARI_STATE.allSeedCategoriesLoaded) return [];
+  const categories = getBestiariSeedCategories();
+  const loaded = await loadBestiariSeedCategories(categories, options);
+  const stillLoading = categories.some((category) => isBestiariSeedCategoryLoading(category));
+  const allLoaded = categories.every((category) => isBestiariSeedCategoryLoaded(category));
+  BESTIARI_STATE.allSeedCategoriesLoaded = allLoaded && !stillLoading;
+  return loaded;
+}
+
+async function ensureBestiariSeedsForCurrentView(options = {}) {
+  const category = BESTIARI_STATE.category || "all";
+  const query = String(BESTIARI_STATE.query || "").trim();
+
+  if (category && category !== "all") {
+    return loadBestiariSeedCategory(category, options);
+  }
+
+  // В режиме "Все" не тянем весь справочник сразу.
+  // Но если пользователь реально ищет по всем разделам, после двух символов
+  // догружаем остальные seed-файлы фоном и перерисовываем список.
+  if (query.length >= 2) {
+    return loadAllBestiariSeedCategories(options);
+  }
+
+  return [];
+}
+
+function queueInitialBestiariSeedWarmup() {
+  window.setTimeout(() => {
+    loadBestiariSeedCategories(BESTIARI_INITIAL_LAZY_CATEGORIES, { renderWhenDone: true });
+  }, 0);
+}
+
+async function loadExternalBestiariSeeds() {
+  // Совместимость для старого кода/отладки: полная загрузка всех seed-файлов.
+  // Основной путь теперь ленивый: loadBestiariSeedCategory / ensureBestiariSeedsForCurrentView.
+  return loadAllBestiariSeedCategories();
 }
 
 function mergeEntryLists(...lists) {
@@ -2449,15 +2578,19 @@ function renderCategoryButtons(entries) {
     .map((key) => {
       const active = BESTIARI_STATE.category === key ? "active" : "";
       const count = stats[key] || 0;
+      const loading = isBestiariSeedCategoryLoading(key);
+      const loaded = isBestiariSeedCategoryLoaded(key);
+      const countLabel = loading ? "…" : (count || loaded ? String(count) : "—");
       return `
         <button
-          class="bestiari-ref-category ${active}"
+          class="bestiari-ref-category ${active} ${loading ? "is-loading" : ""} ${loaded ? "is-loaded" : "is-lazy"}"
           type="button"
           data-bestiari-category="${escapeHtml(key)}"
+          title="${escapeHtml(loaded ? "Раздел загружен" : loading ? "Раздел загружается" : "Раздел загрузится при открытии")}"
         >
           <span>${escapeHtml(getCategoryIcon(key))}</span>
           <strong>${escapeHtml(BESTIARI_CATEGORY_LABELS[key])}</strong>
-          <em>${count}</em>
+          <em>${escapeHtml(countLabel)}</em>
         </button>
       `;
     })
@@ -2560,7 +2693,33 @@ function renderImportPanel() {
 
 
 function renderEntryList(entries, selected) {
+  const category = BESTIARI_STATE.category || "all";
+  const query = String(BESTIARI_STATE.query || "").trim();
+  const categoryLoading = isBestiariSeedCategoryLoading(category);
+  const categoryLoaded = isBestiariSeedCategoryLoaded(category);
+
   if (!entries.length) {
+    if (category !== "all" && !categoryLoaded) {
+      return `
+        <div class="bestiari-ref-empty">
+          <div class="bestiari-ref-empty-icon">◇</div>
+          <strong>${categoryLoading ? "Загружаем раздел" : "Раздел ещё не загружен"}</strong>
+          <span>${categoryLoading ? "Данные подтягиваются из JSON без перезагрузки страницы." : "Нажми кнопку ниже или просто подожди — раздел догрузится лениво."}</span>
+          ${categoryLoading ? "" : `<button class="btn btn-primary" type="button" data-bestiari-load-category="${escapeHtml(category)}">Загрузить ${escapeHtml(BESTIARI_CATEGORY_LABELS[category] || "раздел")}</button>`}
+        </div>
+      `;
+    }
+
+    if (category === "all" && query.length >= 2 && !BESTIARI_STATE.allSeedCategoriesLoaded) {
+      return `
+        <div class="bestiari-ref-empty">
+          <div class="bestiari-ref-empty-icon">⌕</div>
+          <strong>${isBestiariSeedCategoryLoading("all") ? "Ищем по всем разделам" : "Поиск расширяется"}</strong>
+          <span>Для глобального поиска справочник догружает тяжёлые разделы фоном.</span>
+        </div>
+      `;
+    }
+
     return `
       <div class="bestiari-ref-empty">
         <div class="bestiari-ref-empty-icon">◇</div>
@@ -4462,9 +4621,10 @@ function bindActions() {
     searchInput.addEventListener("input", () => {
       BESTIARI_STATE.query = searchInput.value || "";
       if (BESTIARI_STATE.searchRenderTimer) window.clearTimeout(BESTIARI_STATE.searchRenderTimer);
-      BESTIARI_STATE.searchRenderTimer = window.setTimeout(() => {
+      BESTIARI_STATE.searchRenderTimer = window.setTimeout(async () => {
         BESTIARI_STATE.searchRenderTimer = null;
         renderCodex({ preserveScroll: true, preserveFocus: true });
+        await ensureBestiariSeedsForCurrentView({ renderWhenDone: true });
       }, BESTIARI_SEARCH_RENDER_DELAY_MS);
     });
   }
@@ -4529,12 +4689,28 @@ function bindActions() {
   document.querySelectorAll("[data-bestiari-category]").forEach((btn) => {
     if (btn.dataset.boundBestiariCategory === "1") return;
     btn.dataset.boundBestiariCategory = "1";
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       BESTIARI_STATE.category = btn.dataset.bestiariCategory || "all";
       BESTIARI_STATE.showFullDescription = false;
       BESTIARI_STATE.showFullStats = false;
       BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || "";
       renderCodex();
+      await ensureBestiariSeedsForCurrentView({ renderWhenDone: true });
+      BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || BESTIARI_STATE.selectedId || "";
+      renderCodex({ preserveScroll: true });
+    });
+  });
+
+  document.querySelectorAll("[data-bestiari-load-category]").forEach((btn) => {
+    if (btn.dataset.boundBestiariLoadCategory === "1") return;
+    btn.dataset.boundBestiariLoadCategory = "1";
+    btn.addEventListener("click", async () => {
+      const category = btn.dataset.bestiariLoadCategory || BESTIARI_STATE.category || "all";
+      BESTIARI_STATE.category = category;
+      renderCodex({ preserveScroll: true });
+      await loadBestiariSeedCategory(category, { renderWhenDone: true });
+      BESTIARI_STATE.selectedId = getVisibleEntries()[0]?.id || BESTIARI_STATE.selectedId || "";
+      renderCodex({ preserveScroll: true });
     });
   });
 
@@ -4732,26 +4908,21 @@ export async function loadCodex() {
     const localEntries = Array.isArray(localEntriesRaw) && localEntriesRaw.length
       ? localEntriesRaw.map(normalizeEntry)
       : [];
-    const externalSeedEntries = await loadExternalBestiariSeeds();
-
     BESTIARI_STATE.entries = mergeEntryLists(
       defaultEntries,
-      localEntries,
-      externalSeedEntries
+      localEntries
     );
 
-    if (externalSeedEntries.length) {
-      BESTIARI_STATE.source = localEntries.length ? "local + external-seed" : "seed + external-seed";
-    } else if (localEntries.length) {
-      BESTIARI_STATE.source = "local";
-    } else {
-      BESTIARI_STATE.source = "seed";
-    }
+    BESTIARI_STATE.source = localEntries.length ? "local + seed + lazy" : "seed + lazy";
 
     // Не пишем весь внешний справочник обратно в localStorage при каждой загрузке.
     // Это раньше могло давать лишний фриз на холодном старте энциклопедии.
     BESTIARI_STATE.loaded = true;
     BESTIARI_STATE.selectedId = BESTIARI_STATE.selectedId || BESTIARI_STATE.entries[0]?.id || "";
+
+    // Лёгкий прогрев: классы/расы/происхождения догружаются фоном.
+    // Монстры/предметы/заклинания не грузятся до открытия раздела или поиска.
+    queueInitialBestiariSeedWarmup();
     return BESTIARI_STATE;
   })();
 

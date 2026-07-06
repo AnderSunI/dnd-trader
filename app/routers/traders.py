@@ -18,8 +18,10 @@ from ..models import (
     User,
 )
 from ..services.trader_progression import (
+    relationship_label_from_score,
+    relationship_progress_payload,
     trader_discount_percent,
-    trader_skill_label,
+    trader_skill_label as legacy_reputation_skill_label,
 )
 
 def create_traders_router(
@@ -109,6 +111,118 @@ def create_traders_router(
             except Exception:
                 return {}
         return {}
+
+    # ========================================================
+    # 🧭 TRADER SKILL / RELATIONSHIP HELPERS
+    # ========================================================
+
+    TRADE_SKILL_ORDER = {
+        "Новичок": 1,
+        "Подмастерье": 2,
+        "Умелый": 3,
+        "Опытный": 4,
+        "Мастер": 5,
+    }
+
+    TRADE_SKILL_ALIASES = {
+        "новичок": "Новичок",
+        "подмастерье": "Подмастерье",
+        "подмастерье торговца": "Подмастерье",
+        "умелый": "Умелый",
+        "опытный": "Опытный",
+        "эксперт": "Опытный",
+        "мастер": "Мастер",
+        "легенда торговли": "Мастер",
+    }
+
+    def normalize_text_key(value) -> str:
+        return safe_str(value).strip().lower().replace("ё", "е")
+
+    def normalize_trade_skill_label(value, default: str = "Новичок") -> str:
+        raw = safe_str(value).strip()
+        if not raw:
+            return default
+
+        direct = TRADE_SKILL_ALIASES.get(normalize_text_key(raw))
+        if direct:
+            return direct
+
+        key = normalize_text_key(raw)
+        if "мастер" in key or "легенда" in key:
+            return "Мастер"
+        if "опыт" in key or "эксперт" in key:
+            return "Опытный"
+        if "умел" in key:
+            return "Умелый"
+        if "подмаст" in key:
+            return "Подмастерье"
+        if "нович" in key:
+            return "Новичок"
+
+        return default
+
+    def extract_trade_skill_label(trader: Trader | None) -> str:
+        """
+        Навык торговли — это свойство самого торговца, а не отношение аккаунта.
+
+        Источник сейчас хранится без новой колонки: seed добавляет строку
+        `Навык торговли: ...` в abilities. Поэтому читаем её оттуда.
+        Если строка потерялась, даём мягкий fallback по trader_level.
+        """
+        if trader is None:
+            return "Новичок"
+
+        abilities = parse_json_list(getattr(trader, "abilities", []))
+        for ability in abilities:
+            text = safe_str(ability).strip()
+            key = normalize_text_key(text)
+            if not key.startswith("навык торговли"):
+                continue
+
+            if ":" in text:
+                return normalize_trade_skill_label(text.split(":", 1)[1].strip())
+            return normalize_trade_skill_label(text)
+
+        level = safe_int(getattr(trader, "trader_level", 1), 1)
+        if level >= 7:
+            return "Опытный"
+        if level >= 5:
+            return "Умелый"
+        if level >= 3:
+            return "Подмастерье"
+        return "Новичок"
+
+    def trade_skill_rank(label: str) -> int:
+        return TRADE_SKILL_ORDER.get(normalize_trade_skill_label(label), 1)
+
+    def relationship_label_from_reputation(reputation: int | None) -> str:
+        """
+        Этап отношений по накопительному score.
+
+        Сейчас score всё ещё лежит на Trader.reputation глобально. Это временный
+        bridge до отдельного pass с UserTraderReputation.
+        """
+        return relationship_label_from_score(safe_int(reputation, 0))
+
+    def build_relationship_payload(reputation: int | None) -> dict:
+        """
+        Подготовить relationship payload для фронта.
+        """
+        try:
+            return relationship_progress_payload(safe_int(reputation, 0))
+        except Exception:
+            return {
+                "score": safe_int(reputation, 0),
+                "label": "Незнакомец",
+                "tone": "neutral",
+                "progress_current": 0,
+                "progress_needed": 100,
+                "progress_percent": 0,
+                "to_next": 100,
+                "next_label": "Знакомый",
+                "discount_percent": 0,
+                "sell_bonus_percent": 0,
+            }
 
     def normalize_category(value: str | None) -> str:
         return safe_str(value, "").strip()
@@ -225,7 +339,12 @@ def create_traders_router(
             "type": safe_str(getattr(trader, "type", "unknown"), "unknown"),
             "specialization": [],
             "reputation": safe_int(getattr(trader, "reputation", 0), 0),
-            "skill_label": "Ошибка данных",
+            "relationship_label": relationship_label_from_reputation(getattr(trader, "reputation", 0)),
+            "relationship_reputation": safe_int(getattr(trader, "reputation", 0), 0),
+            "skill_label": "Неизвестно",
+            "trade_skill_label": "Неизвестно",
+            "trade_skill_rank": 0,
+            "legacy_reputation_skill_label": legacy_reputation_skill_label(getattr(trader, "reputation", 0)),
             "discount_percent": 0,
             "region": safe_str(getattr(trader, "region", "")),
             "settlement": safe_str(getattr(trader, "settlement", "")),
@@ -414,17 +533,46 @@ def create_traders_router(
 
         money_payload = build_trader_money_payload(trader)
 
+        trade_skill = extract_trade_skill_label(trader)
+        relationship_reputation = safe_int(trader.reputation, 0)
+        relationship_payload = build_relationship_payload(relationship_reputation)
+        relationship_progress_percent = safe_int(relationship_payload.get("progress_percent"), 0)
+
         payload = {
             "id": trader.id,
             "name": safe_str(trader.name),
             "type": safe_str(trader.type),
             "specialization": parse_json_list(trader.specialization),
-            "reputation": safe_int(trader.reputation, 0),
-            # Новые поля для фронта:
-            # - skill_label: "ранг" торговца по репутации
-            # - discount_percent: текущая скидка на покупку у торговца
-            "skill_label": trader_skill_label(trader.reputation),
-            "discount_percent": trader_discount_percent(trader.reputation),
+
+            # Совместимость: старый фронт ждёт reputation как 0..100 для progressbar.
+            # Поэтому наружу отдаём процент внутри текущего этапа,
+            # а настоящий накопительный score отдаём отдельными полями ниже.
+            "reputation": relationship_progress_percent,
+            "reputation_score": relationship_reputation,
+            "relationship_reputation": relationship_reputation,
+            "relationship_label": safe_str(relationship_payload.get("label"), "Незнакомец"),
+            "relationship_tone": safe_str(relationship_payload.get("tone"), "neutral"),
+            "relationship_progress": safe_int(relationship_payload.get("progress_current"), 0),
+            "relationship_progress_max": safe_int(relationship_payload.get("progress_needed"), 100),
+            "relationship_progress_percent": relationship_progress_percent,
+            "relationship_to_next": safe_int(relationship_payload.get("to_next"), 0),
+            "relationship_next_label": relationship_payload.get("next_label"),
+
+            # Навык торговли — свойство самого NPC/лавки.
+            # Оставляем skill_label для совместимости со старым фронтом,
+            # но по смыслу теперь это НЕ reputation-rank.
+            "skill_label": trade_skill,
+            "trade_skill_label": trade_skill,
+            "trade_skill_rank": trade_skill_rank(trade_skill),
+
+            # Временный debug/legacy-мост: старое имя ранга по репутации,
+            # чтобы не потерять диагностику до account-bound reputation pass.
+            "legacy_reputation_skill_label": legacy_reputation_skill_label(relationship_reputation),
+
+            # Скидка от relationship score.
+            # Позже будет считаться от UserTraderReputation для текущего аккаунта.
+            "discount_percent": safe_int(relationship_payload.get("discount_percent"), trader_discount_percent(relationship_reputation)),
+            "sell_bonus_percent": safe_int(relationship_payload.get("sell_bonus_percent"), 0),
             "region": safe_str(trader.region),
             "settlement": safe_str(trader.settlement),
             "level_min": safe_int(trader.level_min, 1),
