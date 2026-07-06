@@ -1,10 +1,18 @@
+# Git
+.git/
+.git/**
+.gitignore
+
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.so
 .env
+.env.*
 venv/
 .venv/
+*.log
 
 # Docker
 docker-compose.override.yml
@@ -14,14 +22,26 @@ docker-compose.override.yml
 .idea/
 
 # OS
-.DS_Store1
-rebuild_longstoryshort_rebuilt_readable_v3.py
+.DS_Store
+Thumbs.db
 
-# local/dev
+# Local/dev
 SESSION_MEMORY.md
 dnd_trader.db
+rebuild_longstoryshort_rebuilt_readable_v3.py
+
+# Frontend / generated / heavy local files
 frontend/static/images/Referens/
 frontend/static/images/Screen/
+
+# Node / frontend caches
+node_modules/
+frontend/node_modules/
+dist/
+build/
+.next/
+.vite/
+coverage/
 
 # D&D Trader generated encyclopedia outputs / debug logs
 tools/encyclopedia/**/out/

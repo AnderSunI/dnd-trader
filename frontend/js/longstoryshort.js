@@ -70,6 +70,38 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function clampNumber(value, min = null, max = null, fallback = 0) {
+  let n = toNumber(value, fallback);
+  if (min !== null && min !== undefined) n = Math.max(Number(min), n);
+  if (max !== null && max !== undefined) n = Math.min(Number(max), n);
+  return n;
+}
+
+function sanitizePlainText(value, options = {}) {
+  const max = options.max ?? 80;
+  const allowNumbers = options.allowNumbers !== false;
+  const allowPunctuation = options.allowPunctuation !== false;
+  let text = String(value ?? "")
+    .replace(/[<>`{}\[\]\\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!allowNumbers) text = text.replace(/[0-9]/g, "");
+  if (!allowPunctuation) text = text.replace(/[!?@#$%^&*_+=|~;:,.\/]/g, "");
+  return text.slice(0, max);
+}
+
+function sanitizeNumericText(value, options = {}) {
+  const min = options.min ?? null;
+  const max = options.max ?? null;
+  const fallback = options.fallback ?? 0;
+  const integer = options.integer !== false;
+  let raw = String(value ?? "").replace(/[^0-9+\-.]/g, "");
+  if (integer) raw = raw.replace(/(?!^)[+\-]/g, "").replace(/\..*$/, "");
+  const n = clampNumber(raw, min, max, fallback);
+  return integer ? String(Math.trunc(n)) : String(n);
+}
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -246,16 +278,103 @@ function joinNonEmpty(values, separator = ", ") {
 }
 
 function normalizeSize(value) {
-  const raw = String(value || "").trim().toLowerCase();
-  const map = {
-    tiny: "Крошечный",
-    small: "Маленький",
-    medium: "Средний",
-    large: "Большой",
-    huge: "Огромный",
-    gargantuan: "Гигантский",
+  const key = normalizeSizeKey(value || "medium");
+  const option = LSS_SIZE_OPTIONS.find((item) => item.value === key);
+  return option?.label || safe(value, "Средний");
+}
+
+const LSS_SIZE_OPTIONS = [
+  { value: "tiny", label: "Крошечный" },
+  { value: "small", label: "Маленький" },
+  { value: "medium", label: "Средний" },
+  { value: "large", label: "Большой" },
+  { value: "huge", label: "Огромный" },
+  { value: "gargantuan", label: "Гигантский" },
+];
+
+const LSS_ALIGNMENT_OPTIONS = [
+  "Законно-добрый",
+  "Нейтрально-добрый",
+  "Хаотично-добрый",
+  "Законно-нейтральный",
+  "Истинно нейтральный",
+  "Хаотично-нейтральный",
+  "Законно-злой",
+  "Нейтрально-злой",
+  "Хаотично-злой",
+  "Не выбрано",
+];
+
+function normalizeAlignment(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const lookup = raw.toLowerCase().replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/g, " ").trim();
+  const aliases = {
+    "lawful good": "Законно-добрый",
+    "законно добрый": "Законно-добрый",
+    "neutral good": "Нейтрально-добрый",
+    "нейтрально добрый": "Нейтрально-добрый",
+    "chaotic good": "Хаотично-добрый",
+    "хаотично добрый": "Хаотично-добрый",
+    "lawful neutral": "Законно-нейтральный",
+    "законно нейтральный": "Законно-нейтральный",
+    "true neutral": "Истинно нейтральный",
+    "neutral": "Истинно нейтральный",
+    "истинно нейтральный": "Истинно нейтральный",
+    "нейтральный": "Истинно нейтральный",
+    "chaotic neutral": "Хаотично-нейтральный",
+    "хаотично нейтральный": "Хаотично-нейтральный",
+    "lawful evil": "Законно-злой",
+    "законно злой": "Законно-злой",
+    "neutral evil": "Нейтрально-злой",
+    "нейтрально злой": "Нейтрально-злой",
+    "chaotic evil": "Хаотично-злой",
+    "хаотично злой": "Хаотично-злой",
+    "не выбрано": "",
   };
-  return map[raw] || safe(value, "—");
+  return aliases[lookup] ?? raw;
+}
+
+function getAlignmentOptionsHtml(value = "") {
+  const normalized = normalizeAlignment(value);
+  const options = ["", ...LSS_ALIGNMENT_OPTIONS];
+  return options.map((label) => {
+    const display = label || "Выбери мировоззрение";
+    const selected = (label || "") === normalized ? "selected" : "";
+    return `<option value="${escapeHtml(label)}" ${selected}>${escapeHtml(display)}</option>`;
+  }).join("");
+}
+
+function normalizeSizeKey(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  const aliases = {
+    tiny: "tiny",
+    "крошечный": "tiny",
+    "крошечная": "tiny",
+    small: "small",
+    "маленький": "small",
+    "маленькая": "small",
+    medium: "medium",
+    "средний": "medium",
+    "средняя": "medium",
+    large: "large",
+    "большой": "large",
+    "большая": "large",
+    huge: "huge",
+    "огромный": "huge",
+    "огромная": "huge",
+    gargantuan: "gargantuan",
+    "гигантский": "gargantuan",
+    "гигантская": "gargantuan",
+  };
+  return aliases[raw] || raw || "medium";
+}
+
+function getSizeOptionsHtml(value = "medium") {
+  const selectedKey = normalizeSizeKey(value || "medium");
+  return LSS_SIZE_OPTIONS.map((option) => `
+    <option value="${escapeHtml(option.value)}" ${option.value === selectedKey ? "selected" : ""}>${escapeHtml(option.label)}</option>
+  `).join("");
 }
 
 function getLocalStorageKey() {
@@ -334,10 +453,11 @@ function getProfileCharacterId(profile = null) {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-function numericInputAttrs(min = null, max = null) {
-  const parts = ['type="number"', 'inputmode="numeric"'];
+function numericInputAttrs(min = null, max = null, step = 1) {
+  const parts = ['type="number"', 'inputmode="numeric"', 'autocomplete="off"'];
   if (min !== null && min !== undefined) parts.push(`min="${escapeHtml(String(min))}"`);
   if (max !== null && max !== undefined) parts.push(`max="${escapeHtml(String(max))}"`);
+  if (step !== null && step !== undefined) parts.push(`step="${escapeHtml(String(step))}"`);
   return parts.join(" ");
 }
 
@@ -393,7 +513,7 @@ function buildAccountCharacterPayload(profile, options = {}) {
     },
     make_active: options.makeActive !== false,
   };
-  if (id) payload.id = id;
+  if (id && !options.createNew) payload.id = id;
   return payload;
 }
 
@@ -525,11 +645,11 @@ function buildBlankProfileFromCharacter(character = {}) {
 
 
 function buildStarterProfileFromForm(formData = {}) {
-  const name = String(formData.name || "").trim() || "Новый персонаж";
-  const charClass = String(formData.charClass || "").trim();
-  const race = String(formData.race || "").trim();
-  const background = String(formData.background || "").trim();
-  const level = Math.max(1, toNumber(formData.level, 1));
+  const name = sanitizePlainText(formData.name || "", { max: 60, allowNumbers: false }) || "Новый персонаж";
+  const charClass = sanitizePlainText(formData.charClass || "", { max: 40 });
+  const race = sanitizePlainText(formData.race || "", { max: 40 });
+  const background = sanitizePlainText(formData.background || "", { max: 50 });
+  const level = clampNumber(formData.level, 1, 20, 1);
   const selectedId = Number(LSS_STATE.selectedCharacterId || 0) || 0;
 
   const profile = buildBlankProfileFromCharacter({
@@ -538,33 +658,38 @@ function buildStarterProfileFromForm(formData = {}) {
     class_name: charClass,
     level,
     race,
-    alignment: String(formData.alignment || "").trim(),
+    alignment: normalizeAlignment(sanitizePlainText(formData.alignment || "", { max: 50 })),
     experience: toNumber(formData.experience, 0),
   });
 
   profile.name = name;
   setLssValue(profile, "info.name", name, "name");
   setLssValue(profile, "info.charClass", charClass, "charClass");
-  setLssValue(profile, "info.charSubclass", String(formData.charSubclass || "").trim(), "charSubclass");
+  setLssValue(profile, "info.charSubclass", sanitizePlainText(formData.charSubclass || "", { max: 60 }), "charSubclass");
   setLssValue(profile, "info.race", race, "race");
   setLssValue(profile, "info.background", background, "background");
-  setLssValue(profile, "info.alignment", String(formData.alignment || "").trim(), "alignment");
+  setLssValue(profile, "info.alignment", normalizeAlignment(sanitizePlainText(formData.alignment || "", { max: 50 })), "alignment");
+  setLssValue(profile, "info.size", normalizeSize(formData.size || "medium"), "size");
   setLssValue(profile, "info.level", level, "level");
-  setLssValue(profile, "info.experience", Math.max(0, toNumber(formData.experience, 0)), "experience");
-  profile.proficiency = Math.max(0, toNumber(formData.proficiency, 2));
+  setLssValue(profile, "info.experience", clampNumber(formData.experience, 0, null, 0), "experience");
+  profile.proficiency = clampNumber(formData.proficiency, 0, 20, 2);
 
   STAT_DEFS.forEach(({ key }) => {
-    const score = Math.max(1, Math.min(30, toNumber(formData[`stat_${key}`], 10)));
+    const score = clampNumber(formData[`stat_${key}`], 1, 30, 10);
     profile.stats[key] = { ...(profile.stats[key] || {}), name: key, score, modifier: statMod(score), check: statMod(score) };
   });
 
+  applyClassGuideToProfile(profile, { source: "quick-create" });
+  applyRaceGuideToProfile(profile, { source: "quick-create" });
+  applyBackgroundGuideToProfile(profile, { source: "quick-create" });
+
   profile.vitality = profile.vitality || {};
-  profile.vitality["hp-current"] = preserveValueNode(profile.vitality["hp-current"], Math.max(0, toNumber(formData.hpCurrent, 10)));
-  profile.vitality["hp-max"] = preserveValueNode(profile.vitality["hp-max"], Math.max(1, toNumber(formData.hpMax, formData.hpCurrent || 10)));
-  profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], Math.max(0, toNumber(formData.hpTemp, 0)));
-  profile.vitality.ac = preserveValueNode(profile.vitality.ac, Math.max(0, toNumber(formData.ac, 10)));
-  profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, toNumber(formData.initiative, 0));
-  profile.vitality.speed = preserveValueNode(profile.vitality.speed, Math.max(0, toNumber(formData.speed, 30)));
+  profile.vitality["hp-current"] = preserveValueNode(profile.vitality["hp-current"], clampNumber(formData.hpCurrent, 0, 999, 10));
+  profile.vitality["hp-max"] = preserveValueNode(profile.vitality["hp-max"], clampNumber(formData.hpMax, 1, 999, formData.hpCurrent || 10));
+  profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], clampNumber(formData.hpTemp, 0, 999, 0));
+  profile.vitality.ac = preserveValueNode(profile.vitality.ac, clampNumber(formData.ac, 0, 40, 10));
+  profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, formData.initiative === "" || formData.initiative === undefined ? statMod(clampNumber(formData.stat_dex, 1, 30, 10)) : toNumber(formData.initiative, 0));
+  profile.vitality.speed = preserveValueNode(profile.vitality.speed, clampNumber(formData.speed, 0, 300, 30));
   profile.__createdInDndTrader = true;
 
   return profile;
@@ -581,7 +706,8 @@ function normalizeLssProfileForSave(profile) {
   next.info.charSubclass = preserveValueNode(next.info.charSubclass, String(unwrapValue(next.info.charSubclass, "") || "").trim(), "charSubclass");
   next.info.race = preserveValueNode(next.info.race, String(unwrapValue(next.info.race, "") || "").trim(), "race");
   next.info.background = preserveValueNode(next.info.background, String(unwrapValue(next.info.background, "") || "").trim(), "background");
-  next.info.alignment = preserveValueNode(next.info.alignment, String(unwrapValue(next.info.alignment, "") || "").trim(), "alignment");
+  next.info.alignment = preserveValueNode(next.info.alignment, normalizeAlignment(String(unwrapValue(next.info.alignment, "") || "").trim()), "alignment");
+  next.info.size = preserveValueNode(next.info.size, normalizeSize(unwrapValue(next.info.size, "medium")), "size");
   next.info.experience = preserveValueNode(next.info.experience, Math.max(0, toNumber(unwrapValue(next.info.experience, 0), 0)), "experience");
   next.vitality = next.vitality || {};
   next.stats = next.stats || {};
@@ -931,6 +1057,16 @@ function getStatModifier(profile, key) {
   return derived;
 }
 
+function getDexInitiative(profile) {
+  return getStatModifier(profile, "dex");
+}
+
+function getInitiativeModifier(profile) {
+  const raw = unwrapValue(profile?.vitality?.initiative, "");
+  if (raw === "" || raw === null || raw === undefined) return getDexInitiative(profile);
+  return toNumber(raw, getDexInitiative(profile));
+}
+
 function hasSaveProficiency(profile, key) {
   return Boolean(getNested(profile, `saves.${key}.isProf`, false));
 }
@@ -1018,6 +1154,547 @@ const SKILL_BASE_STATS = {
   performance: "cha",
   persuasion: "cha",
 };
+
+
+const STAT_LABELS = Object.fromEntries(STAT_DEFS.map(({ key, label }) => [key, label]));
+const STAT_SHORT_LABELS = {
+  str: "СИЛ",
+  dex: "ЛОВ",
+  con: "ТЕЛ",
+  int: "ИНТ",
+  wis: "МДР",
+  cha: "ХАР",
+};
+
+function getStatShortLabel(key) {
+  return STAT_SHORT_LABELS[key] || String(key || "").toUpperCase();
+}
+
+function formatStatBonusMap(bonuses = {}) {
+  const entries = Object.entries(bonuses || {})
+    .filter(([, value]) => Number(value) !== 0)
+    .map(([key, value]) => `${STAT_LABELS[key] || key} ${Number(value) > 0 ? "+" : ""}${value}`);
+  return entries.length ? entries.join(", ") : "без бонусов к характеристикам";
+}
+
+const LSS_RACE_GUIDES = [
+  { id: "human", label: "Человек", aliases: ["human", "человек", "люди"], size: "Средний", speed: 30, abilityBonuses: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 }, languages: "Общий + ещё 1 язык", traits: ["Универсальность"] },
+  { id: "elf", label: "Эльф", aliases: ["elf", "эльф", "эльфийка"], size: "Средний", speed: 30, abilityBonuses: { dex: 2 }, languages: "Общий, эльфийский", traits: ["Тёмное зрение", "Наследие фей", "Транс"] },
+  { id: "dwarf", label: "Дварф", aliases: ["dwarf", "дварф", "дворф", "гном дворф"], size: "Средний", speed: 25, abilityBonuses: { con: 2 }, languages: "Общий, дварфийский", traits: ["Тёмное зрение", "Дварфийская стойкость", "Знание камня"] },
+  { id: "halfling", label: "Полурослик", aliases: ["halfling", "полурослик", "халфлинг"], size: "Маленький", speed: 25, abilityBonuses: { dex: 2 }, languages: "Общий, полуросличий", traits: ["Удачливый", "Храбрый", "Проворство полурослика"] },
+  { id: "gnome", label: "Гном", aliases: ["gnome", "гном"], size: "Маленький", speed: 25, abilityBonuses: { int: 2 }, languages: "Общий, гномий", traits: ["Тёмное зрение", "Гномья хитрость"] },
+  { id: "half-elf", label: "Полуэльф", aliases: ["half elf", "half-elf", "полуэльф", "полуэльфийка"], size: "Средний", speed: 30, abilityBonuses: { cha: 2 }, languages: "Общий, эльфийский + ещё 1", traits: ["Тёмное зрение", "Наследие фей", "Универсальные навыки"] },
+  { id: "half-orc", label: "Полуорк", aliases: ["half orc", "half-orc", "полуорк", "полуорчиха"], size: "Средний", speed: 30, abilityBonuses: { str: 2, con: 1 }, languages: "Общий, орочий", traits: ["Тёмное зрение", "Непоколебимая стойкость", "Свирепые атаки"] },
+  { id: "tiefling", label: "Тифлинг", aliases: ["tiefling", "тифлинг", "тифлингша"], size: "Средний", speed: 30, abilityBonuses: { cha: 2, int: 1 }, languages: "Общий, инфернальный", traits: ["Тёмное зрение", "Адское сопротивление", "Наследие"] },
+  { id: "dragonborn", label: "Драконорождённый", aliases: ["dragonborn", "драконорожденный", "драконорождённый"], size: "Средний", speed: 30, abilityBonuses: { str: 2, cha: 1 }, languages: "Общий, драконий", traits: ["Дыхание дракона", "Сопротивление стихии"] },
+];
+
+const LSS_BACKGROUND_GUIDES = [
+  { id: "acolyte", label: "Прислужник", aliases: ["acolyte", "прислужник", "служитель"], skills: ["insight", "religion"], tools: "—", languages: "+2 языка", feature: "Приют верующих" },
+  { id: "charlatan", label: "Шарлатан", aliases: ["charlatan", "шарлатан"], skills: ["deception", "sleight of hand"], tools: "Набор для подделки, набор для грима", languages: "—", feature: "Фальшивая личность" },
+  { id: "criminal", label: "Преступник", aliases: ["criminal", "преступник", "криминал"], skills: ["deception", "stealth"], tools: "Игровой набор, воровские инструменты", languages: "—", feature: "Криминальный контакт" },
+  { id: "folk-hero", label: "Народный герой", aliases: ["folk hero", "народный герой", "герой народа"], skills: ["animal handling", "survival"], tools: "Ремесленный инструмент, транспорт", languages: "—", feature: "Гостеприимство простолюдинов" },
+  { id: "guild-artisan", label: "Гильдейский ремесленник", aliases: ["guild artisan", "гильдейский ремесленник", "ремесленник"], skills: ["insight", "persuasion"], tools: "Ремесленный инструмент", languages: "+1 язык", feature: "Членство в гильдии" },
+  { id: "noble", label: "Дворянин", aliases: ["noble", "дворянин", "дворянка"], skills: ["history", "persuasion"], tools: "Игровой набор", languages: "+1 язык", feature: "Положение привилегии" },
+  { id: "outlander", label: "Чужеземец", aliases: ["outlander", "чужеземец", "скиталец"], skills: ["athletics", "survival"], tools: "Музыкальный инструмент", languages: "+1 язык", feature: "Странник" },
+  { id: "sage", label: "Мудрец", aliases: ["sage", "мудрец", "учёный", "ученый"], skills: ["arcana", "history"], tools: "—", languages: "+2 языка", feature: "Исследователь" },
+  { id: "sailor", label: "Моряк", aliases: ["sailor", "моряк", "морячка"], skills: ["athletics", "perception"], tools: "Навигаторские инструменты, транспорт водный", languages: "—", feature: "Проход на корабле" },
+  { id: "soldier", label: "Солдат", aliases: ["soldier", "солдат", "военный"], skills: ["athletics", "intimidation"], tools: "Игровой набор, транспорт", languages: "—", feature: "Воинское звание" },
+  { id: "urchin", label: "Беспризорник", aliases: ["urchin", "беспризорник", "уличный"], skills: ["sleight of hand", "stealth"], tools: "Воровские инструменты, набор для грима", languages: "—", feature: "Городские тайны" },
+];
+
+function getGuideFromCollection(collection, value) {
+  const raw = normalizeGuideLookup(value);
+  if (!raw) return null;
+  return collection.find((guide) => {
+    if (normalizeGuideLookup(guide.label) === raw || normalizeGuideLookup(guide.id) === raw) return true;
+    return (guide.aliases || []).some((alias) => normalizeGuideLookup(alias) === raw);
+  }) || null;
+}
+
+function getLssRaceGuide(value) {
+  return getGuideFromCollection(LSS_RACE_GUIDES, value);
+}
+
+function getLssBackgroundGuide(value) {
+  return getGuideFromCollection(LSS_BACKGROUND_GUIDES, value);
+}
+
+function getLssRaceOptionsHtml() {
+  return LSS_RACE_GUIDES.map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`).join("");
+}
+
+function getLssBackgroundOptionsHtml() {
+  return LSS_BACKGROUND_GUIDES.map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`).join("");
+}
+
+const LSS_CLASS_GUIDES = [
+  {
+    id: "barbarian",
+    label: "Варвар",
+    aliases: ["barbarian", "варвар", "варвары"],
+    hitDie: 12,
+    saves: ["str", "con"],
+    primaryStats: ["str", "con", "dex"],
+    armor: "Лёгкая и средняя броня, щиты",
+    weapons: "Простое и воинское оружие",
+    spellcasting: false,
+    role: "жирный фронтлайн, ярость, силовые проверки",
+    beginnerTip: "Сначала держи высокими Силу и Телосложение. Ловкость помогает КБ и инициативе.",
+    level1: ["Ярость", "Защита без доспехов"],
+  },
+  {
+    id: "bard",
+    label: "Бард",
+    aliases: ["bard", "бард", "барды"],
+    hitDie: 8,
+    saves: ["dex", "cha"],
+    primaryStats: ["cha", "dex", "con"],
+    armor: "Лёгкая броня",
+    weapons: "Простое оружие, ручные арбалеты, длинные мечи, рапиры, короткие мечи",
+    spellcasting: true,
+    spellAbility: "cha",
+    spellType: "полный заклинатель",
+    role: "баффы, контроль, социальные сцены, поддержка",
+    beginnerTip: "Харизма — твой мотор. Держи Ловкость и Телосложение не просевшими, чтобы не падать от первого чиха.",
+    level1: ["Вдохновение барда", "Использование заклинаний"],
+  },
+  {
+    id: "cleric",
+    label: "Жрец",
+    aliases: ["cleric", "жрец", "жрица", "клирик", "клерик"],
+    hitDie: 8,
+    saves: ["wis", "cha"],
+    primaryStats: ["wis", "con", "str"],
+    armor: "Лёгкая и средняя броня, щиты",
+    weapons: "Простое оружие",
+    spellcasting: true,
+    spellAbility: "wis",
+    spellType: "подготовленный полный заклинатель",
+    role: "лечение, защита, священный урон, поддержка",
+    beginnerTip: "Мудрость усиливает заклинания. Телосложение помогает держать концентрацию.",
+    level1: ["Использование заклинаний", "Божественный домен"],
+  },
+  {
+    id: "druid",
+    label: "Друид",
+    aliases: ["druid", "друид", "друидка"],
+    hitDie: 8,
+    saves: ["int", "wis"],
+    primaryStats: ["wis", "con", "dex"],
+    armor: "Лёгкая и средняя броня, щиты без металлического вайба",
+    weapons: "Друидское оружие: посох, серп, копьё и близкие варианты",
+    spellcasting: true,
+    spellAbility: "wis",
+    spellType: "подготовленный полный заклинатель",
+    role: "контроль, лечение, природа, формы зверей позже",
+    beginnerTip: "Мудрость — главное. Телосложение и Ловкость делают тебя живее в бою.",
+    level1: ["Друидический язык", "Использование заклинаний"],
+  },
+  {
+    id: "fighter",
+    label: "Воин",
+    aliases: ["fighter", "воин", "боец", "воитель", "воительница"],
+    hitDie: 10,
+    saves: ["str", "con"],
+    primaryStats: ["str", "con", "dex"],
+    armor: "Вся броня и щиты",
+    weapons: "Простое и воинское оружие",
+    spellcasting: false,
+    role: "надёжный боец, оружие, броня, много атак позже",
+    beginnerTip: "Выбери стиль: Сила для тяжёлого оружия/брони или Ловкость для дальнего боя/лёгкого билда.",
+    level1: ["Боевой стиль", "Второе дыхание"],
+  },
+  {
+    id: "monk",
+    label: "Монах",
+    aliases: ["monk", "монах", "монахиня"],
+    hitDie: 8,
+    saves: ["str", "dex"],
+    primaryStats: ["dex", "wis", "con"],
+    armor: "Без брони и щитов",
+    weapons: "Простое оружие и короткие мечи",
+    spellcasting: false,
+    role: "мобильность, удары, контроль позиции",
+    beginnerTip: "Ловкость и Мудрость дают урон/КБ. Телосложение нужно, чтобы не стать бумажным ниндзя.",
+    level1: ["Защита без доспехов", "Боевые искусства"],
+  },
+  {
+    id: "paladin",
+    label: "Паладин",
+    aliases: ["paladin", "паладин", "паладинка"],
+    hitDie: 10,
+    saves: ["wis", "cha"],
+    primaryStats: ["str", "cha", "con"],
+    armor: "Вся броня и щиты",
+    weapons: "Простое и воинское оружие",
+    spellcasting: true,
+    spellAbility: "cha",
+    spellType: "полузаклинатель со 2 уровня",
+    role: "танк, бурст, ауры, святая кувалда по проблемам",
+    beginnerTip: "Сила бьёт, Харизма питает ауры и заклинания, Телосложение держит тебя на ногах.",
+    level1: ["Божественное чувство", "Наложение рук"],
+  },
+  {
+    id: "ranger",
+    label: "Следопыт",
+    aliases: ["ranger", "следопыт", "рейнджер"],
+    hitDie: 10,
+    saves: ["str", "dex"],
+    primaryStats: ["dex", "wis", "con"],
+    armor: "Лёгкая и средняя броня, щиты",
+    weapons: "Простое и воинское оружие",
+    spellcasting: true,
+    spellAbility: "wis",
+    spellType: "полузаклинатель со 2 уровня",
+    role: "выживание, разведка, дальний бой, охота",
+    beginnerTip: "Ловкость обычно решает атаку и КБ, Мудрость — навыки и заклинания.",
+    level1: ["Избранный враг", "Исследователь природы"],
+  },
+  {
+    id: "rogue",
+    label: "Плут",
+    aliases: ["rogue", "плут", "вор", "разбойник", "разбойница"],
+    hitDie: 8,
+    saves: ["dex", "int"],
+    primaryStats: ["dex", "con", "cha"],
+    armor: "Лёгкая броня",
+    weapons: "Простое оружие, ручные арбалеты, длинные мечи, рапиры, короткие мечи",
+    spellcasting: false,
+    role: "скрытность, взлом, точный урон, экспертиза",
+    beginnerTip: "Ловкость — главный стат. Скрытность, Ловкость рук и Восприятие почти всегда полезны.",
+    level1: ["Экспертиза", "Скрытая атака", "Воровской жаргон"],
+  },
+  {
+    id: "sorcerer",
+    label: "Чародей",
+    aliases: ["sorcerer", "чародей", "чародейка", "сорк", "сорцерер"],
+    hitDie: 6,
+    saves: ["con", "cha"],
+    primaryStats: ["cha", "con", "dex"],
+    armor: "Без брони",
+    weapons: "Кинжалы, дротики, пращи, посохи, лёгкие арбалеты",
+    spellcasting: true,
+    spellAbility: "cha",
+    spellType: "полный заклинатель",
+    role: "магия через Харизму, гибкие заклинания, сильный каст",
+    beginnerTip: "Харизма — урон и сложность спасбросков. Телосложение помогает концентрации.",
+    level1: ["Использование заклинаний", "Чародейское происхождение"],
+  },
+  {
+    id: "warlock",
+    label: "Колдун",
+    aliases: ["warlock", "колдун", "ведьмак", "варлок"],
+    hitDie: 8,
+    saves: ["wis", "cha"],
+    primaryStats: ["cha", "con", "dex"],
+    armor: "Лёгкая броня",
+    weapons: "Простое оружие",
+    spellcasting: true,
+    spellAbility: "cha",
+    spellType: "магия договора, мало ячеек, но они быстро восстанавливаются",
+    role: "стабильный магический урон, договор, странные силы",
+    beginnerTip: "Харизма — главное. Eldritch Blast-логика: меньше ячеек, больше стабильности.",
+    level1: ["Покровитель", "Магия договора"],
+  },
+  {
+    id: "wizard",
+    label: "Волшебник",
+    aliases: ["wizard", "волшебник", "волшебница", "маг", "магичка"],
+    hitDie: 6,
+    saves: ["int", "wis"],
+    primaryStats: ["int", "dex", "con"],
+    armor: "Без брони",
+    weapons: "Кинжалы, дротики, пращи, посохи, лёгкие арбалеты",
+    spellcasting: true,
+    spellAbility: "int",
+    spellType: "подготовка из книги заклинаний",
+    role: "контроль, урон, утилити, самая широкая магическая коробка инструментов",
+    beginnerTip: "Интеллект — главный. Ловкость даёт КБ, Телосложение помогает выжить и держать концентрацию.",
+    level1: ["Использование заклинаний", "Магическое восстановление"],
+  },
+  {
+    id: "artificer",
+    label: "Изобретатель",
+    aliases: ["artificer", "изобретатель", "артифисер", "артефактор"],
+    hitDie: 8,
+    saves: ["con", "int"],
+    primaryStats: ["int", "con", "dex"],
+    armor: "Лёгкая и средняя броня, щиты",
+    weapons: "Простое оружие",
+    spellcasting: true,
+    spellAbility: "int",
+    spellType: "полузаклинатель через Интеллект",
+    role: "магия через инструменты, ремесло, поддержка, инфузии позже",
+    beginnerTip: "Интеллект — механика и заклинания. Телосложение и Ловкость помогают жить.",
+    level1: ["Магическое ремесло", "Использование заклинаний"],
+  },
+];
+
+function normalizeGuideLookup(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^a-zа-я0-9]+/g, " ")
+    .trim();
+}
+
+function getLssClassGuide(value) {
+  return getGuideFromCollection(LSS_CLASS_GUIDES, value);
+}
+
+function getLssClassOptionsHtml() {
+  return LSS_CLASS_GUIDES
+    .map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`)
+    .join("");
+}
+
+function getProficiencyBonusByLevel(level) {
+  const lvl = Math.max(1, Math.min(20, toNumber(level, 1)));
+  return 2 + Math.floor((lvl - 1) / 4);
+}
+
+function formatStatList(keys = []) {
+  return keys.map((key) => STAT_LABELS[key] || String(key || "").toUpperCase()).join(", ");
+}
+
+function formatSkillList(keys = []) {
+  return (keys || []).map((key) => SKILL_LABELS[key] || capitalizeRu(key)).join(", ");
+}
+
+function getSubclassUnlockLevel(classId) {
+  const levels = {
+    cleric: 1,
+    sorcerer: 1,
+    warlock: 1,
+    wizard: 2,
+    druid: 2,
+    bard: 3,
+    barbarian: 3,
+    fighter: 3,
+    monk: 3,
+    paladin: 3,
+    ranger: 3,
+    rogue: 3,
+    artificer: 3,
+  };
+  return levels[classId] || 3;
+}
+
+function getSubclassHint(className, level = 1) {
+  const guide = getLssClassGuide(className);
+  if (!guide) return "выбери класс, чтобы понять, когда открывается подкласс";
+  const unlock = getSubclassUnlockLevel(guide.id);
+  const current = Math.max(1, toNumber(level, 1));
+  if (current >= unlock) return `подкласс уже доступен: выбери архетип/домен/школу по ${unlock} уровню`;
+  return `подкласс откроется на ${unlock} уровне`;
+}
+
+function renderLssMechanicsSources(profile) {
+  if (!profile) return "";
+  const info = profile.info || {};
+  const classGuide = getLssClassGuide(unwrapValue(info.charClass, ""));
+  const raceGuide = getLssRaceGuide(unwrapValue(info.race, ""));
+  const bgGuide = getLssBackgroundGuide(unwrapValue(info.background, ""));
+
+  const rows = [
+    classGuide ? { label: "Класс", title: classGuide.label, body: `d${classGuide.hitDie}, спасброски: ${formatStatList(classGuide.saves)}, важны: ${formatStatList(classGuide.primaryStats)}` } : { label: "Класс", title: "не распознан", body: "выбери класс из подсказки, чтобы LSS понял механику" },
+    raceGuide ? { label: "Раса", title: raceGuide.label, body: `${raceGuide.size}, скорость ${raceGuide.speed} фт., бонусы: ${formatStatBonusMap(raceGuide.abilityBonuses)}` } : { label: "Раса", title: "не распознана", body: "пока нет механических бонусов расы" },
+    bgGuide ? { label: "Предыстория", title: bgGuide.label, body: `навыки: ${formatSkillList(bgGuide.skills)}, инструменты/языки: ${[bgGuide.tools, bgGuide.languages].filter((x) => x && x !== "—").join("; ") || "—"}` } : { label: "Предыстория", title: "не распознана", body: "пока нет навыков/владений от предыстории" },
+  ];
+
+  return `
+    <div class="lss-mechanics-sources" style="margin:0 0 12px 0; padding:12px; border:1px solid rgba(117,203,198,.18); border-radius:14px; background:rgba(5,12,18,.38);">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted, #9fb0b8);">Источники механики</div>
+          <div style="font-weight:900; color:var(--gold, #d6b36a);">Что влияет на лист</div>
+        </div>
+        <div class="muted" style="font-size:12px; max-width:420px;">Сейчас это подсказки конструктора. Авто-сложение всех бонусов характеристик включим отдельным pass, чтобы не задваивать старые LSS-экспорты.</div>
+      </div>
+      <div class="profile-grid" style="gap:8px;">
+        ${rows.map((row) => `
+          <div class="meta-item" style="white-space:normal; align-items:flex-start;">
+            <strong>${escapeHtml(row.label)}:</strong> ${escapeHtml(row.title)}<br>
+            <span class="muted">${escapeHtml(row.body)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderLssClassGuidanceCard(className, options = {}) {
+  const guide = getLssClassGuide(className);
+  const mode = options.mode || "quick";
+  const id = mode === "edit" ? "lssEditClassGuide" : "lssQuickClassGuide";
+  const level = options.level ?? getSection("lssQuickCreateLevel")?.value ?? getSection("lssEdit_level")?.value ?? 1;
+
+  if (!guide) {
+    return `
+      <div class="lss-constructor-guide" id="${id}" style="margin:10px 0; padding:11px 12px; border:1px solid rgba(199,162,91,.24); border-radius:14px; background:rgba(5,12,18,.48);">
+        <div style="font-weight:900; color:var(--gold, #d6b36a); margin-bottom:4px;">🧭 Проводник создания</div>
+        <div class="muted" style="font-size:.86rem; line-height:1.35;">Выбери класс из подсказки — LSS покажет кость хитов, важные характеристики, спасброски, владения, магию и когда откроется подкласс.</div>
+      </div>
+    `;
+  }
+
+  const subclassHint = getSubclassHint(guide.label, level);
+  const magicLine = guide.spellcasting
+    ? `${guide.spellType || "заклинания"}; база — ${STAT_LABELS[guide.spellAbility] || guide.spellAbility}`
+    : "без базового заклинательства";
+
+  return `
+    <div class="lss-constructor-guide" id="${id}" style="margin:10px 0; padding:12px; border:1px solid rgba(199,162,91,.32); border-radius:14px; background:linear-gradient(135deg, rgba(7,18,27,.86), rgba(14,29,38,.58)); box-shadow:0 10px 24px rgba(0,0,0,.16);">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted, #9fb0b8);">Проводник класса</div>
+          <div style="font-weight:900; color:var(--gold, #d6b36a); font-size:1.02rem; line-height:1.1;">${escapeHtml(guide.label)}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+          <span class="meta-item">d${escapeHtml(String(guide.hitDie))}</span>
+          <span class="meta-item">${guide.spellcasting ? "магия" : "без магии"}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <span class="meta-item" style="white-space:normal;"><strong>Важны:</strong> ${escapeHtml(formatStatList(guide.primaryStats))}</span>
+        <span class="meta-item" style="white-space:normal;"><strong>Спасы:</strong> ${escapeHtml(formatStatList(guide.saves))}</span>
+        <span class="meta-item" style="white-space:normal;"><strong>Подкласс:</strong> ${escapeHtml(subclassHint)}</span>
+      </div>
+
+      <div style="font-size:.88rem; line-height:1.38; color:var(--text, #e8eef2);">
+        <div><strong>Роль:</strong> ${escapeHtml(guide.role)}</div>
+        <div><strong>Магия:</strong> ${escapeHtml(magicLine)}</div>
+        <div><strong>1 уровень:</strong> ${escapeHtml((guide.level1 || []).join(", ") || "зависит от сборки")}</div>
+      </div>
+      <div class="muted" style="margin-top:7px; font-size:.84rem; line-height:1.32;">💡 ${escapeHtml(guide.beginnerTip)}</div>
+    </div>
+  `;
+}
+
+function getExpectedLevelOneHp(guide, conScore = 10) {
+  if (!guide) return 10;
+  return Math.max(1, toNumber(guide.hitDie, 8) + statMod(toNumber(conScore, 10)));
+}
+
+function applyClassGuideToProfile(profile, options = {}) {
+  const guide = getLssClassGuide(unwrapValue(profile?.info?.charClass, ""));
+  if (!profile || !guide) return profile;
+
+  profile.vitality = profile.vitality || {};
+  profile.spellsInfo = profile.spellsInfo || {};
+  profile.saves = profile.saves || {};
+
+  profile.__lssClassGuide = {
+    id: guide.id,
+    label: guide.label,
+    appliedAt: new Date().toISOString(),
+  };
+
+  profile.vitality["hit-die"] = preserveValueNode(profile.vitality["hit-die"], `d${guide.hitDie}`);
+  guide.saves.forEach((key) => {
+    profile.saves[key] = { ...(profile.saves[key] || {}), name: key, isProf: true, source: profile.saves[key]?.source || "class" };
+  });
+
+  if (guide.spellcasting && guide.spellAbility) {
+    profile.spellsInfo.base = {
+      ...(profile.spellsInfo.base || {}),
+      name: "base",
+      value: STAT_LABELS[guide.spellAbility] || guide.spellAbility,
+      code: guide.spellAbility,
+    };
+  } else if (!guide.spellcasting && !unwrapValue(profile.spellsInfo?.base, "")) {
+    profile.spellsInfo.base = { ...(profile.spellsInfo.base || {}), name: "base", value: "", code: "" };
+  }
+
+  const classLine = [
+    `${guide.label}: d${guide.hitDie} кость хитов`,
+    `важные характеристики: ${formatStatList(guide.primaryStats)}`,
+    `спасброски: ${formatStatList(guide.saves)}`,
+    guide.spellcasting ? `заклинания: ${guide.spellType}; база — ${STAT_LABELS[guide.spellAbility] || guide.spellAbility}` : "заклинания: нет базового заклинательства",
+  ].join("; ");
+
+  if (!String(profile.prof || "").trim()) {
+    profile.prof = `Класс: ${classLine}. Броня: ${guide.armor}. Оружие: ${guide.weapons}.`;
+  }
+
+  if (!String(profile.attacks || "").trim()) {
+    profile.attacks = `Стартовые черты класса: ${(guide.level1 || []).join(", ") || "уточнить по подклассу/уровню"}.`;
+  }
+
+  return profile;
+}
+
+function applyRaceGuideToProfile(profile, options = {}) {
+  const guide = getLssRaceGuide(unwrapValue(profile?.info?.race, ""));
+  if (!profile || !guide) return profile;
+
+  profile.info = profile.info || {};
+  profile.vitality = profile.vitality || {};
+  profile.__lssRaceGuide = {
+    id: guide.id,
+    label: guide.label,
+    appliedAt: new Date().toISOString(),
+  };
+
+  const currentSize = String(unwrapValue(profile.info.size, "") || "").trim();
+  if (!currentSize || currentSize.toLowerCase() === "medium") {
+    setLssValue(profile, "info.size", guide.size, "size");
+  }
+
+  const currentSpeed = toNumber(unwrapValue(profile.vitality.speed, 0), 0);
+  if (!currentSpeed || currentSpeed === 30) {
+    profile.vitality.speed = preserveValueNode(profile.vitality.speed, guide.speed);
+  }
+
+  profile.__lssMechanics = profile.__lssMechanics || {};
+  profile.__lssMechanics.race = {
+    id: guide.id,
+    label: guide.label,
+    abilityBonuses: guide.abilityBonuses || {},
+    traits: guide.traits || [],
+    languages: guide.languages || "",
+  };
+
+  return profile;
+}
+
+function applyBackgroundGuideToProfile(profile, options = {}) {
+  const guide = getLssBackgroundGuide(unwrapValue(profile?.info?.background, ""));
+  if (!profile || !guide) return profile;
+
+  profile.skills = profile.skills || {};
+  profile.__lssBackgroundGuide = {
+    id: guide.id,
+    label: guide.label,
+    appliedAt: new Date().toISOString(),
+  };
+
+  (guide.skills || []).forEach((skillKey) => {
+    const baseStat = SKILL_BASE_STATS[skillKey] || "int";
+    profile.skills[skillKey] = {
+      ...(profile.skills[skillKey] || {}),
+      baseStat,
+      name: skillKey,
+      isProf: 1,
+      source: profile.skills[skillKey]?.source || "background",
+    };
+  });
+
+  profile.__lssMechanics = profile.__lssMechanics || {};
+  profile.__lssMechanics.background = {
+    id: guide.id,
+    label: guide.label,
+    skills: guide.skills || [],
+    tools: guide.tools || "",
+    languages: guide.languages || "",
+    feature: guide.feature || "",
+  };
+
+  return profile;
+}
 
 function getSkillBaseStat(skillKey, profile = null) {
   return getNested(profile, `skills.${skillKey}.baseStat`, SKILL_BASE_STATS[skillKey] || "int");
@@ -1354,6 +2031,8 @@ function ensureEditableProfileBase() {
   if (!profile.subInfo) profile.subInfo = {};
   if (!profile.vitality) profile.vitality = {};
   if (!profile.stats) profile.stats = {};
+  if (!profile.saves) profile.saves = {};
+  if (!profile.skills) profile.skills = {};
   if (!profile.spells) profile.spells = {};
   return profile;
 }
@@ -1368,8 +2047,8 @@ function applyBasicFormToProfile(formData) {
   setLssValue(profile, "info.level", Math.max(1, toNumber(formData.level, unwrapValue(getNested(profile, "info.level", 1)))), "level");
   setLssValue(profile, "info.background", safeText(formData.background, unwrapValue(getNested(profile, "info.background", ""))), "background");
   setLssValue(profile, "info.race", safeText(formData.race, unwrapValue(getNested(profile, "info.race", ""))), "race");
-  setLssValue(profile, "info.alignment", safeText(formData.alignment, unwrapValue(getNested(profile, "info.alignment", ""))), "alignment");
-  setLssValue(profile, "info.size", safeText(formData.size, unwrapValue(getNested(profile, "info.size", ""))), "size");
+  setLssValue(profile, "info.alignment", normalizeAlignment(safeText(formData.alignment, unwrapValue(getNested(profile, "info.alignment", "")))), "alignment");
+  setLssValue(profile, "info.size", normalizeSize(formData.size || unwrapValue(getNested(profile, "info.size", "medium"))), "size");
   setLssValue(profile, "info.experience", Math.max(0, toNumber(formData.experience, unwrapValue(getNested(profile, "info.experience", 0)))), "experience");
 
   setLssValue(profile, "subInfo.age", safeText(formData.age, unwrapValue(getNested(profile, "subInfo.age", ""))), "age");
@@ -1386,7 +2065,7 @@ function applyBasicFormToProfile(formData) {
   profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], Math.max(0, toNumber(formData.hpTemp, unwrapValue(profile.vitality["hp-temp"], 0))));
   profile.vitality.ac = preserveValueNode(profile.vitality.ac, Math.max(0, toNumber(formData.ac, unwrapValue(profile.vitality.ac, 10))));
   profile.vitality.speed = preserveValueNode(profile.vitality.speed, Math.max(0, toNumber(formData.speed, unwrapValue(profile.vitality.speed, 30))));
-  profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, toNumber(formData.initiative, unwrapValue(profile.vitality.initiative, 0)));
+  profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, toNumber(formData.initiative, unwrapValue(profile.vitality.initiative, getDexInitiative(profile))));
 
   profile.stats = profile.stats || {};
   STAT_DEFS.forEach(({ key }) => {
@@ -1394,14 +2073,18 @@ function applyBasicFormToProfile(formData) {
     profile.stats[key] = { ...(profile.stats[key] || {}), name: key, score, modifier: statMod(score), check: statMod(score) };
   });
 
+  if (formData.initiative === "" || formData.initiative === undefined || formData.initiativeAuto === "1") {
+    profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, getDexInitiative(profile));
+  }
+
   profile.saves = profile.saves || {};
   STAT_DEFS.forEach(({ key }) => {
-    profile.saves[key] = { ...(profile.saves[key] || {}), name: key, isProf: Boolean(formData.saves?.[key]) };
+    profile.saves[key] = { ...(profile.saves[key] || {}), name: key, isProf: Boolean(formData.saves?.[key]), source: formData.saves?.[key] ? (profile.saves[key]?.source || "manual") : profile.saves[key]?.source };
   });
 
   profile.skills = profile.skills || {};
   Object.entries(SKILL_BASE_STATS).forEach(([skillKey, baseStat]) => {
-    profile.skills[skillKey] = { ...(profile.skills[skillKey] || {}), baseStat, name: skillKey, isProf: formData.skills?.[skillKey] ? 1 : 0 };
+    profile.skills[skillKey] = { ...(profile.skills[skillKey] || {}), baseStat, name: skillKey, isProf: formData.skills?.[skillKey] ? 1 : 0, source: formData.skills?.[skillKey] ? (profile.skills[skillKey]?.source || "manual") : profile.skills[skillKey]?.source };
   });
 
   profile.coins = profile.coins || {};
@@ -1423,6 +2106,10 @@ function applyBasicFormToProfile(formData) {
   profile.attacks = safeText(formData.features, profile.attacks || "");
   profile["notes-1"] = safeText(formData.notes1, profile["notes-1"] || "");
   profile["notes-2"] = safeText(formData.notes2, profile["notes-2"] || "");
+
+  applyClassGuideToProfile(profile, { source: "edit" });
+  applyRaceGuideToProfile(profile, { source: "edit" });
+  applyBackgroundGuideToProfile(profile, { source: "edit" });
 
   return profile;
 }
@@ -1451,6 +2138,7 @@ function collectEditFormData() {
     "ac",
     "speed",
     "initiative",
+    "initiativeAuto",
     "stat_str",
     "stat_dex",
     "stat_con",
@@ -1581,6 +2269,8 @@ function renderTopToolbar() {
         <button class="btn btn-primary" type="button" id="lssToggleImportBtn">${LSS_STATE.importPanelOpen ? "Скрыть JSON" : "📁 Загрузить"}</button>
         <button class="btn btn-secondary" type="button" id="lssToggleEditBtn">${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : hasProfile ? "🛠 Конструктор" : "✨ Создать"}</button>
         <button class="btn btn-secondary" type="button" id="lssDiceToggleBtn" ${hasProfile ? "" : "disabled"}>${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}</button>
+        ${hasProfile ? `<button class="btn btn-success" type="button" id="lssSaveNowBtn">💾 Сохранить</button>` : ""}
+        ${hasProfile ? `<button class="btn btn-secondary" type="button" id="lssSaveAsNewBtn">＋ Копией</button>` : ""}
         ${hasProfile ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn">Очистить</button>` : ""}
       </div>
 
@@ -1621,6 +2311,119 @@ function renderImportPanel() {
   `;
 }
 
+
+function renderLssSheetChecklist(profile) {
+  if (!profile) return "";
+  const info = profile.info || {};
+  const vitality = profile.vitality || {};
+  const checks = [];
+  const add = (status, label, note) => checks.push({ status, label, note });
+  const has = (value) => String(unwrapValue(value, "") || "").trim().length > 0;
+
+  add(has(profile.name) ? "ok" : "bad", "Имя", has(profile.name) ? "есть" : "нужно назвать персонажа");
+  add(has(info.charClass) ? "ok" : "bad", "Класс", has(info.charClass) ? "выбран" : "без класса конструктор не поймёт механику");
+  add(has(info.race) ? "ok" : "warn", "Раса", has(info.race) ? "выбрана" : "можно заполнить позже");
+  add(toNumber(unwrapValue(info.level, 0), 0) > 0 ? "ok" : "bad", "Уровень", `ур. ${Math.max(1, toNumber(unwrapValue(info.level, 1), 1))}`);
+  add(toNumber(unwrapValue(vitality["hp-max"], 0), 0) > 0 ? "ok" : "bad", "HP", toNumber(unwrapValue(vitality["hp-max"], 0), 0) > 0 ? "есть максимум" : "нужен максимум хитов");
+  add(toNumber(unwrapValue(vitality.ac, 0), 0) > 0 ? "ok" : "warn", "КБ", toNumber(unwrapValue(vitality.ac, 0), 0) > 0 ? "есть" : "поставь базовую защиту");
+
+  const guide = getLssClassGuide(unwrapValue(info.charClass, ""));
+  if (guide) {
+    const weakStats = (guide.primaryStats || []).filter((key) => getStatScore(profile, key) < 12);
+    add(weakStats.length ? "warn" : "ok", "Важные характеристики", weakStats.length ? `низко: ${formatStatList(weakStats)}` : "основа выглядит живой");
+  } else {
+    add("warn", "Проводник класса", "выбери класс из подсказки для автопомощи");
+  }
+
+  const icon = { ok: "✓", warn: "!", bad: "×" };
+  const color = { ok: "#86efac", warn: "#facc15", bad: "#fb7185" };
+
+  return `
+    <div class="lss-constructor-checklist" style="margin:0 0 12px 0; padding:12px; border:1px solid rgba(117,203,198,.22); border-radius:14px; background:rgba(5,12,18,.48);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted, #9fb0b8);">Проверка листа</div>
+          <div style="font-weight:900; color:var(--gold, #d6b36a);">Что уже собрано</div>
+        </div>
+        <div class="muted" style="font-size:12px; max-width:360px;">Это не валидатор всех правил D&D, а навигатор: показывает, что новичок мог забыть перед игрой.</div>
+      </div>
+      <div class="profile-grid" style="gap:8px;">
+        ${checks.map((check) => `
+          <div class="meta-item" style="white-space:normal; display:flex; gap:8px; align-items:flex-start;">
+            <span style="color:${color[check.status]}; font-weight:900;">${icon[check.status]}</span>
+            <span><strong>${escapeHtml(check.label)}:</strong> ${escapeHtml(check.note)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+
+function getProficiencySourceLabel(source) {
+  const map = { class: "класс", background: "предыстория", race: "раса", manual: "вручную", import: "импорт" };
+  return map[String(source || "").toLowerCase()] || String(source || "вручную");
+}
+
+function renderProficiencyChoice({ id, checked, label, hint = "", source = "", kind = "skill", modifier = null }) {
+  const active = checked ? "btn-primary" : "btn-secondary";
+  const activeStyle = checked
+    ? "color:#06151a; font-weight:900; text-shadow:none;"
+    : "";
+  const hintStyle = checked
+    ? "font-size:0.68rem; color:rgba(6,21,26,.72); font-weight:900;"
+    : "font-size:0.68rem;";
+  const sourcePill = source ? `<small class="meta-item" style="margin-left:auto; ${checked ? "color:#06313a; border-color:rgba(6,49,58,.22); background:rgba(255,255,255,.18);" : ""}">${escapeHtml(getProficiencySourceLabel(source))}</small>` : "";
+  const modPill = modifier !== null && modifier !== undefined ? `<strong style="margin-left:auto; min-width:42px; text-align:center; font-size:1rem; ${checked ? "color:#06151a;" : "color:var(--text,#e8eef2);"}">${escapeHtml(formatSigned(modifier))}</strong>` : "";
+  return `
+    <label class="lss-prof-choice btn ${active}" title="${escapeHtml(label)}" style="display:flex; align-items:center; gap:8px; justify-content:flex-start; text-align:left; min-height:42px; white-space:normal; ${activeStyle}">
+      <input id="${escapeHtml(id)}" type="checkbox" style="display:none;" ${checked ? "checked" : ""} data-lss-prof-kind="${escapeHtml(kind)}">
+      <span style="font-size:1.05rem; min-width:14px;">${checked ? "✓" : "+"}</span>
+      <span style="min-width:0; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(label)}</span>
+      ${hint ? `<small class="muted" style="${hintStyle}">${escapeHtml(hint)}</small>` : ""}
+      ${modPill || sourcePill}
+      ${modPill && sourcePill ? sourcePill : ""}
+    </label>
+  `;
+}
+
+function renderAbilityFormulaHint(profile) {
+  const p = profile || {};
+  const dexMod = getStatModifier(p, "dex");
+  const pb = getProficiencyBonus(p);
+  return `
+    <div class="lss-editor-checks-block" style="margin:10px 0 12px;">
+      <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Как считаются значения</div>
+      <div class="profile-grid" style="gap:8px;">
+        <div class="meta-item" style="white-space:normal;"><strong>Инициатива:</strong> Ловкость ${escapeHtml(formatSigned(dexMod))}, можно править вручную.</div>
+        <div class="meta-item" style="white-space:normal;"><strong>Навык:</strong> модификатор характеристики + ${escapeHtml(formatSigned(pb))} если есть владение.</div>
+        <div class="meta-item" style="white-space:normal;"><strong>Спасбросок:</strong> модификатор характеристики + владение, если отмечено.</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDerivedProficiencySummary(profile) {
+  const p = profile || {};
+  const classGuide = getLssClassGuide(unwrapValue(p?.info?.charClass, ""));
+  const raceGuide = getLssRaceGuide(unwrapValue(p?.info?.race, ""));
+  const backgroundGuide = getLssBackgroundGuide(unwrapValue(p?.info?.background, ""));
+  const rows = [];
+  if (classGuide) rows.push(`Класс: спасброски ${formatStatList(classGuide.saves)}, броня — ${classGuide.armor || "—"}, оружие — ${classGuide.weapons || "—"}`);
+  if (raceGuide) rows.push(`Раса: размер ${raceGuide.size}, скорость ${raceGuide.speed} фт., языки — ${raceGuide.languages || "—"}`);
+  if (backgroundGuide) rows.push(`Предыстория: навыки ${formatSkillList(backgroundGuide.skills)}, инструменты/языки — ${joinNonEmpty([backgroundGuide.tools, backgroundGuide.languages], "; ") || "—"}`);
+  if (!rows.length) return "";
+  return `
+    <div class="lss-editor-checks-block" style="margin-bottom:12px;">
+      <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Владения от источников</div>
+      <div style="display:grid; gap:8px;">
+        ${rows.map((row) => `<div class="meta-item" style="white-space:normal; justify-content:flex-start;">${escapeHtml(row)}</div>`).join("")}
+      </div>
+      <div class="muted" style="margin-top:8px; font-size:0.76rem;">Кнопки ниже — не сырой чеклист: ✓ уже есть владение, + можно вручную добавить. При сохранении класс/раса/предыстория снова подставят свои владения.</div>
+    </div>
+  `;
+}
+
 function renderEditPanel(profile) {
   const p = profile || {};
   const info = p.info || {};
@@ -1645,6 +2448,9 @@ function renderEditPanel(profile) {
         </div>
       </div>
 
+      ${renderLssSheetChecklist(p)}
+      ${renderLssMechanicsSources(p)}
+
       <div class="lss-editor-grid">
         <section class="lss-editor-section" id="lssEditIdentity">
           <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
@@ -1655,16 +2461,19 @@ function renderEditPanel(profile) {
             <span class="meta-item">ядро листа</span>
           </div>
           <div class="profile-grid">
-            <div class="filter-group"><label>Имя</label><input id="lssEdit_name" type="text" value="${escapeHtml(safeText(unwrapValue(p.name, ""), ""))}" /></div>
-            <div class="filter-group"><label>Класс</label><input id="lssEdit_charClass" type="text" value="${escapeHtml(safeText(unwrapValue(info.charClass, ""), ""))}" /></div>
-            <div class="filter-group"><label>Подкласс</label><input id="lssEdit_charSubclass" type="text" value="${escapeHtml(safeText(unwrapValue(info.charSubclass, ""), ""))}" /></div>
-            <div class="filter-group"><label>Уровень</label><input id="lssEdit_level" type="number" min="1" value="${escapeHtml(safeText(unwrapValue(info.level, "1"), "1"))}" /></div>
-            <div class="filter-group"><label>Раса</label><input id="lssEdit_race" type="text" value="${escapeHtml(safeText(unwrapValue(info.race, ""), ""))}" /></div>
-            <div class="filter-group"><label>Предыстория</label><input id="lssEdit_background" type="text" value="${escapeHtml(safeText(unwrapValue(info.background, ""), ""))}" /></div>
-            <div class="filter-group"><label>Мировоззрение</label><input id="lssEdit_alignment" type="text" value="${escapeHtml(safeText(unwrapValue(info.alignment, ""), ""))}" /></div>
-            <div class="filter-group"><label>Размер</label><input id="lssEdit_size" type="text" value="${escapeHtml(safeText(unwrapValue(info.size, ""), ""))}" /></div>
+            <div class="filter-group"><label>Имя</label><input id="lssEdit_name" type="text" maxlength="60" data-lss-text="name" value="${escapeHtml(safeText(unwrapValue(p.name, ""), ""))}" /></div>
+            <div class="filter-group"><label>Класс</label><input id="lssEdit_charClass" type="text" list="lssEditClassOptions" maxlength="40" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.charClass, ""), ""))}" /></div>
+            <datalist id="lssEditClassOptions">${getLssClassOptionsHtml()}</datalist>
+            <div class="filter-group"><label>Подкласс</label><input id="lssEdit_charSubclass" type="text" maxlength="60" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.charSubclass, ""), ""))}" placeholder="если уже доступен по уровню" /></div>
+            <div class="filter-group"><label>Уровень</label><input id="lssEdit_level" ${numericInputAttrs(1, 20)} value="${escapeHtml(safeText(unwrapValue(info.level, "1"), "1"))}" /></div>
+            <div class="filter-group"><label>Раса</label><input id="lssEdit_race" type="text" list="lssEditRaceOptions" maxlength="40" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.race, ""), ""))}" /></div><datalist id="lssEditRaceOptions">${getLssRaceOptionsHtml()}</datalist>
+            <div class="filter-group"><label>Предыстория</label><input id="lssEdit_background" type="text" list="lssEditBackgroundOptions" maxlength="50" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.background, ""), ""))}" /></div><datalist id="lssEditBackgroundOptions">${getLssBackgroundOptionsHtml()}</datalist>
+            <div class="filter-group"><label>Мировоззрение</label><select id="lssEdit_alignment">${getAlignmentOptionsHtml(unwrapValue(info.alignment, ""))}</select></div>
+            <div class="filter-group"><label>Размер</label><select id="lssEdit_size">${getSizeOptionsHtml(unwrapValue(info.size, "medium"))}</select></div>
             <div class="filter-group"><label>Опыт</label><input id="lssEdit_experience" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(info.experience, "0"), "0"))}" /></div>
           </div>
+          ${renderLssClassGuidanceCard(unwrapValue(info.charClass, ""), { mode: "edit" })}
+
           <div class="profile-grid" style="margin-top:12px;">
             <div class="filter-group"><label>Возраст</label><input id="lssEdit_age" type="text" inputmode="numeric" value="${escapeHtml(safeText(unwrapValue(subInfo.age, ""), ""))}" /></div>
             <div class="filter-group"><label>Рост</label><input id="lssEdit_height" type="text" inputmode="decimal" value="${escapeHtml(safeText(unwrapValue(subInfo.height, ""), ""))}" /></div>
@@ -1689,33 +2498,49 @@ function renderEditPanel(profile) {
             <div class="filter-group"><label>HP временные</label><input id="lssEdit_hpTemp" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], "0"), "0"))}" /></div>
             <div class="filter-group"><label>КБ</label><input id="lssEdit_ac" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.ac, "10"), "10"))}" /></div>
             <div class="filter-group"><label>Скорость, фт.</label><input id="lssEdit_speed" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.speed, "30"), "30"))}" /></div>
-            <div class="filter-group"><label>Инициатива</label><input id="lssEdit_initiative" type="number" inputmode="numeric" value="${escapeHtml(safeText(unwrapValue(vitality.initiative, "0"), "0"))}" /></div>
+            <div class="filter-group"><label>Инициатива <small>авто от Ловкости</small></label><input id="lssEdit_initiative" type="number" inputmode="numeric" value="${escapeHtml(String(getInitiativeModifier(p)))}" data-auto-value="${escapeHtml(String(getDexInitiative(p)))}" /><input id="lssEdit_initiativeAuto" type="hidden" value="${String(unwrapValue(vitality.initiative, "")) === "" ? "1" : "0"}"><small class="muted">Авто сейчас: ${escapeHtml(formatSigned(getDexInitiative(p)))}. Можно вписать вручную.</small></div>
             <div class="filter-group"><label>Бонус владения</label><input id="lssEdit_proficiency" ${numericInputAttrs(0)} value="${escapeHtml(String(getProficiencyBonus(p)))}" /></div>
           </div>
           <div class="profile-grid" style="margin-top:12px;">
-            <div class="filter-group"><label>STR</label><input id="lssEdit_stat_str" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.str?.score, 10)))}" /></div>
-            <div class="filter-group"><label>DEX</label><input id="lssEdit_stat_dex" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.dex?.score, 10)))}" /></div>
-            <div class="filter-group"><label>CON</label><input id="lssEdit_stat_con" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.con?.score, 10)))}" /></div>
-            <div class="filter-group"><label>INT</label><input id="lssEdit_stat_int" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.int?.score, 10)))}" /></div>
-            <div class="filter-group"><label>WIS</label><input id="lssEdit_stat_wis" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.wis?.score, 10)))}" /></div>
-            <div class="filter-group"><label>CHA</label><input id="lssEdit_stat_cha" type="number" value="${escapeHtml(String(unwrapValue(p?.stats?.cha?.score, 10)))}" /></div>
+            <div class="filter-group"><label>Сила <small>STR</small></label><input id="lssEdit_stat_str" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.str?.score, 10)))}" /></div>
+            <div class="filter-group"><label>Ловкость <small>DEX</small></label><input id="lssEdit_stat_dex" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.dex?.score, 10)))}" /></div>
+            <div class="filter-group"><label>Телосложение <small>CON</small></label><input id="lssEdit_stat_con" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.con?.score, 10)))}" /></div>
+            <div class="filter-group"><label>Интеллект <small>INT</small></label><input id="lssEdit_stat_int" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.int?.score, 10)))}" /></div>
+            <div class="filter-group"><label>Мудрость <small>WIS</small></label><input id="lssEdit_stat_wis" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.wis?.score, 10)))}" /></div>
+            <div class="filter-group"><label>Харизма <small>CHA</small></label><input id="lssEdit_stat_cha" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.cha?.score, 10)))}" /></div>
           </div>
+
+          ${renderAbilityFormulaHint(p)}
+
+          ${renderDerivedProficiencySummary(p)}
 
           <div class="lss-editor-checks-block">
             <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Спасброски с владением</div>
             <div class="lss-editor-check-grid lss-editor-check-grid-stats">
-              ${STAT_DEFS.map(({ key, label }) => `
-                <label class="lss-editor-check"><input id="lssEdit_save_${escapeHtml(key)}" type="checkbox" ${hasSaveProficiency(p, key) ? "checked" : ""}> <span>${escapeHtml(label)}</span></label>
-              `).join("")}
+              ${STAT_DEFS.map(({ key, label }) => renderProficiencyChoice({
+                id: `lssEdit_save_${key}`,
+                checked: hasSaveProficiency(p, key),
+                label,
+                hint: key.toUpperCase(),
+                source: getNested(p, `saves.${key}.source`, hasSaveProficiency(p, key) ? "class" : ""),
+                kind: "save",
+                modifier: getSaveModifier(p, key),
+              })).join("")}
             </div>
           </div>
 
           <div class="lss-editor-checks-block">
             <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Навыки с владением</div>
             <div class="lss-editor-check-grid">
-              ${Object.entries(SKILL_BASE_STATS).map(([skillKey, baseStat]) => `
-                <label class="lss-editor-check"><input id="lssEdit_skill_${escapeHtml(lssEditDomKey(skillKey))}" type="checkbox" ${isSkillProficient(p, skillKey) ? "checked" : ""}> <span>${escapeHtml(SKILL_LABELS[skillKey] || skillKey)} <small>${escapeHtml(baseStat.toUpperCase())}</small></span></label>
-              `).join("")}
+              ${Object.entries(SKILL_BASE_STATS).map(([skillKey, baseStat]) => renderProficiencyChoice({
+                id: `lssEdit_skill_${lssEditDomKey(skillKey)}`,
+                checked: isSkillProficient(p, skillKey),
+                label: SKILL_LABELS[skillKey] || skillKey,
+                hint: getStatShortLabel(baseStat),
+                source: getNested(p, `skills.${skillKey}.source`, isSkillProficient(p, skillKey) ? "manual" : ""),
+                kind: "skill",
+                modifier: getSkillModifier(p, skillKey),
+              })).join("")}
             </div>
           </div>
 
@@ -1823,6 +2648,7 @@ function renderEditPanel(profile) {
 
       <div class="modal-actions" style="margin-top:12px;">
         <button class="btn btn-success" type="button" id="lssSaveEditBtn">Сохранить персонажа в профиль</button>
+        <button class="btn btn-secondary" type="button" id="lssSaveAsNewBottomBtn">Сохранить как нового</button>
         <button class="btn btn-secondary" type="button" data-lss-jump-top="1">Наверх</button>
       </div>
 
@@ -1842,6 +2668,288 @@ async function readFileAsText(file) {
   });
 }
 
+
+function refreshClassGuidePanel(inputId, panelId) {
+  const input = getSection(inputId);
+  const panel = getSection(panelId);
+  if (!input || !panel) return;
+  const mode = panelId.includes("Edit") ? "edit" : "quick";
+  const levelValue = mode === "edit" ? getSection("lssEdit_level")?.value : getSection("lssQuickCreateLevel")?.value;
+  const html = renderLssClassGuidanceCard(input.value || "", { mode, level: levelValue });
+  const temp = document.createElement("div");
+  temp.innerHTML = html.trim();
+  const next = temp.firstElementChild;
+  if (next) panel.replaceWith(next);
+}
+
+function applyQuickClassDefaults() {
+  const classInput = getSection("lssQuickCreateClass");
+  const guide = getLssClassGuide(classInput?.value || "");
+  const levelInput = getSection("lssQuickCreateLevel");
+  const proficiencyInput = getSection("lssQuickCreateProficiency");
+  const hpInput = getSection("lssQuickCreateHp");
+  const hpMaxInput = getSection("lssQuickCreateHpMax");
+  const conInput = getSection("lssQuickCreateStat_con");
+
+  if (proficiencyInput) {
+    proficiencyInput.value = String(getProficiencyBonusByLevel(levelInput?.value || 1));
+  }
+
+  if (!guide) return;
+
+  const conScore = toNumber(conInput?.value, 10);
+  const expectedHp = getExpectedLevelOneHp(guide, conScore);
+  const currentClass = String(classInput?.value || "").trim();
+  const previousClass = classInput?.dataset?.appliedClass || "";
+  const classChanged = currentClass && currentClass !== previousClass;
+
+  const canTouchHp = (el) => {
+    if (!el) return false;
+    const value = String(el.value || "").trim();
+    return classChanged || value === "" || value === "10" || value === String(el.dataset.autoValue || "");
+  };
+
+  if (canTouchHp(hpInput)) {
+    hpInput.value = String(expectedHp);
+    hpInput.dataset.autoValue = String(expectedHp);
+  }
+  if (canTouchHp(hpMaxInput)) {
+    hpMaxInput.value = String(expectedHp);
+    hpMaxInput.dataset.autoValue = String(expectedHp);
+  }
+
+  if (classInput) classInput.dataset.appliedClass = currentClass;
+}
+
+function applyQuickDexDefaults() {
+  const dexInput = getSection("lssQuickCreateStat_dex");
+  const initiativeInput = getSection("lssQuickCreateInitiative");
+  if (!dexInput || !initiativeInput) return;
+  const autoValue = statMod(clampNumber(dexInput.value, 1, 30, 10));
+  const previousAuto = String(initiativeInput.dataset.autoValue ?? "");
+  const current = String(initiativeInput.value ?? "");
+  if (initiativeInput.dataset.manual !== "1" || current === previousAuto || current === "") {
+    initiativeInput.value = String(autoValue);
+  }
+  initiativeInput.dataset.autoValue = String(autoValue);
+}
+
+function applyQuickRaceDefaults() {
+  const raceInput = getSection("lssQuickCreateRace");
+  const sizeSelect = getSection("lssQuickCreateSize");
+  const speedInput = getSection("lssQuickCreateSpeed");
+  const guide = getLssRaceGuide(raceInput?.value || "");
+  if (!guide) return;
+
+  if (sizeSelect) {
+    const option = LSS_SIZE_OPTIONS.find((item) => item.label === guide.size);
+    sizeSelect.value = option?.value || normalizeSizeKey(guide.size || "medium");
+  }
+
+  if (speedInput) {
+    const current = String(speedInput.value || "").trim();
+    if (!current || current === "30" || current === String(speedInput.dataset.autoValue || "")) {
+      speedInput.value = String(guide.speed || 30);
+      speedInput.dataset.autoValue = String(guide.speed || 30);
+    }
+  }
+}
+
+function bindLssInputGuards() {
+  document.querySelectorAll("input[data-lss-text]").forEach((input) => {
+    if (!input || input.dataset.lssGuardBound === "1") return;
+    input.dataset.lssGuardBound = "1";
+    input.addEventListener("input", () => {
+      const kind = input.dataset.lssText || "short";
+      const before = input.value;
+      const next = sanitizePlainText(before, {
+        max: kind === "name" ? 60 : 80,
+        allowNumbers: kind !== "name",
+        allowPunctuation: true,
+      });
+      if (before !== next) input.value = next;
+    });
+  });
+
+  document.querySelectorAll('input[type="number"]').forEach((input) => {
+    if (!input || input.dataset.lssNumberBound === "1") return;
+    input.dataset.lssNumberBound = "1";
+    input.addEventListener("blur", () => {
+      const min = input.min !== "" ? Number(input.min) : null;
+      const max = input.max !== "" ? Number(input.max) : null;
+      input.value = sanitizeNumericText(input.value, { min, max, fallback: min ?? 0 });
+    });
+  });
+
+  const bindAutoInitiative = (dexId, initiativeId, hiddenAutoId = "") => {
+    const dexInput = getSection(dexId);
+    const initiativeInput = getSection(initiativeId);
+    const hiddenAuto = hiddenAutoId ? getSection(hiddenAutoId) : null;
+    if (!dexInput || !initiativeInput || initiativeInput.dataset.lssInitiativeBound === "1") return;
+    initiativeInput.dataset.lssInitiativeBound = "1";
+    initiativeInput.addEventListener("input", () => {
+      initiativeInput.dataset.manual = "1";
+      if (hiddenAuto) hiddenAuto.value = "0";
+    });
+    dexInput.addEventListener("input", () => {
+      const autoValue = statMod(clampNumber(dexInput.value, 1, 30, 10));
+      const previousAuto = String(initiativeInput.dataset.autoValue ?? "");
+      const current = String(initiativeInput.value ?? "");
+      const canAuto = initiativeInput.dataset.manual !== "1" || current === previousAuto || current === "";
+      initiativeInput.dataset.autoValue = String(autoValue);
+      if (canAuto) {
+        initiativeInput.value = String(autoValue);
+        if (hiddenAuto) hiddenAuto.value = "1";
+      }
+    });
+  };
+
+  bindAutoInitiative("lssQuickCreateStat_dex", "lssQuickCreateInitiative");
+  bindAutoInitiative("lssEdit_stat_dex", "lssEdit_initiative", "lssEdit_initiativeAuto");
+}
+
+function validateQuickCreateForm() {
+  const errors = [];
+  const name = sanitizePlainText(getSection("lssQuickCreateName")?.value || "", { max: 60, allowNumbers: false });
+  const level = clampNumber(getSection("lssQuickCreateLevel")?.value, 1, 20, 1);
+  const hp = clampNumber(getSection("lssQuickCreateHp")?.value, 1, 999, 10);
+  const hpMax = clampNumber(getSection("lssQuickCreateHpMax")?.value, 1, 999, hp);
+  const ac = clampNumber(getSection("lssQuickCreateAc")?.value, 1, 40, 10);
+
+  if (!name) errors.push("имя без цифр и мусора");
+  if (hp > hpMax) errors.push("текущие HP не могут быть выше максимума");
+  if (level < 1 || level > 20) errors.push("уровень должен быть 1–20");
+  if (ac < 1 || ac > 40) errors.push("КБ должна быть в разумном диапазоне");
+
+  STAT_DEFS.forEach(({ key, label }) => {
+    const score = clampNumber(getSection(`lssQuickCreateStat_${key}`)?.value, 1, 30, 10);
+    if (score < 1 || score > 30) errors.push(`${label}: значение 1–30`);
+  });
+
+  return errors;
+}
+
+function validateEditFormData(formData = {}) {
+  const errors = [];
+  const name = sanitizePlainText(formData.name || "", { max: 60, allowNumbers: false });
+  const level = clampNumber(formData.level, 1, 20, 1);
+  const hpCurrent = clampNumber(formData.hpCurrent, 0, 999, 0);
+  const hpMax = clampNumber(formData.hpMax, 1, 999, 1);
+
+  if (!name) errors.push("укажи имя персонажа буквами");
+  if (level < 1 || level > 20) errors.push("уровень должен быть 1–20");
+  if (hpCurrent > hpMax) errors.push("текущие HP не могут быть выше максимума");
+
+  STAT_DEFS.forEach(({ key, label }) => {
+    const score = clampNumber(formData[`stat_${key}`], 1, 30, 10);
+    if (score < 1 || score > 30) errors.push(`${label}: значение 1–30`);
+  });
+
+  return errors;
+}
+
+function bindLssClassGuideInputs() {
+  const quickClassInput = getSection("lssQuickCreateClass");
+  const quickLevelInput = getSection("lssQuickCreateLevel");
+  const quickConInput = getSection("lssQuickCreateStat_con");
+  const quickRaceInput = getSection("lssQuickCreateRace");
+  const editClassInput = getSection("lssEdit_charClass");
+  const editLevelInput = getSection("lssEdit_level");
+
+  if (quickClassInput && quickClassInput.dataset.classGuideBound !== "1") {
+    quickClassInput.dataset.classGuideBound = "1";
+    quickClassInput.addEventListener("input", () => {
+      refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      applyQuickClassDefaults();
+      applyQuickDexDefaults();
+    });
+    quickClassInput.addEventListener("change", () => {
+      refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      applyQuickClassDefaults();
+      applyQuickDexDefaults();
+    });
+  }
+
+  [quickLevelInput, quickConInput, editLevelInput].forEach((input) => {
+    if (!input || input.dataset.classGuideBound === "1") return;
+    input.dataset.classGuideBound = "1";
+    input.addEventListener("input", () => {
+      refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      applyQuickClassDefaults();
+      applyQuickDexDefaults();
+    });
+    input.addEventListener("change", () => {
+      refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      applyQuickClassDefaults();
+      applyQuickDexDefaults();
+    });
+  });
+
+
+  if (quickRaceInput && quickRaceInput.dataset.raceDefaultsBound !== "1") {
+    quickRaceInput.dataset.raceDefaultsBound = "1";
+    quickRaceInput.addEventListener("input", applyQuickRaceDefaults);
+    quickRaceInput.addEventListener("change", applyQuickRaceDefaults);
+  }
+
+
+  if (editClassInput && editClassInput.dataset.classGuideBound !== "1") {
+    editClassInput.dataset.classGuideBound = "1";
+    editClassInput.addEventListener("input", () => refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide"));
+    editClassInput.addEventListener("change", () => refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide"));
+  }
+
+  refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+  refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+  applyQuickRaceDefaults();
+  applyQuickDexDefaults();
+}
+
+
+function buildSavedProfileFromEditor() {
+  const formData = collectEditFormData();
+  const editErrors = validateEditFormData(formData);
+  if (editErrors.length) {
+    showToast(`Проверь лист: ${editErrors[0]}`);
+    return null;
+  }
+  if (!String(formData.name || "").trim()) {
+    showToast("Укажи имя персонажа перед сохранением");
+    getSection("lssEdit_name")?.focus?.();
+    return null;
+  }
+  return normalizeLssProfileForSave(applyBasicFormToProfile(formData));
+}
+
+async function saveCurrentLssProfile(options = {}) {
+  if (!LSS_STATE.profile) {
+    showToast("Сначала создай или загрузи персонажа");
+    return;
+  }
+  let nextProfile = getSection("lssEditPanel") ? buildSavedProfileFromEditor() : normalizeLssProfileForSave(cloneData(LSS_STATE.profile));
+  if (!nextProfile) return;
+
+  if (options.createNew) {
+    delete nextProfile.__dndTraderCharacterId;
+    delete nextProfile.character_id;
+    if (nextProfile.info) delete nextProfile.info.character_id;
+  }
+
+  const syncResult = await syncLssCharacterToAccount(nextProfile, { makeActive: true, createNew: Boolean(options.createNew) });
+  nextProfile = normalizeLssProfileForSave(syncResult.profile || nextProfile);
+
+  setLssData(nextProfile, { persistLocal: true, source: "manual" });
+  LSS_STATE.editPanelOpen = true;
+  renderLSS();
+  if (options.createNew) {
+    showToast(syncResult.error ? "Копия сохранена локально, но аккаунт не синхронизирован" : "Персонаж сохранён как новая копия");
+  } else {
+    showToast(syncResult.error ? "LSS сохранён локально, но аккаунт не синхронизирован" : "Персонаж сохранён в профиль и пул Master Room");
+  }
+}
+
 function bindLssActions() {
   const toggleImportBtn = getSection("lssToggleImportBtn");
   const toggleEditBtn = getSection("lssToggleEditBtn");
@@ -1851,6 +2959,9 @@ function bindLssActions() {
   const fileInput = getSection("lssFileInput");
   const jsonTextarea = getSection("lssJsonTextarea");
   const saveEditBtn = getSection("lssSaveEditBtn");
+  const saveNowBtn = getSection("lssSaveNowBtn");
+  const saveAsNewBtn = getSection("lssSaveAsNewBtn");
+  const saveAsNewBottomBtn = getSection("lssSaveAsNewBottomBtn");
   const characterPoolSelect = getSection("lssCharacterPoolSelect");
   const applyCharacterPoolBtn = getSection("lssApplyCharacterPoolBtn");
 
@@ -1864,7 +2975,13 @@ function bindLssActions() {
   if (quickCreateBtn && quickCreateBtn.dataset.bound !== "1") {
     quickCreateBtn.dataset.bound = "1";
     quickCreateBtn.addEventListener("click", async () => {
-      const name = String(getSection("lssQuickCreateName")?.value || "").trim();
+      const quickErrors = validateQuickCreateForm();
+      if (quickErrors.length) {
+        showToast(`Проверь создание: ${quickErrors[0]}`);
+        return;
+      }
+
+      const name = sanitizePlainText(getSection("lssQuickCreateName")?.value || "", { max: 60, allowNumbers: false });
       if (!name) {
         showToast("Сначала дай персонажу имя");
         getSection("lssQuickCreateName")?.focus?.();
@@ -1886,6 +3003,7 @@ function bindLssActions() {
         ac: getSection("lssQuickCreateAc")?.value,
         initiative: getSection("lssQuickCreateInitiative")?.value,
         speed: getSection("lssQuickCreateSpeed")?.value,
+        size: getSection("lssQuickCreateSize")?.value || "medium",
       };
       STAT_DEFS.forEach(({ key }) => {
         form[`stat_${key}`] = getSection(`lssQuickCreateStat_${key}`)?.value;
@@ -2045,24 +3163,20 @@ function bindLssActions() {
     });
   }
 
+  if (saveNowBtn && saveNowBtn.dataset.bound !== "1") {
+    saveNowBtn.dataset.bound = "1";
+    saveNowBtn.addEventListener("click", () => saveCurrentLssProfile({ createNew: false }));
+  }
+
+  [saveAsNewBtn, saveAsNewBottomBtn].forEach((btn) => {
+    if (!btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => saveCurrentLssProfile({ createNew: true }));
+  });
+
   if (saveEditBtn && saveEditBtn.dataset.bound !== "1") {
     saveEditBtn.dataset.bound = "1";
-    saveEditBtn.addEventListener("click", async () => {
-      const formData = collectEditFormData();
-      if (!String(formData.name || "").trim()) {
-        showToast("Укажи имя персонажа перед сохранением");
-        getSection("lssEdit_name")?.focus?.();
-        return;
-      }
-      let nextProfile = normalizeLssProfileForSave(applyBasicFormToProfile(formData));
-      const syncResult = await syncLssCharacterToAccount(nextProfile, { makeActive: true });
-      nextProfile = normalizeLssProfileForSave(syncResult.profile || nextProfile);
-
-      setLssData(nextProfile, { persistLocal: true, source: "manual" });
-      LSS_STATE.editPanelOpen = false;
-      renderLSS();
-      showToast(syncResult.error ? "LSS сохранён локально, но аккаунт не синхронизирован" : "Персонаж сохранён в профиль и пул Master Room");
-    });
+    saveEditBtn.addEventListener("click", () => saveCurrentLssProfile({ createNew: false }));
   }
 
   [getSection("lssDiceToggleBtn"), getSection("lssDiceToggleInlineBtn")].forEach((btn) => {
@@ -2197,6 +3311,9 @@ function bindLssActions() {
       showToast("Фото персонажа удалено");
     });
   }
+
+  bindLssInputGuards();
+  bindLssClassGuideInputs();
 }
 
 // ------------------------------------------------------------
@@ -2213,21 +3330,25 @@ function renderEmptyState() {
 
       <div class="lss-ref-starter-card">
         <div class="lss-ref-starter-grid lss-ref-starter-grid-wide">
-          <div class="filter-group lss-ref-field-main"><label>Имя персонажа</label><input id="lssQuickCreateName" type="text" autocomplete="off" placeholder="Например: Торен"></div>
-          <div class="filter-group"><label>Класс</label><input id="lssQuickCreateClass" type="text" autocomplete="off" placeholder="Волшебник"></div>
-          <div class="filter-group"><label>Подкласс</label><input id="lssQuickCreateSubclass" type="text" autocomplete="off" placeholder="Маг крови"></div>
-          <div class="filter-group"><label>Раса</label><input id="lssQuickCreateRace" type="text" autocomplete="off" placeholder="Человек"></div>
-          <div class="filter-group"><label>Предыстория</label><input id="lssQuickCreateBackground" type="text" autocomplete="off" placeholder="Дворянин"></div>
-          <div class="filter-group"><label>Мировоззрение</label><input id="lssQuickCreateAlignment" type="text" autocomplete="off" placeholder="Нейтрально-добрый"></div>
-          <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" ${numericInputAttrs(1, 30)} value="1"></div>
+          <div class="filter-group lss-ref-field-main"><label>Имя персонажа</label><input id="lssQuickCreateName" type="text" autocomplete="off" maxlength="60" data-lss-text="name" placeholder="Например: Торен"></div>
+          <div class="filter-group"><label>Класс</label><input id="lssQuickCreateClass" type="text" list="lssClassOptions" autocomplete="off" maxlength="40" data-lss-text="short" placeholder="Волшебник"></div>
+          <datalist id="lssClassOptions">${getLssClassOptionsHtml()}</datalist>
+          <div class="filter-group"><label>Подкласс</label><input id="lssQuickCreateSubclass" type="text" autocomplete="off" maxlength="60" data-lss-text="short" placeholder="можно позже"></div>
+          <div class="filter-group"><label>Раса</label><input id="lssQuickCreateRace" type="text" list="lssRaceOptions" autocomplete="off" maxlength="40" data-lss-text="short" placeholder="Человек"></div><datalist id="lssRaceOptions">${getLssRaceOptionsHtml()}</datalist>
+          <div class="filter-group"><label>Размер</label><select id="lssQuickCreateSize">${getSizeOptionsHtml("medium")}</select></div>
+          <div class="filter-group"><label>Предыстория</label><input id="lssQuickCreateBackground" type="text" list="lssBackgroundOptions" autocomplete="off" maxlength="50" data-lss-text="short" placeholder="Дворянин"></div><datalist id="lssBackgroundOptions">${getLssBackgroundOptionsHtml()}</datalist>
+          <div class="filter-group"><label>Мировоззрение</label><select id="lssQuickCreateAlignment">${getAlignmentOptionsHtml("")}</select></div>
+          <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" ${numericInputAttrs(1, 20)} value="1"></div>
           <div class="filter-group"><label>Опыт</label><input id="lssQuickCreateExperience" ${numericInputAttrs(0)} value="0"></div>
           <div class="filter-group"><label>Бонус владения</label><input id="lssQuickCreateProficiency" ${numericInputAttrs(0)} value="2"></div>
           <div class="filter-group"><label>HP текущие</label><input id="lssQuickCreateHp" ${numericInputAttrs(1)} value="10"></div>
           <div class="filter-group"><label>HP максимум</label><input id="lssQuickCreateHpMax" ${numericInputAttrs(1)} value="10"></div>
           <div class="filter-group"><label>КБ</label><input id="lssQuickCreateAc" ${numericInputAttrs(1)} value="10"></div>
-          <div class="filter-group"><label>Инициатива</label><input id="lssQuickCreateInitiative" type="number" inputmode="numeric" value="0"></div>
+          <div class="filter-group"><label>Инициатива <small>авто от Ловкости</small></label><input id="lssQuickCreateInitiative" type="number" inputmode="numeric" value="0" data-auto-value="0"><small class="muted">Можно править вручную.</small></div>
           <div class="filter-group"><label>Скорость, фт.</label><input id="lssQuickCreateSpeed" ${numericInputAttrs(0)} value="30"></div>
         </div>
+
+        ${renderLssClassGuidanceCard("", { mode: "quick" })}
 
         <div class="lss-ref-starter-stats">
           ${STAT_DEFS.map(({ key, label }) => `
@@ -2255,11 +3376,11 @@ function renderDiceDock() {
   const dieButtons = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
 
   return `
-    <div class="cabinet-block lss-ref-dice-dock">
+    <div class="cabinet-block lss-ref-dice-dock" style="margin:10px 0 12px; position:relative; z-index:3;">
       <div class="flex-between" style="gap:8px; align-items:center;">
         <div>
           <div style="font-weight:800; font-size:14px;">🎲 Кубы</div>
-          <div class="muted" style="font-size:11px;">быстрый бросок</div>
+          <div class="muted" style="font-size:11px;">быстрый бросок без сохранения листа</div>
         </div>
         <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn">Скрыть</button>
       </div>
@@ -2328,7 +3449,7 @@ function renderHero(profile) {
 
       <div class="lss-ref-combat-panel">
         <div class="lss-ref-combat-stat"><span>Класс защиты</span><strong>${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</strong></div>
-        <div class="lss-ref-combat-stat"><span>Инициатива</span><strong>${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</strong></div>
+        <div class="lss-ref-combat-stat"><span>Инициатива</span><strong>${escapeHtml(formatSigned(getInitiativeModifier(profile)))}</strong></div>
         <div class="lss-ref-combat-stat"><span>Скорость</span><strong>${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</strong></div>
         <div class="lss-ref-hp-block">
           <div class="lss-ref-hp-title">Хиты</div>
@@ -2629,7 +3750,7 @@ function renderQuickSummary(profile) {
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:8px;">
         <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Хиты</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(unwrapValue(vitality["hp-current"], "—")))} / ${escapeHtml(String(unwrapValue(vitality["hp-max"], "—")))}</div></div>
         <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">КБ</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(unwrapValue(vitality?.ac, "—")))}</div></div>
-        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Инициатива</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(formatSigned(unwrapValue(vitality?.initiative, 0)))}</div></div>
+        <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Инициатива</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(formatSigned(getInitiativeModifier(profile)))}</div></div>
         <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Скорость</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(unwrapValue(vitality?.speed, "—")))}</div></div>
         <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Мастерство</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div></div>
         <div class="stat-box" style="padding:10px; min-height:auto;"><div class="muted">Пассивное восприятие</div><div style="font-size:18px;font-weight:800; margin-top:6px;">${escapeHtml(String(getPassivePerception(profile)))}</div></div>
@@ -2682,7 +3803,7 @@ function renderSkillsFlat(profile) {
       <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <div>
           <h3 style="margin:0 0 4px 0;">Навыки</h3>
-          <div class="muted" style="font-size:12px;">галочка = владение, клик сразу сохраняет бонус</div>
+          <div class="muted" style="font-size:12px;">✓ = владение; клик по навыку переключает ручное владение</div>
         </div>
       </div>
 
@@ -3057,13 +4178,13 @@ export function renderLSS() {
 
   container.innerHTML = `
     ${renderTopToolbar()}
+    ${profile ? renderDiceDock() : ""}
     ${renderImportPanel()}
     ${profile ? renderEditPanel(profile) : ""}
     ${
       profile
         ? `
           <div class="lss-root lss-ref-root">
-            ${renderDiceDock()}
             <div id="lssHeroSection">${renderHero(profile)}</div>
             <div id="lssTabsSection">${renderLssTabs()}</div>
             <div id="lssActivePanel" class="lss-ref-active-panel">${renderActiveLssTab(profile)}</div>
