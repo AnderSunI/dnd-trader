@@ -315,13 +315,16 @@ def buy_item(
             trader.money_cp_total,
             total_price_cp,
         )
-        # Репутация растёт после покупки у торговца:
-        # чем больше покупок, тем лучше отношение и цены в будущем.
+        # Репутация растёт от суммы сделки, а не от количества кликов.
+        # Текущее legacy-поле Trader.reputation пока хранит общий relationship score.
+        old_reputation = int(trader.reputation or 0)
         trader.reputation = update_reputation_after_trade(
-            trader.reputation,
+            old_reputation,
             action="buy",
             quantity=quantity,
+            total_cp=total_price_cp,
         )
+        reputation_delta = int(trader.reputation or 0) - old_reputation
 
         slot.quantity = current_stock - quantity
 
@@ -358,6 +361,7 @@ def buy_item(
             "trader_stock": int(slot.quantity or 0),
             # Явно отдаём новую репутацию, чтобы фронт не пересчитывал её сам.
             "trader_reputation": int(trader.reputation or 0),
+            "trader_reputation_delta": int(reputation_delta or 0),
             "player_item_quantity": int(user_item.quantity or 0),
             **split_price_payload("trader_money", trader.money_cp_total),
             **cp_payload(user.money_cp_total),
@@ -423,13 +427,16 @@ def sell_item(
             trader.money_cp_total,
             total_reward_cp,
         )
-        # Репутация тоже растёт после продажи торговцу,
-        # но мягче, чем при покупке (чтобы не абьюзить фарм).
+        # Продажа тоже строит отношения, но медленнее покупки.
+        # Считаем от суммы сделки, чтобы нельзя было фармить дешёвыми кликами.
+        old_reputation = int(trader.reputation or 0)
         trader.reputation = update_reputation_after_trade(
-            trader.reputation,
+            old_reputation,
             action="sell",
             quantity=quantity,
+            total_cp=total_reward_cp,
         )
+        reputation_delta = int(trader.reputation or 0) - old_reputation
 
         new_user_quantity = current_user_quantity - quantity
         if new_user_quantity <= 0:
@@ -474,6 +481,7 @@ def sell_item(
             "trader_stock": int(slot.quantity or 0),
             # Отдаём текущее значение для мгновенного обновления UI.
             "trader_reputation": int(trader.reputation or 0),
+            "trader_reputation_delta": int(reputation_delta or 0),
             "player_item_quantity": int(player_item_quantity or 0),
             **split_price_payload("trader_money", trader.money_cp_total),
             **cp_payload(user.money_cp_total),

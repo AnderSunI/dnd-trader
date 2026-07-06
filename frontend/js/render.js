@@ -640,6 +640,44 @@ function getTraderReputationTone(reputation) {
   return "high";
 }
 
+function getTraderRelationshipLabel(trader) {
+  return (
+    trader?.relationship_label ||
+    trader?.relation_label ||
+    getTraderQuality(trader?.reputation)
+  );
+}
+
+function getTraderRelationshipProgress(trader) {
+  const current = Number.isFinite(Number(trader?.relationship_progress))
+    ? Number(trader.relationship_progress)
+    : Math.max(0, Math.min(100, Number(trader?.reputation ?? 0) || 0));
+  const max = Number.isFinite(Number(trader?.relationship_progress_max))
+    ? Math.max(1, Number(trader.relationship_progress_max))
+    : 100;
+  const percent = Number.isFinite(Number(trader?.relationship_progress_percent))
+    ? Math.max(0, Math.min(100, Number(trader.relationship_progress_percent)))
+    : Math.max(0, Math.min(100, Math.round((current / max) * 100)));
+  const toNext = Number.isFinite(Number(trader?.relationship_to_next))
+    ? Math.max(0, Number(trader.relationship_to_next))
+    : Math.max(0, max - current);
+
+  return { current, max, percent, toNext };
+}
+
+function getTraderRelationshipTone(trader) {
+  const tone = String(trader?.relationship_tone || "").trim();
+  if (tone) return tone;
+  return getTraderReputationTone(trader?.reputation);
+}
+
+function getTraderDiscountDisplay(trader) {
+  if (Number.isFinite(Number(trader?.discount_percent))) {
+    return Math.max(0, Number(trader.discount_percent));
+  }
+  return getTraderDiscountPercent(trader?.reputation);
+}
+
 function getTraderEmoji(type) {
   const raw = String(type || "").trim().toLowerCase();
 
@@ -1751,16 +1789,15 @@ function buildTraderHeader(trader, tabsMarkup = "") {
   const imageUrl = getTraderImageUrl(trader);
   const hasImage = Boolean(imageUrl);
 
-  const repStars = getReputationStars(trader?.reputation);
-  const repTitle = getTraderQuality(trader?.reputation);
+  const relationshipProgress = getTraderRelationshipProgress(trader);
+  const repStars = getReputationStars(Math.round(relationshipProgress.percent / 20));
+  const repTitle = getTraderRelationshipLabel(trader);
   const skillTitle = trader?.skill_label || getTraderLevelLabel(trader?.trader_level || trader?.level || 1);
-  const currentDiscount = Number.isFinite(Number(trader?.discount_percent))
-    ? Number(trader?.discount_percent)
-    : getTraderDiscountPercent(trader?.reputation);
+  const currentDiscount = getTraderDiscountDisplay(trader);
   const traderEmoji = getTraderEmoji(trader?.type);
   const restockButtonsMarkup = buildRestockButtonsMarkup(trader?.id);
   const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
-  const reputationValue = Math.max(0, Math.min(100, Number(trader?.reputation ?? 0) || 0));
+  const reputationValue = relationshipProgress.percent;
   const portraitQuote = trader?.quote || trader?.motto || trader?.personality || "Честная сделка держится на доверии, золоте и правильном моменте.";
   const walletLabel = trader?.money_label || trader?.gold_label || trader?.gold || "—";
   const counterPanelMarkup = buildTraderCounterPanel(trader);
@@ -1783,14 +1820,14 @@ function buildTraderHeader(trader, tabsMarkup = "") {
             <div class="trader-modal-reputation-card">
               <div class="trader-modal-reputation-head">
                 <strong>Репутация</strong>
-                <span>${escapeHtml(String(trader?.reputation ?? 0))}%</span>
+                <span>${escapeHtml(String(relationshipProgress.percent))}%</span>
               </div>
               <div class="trader-modal-relation-line">
                 <strong>${escapeHtml(repTitle)}</strong>
                 <span>отношение к торговцу</span>
               </div>
-              <progress value="${escapeHtml(String(reputationValue))}" max="100"></progress>
-              <div class="muted">До следующего уровня: ${escapeHtml(String(Math.max(0, 100 - reputationValue)))} / 100</div>
+              <progress value="${escapeHtml(String(relationshipProgress.current))}" max="${escapeHtml(String(relationshipProgress.max))}"></progress>
+              <div class="muted">Прогресс: ${escapeHtml(String(relationshipProgress.current))} / ${escapeHtml(String(relationshipProgress.max))}${relationshipProgress.toNext ? ` • до следующего: ${escapeHtml(String(relationshipProgress.toNext))}` : ""}</div>
             </div>
           </aside>
         `
@@ -2200,15 +2237,18 @@ export async function openTraderModal(traderId) {
 function buildTraderCard(trader) {
   const imageUrl = getTraderImageUrl(trader);
   const hasImage = Boolean(imageUrl);
-  const repTitle = getTraderQuality(trader?.reputation);
-  const repStars = getReputationStars(trader?.reputation);
+  const relationshipProgress = getTraderRelationshipProgress(trader);
+  const repTitle = getTraderRelationshipLabel(trader);
+  const repStars = getReputationStars(Math.round(relationshipProgress.percent / 20));
   const traderEmoji = getTraderEmoji(trader?.type);
   const preview = specializationPreview(trader);
   const traderLevel = Number(trader?.trader_level || trader?.level || 1) || 1;
   const traderLevelLabel = getTraderLevelLabel(traderLevel);
-  const buyDiscount = getTraderDiscountPercent(trader?.reputation);
-  const sellBonus = getTraderSellBonusPercent(trader?.reputation);
-  const reputationTone = getTraderReputationTone(trader?.reputation);
+  const buyDiscount = getTraderDiscountDisplay(trader);
+  const sellBonus = Number.isFinite(Number(trader?.sell_bonus_percent))
+    ? Math.max(0, Number(trader.sell_bonus_percent))
+    : getTraderSellBonusPercent(trader?.reputation);
+  const reputationTone = getTraderRelationshipTone(trader);
 
   return `
     <article
@@ -2232,7 +2272,7 @@ function buildTraderCard(trader) {
         <div class="trader-meta trader-card-topline">
           <span class="trader-quality">${escapeHtml(getTraderLevelLabel(traderLevel))}</span>
           <span class="meta-item">lvl ${escapeHtml(String(traderLevel))}</span>
-          <span class="meta-item trader-reputation-chip trader-reputation-chip-${escapeHtml(reputationTone)}">${escapeHtml(String(trader?.reputation ?? 0))}%</span>
+          <span class="meta-item trader-reputation-chip trader-reputation-chip-${escapeHtml(reputationTone)}">${escapeHtml(String(buyDiscount))}%</span>
         </div>
         <div class="trader-name">${escapeHtml(traderEmoji)} ${escapeHtml(trader?.name || "Безымянный торговец")}</div>
         <div class="trader-type">${escapeHtml(trader?.type || "—")}</div>
