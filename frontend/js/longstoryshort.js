@@ -31,6 +31,14 @@ const LSS_STATE = {
   dicePanelOpen: false,
   diceType: "d20",
   lastRoll: null,
+  constructorRules: null,
+  constructorRulesStatus: "fallback",
+  constructorRulesSource: "встроенный fallback",
+  constructorRulesLoadedAt: null,
+  constructorFeats: [],
+  constructorFeatsStatus: "fallback",
+  constructorFeatsSource: "не загружено",
+  quickAppliedAbilityBonusKey: "",
 };
 
 // ------------------------------------------------------------
@@ -63,6 +71,17 @@ function safe(value, fallback = "—") {
 function safeText(value, fallback = "") {
   if (value === null || value === undefined || value === "") return fallback;
   return String(value);
+}
+
+function safeParseJsonArray(value, fallback = []) {
+  if (Array.isArray(value)) return value;
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(String(value));
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (_) {
+    return fallback;
+  }
 }
 
 function toNumber(value, fallback = 0) {
@@ -117,6 +136,338 @@ function showToast(message) {
     return;
   }
   console.log(message);
+}
+
+
+const LSS_CONSTRUCTOR_RULES_URLS = [
+  "static/data/lss_constructor_rules.json",
+  "/static/data/lss_constructor_rules.json",
+  "frontend/static/data/lss_constructor_rules.json",
+];
+
+const LSS_FEATS_URLS = [
+  "static/data/feats_bestiari_preview.json",
+  "/static/data/feats_bestiari_preview.json",
+  "frontend/static/data/feats_bestiari_preview.json",
+];
+
+let LSS_CONSTRUCTOR_RULES_LOAD_PROMISE = null;
+let LSS_FEATS_LOAD_PROMISE = null;
+
+function validateLssConstructorRules(data) {
+  return Boolean(
+    data &&
+    typeof data === "object" &&
+    data.classes &&
+    typeof data.classes === "object" &&
+    data.races &&
+    typeof data.races === "object" &&
+    data.backgrounds &&
+    typeof data.backgrounds === "object"
+  );
+}
+
+async function loadLssConstructorRules() {
+  if (LSS_CONSTRUCTOR_RULES_LOAD_PROMISE) return LSS_CONSTRUCTOR_RULES_LOAD_PROMISE;
+
+  LSS_CONSTRUCTOR_RULES_LOAD_PROMISE = (async () => {
+    LSS_STATE.constructorRulesStatus = "loading";
+
+    for (const url of LSS_CONSTRUCTOR_RULES_URLS) {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) continue;
+        const data = await response.json();
+        if (!validateLssConstructorRules(data)) continue;
+
+        LSS_STATE.constructorRules = data;
+        LSS_STATE.constructorRulesStatus = "loaded";
+        LSS_STATE.constructorRulesSource = url;
+        LSS_STATE.constructorRulesLoadedAt = new Date().toISOString();
+        return data;
+      } catch (err) {
+        // LSS не должен падать, если rules-json ещё не собран или лежит по другому пути.
+      }
+    }
+
+    LSS_STATE.constructorRules = null;
+    LSS_STATE.constructorRulesStatus = "fallback";
+    LSS_STATE.constructorRulesSource = "встроенный fallback";
+    LSS_STATE.constructorRulesLoadedAt = null;
+    return null;
+  })();
+
+  return LSS_CONSTRUCTOR_RULES_LOAD_PROMISE;
+}
+
+async function ensureLssConstructorRulesLoaded() {
+  return loadLssConstructorRules();
+}
+
+function validateLssFeatPayload(data) {
+  return Boolean(data && typeof data === "object" && Array.isArray(data.entries));
+}
+
+function normalizeLssFeatEntry(entry = {}) {
+  const mechanics = entry.mechanics || {};
+  const featData = entry.feat_data || {};
+  const abilityIncreases = Array.isArray(mechanics.ability_increases)
+    ? mechanics.ability_increases
+    : (Array.isArray(featData.ability_increases_round1) ? featData.ability_increases_round1 : []);
+  const requirements = normalizeArray(mechanics.requirements?.length ? mechanics.requirements : featData.requirements);
+  const shortRules = normalizeArray(mechanics.short_rules?.length ? mechanics.short_rules : entry.body).slice(0, 4);
+  return {
+    id: entry.id || featData.id || normalizeGuideLookup(entry.title || featData.ru_name || featData.en_name),
+    label: entry.title || featData.ru_name || entry.name || "Черта",
+    enName: featData.en_name || "",
+    source: entry.source_url || entry.source || featData.source || "feats_bestiari_preview.json",
+    sourceCode: featData.source_code || "",
+    requirements,
+    affects: normalizeArray(mechanics.affects?.length ? mechanics.affects : featData.affects_round1),
+    abilityIncreases,
+    shortRules,
+    summary: entry.summary || shortRules[0] || "",
+    raw: entry,
+  };
+}
+
+async function loadLssConstructorFeats() {
+  if (LSS_FEATS_LOAD_PROMISE) return LSS_FEATS_LOAD_PROMISE;
+
+  LSS_FEATS_LOAD_PROMISE = (async () => {
+    LSS_STATE.constructorFeatsStatus = "loading";
+    for (const url of LSS_FEATS_URLS) {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) continue;
+        const data = await response.json();
+        if (!validateLssFeatPayload(data)) continue;
+        LSS_STATE.constructorFeats = data.entries.map(normalizeLssFeatEntry).filter((feat) => feat.id && feat.label);
+        LSS_STATE.constructorFeatsStatus = "loaded";
+        LSS_STATE.constructorFeatsSource = url;
+        return LSS_STATE.constructorFeats;
+      } catch (_) {
+        // Черты — дополнительный слой. Если файл не найден, конструктор остаётся рабочим.
+      }
+    }
+    LSS_STATE.constructorFeats = [];
+    LSS_STATE.constructorFeatsStatus = "fallback";
+    LSS_STATE.constructorFeatsSource = "не загружено";
+    return [];
+  })();
+
+  return LSS_FEATS_LOAD_PROMISE;
+}
+
+async function ensureLssFeatRulesLoaded() {
+  return loadLssConstructorFeats();
+}
+
+function getLssFeatList() {
+  return Array.isArray(LSS_STATE.constructorFeats) ? LSS_STATE.constructorFeats : [];
+}
+
+function getLssFeatByValue(value) {
+  const raw = normalizeGuideLookup(value);
+  if (!raw) return null;
+  return getLssFeatList().find((feat) => {
+    return [feat.id, feat.label, feat.enName].some((candidate) => normalizeGuideLookup(candidate) === raw);
+  }) || null;
+}
+
+function getLssFeatsStatusLabel() {
+  if (LSS_STATE.constructorFeatsStatus === "loaded") return `черты: ${getLssFeatList().length}`;
+  if (LSS_STATE.constructorFeatsStatus === "loading") return "черты: загрузка";
+  return "черты: fallback";
+}
+
+function getLssRules() {
+  return validateLssConstructorRules(LSS_STATE.constructorRules) ? LSS_STATE.constructorRules : null;
+}
+
+function getLssRulesStatusLabel() {
+  if (LSS_STATE.constructorRulesStatus === "loaded") {
+    const rules = getLssRules();
+    const report = rules?.build_report || {};
+    const classes = toNumber(report.classes, Object.keys(rules?.classes || {}).length);
+    const races = toNumber(report.races, Object.keys(rules?.races || {}).length);
+    const backgrounds = toNumber(report.backgrounds, Object.keys(rules?.backgrounds || {}).length);
+    return `rules JSON: ${classes} кл. / ${races} рас / ${backgrounds} пред. / ${getLssFeatsStatusLabel()}`;
+  }
+  if (LSS_STATE.constructorRulesStatus === "loading") return "rules: загрузка";
+  return "rules: fallback";
+}
+
+function getLssRulesMap(section) {
+  const rules = getLssRules();
+  const map = rules?.[section];
+  return map && typeof map === "object" ? map : null;
+}
+
+function getLssRulesLookup(section) {
+  const rules = getLssRules();
+  const map = rules?.lookup?.[section];
+  return map && typeof map === "object" ? map : null;
+}
+
+function sortLssGuideList(list) {
+  return [...(list || [])].sort((a, b) => String(a.label || a.ru_name || a.name || "").localeCompare(String(b.label || b.ru_name || b.name || ""), "ru"));
+}
+
+function sourceFromRulesItem(item, fallback = "lss_constructor_rules.json") {
+  return item?.source_url || item?.source || fallback;
+}
+
+function parseHitDieFaces(value, fallback = 8) {
+  const raw = String(value ?? "").toLowerCase();
+  const match = raw.match(/d?\s*(4|6|8|10|12)/);
+  return match ? Number(match[1]) : clampNumber(value, 4, 12, fallback);
+}
+
+function normalizeArray(value) {
+  if (Array.isArray(value)) return value.filter((item) => item !== null && item !== undefined && String(item).trim() !== "");
+  if (typeof value === "string" && value.trim()) return value.split(/[,;]+/).map((item) => item.trim()).filter(Boolean);
+  return [];
+}
+
+function pickRulesObjectByValue(map, lookup, value, names = []) {
+  const raw = normalizeGuideLookup(value);
+  if (!raw || !map) return null;
+
+  const lookupId = lookup?.[raw];
+  if (lookupId && map[lookupId]) return map[lookupId];
+  if (map[value]) return map[value];
+  if (map[raw]) return map[raw];
+
+  return Object.values(map).find((item) => {
+    if (!item) return false;
+    const candidates = [item.id, item.ru_name, item.en_name, item.name, item.label, ...names.map((name) => item?.[name])];
+    return candidates.some((candidate) => normalizeGuideLookup(candidate) === raw);
+  }) || null;
+}
+
+function rulesClassToGuide(item) {
+  if (!item) return null;
+  const prof = item.proficiencies || {};
+  const spellcasting = item.spellcasting || {};
+  const level1 = item.progression_by_level?.["1"]?.features || [];
+  return {
+    id: item.id || item.class_id || normalizeGuideLookup(item.ru_name || item.en_name || item.name),
+    label: item.ru_name || item.name || item.en_name || item.id || "Класс",
+    aliases: [item.id, item.en_name, item.ru_name].filter(Boolean),
+    hitDie: item.hit_die_faces || parseHitDieFaces(item.hit_die, 8),
+    saves: normalizeArray(item.saving_throws),
+    primaryStats: normalizeArray(item.primary_abilities),
+    armor: normalizeArray(prof.armor).join(", ") || "—",
+    weapons: normalizeArray(prof.weapons).join(", ") || "—",
+    tools: normalizeArray(prof.tools).join(", ") || "—",
+    spellcasting: Boolean(spellcasting.has_spellcasting),
+    spellAbility: spellcasting.ability || "",
+    spellType: spellcasting.type || "заклинания",
+    spellListId: spellcasting.spell_list_id || "",
+    spellRefCount: toNumber(spellcasting.spell_ref_count, 0),
+    role: item.role || prof.skills_text || "см. полное описание класса в Бестиарии",
+    beginnerTip: item.beginner_tip || "LSS подтянул механику класса из rules JSON; полный текст класса открыт в Бестиарии.",
+    level1,
+    subclassChoiceLevel: toNumber(item.subclass_choice_level, null),
+    subclasses: Array.isArray(item.subclasses) ? item.subclasses : [],
+    progressionByLevel: item.progression_by_level || {},
+    source: sourceFromRulesItem(item),
+    sourceKind: "rules-json",
+    raw: item,
+  };
+}
+
+function rulesRaceToGuide(item) {
+  if (!item) return null;
+  const asi = item.ability_score_increase || {};
+  const traits = normalizeArray(item.traits).map((trait) => typeof trait === "string" ? trait : trait?.name).filter(Boolean).slice(0, 8);
+  const languages = item.languages && Object.keys(item.languages || {}).length
+    ? Object.values(item.languages).join(", ")
+    : "см. Бестиарий";
+  return {
+    id: item.id || normalizeGuideLookup(item.ru_name || item.en_name || item.name),
+    label: item.ru_name || item.name || item.en_name || item.id || "Раса",
+    aliases: [item.id, item.en_name, item.ru_name].filter(Boolean),
+    size: normalizeSize(item.size?.value || item.size?.raw || item.size || "medium"),
+    speed: toNumber(item.speed?.walk_ft, 30),
+    abilityBonuses: normalizeAbilityBonusMap(asi.fixed || extractAbilityBonusesFromText(asi.raw || "")),
+    abilityBonusesRaw: asi.raw || "",
+    languages,
+    traits,
+    subraces: getRulesSubraceOptionsFromRaceItem(item, { source: sourceFromRulesItem(item) }),
+    source: sourceFromRulesItem(item),
+    sourceKind: "rules-json",
+    raw: item,
+  };
+}
+
+function rulesBackgroundToGuide(item) {
+  if (!item) return null;
+  const skills = normalizeArray(item.skill_proficiencies).map(normalizeSkillKeyFromAny).filter(Boolean);
+  return {
+    id: item.id || normalizeGuideLookup(item.ru_name || item.en_name || item.name),
+    label: item.ru_name || item.name || item.en_name || item.id || "Предыстория",
+    aliases: [item.id, item.en_name, item.ru_name].filter(Boolean),
+    skills,
+    tools: normalizeArray(item.tool_proficiencies).join(", ") || "—",
+    languages: normalizeArray(item.languages).join(", ") || "—",
+    feature: item.feature?.name || item.feature || "—",
+    equipment: item.equipment_raw || "",
+    source: sourceFromRulesItem(item),
+    sourceKind: "rules-json",
+    raw: item,
+  };
+}
+
+function rulesSubclassToGuide(item, classGuide = null) {
+  if (!item) return null;
+  return {
+    id: item.id || normalizeGuideLookup(item.name || item.ru_name || item.label),
+    label: item.name || item.ru_name || item.label || item.id || "Подкласс",
+    aliases: [item.id, item.name, item.ru_name].filter(Boolean),
+    source: item.source_url || classGuide?.source || "lss_constructor_rules.json",
+    sourceGroup: item.source_group || item.group || "подкласс",
+    note: item.source_group || item.group || "",
+    abilityBonuses: normalizeAbilityBonusMap(item.ability_bonuses || extractAbilityBonusesFromText(item.ability_score_increase?.raw || item.ability_score_increase || "")),
+    abilityBonusesRaw: item.ability_score_increase?.raw || item.ability_score_increase || "",
+    featuresByLevel: item.features_by_level || {},
+    raw: item,
+  };
+}
+
+function rulesSubraceToGuide(item, raceGuide = null) {
+  if (!item) return null;
+  const label = item.name || item.ru_name || item.label || item.title || item.en_name || item.id || "Подраса";
+  const fullItem = item?.ability_score_increase ? item : (getRulesRawRaceItemByValue(label) || item);
+  const asi = fullItem?.ability_score_increase || {};
+  const traits = normalizeArray(fullItem?.traits).map((trait) => typeof trait === "string" ? trait : trait?.name).filter(Boolean).slice(0, 8);
+  return {
+    id: fullItem.id || item.id || normalizeGuideLookup(label),
+    label: fullItem.ru_name || fullItem.name || label,
+    aliases: [fullItem.id, item.id, item.name, item.ru_name, item.en_name, item.label, item.title, fullItem.ru_name, fullItem.en_name].filter(Boolean),
+    source: fullItem.source_url || item.source_url || item.url || raceGuide?.source || "lss_constructor_rules.json",
+    sourceGroup: item.group_title || item.source_group || item.group || "варианты расы",
+    note: item.group_title || item.relationship_guess || item.note || (fullItem?.source ? String(fullItem.source) : "вариант из rules JSON"),
+    abilityBonuses: normalizeAbilityBonusMap(asi.fixed || extractAbilityBonusesFromText(asi.raw || "")),
+    abilityBonusesRaw: asi.raw || "",
+    traits,
+    raw: fullItem || item,
+  };
+}
+
+function getRulesSubraceOptionsFromRaceItem(item, raceGuide = null) {
+  const direct = Array.isArray(item?.subrace_options) ? item.subrace_options : [];
+  const linked = Array.isArray(item?.variant_refs) ? item.variant_refs : [];
+  return [...direct, ...linked].map((entry) => rulesSubraceToGuide(entry, raceGuide)).filter(Boolean);
+}
+
+function normalizeSkillKeyFromAny(value) {
+  const raw = normalizeGuideLookup(value);
+  if (!raw) return "";
+  if (SKILL_BASE_STATS[raw]) return raw;
+  const found = Object.entries(SKILL_LABELS).find(([key, label]) => normalizeGuideLookup(label) === raw || normalizeGuideLookup(key) === raw);
+  return found?.[0] || raw;
 }
 
 
@@ -343,6 +694,87 @@ function getAlignmentOptionsHtml(value = "") {
     const selected = (label || "") === normalized ? "selected" : "";
     return `<option value="${escapeHtml(label)}" ${selected}>${escapeHtml(display)}</option>`;
   }).join("");
+}
+
+const LSS_ALIGNMENT_GRID = [
+  [
+    { value: "Законно-добрый", short: "ЗД", note: "кодекс + добро" },
+    { value: "Нейтрально-добрый", short: "НД", note: "помощь без догм" },
+    { value: "Хаотично-добрый", short: "ХД", note: "свобода + добро" },
+  ],
+  [
+    { value: "Законно-нейтральный", short: "ЗН", note: "правила прежде всего" },
+    { value: "Истинно нейтральный", short: "ИН", note: "баланс / своё дело" },
+    { value: "Хаотично-нейтральный", short: "ХН", note: "свобода без цепей" },
+  ],
+  [
+    { value: "Законно-злой", short: "ЗЗ", note: "порядок + выгода" },
+    { value: "Нейтрально-злой", short: "НЗ", note: "выгода без правил" },
+    { value: "Хаотично-злой", short: "ХЗ", note: "разрушение / воля" },
+  ],
+];
+
+function renderLssAlignmentGrid(fieldId, value = "") {
+  const normalized = normalizeAlignment(value);
+  const rows = LSS_ALIGNMENT_GRID.map((row) => `
+    <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;">
+      ${row.map((item) => {
+        const active = normalizeAlignment(item.value) === normalized;
+        return `
+          <button
+            class="btn ${active ? "btn-primary" : "btn-secondary"}"
+            type="button"
+            data-lss-alignment-target="${escapeHtml(fieldId)}"
+            data-lss-alignment-value="${escapeHtml(item.value)}"
+            title="${escapeHtml(item.value)}"
+            style="min-height:48px; padding:7px 9px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; text-align:left; ${active ? "box-shadow:0 0 0 1px rgba(133,226,239,.65), 0 0 16px rgba(80,190,210,.22);" : ""}"
+          >
+            <span data-lss-alignment-short="1" style="font-weight:900; letter-spacing:.04em; color:${active ? "rgba(4,24,31,.96)" : "rgba(231,241,244,.96)"};">${escapeHtml(item.short)}</span>
+            <span data-lss-alignment-note="1" style="font-size:.70rem; line-height:1.12; font-weight:800; color:${active ? "rgba(19,54,64,.92)" : "rgba(163,179,185,.92)"};">${escapeHtml(item.note)}</span>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `).join("");
+
+  return `
+    <input id="${escapeHtml(fieldId)}" type="hidden" value="${escapeHtml(normalized)}" />
+    <div class="lss-alignment-grid" data-lss-alignment-grid="${escapeHtml(fieldId)}" style="display:grid; gap:6px; margin-top:6px;">
+      ${rows}
+      <button class="btn btn-secondary" type="button" data-lss-alignment-target="${escapeHtml(fieldId)}" data-lss-alignment-value="" style="justify-content:center; min-height:34px;">Сбросить мировоззрение</button>
+    </div>
+    <div class="muted" style="font-size:.72rem; margin-top:6px;">Выбор RP-оси: закон ↔ хаос и добро ↔ зло. На механику класса не влияет.</div>
+  `;
+}
+
+function setLssAlignmentButtonVisual(button, active) {
+  if (!button) return;
+  button.classList.toggle("btn-primary", Boolean(active));
+  button.classList.toggle("btn-secondary", !active);
+  button.style.boxShadow = active ? "0 0 0 1px rgba(133,226,239,.65), 0 0 16px rgba(80,190,210,.22)" : "";
+  const shortLabel = button.querySelector("[data-lss-alignment-short]");
+  const noteLabel = button.querySelector("[data-lss-alignment-note]");
+  if (shortLabel) shortLabel.style.color = active ? "rgba(4,24,31,.96)" : "rgba(231,241,244,.96)";
+  if (noteLabel) noteLabel.style.color = active ? "rgba(19,54,64,.92)" : "rgba(163,179,185,.92)";
+}
+
+function bindLssAlignmentPickers() {
+  document.querySelectorAll("[data-lss-alignment-target]").forEach((button) => {
+    if (button.dataset.alignmentBound === "1") return;
+    button.dataset.alignmentBound = "1";
+    button.addEventListener("click", () => {
+      const targetId = button.dataset.lssAlignmentTarget || "";
+      const input = getSection(targetId);
+      if (!input) return;
+      input.value = normalizeAlignment(button.dataset.lssAlignmentValue || "");
+      const grid = button.closest("[data-lss-alignment-grid]");
+      if (!grid) return;
+      grid.querySelectorAll("[data-lss-alignment-target]").forEach((node) => {
+        const active = normalizeAlignment(node.dataset.lssAlignmentValue || "") === input.value && input.value;
+        setLssAlignmentButtonVisual(node, Boolean(active));
+      });
+    });
+  });
 }
 
 function normalizeSizeKey(value) {
@@ -587,6 +1019,7 @@ function buildBlankProfileFromCharacter(character = {}) {
       name: { name: "name", value: name },
       charClass: { name: "charClass", value: className },
       charSubclass: { name: "charSubclass", value: "" },
+      subrace: { name: "subrace", value: "" },
       level: { name: "level", value: level },
       background: { name: "background", value: "" },
       playerName: { name: "playerName", value: "" },
@@ -594,6 +1027,9 @@ function buildBlankProfileFromCharacter(character = {}) {
       alignment: { name: "alignment", value: alignment },
       experience: { name: "experience", value: Math.max(0, toNumber(character?.experience, 0)) },
       size: { name: "size", value: "medium" },
+      statsMethod: { name: "statsMethod", value: "manual" },
+      multiclass: { name: "multiclass", value: "" },
+      multiclassEnabled: { name: "multiclassEnabled", value: false },
     },
     subInfo: {
       age: { name: "age", value: "" },
@@ -615,6 +1051,7 @@ function buildBlankProfileFromCharacter(character = {}) {
       initiative: { value: 0 },
       ac: { value: 10 },
       "hit-die": { value: "d8" },
+      "hp-dice-current": { value: 1 },
     },
     spellsInfo: { base: { name: "base", value: "", code: "int" }, save: { name: "save", value: "" }, mod: { name: "mod", value: "" } },
     spells: {},
@@ -649,6 +1086,7 @@ function buildStarterProfileFromForm(formData = {}) {
   const charClass = sanitizePlainText(formData.charClass || "", { max: 40 });
   const race = sanitizePlainText(formData.race || "", { max: 40 });
   const background = sanitizePlainText(formData.background || "", { max: 50 });
+  const subrace = sanitizePlainText(formData.subrace || "", { max: 60 });
   const level = clampNumber(formData.level, 1, 20, 1);
   const selectedId = Number(LSS_STATE.selectedCharacterId || 0) || 0;
 
@@ -666,12 +1104,16 @@ function buildStarterProfileFromForm(formData = {}) {
   setLssValue(profile, "info.name", name, "name");
   setLssValue(profile, "info.charClass", charClass, "charClass");
   setLssValue(profile, "info.charSubclass", sanitizePlainText(formData.charSubclass || "", { max: 60 }), "charSubclass");
+  setLssValue(profile, "info.subrace", subrace, "subrace");
   setLssValue(profile, "info.race", race, "race");
   setLssValue(profile, "info.background", background, "background");
   setLssValue(profile, "info.alignment", normalizeAlignment(sanitizePlainText(formData.alignment || "", { max: 50 })), "alignment");
   setLssValue(profile, "info.size", normalizeSize(formData.size || "medium"), "size");
   setLssValue(profile, "info.level", level, "level");
   setLssValue(profile, "info.experience", clampNumber(formData.experience, 0, null, 0), "experience");
+  setLssValue(profile, "info.statsMethod", normalizeStatsMethod(formData.statsMethod || "manual"), "statsMethod");
+  setLssValue(profile, "info.multiclass", sanitizePlainText(formData.multiclass || "", { max: 120 }), "multiclass");
+  setLssValue(profile, "info.multiclassEnabled", Boolean(formData.multiclassEnabled), "multiclassEnabled");
   profile.proficiency = clampNumber(formData.proficiency, 0, 20, 2);
 
   STAT_DEFS.forEach(({ key }) => {
@@ -680,16 +1122,23 @@ function buildStarterProfileFromForm(formData = {}) {
   });
 
   applyClassGuideToProfile(profile, { source: "quick-create" });
+  applySubclassGuideToProfile(profile, { source: "quick-create" });
   applyRaceGuideToProfile(profile, { source: "quick-create" });
+  applySubraceGuideToProfile(profile, { source: "quick-create" });
   applyBackgroundGuideToProfile(profile, { source: "quick-create" });
 
   profile.vitality = profile.vitality || {};
   profile.vitality["hp-current"] = preserveValueNode(profile.vitality["hp-current"], clampNumber(formData.hpCurrent, 0, 999, 10));
   profile.vitality["hp-max"] = preserveValueNode(profile.vitality["hp-max"], clampNumber(formData.hpMax, 1, 999, formData.hpCurrent || 10));
   profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], clampNumber(formData.hpTemp, 0, 999, 0));
+  profile.vitality["hit-die"] = preserveValueNode(profile.vitality["hit-die"], normalizeHitDie(formData.hitDie, getHitDieValue(profile)), "hit-die");
+  profile.vitality["hp-dice-current"] = preserveValueNode(profile.vitality["hp-dice-current"], clampNumber(formData.hitDiceCurrent, 0, 99, level), "hp-dice-current");
+  profile.vitality["hp-mode"] = preserveValueNode(profile.vitality["hp-mode"], normalizeHpMode(formData.hpMode || "manual"), "hp-mode");
   profile.vitality.ac = preserveValueNode(profile.vitality.ac, clampNumber(formData.ac, 0, 40, 10));
   profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, formData.initiative === "" || formData.initiative === undefined ? statMod(clampNumber(formData.stat_dex, 1, 30, 10)) : toNumber(formData.initiative, 0));
   profile.vitality.speed = preserveValueNode(profile.vitality.speed, clampNumber(formData.speed, 0, 300, 30));
+  profile.ability_improvements = safeParseJsonArray(formData.abilityImprovements, []);
+  profile.feats = safeParseJsonArray(formData.feats, []);
   profile.__createdInDndTrader = true;
 
   return profile;
@@ -704,16 +1153,25 @@ function normalizeLssProfileForSave(profile) {
   next.info.level = preserveValueNode(next.info.level, Math.max(1, toNumber(unwrapValue(next.info.level, 1), 1)), "level");
   next.info.charClass = preserveValueNode(next.info.charClass, String(unwrapValue(next.info.charClass, "") || "").trim(), "charClass");
   next.info.charSubclass = preserveValueNode(next.info.charSubclass, String(unwrapValue(next.info.charSubclass, "") || "").trim(), "charSubclass");
+  next.info.subrace = preserveValueNode(next.info.subrace, String(unwrapValue(next.info.subrace, "") || "").trim(), "subrace");
   next.info.race = preserveValueNode(next.info.race, String(unwrapValue(next.info.race, "") || "").trim(), "race");
   next.info.background = preserveValueNode(next.info.background, String(unwrapValue(next.info.background, "") || "").trim(), "background");
   next.info.alignment = preserveValueNode(next.info.alignment, normalizeAlignment(String(unwrapValue(next.info.alignment, "") || "").trim()), "alignment");
   next.info.size = preserveValueNode(next.info.size, normalizeSize(unwrapValue(next.info.size, "medium")), "size");
   next.info.experience = preserveValueNode(next.info.experience, Math.max(0, toNumber(unwrapValue(next.info.experience, 0), 0)), "experience");
+  next.info.statsMethod = preserveValueNode(next.info.statsMethod, normalizeStatsMethod(unwrapValue(next.info.statsMethod, "manual")), "statsMethod");
+  next.info.multiclass = preserveValueNode(next.info.multiclass, String(unwrapValue(next.info.multiclass, "") || "").trim(), "multiclass");
+  next.info.multiclassEnabled = preserveValueNode(next.info.multiclassEnabled, Boolean(unwrapValue(next.info.multiclassEnabled, false)), "multiclassEnabled");
+  next.ability_improvements = Array.isArray(next.ability_improvements) ? next.ability_improvements : [];
+  next.feats = Array.isArray(next.feats) ? next.feats : [];
   next.vitality = next.vitality || {};
   next.stats = next.stats || {};
   next.saves = next.saves || {};
   next.skills = next.skills || {};
   next.coins = next.coins || {};
+  next.vitality["hit-die"] = preserveValueNode(next.vitality["hit-die"], normalizeHitDie(next.vitality["hit-die"], getHitDieValue(next)), "hit-die");
+  next.vitality["hp-dice-current"] = preserveValueNode(next.vitality["hp-dice-current"], Math.max(0, toNumber(unwrapValue(next.vitality["hp-dice-current"], 0), 0)), "hp-dice-current");
+  next.vitality["hp-mode"] = preserveValueNode(next.vitality["hp-mode"], normalizeHpMode(unwrapValue(next.vitality["hp-mode"], "manual")), "hp-mode");
 
   STAT_DEFS.forEach(({ key }) => {
     const prev = next.stats[key] && typeof next.stats[key] === "object" ? next.stats[key] : {};
@@ -1177,6 +1635,79 @@ function formatStatBonusMap(bonuses = {}) {
   return entries.length ? entries.join(", ") : "без бонусов к характеристикам";
 }
 
+
+function normalizeAbilityBonusMap(bonuses = {}) {
+  const result = {};
+  Object.entries(bonuses || {}).forEach(([key, value]) => {
+    const statKey = normalizeStatKeyFromText(key);
+    const number = Number(value);
+    if (!statKey || !Number.isFinite(number) || number === 0) return;
+    result[statKey] = (result[statKey] || 0) + number;
+  });
+  return result;
+}
+
+function normalizeStatKeyFromText(value) {
+  const raw = normalizeGuideLookup(value);
+  if (!raw) return "";
+  const map = {
+    str: ["str", "strength", "сила", "силы", "сил", "силе"],
+    dex: ["dex", "dexterity", "ловкость", "ловкости", "лов", "ловке"],
+    con: ["con", "constitution", "телосложение", "телосложения", "тел", "выносливость"],
+    int: ["int", "intelligence", "интеллект", "интеллекта", "инт"],
+    wis: ["wis", "wisdom", "мудрость", "мудрости", "мдр"],
+    cha: ["cha", "charisma", "харизма", "харизмы", "хар"],
+  };
+  return Object.entries(map).find(([, aliases]) => aliases.some((alias) => normalizeGuideLookup(alias) === raw))?.[0] || "";
+}
+
+function extractAbilityBonusesFromText(text = "") {
+  const raw = String(text || "");
+  if (!raw.trim()) return {};
+  const result = {};
+  const statAliases = [
+    ["str", "Сил(?:а|ы|е)?"],
+    ["dex", "Ловкост(?:ь|и|ью)?"],
+    ["con", "Телосложени(?:е|я|ю|ем)?"],
+    ["int", "Интеллект(?:а|у|ом)?"],
+    ["wis", "Мудрост(?:ь|и|ью)?"],
+    ["cha", "Харизм(?:а|ы|е|ой)?"],
+  ];
+  statAliases.forEach(([key, pattern]) => {
+    const regex = new RegExp(String.raw`${pattern}[^.]{0,80}?(?:увеличива(?:ет|ется|ются)|повыша(?:ет|ется|ются)|\+)[^0-9+\-]{0,24}([+\-]?\d+)`, "ig");
+    let match;
+    while ((match = regex.exec(raw))) {
+      const number = Number(match[1]);
+      if (Number.isFinite(number) && number !== 0) result[key] = Math.max(result[key] || 0, number);
+    }
+  });
+  const allStatsMatch = raw.match(/всех характеристик[^0-9]{0,40}([+\-]?\d+)/i) || raw.match(/кажд(?:ая|ой|ую) характеристик(?:а|и)?[^0-9]{0,40}([+\-]?\d+)/i);
+  if (allStatsMatch) {
+    const number = Number(allStatsMatch[1]);
+    if (Number.isFinite(number) && number !== 0) STAT_DEFS.forEach(({ key }) => { result[key] = number; });
+  }
+  return normalizeAbilityBonusMap(result);
+}
+
+function mergeAbilityBonusMaps(...maps) {
+  const result = {};
+  maps.forEach((map) => {
+    Object.entries(normalizeAbilityBonusMap(map || {})).forEach(([key, value]) => {
+      result[key] = (result[key] || 0) + Number(value || 0);
+    });
+  });
+  return result;
+}
+
+function hasAbilityBonuses(map = {}) {
+  return Object.values(map || {}).some((value) => Number(value) !== 0);
+}
+
+function getGuideAbilityBonuses(guide) {
+  if (!guide) return {};
+  return mergeAbilityBonusMaps(guide.abilityBonuses || {}, extractAbilityBonusesFromText(guide.abilityBonusesRaw || ""));
+}
+
 const LSS_RACE_GUIDES = [
   { id: "human", label: "Человек", aliases: ["human", "человек", "люди"], size: "Средний", speed: 30, abilityBonuses: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 }, languages: "Общий + ещё 1 язык", traits: ["Универсальность"] },
   { id: "elf", label: "Эльф", aliases: ["elf", "эльф", "эльфийка"], size: "Средний", speed: 30, abilityBonuses: { dex: 2 }, languages: "Общий, эльфийский", traits: ["Тёмное зрение", "Наследие фей", "Транс"] },
@@ -1212,20 +1743,73 @@ function getGuideFromCollection(collection, value) {
   }) || null;
 }
 
+function getRulesRawRaceItemByValue(value) {
+  const map = getLssRulesMap("races");
+  const lookup = getLssRulesLookup("race_by_name");
+  return pickRulesObjectByValue(map, lookup, value);
+}
+
+function getRulesRaceGuide(value) {
+  const item = getRulesRawRaceItemByValue(value);
+  return rulesRaceToGuide(item);
+}
+
+function getRulesBackgroundGuide(value) {
+  const map = getLssRulesMap("backgrounds");
+  const lookup = getLssRulesLookup("background_by_name");
+  const item = pickRulesObjectByValue(map, lookup, value);
+  return rulesBackgroundToGuide(item);
+}
+
 function getLssRaceGuide(value) {
-  return getGuideFromCollection(LSS_RACE_GUIDES, value);
+  return getRulesRaceGuide(value) || getGuideFromCollection(LSS_RACE_GUIDES, value);
 }
 
 function getLssBackgroundGuide(value) {
-  return getGuideFromCollection(LSS_BACKGROUND_GUIDES, value);
+  return getRulesBackgroundGuide(value) || getGuideFromCollection(LSS_BACKGROUND_GUIDES, value);
+}
+
+function getRulesRaceList() {
+  const map = getLssRulesMap("races");
+  if (!map) return [];
+  return sortLssGuideList(Object.values(map).map(rulesRaceToGuide).filter(Boolean));
+}
+
+function getRulesBackgroundList() {
+  const map = getLssRulesMap("backgrounds");
+  if (!map) return [];
+  return sortLssGuideList(Object.values(map).map(rulesBackgroundToGuide).filter(Boolean));
 }
 
 function getLssRaceOptionsHtml() {
-  return LSS_RACE_GUIDES.map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`).join("");
+  const rulesList = getRulesRaceList();
+  const list = rulesList.length ? rulesList : LSS_RACE_GUIDES;
+  return list.map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`).join("");
+}
+
+function isLssGuideValueSelected(guide, selected = "") {
+  const raw = normalizeGuideLookup(selected);
+  if (!raw) return false;
+  if (normalizeGuideLookup(guide?.label) === raw || normalizeGuideLookup(guide?.id) === raw) return true;
+  return (guide?.aliases || []).some((alias) => normalizeGuideLookup(alias) === raw);
+}
+
+function getLssRaceSelectOptionsHtml(selected = "") {
+  const rulesList = getRulesRaceList();
+  const list = rulesList.length ? rulesList : LSS_RACE_GUIDES;
+  const options = [`<option value="">Выбери расу</option>`];
+  list.forEach((guide) => {
+    const isSelected = isLssGuideValueSelected(guide, selected) ? "selected" : "";
+    const sourceMark = guide?.sourceKind === "rules-json" ? "" : "";
+    options.push(`<option value="${escapeHtml(guide.label)}" ${isSelected}>${escapeHtml(guide.label + sourceMark)}</option>`);
+  });
+  return options.join("");
 }
 
 function getLssBackgroundOptionsHtml() {
-  return LSS_BACKGROUND_GUIDES.map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`).join("");
+  const rulesList = getRulesBackgroundList();
+  const list = rulesList.length ? rulesList : LSS_BACKGROUND_GUIDES;
+  return list.map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`).join("");
 }
 
 const LSS_CLASS_GUIDES = [
@@ -1431,6 +2015,1071 @@ const LSS_CLASS_GUIDES = [
   },
 ];
 
+
+// Compact constructor choices are sourced from current bestiary preview data.
+// We keep only labels/ids here: full mechanics remain in Энциклопедия/Бестиарий.
+const LSS_SUBCLASS_GUIDES = {
+  "bard": [
+    {
+      "id": "kollegiya_doblesti",
+      "label": "Коллегия доблести",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_znaniy",
+      "label": "Коллегия знаний",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_mechey",
+      "label": "Коллегия мечей",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_ocharovaniya",
+      "label": "Коллегия очарования",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_shepotov",
+      "label": "Коллегия шёпотов",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_krasnorechiya",
+      "label": "Коллегия красноречия",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_sozidaniya",
+      "label": "Коллегия созидания",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kollegiya_duhov",
+      "label": "Коллегия духов",
+      "sourceGroup": "Коллегии бардов",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "barbarian": [
+    {
+      "id": "put_berserka",
+      "label": "Путь берсерка",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_totemnogo_voina",
+      "label": "Путь тотемного воина",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_bushuyuschego_v_boyu",
+      "label": "Путь бушующего в бою",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_predka_hranitelya",
+      "label": "Путь предка-хранителя",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_fanatika",
+      "label": "Путь фанатика",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_dikoy_magii",
+      "label": "Путь дикой магии",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_velikana",
+      "label": "Путь великана",
+      "sourceGroup": "Пути дикости",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "fighter": [
+    {
+      "id": "master_boevyh_iskusstv",
+      "label": "Мастер боевых искусств",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "misticheskiy_rytsar",
+      "label": "Мистический рыцарь",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "chempion",
+      "label": "Чемпион",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "rytsar_purpurnogo_drakona",
+      "label": "Рыцарь Пурпурного дракона",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kavalerist",
+      "label": "Кавалерист",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "misticheskiy_luchnik",
+      "label": "Мистический лучник",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "samuray",
+      "label": "Самурай",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "rytsar_eha",
+      "label": "Рыцарь Эха",
+      "sourceGroup": "Воинские архетипы",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "wizard": [
+    {
+      "id": "shkola_voploscheniya",
+      "label": "Школа Воплощения",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shkola_vyzova",
+      "label": "Школа Вызова",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shkola_illyuzii",
+      "label": "Школа Иллюзии",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shkola_nekromantii",
+      "label": "Школа Некромантии",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shkola_ocharovaniya",
+      "label": "Школа Очарования",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shkola_preobrazovaniya",
+      "label": "Школа Преобразования",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shkola_proritsaniya",
+      "label": "Школа Прорицания",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "voennaya_magiya",
+      "label": "Военная магия",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "magiya_hronurgii",
+      "label": "Магия хронургии",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "magiya_graviturgii",
+      "label": "Магия гравитургии",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "orden_pistsov",
+      "label": "Орден писцов",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "pesn_klinka",
+      "label": "Песнь клинка",
+      "sourceGroup": "Магические традиции",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "druid": [
+    {
+      "id": "krug_zemli",
+      "label": "Круг земли",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "krug_luny",
+      "label": "Круг луны",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "krug_pastyrya",
+      "label": "Круг пастыря",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "krug_snov",
+      "label": "Круг снов",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "krug_dikogo_ognya",
+      "label": "Круг дикого огня",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "krug_zvezd",
+      "label": "Круг звёзд",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "krug_spor",
+      "label": "Круг спор",
+      "sourceGroup": "Круги друидов",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "cleric": [
+    {
+      "id": "domen_buri",
+      "label": "Домен бури",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_voyny",
+      "label": "Домен войны",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_zhizni",
+      "label": "Домен жизни",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_znaniy",
+      "label": "Домен знаний",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_obmana",
+      "label": "Домен обмана",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_prirody",
+      "label": "Домен природы",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_sveta",
+      "label": "Домен света",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_smerti",
+      "label": "Домен смерти",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_magii",
+      "label": "Домен магии",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_kuzni",
+      "label": "Домен кузни",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_upokoeniya",
+      "label": "Домен упокоения",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_mira",
+      "label": "Домен мира",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_poryadka",
+      "label": "Домен порядка",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_sumerek",
+      "label": "Домен сумерек",
+      "sourceGroup": "Божественные домены",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "oketra_domen_splochennosti",
+      "label": "Окетра: Домен сплочённости",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "ronas_domen_sily",
+      "label": "Ронас: Домен силы",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "bontu_domen_ambitsiy",
+      "label": "Бонту: Домен амбиций",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "hazoret_domen_rveniya",
+      "label": "Хазорет: Домен рвения",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_goroda",
+      "label": "Домен города",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_zaschity",
+      "label": "Домен защиты",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_sudby",
+      "label": "Домен судьбы",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_razuma",
+      "label": "Домен разума",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_verhovnyh_vladyk",
+      "label": "Домен Верховных владык",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_krovi",
+      "label": "Домен крови",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_luny",
+      "label": "Домен луны",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_uzhasa",
+      "label": "Домен ужаса",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_inkvizitsii",
+      "label": "Домен инквизиции",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_stremleniya",
+      "label": "Домен стремления",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_stihiy",
+      "label": "Домен стихий",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_istrebleniya",
+      "label": "Домен Истребления",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_apokalipsisa",
+      "label": "Домен апокалипсиса",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_goloda",
+      "label": "Домен голода",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_gory",
+      "label": "Домен горы",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_drakona",
+      "label": "Домен дракона",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_koshki",
+      "label": "Домен кошки",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_labirinta",
+      "label": "Домен лабиринта",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_mehanizmov",
+      "label": "Домен механизмов",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_okeana",
+      "label": "Домен океана",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_ohoty",
+      "label": "Домен охоты",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_piva",
+      "label": "Домен пива",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_prorochestva",
+      "label": "Домен пророчества",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_pustoty",
+      "label": "Домен пустоты",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_puteshestviya",
+      "label": "Домен путешествия",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_skorosti",
+      "label": "Домен скорости",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_spravedlivosti",
+      "label": "Домен справедливости",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_tmy",
+      "label": "Домен тьмы",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_hranitelya",
+      "label": "Домен Хранителя",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_nochi",
+      "label": "Домен ночи",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "domen_obschiny",
+      "label": "Домен общины",
+      "sourceGroup": "Божественные домены из «Plane Shift: Amonkhet»",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "artificer": [
+    {
+      "id": "alhimik",
+      "label": "Алхимик",
+      "sourceGroup": "Специализации изобретателя",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "artillerist",
+      "label": "Артиллерист",
+      "sourceGroup": "Специализации изобретателя",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "boevoy_kuznets",
+      "label": "Боевой кузнец",
+      "sourceGroup": "Специализации изобретателя",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "bronnik",
+      "label": "Бронник",
+      "sourceGroup": "Специализации изобретателя",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "warlock": [
+    {
+      "id": "arhifeya",
+      "label": "Архифея",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "ischadie",
+      "label": "Исчадие",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "velikiy_drevniy",
+      "label": "Великий Древний",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "bessmertnyy",
+      "label": "Бессмертный",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "vedmovskoy_klinok",
+      "label": "Ведьмовской клинок",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "nebozhitel",
+      "label": "Небожитель",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "bezdonnyy",
+      "label": "Бездонный",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "geniy",
+      "label": "Гений",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "nezhit",
+      "label": "Нежить",
+      "sourceGroup": "Потусторонние покровители",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "monk": [
+    {
+      "id": "put_otkrytoy_ladoni",
+      "label": "Путь открытой ладони",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_teni",
+      "label": "Путь тени",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_chetyreh_stihiy",
+      "label": "Путь четырёх стихий",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_dolgoy_smerti",
+      "label": "Путь долгой смерти",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_kenseya",
+      "label": "Путь кэнсэя",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_pyanogo_mastera",
+      "label": "Путь пьяного мастера",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_solnechnoy_dushi",
+      "label": "Путь солнечной души",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_miloserdiya",
+      "label": "Путь милосердия",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "put_voshodyaschego_drakona",
+      "label": "Путь восходящего дракона",
+      "sourceGroup": "МОНАШЕСКИЕ ОРДЕНЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "paladin": [
+    {
+      "id": "klyatva_predannosti",
+      "label": "Клятва преданности",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_drevnih",
+      "label": "Клятва древних",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_mesti",
+      "label": "Клятва мести",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatvoprestupnik",
+      "label": "Клятвопреступник",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_korony",
+      "label": "Клятва короны",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_iskupleniya",
+      "label": "Клятва искупления",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_pokoreniya",
+      "label": "Клятва покорения",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_slavy",
+      "label": "Клятва славы",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klyatva_smotriteley",
+      "label": "Клятва смотрителей",
+      "sourceGroup": "НАРУШЕНИЕ КЛЯТВЫ",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "rogue": [
+    {
+      "id": "vor",
+      "label": "Вор",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "ubiytsa",
+      "label": "Убийца",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "duelyant",
+      "label": "Дуэлянт",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "kombinator",
+      "label": "Комбинатор",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "skaut",
+      "label": "Скаут",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "syschik",
+      "label": "Сыщик",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "fantom",
+      "label": "Фантом",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "klinok_dushi",
+      "label": "Клинок души",
+      "sourceGroup": "Архетипы плута",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "ranger": [
+    {
+      "id": "ohotnik",
+      "label": "Охотник",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "povelitel_zverey",
+      "label": "Повелитель зверей",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "sputniki_povelitelya_zverey",
+      "label": "Спутники повелителя зверей",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "strannik_gorizonta",
+      "label": "Странник горизонта",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "sumrachnyy_ohotnik",
+      "label": "Сумрачный охотник",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "ubiytsa_chudovisch",
+      "label": "Убийца чудовищ",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "strannik_fey",
+      "label": "Странник фей",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "hranitel_roya",
+      "label": "Хранитель роя",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "naezdnik_na_dreyke",
+      "label": "Наездник на дрейке",
+      "sourceGroup": "Архетипы следопыта",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ],
+  "sorcerer": [
+    {
+      "id": "nasledie_drakoney_krovi",
+      "label": "Наследие драконьей крови",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "dikaya_magiya",
+      "label": "Дикая магия",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "bozhestvennaya_dusha",
+      "label": "Божественная душа",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "tenevaya_magiya",
+      "label": "Теневая магия",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "shtormovoe_koldovstvo",
+      "label": "Штормовое колдовство",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "aberrantnyy_razum",
+      "label": "Аберрантный разум",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "zavodnaya_dusha",
+      "label": "Заводная душа",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    },
+    {
+      "id": "lunnoe_charodeystvo",
+      "label": "Лунное чародейство",
+      "sourceGroup": "Происхождения чародея",
+      "source": "bestiary/classes_bestiari_preview"
+    }
+  ]
+};
+
+const LSS_SUBRACE_GUIDES = {
+  "human": [
+    {
+      "id": "human-standard",
+      "label": "Обычный человек",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "PHB базовый вариант: +1 ко всем характеристикам"
+    },
+    {
+      "id": "human-variant",
+      "label": "Вариант человека",
+      "source": "lss-rules-review",
+      "note": "Опциональное правило: черта + навыки, автосбор позже"
+    }
+  ],
+  "elf": [
+    {
+      "id": "high-elf",
+      "label": "Высший эльф",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Интеллект, заговор волшебника"
+    },
+    {
+      "id": "wood-elf",
+      "label": "Лесной эльф",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Мудрость, скорость 35 фт."
+    },
+    {
+      "id": "drow",
+      "label": "Тёмный эльф (дроу)",
+      "aliases": [
+        "Дроу"
+      ],
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Харизма, магия дроу"
+    }
+  ],
+  "dwarf": [
+    {
+      "id": "hill-dwarf",
+      "label": "Холмовой дварф",
+      "source": "lss-rules-review",
+      "note": "+1 Мудрость, +1 HP за уровень"
+    },
+    {
+      "id": "mountain-dwarf",
+      "label": "Горный дварф",
+      "source": "lss-rules-review",
+      "note": "+2 Сила, владение лёгкой/средней бронёй"
+    },
+    {
+      "id": "duergar",
+      "label": "Дуэргар",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "вариант из справочника, требует проверки стола"
+    }
+  ],
+  "gnome": [
+    {
+      "id": "forest-gnome",
+      "label": "Лесной гном",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Ловкость, малая иллюзия"
+    },
+    {
+      "id": "rock-gnome",
+      "label": "Скальный гном",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Телосложение, ремесленные знания"
+    },
+    {
+      "id": "deep-gnome",
+      "label": "Глубинный гном (свирфнеблин)",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "вариант из справочника"
+    }
+  ],
+  "halfling": [
+    {
+      "id": "lightfoot-halfling",
+      "label": "Легконогий",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Харизма, скрытность за существами"
+    },
+    {
+      "id": "stout-halfling",
+      "label": "Коренастый",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "+1 Телосложение, стойкость к ядам"
+    }
+  ],
+  "half-elf": [
+    {
+      "id": "half-elf-standard",
+      "label": "Обычный полуэльф",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "Харизма +2 и два других +1 на выбор"
+    },
+    {
+      "id": "half-elf-faerun",
+      "label": "Полуэльф Фаэруна (SCAG)",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "вариант из справочника, требует проверки стола"
+    }
+  ],
+  "tiefling": [
+    {
+      "id": "tiefling-standard",
+      "label": "Обычный тифлинг",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "PHB наследие, Харизма +2, Интеллект +1"
+    }
+  ],
+  "dragonborn": [
+    {
+      "id": "dragonborn-standard",
+      "label": "Обычный драконорождённый",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "тип дракона лучше вынести отдельным полем позже"
+    },
+    {
+      "id": "chromatic-dragonborn",
+      "label": "Цветной драконорождённый (FTD)",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "вариант из справочника, требует проверки стола"
+    },
+    {
+      "id": "metallic-dragonborn",
+      "label": "Металлический драконорождённый (FTD)",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "вариант из справочника, требует проверки стола"
+    },
+    {
+      "id": "gem-dragonborn",
+      "label": "Самоцветный драконорождённый (FTD)",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "вариант из справочника, требует проверки стола"
+    }
+  ],
+  "half-orc": [
+    {
+      "id": "half-orc-standard",
+      "label": "Обычный полуорк",
+      "source": "bestiary/races_bestiari_preview",
+      "note": "Сила +2, Телосложение +1"
+    }
+  ]
+};
+
+
 function normalizeGuideLookup(value) {
   return String(value || "")
     .trim()
@@ -1440,14 +3089,180 @@ function normalizeGuideLookup(value) {
     .trim();
 }
 
+function getRulesClassGuide(value) {
+  const map = getLssRulesMap("classes");
+  const lookup = getLssRulesLookup("class_by_name");
+  const item = pickRulesObjectByValue(map, lookup, value);
+  return rulesClassToGuide(item);
+}
+
 function getLssClassGuide(value) {
-  return getGuideFromCollection(LSS_CLASS_GUIDES, value);
+  return getRulesClassGuide(value) || getGuideFromCollection(LSS_CLASS_GUIDES, value);
+}
+
+function getRulesClassList() {
+  const map = getLssRulesMap("classes");
+  if (!map) return [];
+  return sortLssGuideList(Object.values(map).map(rulesClassToGuide).filter(Boolean));
 }
 
 function getLssClassOptionsHtml() {
-  return LSS_CLASS_GUIDES
+  const rulesList = getRulesClassList();
+  const list = rulesList.length ? rulesList : LSS_CLASS_GUIDES;
+  return list
     .map((guide) => `<option value="${escapeHtml(guide.label)}"></option>`)
     .join("");
+}
+
+function renderLssPreservedChoiceOption(selected = "", matched = false, label = "Сохранено вручную") {
+  const value = String(selected || "").trim();
+  if (!value || matched) return "";
+  return `<option value="${escapeHtml(value)}" selected>${escapeHtml(value)} • ${escapeHtml(label)}</option>`;
+}
+
+function getLssClassSelectOptionsHtml(selected = "") {
+  const rulesList = getRulesClassList();
+  const list = rulesList.length ? rulesList : LSS_CLASS_GUIDES;
+  const options = [`<option value="">Выбери класс</option>`];
+  let matched = false;
+  list.forEach((guide) => {
+    const isSelected = isLssGuideValueSelected(guide, selected);
+    if (isSelected) matched = true;
+    options.push(`<option value="${escapeHtml(guide.label)}" ${isSelected ? "selected" : ""}>${escapeHtml(guide.label)}</option>`);
+  });
+  options.push(renderLssPreservedChoiceOption(selected, matched));
+  return options.join("");
+}
+
+function getLssBackgroundSelectOptionsHtml(selected = "") {
+  const rulesList = getRulesBackgroundList();
+  const list = rulesList.length ? rulesList : LSS_BACKGROUND_GUIDES;
+  const options = [`<option value="">Выбери предысторию</option>`];
+  let matched = false;
+  list.forEach((guide) => {
+    const isSelected = isLssGuideValueSelected(guide, selected);
+    if (isSelected) matched = true;
+    options.push(`<option value="${escapeHtml(guide.label)}" ${isSelected ? "selected" : ""}>${escapeHtml(guide.label)}</option>`);
+  });
+  options.push(renderLssPreservedChoiceOption(selected, matched));
+  return options.join("");
+}
+
+function getLssSubclassesForClass(className) {
+  const guide = getLssClassGuide(className);
+  if (!guide) return [];
+  if (Array.isArray(guide.subclasses) && guide.subclasses.length) {
+    return sortLssGuideList(guide.subclasses.map((item) => rulesSubclassToGuide(item, guide)).filter(Boolean));
+  }
+  return Array.isArray(LSS_SUBCLASS_GUIDES[guide.id]) ? LSS_SUBCLASS_GUIDES[guide.id] : [];
+}
+
+function getLssSubclassGuide(className, subclassName) {
+  const raw = normalizeGuideLookup(subclassName);
+  if (!raw) return null;
+  return getLssSubclassesForClass(className).find((item) => {
+    if (normalizeGuideLookup(item.label) === raw || normalizeGuideLookup(item.id) === raw) return true;
+    return (item.aliases || []).some((alias) => normalizeGuideLookup(alias) === raw);
+  }) || null;
+}
+
+function getLssSubclassOptionsHtml(className) {
+  return getLssSubclassesForClass(className)
+    .map((item) => `<option value="${escapeHtml(item.label)}"></option>`)
+    .join("");
+}
+
+function getLssSubclassSelectOptionsHtml(className, selected = "") {
+  const subclasses = getLssSubclassesForClass(className);
+  const label = className ? "Подкласс не выбран" : "Сначала выбери класс";
+  const options = [`<option value="">${escapeHtml(label)}</option>`];
+  let matched = false;
+  subclasses.forEach((item) => {
+    const isSelected = isLssGuideValueSelected(item, selected);
+    if (isSelected) matched = true;
+    options.push(`<option value="${escapeHtml(item.label)}" ${isSelected ? "selected" : ""}>${escapeHtml(item.label)}</option>`);
+  });
+  options.push(renderLssPreservedChoiceOption(selected, matched));
+  return options.join("");
+}
+
+function getLssSubracesForRace(raceName) {
+  const guide = getLssRaceGuide(raceName);
+  if (!guide) return [];
+  if (Array.isArray(guide.subraces) && guide.subraces.length) {
+    return sortLssGuideList(guide.subraces);
+  }
+  return Array.isArray(LSS_SUBRACE_GUIDES[guide.id]) ? LSS_SUBRACE_GUIDES[guide.id] : [];
+}
+
+function getLssSubraceGuide(raceName, subraceName) {
+  const raw = normalizeGuideLookup(subraceName);
+  if (!raw) return null;
+  return getLssSubracesForRace(raceName).find((item) => {
+    if (normalizeGuideLookup(item.label) === raw || normalizeGuideLookup(item.id) === raw) return true;
+    return (item.aliases || []).some((alias) => normalizeGuideLookup(alias) === raw);
+  }) || null;
+}
+
+function getLssSubraceOptionsHtml(raceName) {
+  return getLssSubracesForRace(raceName)
+    .map((item) => `<option value="${escapeHtml(item.label)}"></option>`)
+    .join("");
+}
+
+function getLssSubraceSelectOptionsHtml(raceName, selected = "") {
+  const subraces = getLssSubracesForRace(raceName);
+  const label = raceName ? "Подраса не выбрана" : "Сначала выбери расу";
+  const options = [`<option value="">${escapeHtml(label)}</option>`];
+  let matched = false;
+  subraces.forEach((item) => {
+    const isSelected = isLssGuideValueSelected(item, selected);
+    if (isSelected) matched = true;
+    options.push(`<option value="${escapeHtml(item.label)}" ${isSelected ? "selected" : ""}>${escapeHtml(item.label)}</option>`);
+  });
+  options.push(renderLssPreservedChoiceOption(selected, matched));
+  return options.join("");
+}
+
+function getLssSourceLabel(source) {
+  const raw = String(source || "").toLowerCase();
+  if (raw.includes("lss_constructor_rules")) return "LSS rules JSON";
+  if (raw.includes("dnd.su/class") || raw.includes("bestiary/classes")) return "Бестиарий: классы";
+  if (raw.includes("dnd.su/race") || raw.includes("bestiary/races")) return "Бестиарий: расы";
+  if (raw.includes("dnd.su/background") || raw.includes("background")) return "Бестиарий: предыстории";
+  if (raw.includes("lss-rules")) return "LSS rules review";
+  return source ? String(source) : "локальный справочник LSS";
+}
+
+function renderLssChoiceHint(title, item, fallback = "") {
+  if (!item && !fallback) return "";
+  const text = item?.note || item?.sourceGroup || fallback;
+  const source = item?.source ? ` • ${getLssSourceLabel(item.source)}` : "";
+  return `
+    <div class="meta-item" style="white-space:normal; justify-content:flex-start; margin-top:6px; font-size:.78rem;">
+      <strong>${escapeHtml(title)}:</strong>&nbsp;${escapeHtml(text || "выбрано вручную")}${escapeHtml(source)}
+    </div>
+  `;
+}
+
+function renderLssSubclassHint(className, subclassName, level = 1) {
+  const guide = getLssClassGuide(className);
+  if (!guide) return renderLssChoiceHint("Подкласс", null, "сначала выбери класс");
+  const unlock = getSubclassUnlockLevel(guide.id);
+  const current = Math.max(1, toNumber(level, 1));
+  const item = getLssSubclassGuide(className, subclassName);
+  const status = current >= unlock ? `доступен с ${unlock} уровня` : `откроется на ${unlock} уровне`;
+  if (item) return renderLssChoiceHint("Подкласс", item, status);
+  return renderLssChoiceHint("Подкласс", null, `${status}; можно оставить пустым или вписать свой вариант стола`);
+}
+
+function renderLssSubraceHint(raceName, subraceName) {
+  const raceGuide = getLssRaceGuide(raceName);
+  if (!raceGuide) return renderLssChoiceHint("Подраса", null, "сначала выбери расу");
+  const item = getLssSubraceGuide(raceName, subraceName);
+  if (item) return renderLssChoiceHint("Подраса", item, "подраса выбрана");
+  const count = getLssSubracesForRace(raceName).length;
+  return renderLssChoiceHint("Подраса", null, count ? `есть ${count} вариантов из справочника; можно выбрать позже` : "для этой расы подраса не обязательна");
 }
 
 function getProficiencyBonusByLevel(level) {
@@ -1464,6 +3279,8 @@ function formatSkillList(keys = []) {
 }
 
 function getSubclassUnlockLevel(classId) {
+  const guide = getLssClassGuide(classId);
+  if (guide?.subclassChoiceLevel) return guide.subclassChoiceLevel;
   const levels = {
     cleric: 1,
     sorcerer: 1,
@@ -1491,35 +3308,644 @@ function getSubclassHint(className, level = 1) {
   return `подкласс откроется на ${unlock} уровне`;
 }
 
+function readLssChoiceControlValue(id, fallback = "") {
+  const el = getSection(id);
+  const rawValue = String(el?.value || "").trim();
+  if (rawValue) return rawValue;
+
+  // На случай старых select/input состояний: если value пустой, но выбранная опция не placeholder,
+  // берём видимый текст. Это защищает панели источников от "выбери расу" при уже выбранном значении.
+  if (el?.tagName === "SELECT") {
+    const opt = el.selectedOptions?.[0];
+    const text = String(opt?.textContent || "").replace(/•\s*сохранено вручную/i, "").trim();
+    const placeholder = /^(выбери|сначала|подкласс не выбран|подраса не выбрана|предыстория не выбрана)/i;
+    if (text && !placeholder.test(text)) return text;
+  }
+
+  return String(fallback || "").trim();
+}
+
+function getLssChoiceControlIds(mode = "quick") {
+  const isEdit = mode === "edit";
+  return {
+    className: isEdit ? "lssEdit_charClass" : "lssQuickCreateClass",
+    subclassName: isEdit ? "lssEdit_charSubclass" : "lssQuickCreateSubclass",
+    raceName: isEdit ? "lssEdit_race" : "lssQuickCreateRace",
+    subraceName: isEdit ? "lssEdit_subrace" : "lssQuickCreateSubrace",
+    backgroundName: isEdit ? "lssEdit_background" : "lssQuickCreateBackground",
+  };
+}
+
+function syncLssChoiceSnapshot(mode = "quick") {
+  const ids = getLssChoiceControlIds(mode);
+  const snapshot = {};
+  Object.entries(ids).forEach(([key, id]) => {
+    snapshot[key] = readLssChoiceControlValue(id, "");
+  });
+  if (mode === "edit") LSS_STATE.editChoiceSnapshot = snapshot;
+  else LSS_STATE.quickChoiceSnapshot = snapshot;
+  return snapshot;
+}
+
+function getFormSelectionContext(mode = "quick") {
+  const isEdit = mode === "edit";
+  const info = LSS_STATE.profile?.info || {};
+  const snapshot = mode === "edit" ? (LSS_STATE.editChoiceSnapshot || {}) : (LSS_STATE.quickChoiceSnapshot || {});
+  const ids = getLssChoiceControlIds(mode);
+  return {
+    mode,
+    className: readLssChoiceControlValue(ids.className, snapshot.className || unwrapValue(info.charClass, "")),
+    subclassName: readLssChoiceControlValue(ids.subclassName, snapshot.subclassName || unwrapValue(info.charSubclass, "")),
+    raceName: readLssChoiceControlValue(ids.raceName, snapshot.raceName || unwrapValue(info.race, "")),
+    subraceName: readLssChoiceControlValue(ids.subraceName, snapshot.subraceName || unwrapValue(info.subrace, "")),
+    backgroundName: readLssChoiceControlValue(ids.backgroundName, snapshot.backgroundName || unwrapValue(info.background, "")),
+  };
+}
+
+function getSelectedMechanicsGuides(mode = "quick") {
+  const ctx = getFormSelectionContext(mode);
+  return {
+    ...ctx,
+    classGuide: getLssClassGuide(ctx.className),
+    subclassGuide: getLssSubclassGuide(ctx.className, ctx.subclassName),
+    raceGuide: getLssRaceGuide(ctx.raceName),
+    subraceGuide: getLssSubraceGuide(ctx.raceName, ctx.subraceName),
+    backgroundGuide: getLssBackgroundGuide(ctx.backgroundName),
+  };
+}
+
+function getCurrentSourceAbilityBonuses(mode = "quick") {
+  const guides = getSelectedMechanicsGuides(mode);
+  return mergeAbilityBonusMaps(
+    getGuideAbilityBonuses(guides.raceGuide),
+    getGuideAbilityBonuses(guides.subraceGuide),
+    getGuideAbilityBonuses(guides.backgroundGuide),
+    getGuideAbilityBonuses(guides.subclassGuide)
+  );
+}
+
+function getSourceBonusKey(mode = "quick") {
+  const guides = getSelectedMechanicsGuides(mode);
+  const bonuses = getCurrentSourceAbilityBonuses(mode);
+  return [guides.raceName, guides.subraceName, guides.backgroundName, guides.subclassName, JSON.stringify(bonuses)].join("|");
+}
+
+function renderLssSourceBonusesPanel(mode = "quick") {
+  const guides = getSelectedMechanicsGuides(mode);
+  const bonuses = getCurrentSourceAbilityBonuses(mode);
+  const bonusText = hasAbilityBonuses(bonuses) ? formatStatBonusMap(bonuses) : "структурных бонусов к статам пока нет или они только в raw-тексте";
+  const raceRaw = guides.raceGuide?.abilityBonusesRaw || "";
+  const subraceRaw = guides.subraceGuide?.abilityBonusesRaw || "";
+  const rows = [
+    { label: "Класс", text: guides.classGuide ? `${guides.classGuide.label}: кость d${guides.classGuide.hitDie}, спасы ${formatStatList(guides.classGuide.saves)}` : "выбери класс" },
+    { label: "Подкласс", text: guides.subclassGuide ? `${guides.subclassGuide.label}: фичи подтянем по уровням следующим pass` : "выбирается по уровню класса" },
+    { label: "Раса", text: guides.raceGuide ? `${guides.raceGuide.label}: ${guides.raceGuide.size}, ${guides.raceGuide.speed} фт.; ${raceRaw || formatStatBonusMap(getGuideAbilityBonuses(guides.raceGuide))}` : "выбери расу" },
+    { label: "Подраса", text: guides.subraceGuide ? `${guides.subraceGuide.label}: ${subraceRaw || guides.subraceGuide.note || "вариант выбран"}` : "если у расы есть варианты — выбери" },
+    { label: "Предыстория", text: guides.backgroundGuide ? `${guides.backgroundGuide.label}: навыки ${formatSkillList(guides.backgroundGuide.skills)}` : "выбери предысторию" },
+  ];
+  return `
+    <div id="${mode === "edit" ? "lssEditSourceBonuses" : "lssQuickSourceBonuses"}" class="lss-source-bonus-panel" style="margin:10px 0 12px; padding:12px; border:1px solid rgba(117,203,198,.18); border-radius:16px; background:rgba(5,12,18,.34);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div style="font-weight:900; color:var(--gold, #d6b36a);">Бонусы и источники</div>
+          <div class="muted" style="font-size:12px;">Показывает, что дают выбранные раса/подраса/класс. Автоприменение — только по кнопке.</div>
+        </div>
+        <div class="meta-item" style="white-space:normal; justify-content:flex-start;"><strong>Статы:</strong>&nbsp;${escapeHtml(bonusText)}</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:7px;">
+        ${rows.map((row) => `<div class="meta-item" style="white-space:normal; justify-content:flex-start; align-items:flex-start;"><strong>${escapeHtml(row.label)}:</strong>&nbsp;${escapeHtml(row.text)}</div>`).join("")}
+      </div>
+      ${mode === "quick" ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;"><button class="btn btn-secondary" type="button" id="lssQuickApplySourceBonusesBtn" ${hasAbilityBonuses(bonuses) ? "" : "disabled"}>＋ Применить бонусы к статам</button><span class="muted" style="font-size:12px;">Защита от дубля: повторно те же бонусы не накидываются.</span></div>` : `<div class="muted" style="font-size:12px; margin-top:8px;">В редакторе бонусы пока не применяются автоматически, чтобы не задвоить старые импортированные листы.</div>`}
+    </div>
+  `;
+}
+
+function refreshLssSourceBonusesPanel(mode = "quick") {
+  const id = mode === "edit" ? "lssEditSourceBonuses" : "lssQuickSourceBonuses";
+  const panel = getSection(id);
+  if (!panel) return;
+  const temp = document.createElement("div");
+  temp.innerHTML = renderLssSourceBonusesPanel(mode).trim();
+  const next = temp.firstElementChild;
+  if (next) panel.replaceWith(next);
+  bindLssConstructorRuleButtons();
+  refreshLssRulesProgressionPanel(mode);
+}
+
+function getLssFormLevel(mode = "quick") {
+  const input = getSection(mode === "edit" ? "lssEdit_level" : "lssQuickCreateLevel");
+  const fallback = unwrapValue(LSS_STATE.profile?.info?.level, 1);
+  return Math.max(1, Math.min(20, toNumber(input?.value || fallback, 1)));
+}
+
+function getLssRuleSourcePath(key = "spells_preview") {
+  const rules = getLssRules();
+  const sources = rules?.sources || {};
+  return sources?.[key] || "lss_constructor_rules.json";
+}
+
+function getLssRulesSpellsMap() {
+  const map = getLssRulesMap("spells");
+  return map && typeof map === "object" ? map : {};
+}
+
+function normalizeSpellLevelValue(value) {
+  if (value === 0 || value === "0") return 0;
+  const raw = String(value ?? "").toLowerCase().trim();
+  if (!raw) return null;
+  if (raw.includes("заговор") || raw.includes("cantrip") || raw.includes("фокус")) return 0;
+  const n = toNumber(raw, null);
+  return Number.isFinite(n) ? Math.max(0, Math.min(9, n)) : null;
+}
+
+function getSpellMaxLevelForClass(classGuide, level = 1) {
+  if (!classGuide?.spellcasting) return -1;
+  const lvl = Math.max(1, Math.min(20, toNumber(level, 1)));
+  const type = String(classGuide.spellType || classGuide.raw?.spellcasting?.type || "").toLowerCase();
+  const id = String(classGuide.id || classGuide.raw?.id || "").toLowerCase();
+
+  if (id === "paladin" || id === "ranger" || type.includes("полузаклин") || type.includes("half")) {
+    if (lvl < 2) return 0;
+    if (lvl < 5) return 1;
+    if (lvl < 9) return 2;
+    if (lvl < 13) return 3;
+    if (lvl < 17) return 4;
+    return 5;
+  }
+
+  if (id === "artificer") {
+    if (lvl < 5) return 1;
+    if (lvl < 9) return 2;
+    if (lvl < 13) return 3;
+    if (lvl < 17) return 4;
+    return 5;
+  }
+
+  if (id === "warlock" || type.includes("договор") || type.includes("pact")) {
+    if (lvl < 3) return 1;
+    if (lvl < 5) return 2;
+    if (lvl < 7) return 3;
+    if (lvl < 9) return 4;
+    return 5;
+  }
+
+  return Math.max(1, Math.min(9, Math.ceil(lvl / 2)));
+}
+
+function spellMatchesClass(spell, classGuide) {
+  if (!spell || !classGuide) return false;
+  const classNames = [classGuide.id, classGuide.label, classGuide.raw?.ru_name, classGuide.raw?.en_name]
+    .filter(Boolean)
+    .map(normalizeGuideLookup);
+  const classes = normalizeArray(spell.classes || spell.class_names || spell.raw?.classes || []);
+  return classes.some((item) => classNames.includes(normalizeGuideLookup(item)));
+}
+
+function getLssKnownClassSpells(classGuide, level = 1, limit = 16) {
+  if (!classGuide?.spellcasting) return [];
+  const spellsMap = getLssRulesSpellsMap();
+  const maxSpellLevel = getSpellMaxLevelForClass(classGuide, level);
+  const links = Array.isArray(classGuide.raw?.spell_links) ? classGuide.raw.spell_links : [];
+  const linked = links
+    .map((link) => spellsMap?.[link.spell_id] || null)
+    .filter(Boolean);
+
+  let list = linked.length ? linked : Object.values(spellsMap).filter((spell) => spellMatchesClass(spell, classGuide));
+  list = list.filter((spell) => {
+    const spellLevel = normalizeSpellLevelValue(spell.level);
+    if (spellLevel === null) return true;
+    return spellLevel === 0 || spellLevel <= maxSpellLevel;
+  });
+
+  const seen = new Set();
+  return list
+    .filter((spell) => {
+      const key = spell.id || spell.ru_name || spell.en_name;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      const la = normalizeSpellLevelValue(a.level) ?? 99;
+      const lb = normalizeSpellLevelValue(b.level) ?? 99;
+      if (la !== lb) return la - lb;
+      return String(a.ru_name || a.en_name || a.id || "").localeCompare(String(b.ru_name || b.en_name || b.id || ""), "ru");
+    })
+    .slice(0, limit);
+}
+
+function formatLssSpellLevel(value) {
+  const lvl = normalizeSpellLevelValue(value);
+  if (lvl === 0) return "заговор";
+  if (lvl === null) return "?";
+  return `${lvl} круг`;
+}
+
+function getFeatureTextList(row) {
+  if (!row) return [];
+  if (Array.isArray(row.features) && row.features.length) return row.features.map((item) => String(item || "").trim()).filter(Boolean);
+  if (row.features_raw) return splitTextToBadges(row.features_raw, 8);
+  return [];
+}
+
+function splitTextToBadges(value, limit = 8) {
+  const raw = String(value || "").trim();
+  if (!raw || raw === "—" || raw === "-") return [];
+  return raw
+    .split(/[,;•]+/)
+    .map((item) => item.trim().replace(/[.]+$/, ""))
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function renderLssMiniBadges(items = [], empty = "—", options = {}) {
+  const list = normalizeArray(items).slice(0, options.limit || 10);
+  if (!list.length) return `<span class="muted">${escapeHtml(empty)}</span>`;
+  return list.map((item) => `<span class="meta-item" style="white-space:normal; justify-content:flex-start; align-items:flex-start;">${escapeHtml(String(item))}</span>`).join("");
+}
+
+function getClassFeaturesUpToLevel(classGuide, level = 1) {
+  const progression = classGuide?.progressionByLevel || classGuide?.raw?.progression_by_level || {};
+  const lvl = Math.max(1, Math.min(20, toNumber(level, 1)));
+  const rows = [];
+  for (let i = 1; i <= lvl; i += 1) {
+    const row = progression[String(i)] || progression[i];
+    const features = getFeatureTextList(row);
+    if (features.length) rows.push({ level: i, features, row });
+  }
+  return rows;
+}
+
+function getCurrentClassLevelFeatures(classGuide, level = 1) {
+  const progression = classGuide?.progressionByLevel || classGuide?.raw?.progression_by_level || {};
+  const row = progression[String(Math.max(1, Math.min(20, toNumber(level, 1))))];
+  return getFeatureTextList(row);
+}
+
+function getNextClassLevelFeatures(classGuide, level = 1) {
+  const nextLevel = Math.min(20, Math.max(1, toNumber(level, 1)) + 1);
+  if (nextLevel === Math.max(1, toNumber(level, 1))) return [];
+  const progression = classGuide?.progressionByLevel || classGuide?.raw?.progression_by_level || {};
+  return getFeatureTextList(progression[String(nextLevel)]);
+}
+
+function getSubclassFeaturesUpToLevel(subclassGuide, level = 1) {
+  const featuresByLevel = subclassGuide?.featuresByLevel || subclassGuide?.raw?.features_by_level || {};
+  const lvl = Math.max(1, Math.min(20, toNumber(level, 1)));
+  const rows = [];
+  Object.entries(featuresByLevel || {}).forEach(([levelKey, features]) => {
+    const featureLevel = toNumber(levelKey, null);
+    if (!Number.isFinite(featureLevel) || featureLevel > lvl) return;
+    const list = Array.isArray(features)
+      ? features.map((feat) => feat?.name || feat?.text_preview || feat?.id || feat).filter(Boolean).slice(0, 8)
+      : splitTextToBadges(features, 8);
+    if (list.length) rows.push({ level: featureLevel, features: list });
+  });
+  return rows.sort((a, b) => a.level - b.level);
+}
+
+function formatLssProgressionRows(rows = [], empty = "пока нет структурных данных") {
+  if (!rows.length) return `<div class="muted" style="font-size:12px;">${escapeHtml(empty)}</div>`;
+  return rows.slice(-6).map((row) => `
+    <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;">
+      <strong>${escapeHtml(String(row.level))} ур.:</strong>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(row.features, "—", { limit: 8 })}</div>
+    </div>
+  `).join("");
+}
+
+function renderLssRulesProgressionPanel(mode = "quick") {
+  const guides = getSelectedMechanicsGuides(mode);
+  const level = getLssFormLevel(mode);
+  const classRows = getClassFeaturesUpToLevel(guides.classGuide, level);
+  const currentFeatures = getCurrentClassLevelFeatures(guides.classGuide, level);
+  const nextFeatures = getNextClassLevelFeatures(guides.classGuide, level);
+  const subclassRows = getSubclassFeaturesUpToLevel(guides.subclassGuide, level);
+  const raceTraits = normalizeArray(guides.raceGuide?.traits).map((trait) => typeof trait === "string" ? trait : trait?.name).filter(Boolean).slice(0, 8);
+  const subraceTraits = normalizeArray(guides.subraceGuide?.traits).map((trait) => typeof trait === "string" ? trait : trait?.name).filter(Boolean).slice(0, 8);
+  const backgroundSkills = guides.backgroundGuide?.skills?.map((skill) => SKILL_LABELS[skill] || skill) || [];
+  const backgroundFeature = guides.backgroundGuide?.feature && guides.backgroundGuide.feature !== "—" ? guides.backgroundGuide.feature : "черта/особенность предыстории в Бестиарии";
+  const spells = getLssKnownClassSpells(guides.classGuide, level, 14);
+  const maxSpellLevel = getSpellMaxLevelForClass(guides.classGuide, level);
+  const spellSource = getLssRuleSourcePath("spells_preview");
+  const classSpellLinks = toNumber(guides.classGuide?.spellRefCount, guides.classGuide?.raw?.spell_links?.length || 0);
+
+  const spellBlock = guides.classGuide?.spellcasting
+    ? `
+      <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;">
+        <strong>База:</strong> ${escapeHtml(STAT_LABELS[guides.classGuide.spellAbility] || guides.classGuide.spellAbility || "—")} • максимум сейчас: ${maxSpellLevel <= 0 ? "заговоры/особое" : escapeHtml(`${maxSpellLevel} круг`)}
+        <div class="muted" style="font-size:12px; margin-top:4px;">Берём из ${escapeHtml(spellSource)} → rules.spells; список класса через class.spell_links (${escapeHtml(String(classSpellLinks))} ссылок).</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:7px;">
+          ${spells.length ? spells.map((spell) => `<span class="meta-item" style="white-space:normal;">${escapeHtml(spell.ru_name || spell.en_name || spell.id)} <span class="muted">${escapeHtml(formatLssSpellLevel(spell.level))}</span></span>`).join("") : `<span class="muted">список заклинаний пока не найден в rules.spells/class.spell_links</span>`}
+        </div>
+      </div>
+    `
+    : `<div class="muted" style="font-size:12px;">У выбранного класса нет базового заклинательства. Заклинания могут появиться от подкласса, расы, предметов или фитов позже.</div>`;
+
+  return `
+    <div id="${mode === "edit" ? "lssEditProgressionPanel" : "lssQuickProgressionPanel"}" class="lss-progression-panel" style="margin:10px 0 12px; padding:12px; border:1px solid rgba(199,162,91,.20); border-radius:16px; background:linear-gradient(135deg, rgba(6,17,25,.68), rgba(9,23,31,.40));">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <div>
+          <div style="font-weight:900; color:var(--gold,#d6b36a);">Уровень, источники и заклинания</div>
+          <div class="muted" style="font-size:12px;">Смотрит на класс/уровень/расу/подрасу/предысторию и показывает, что уже должно быть на листе.</div>
+        </div>
+        <div class="meta-item"><strong>${escapeHtml(String(level))}</strong>&nbsp;уровень</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
+        <div style="display:grid; gap:7px; align-content:start;">
+          <div style="font-weight:900;">Класс по уровням</div>
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Текущий уровень:</strong><div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(currentFeatures, "на этом уровне в JSON нет отдельной строки")}</div></div>
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Следующий уровень:</strong><div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(nextFeatures, "дальше данных нет или 20 уровень")}</div></div>
+          <details>
+            <summary class="muted" style="cursor:pointer; font-size:12px;">Показать полученное до текущего уровня</summary>
+            <div style="display:grid; gap:7px; margin-top:7px;">${formatLssProgressionRows(classRows)}</div>
+          </details>
+        </div>
+        <div style="display:grid; gap:7px; align-content:start;">
+          <div style="font-weight:900;">Подкласс / раса / происхождение</div>
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Подкласс:</strong> ${escapeHtml(guides.subclassGuide?.label || getSubclassHint(guides.className, level))}<div style="display:grid; gap:6px; margin-top:7px;">${formatLssProgressionRows(subclassRows, "выбери подкласс или дождись уровня выбора")}</div></div>
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Раса:</strong> ${escapeHtml(guides.raceGuide?.label || "—")} • ${escapeHtml(guides.raceGuide?.size || "—")} • ${escapeHtml(String(guides.raceGuide?.speed || "—"))} фт.<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(raceTraits, "черты не распознаны")}</div></div>
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Подраса:</strong> ${escapeHtml(guides.subraceGuide?.label || "—")}<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(subraceTraits, guides.subraceGuide ? "черты подрасы не распознаны" : "не выбрана")}</div></div>
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Предыстория:</strong> ${escapeHtml(guides.backgroundGuide?.label || "—")} • ${escapeHtml(backgroundFeature)}<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(backgroundSkills, "навыки не распознаны")}</div></div>
+        </div>
+        <div style="display:grid; gap:7px; align-content:start;">
+          <div style="font-weight:900;">Заклинания</div>
+          ${spellBlock}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function refreshLssRulesProgressionPanel(mode = "quick") {
+  const id = mode === "edit" ? "lssEditProgressionPanel" : "lssQuickProgressionPanel";
+  const panel = getSection(id);
+  if (!panel) return;
+  const temp = document.createElement("div");
+  temp.innerHTML = renderLssRulesProgressionPanel(mode).trim();
+  const next = temp.firstElementChild;
+  if (next) panel.replaceWith(next);
+}
+
+function getProgressionRowForLevel(classGuide, level) {
+  const lvl = String(clampNumber(level, 1, 20, 1));
+  return classGuide?.progressionByLevel?.[lvl] || classGuide?.raw?.progression_by_level?.[lvl] || null;
+}
+
+function getProgressionFeatureText(row) {
+  if (!row || typeof row !== "object") return "";
+  return String(row["Умения"] || row.features_raw || row.features || row.abilities || "");
+}
+
+function rowHasAsiOpportunity(row) {
+  const text = normalizeGuideLookup(getProgressionFeatureText(row));
+  return Boolean(text && (text.includes("увеличение характеристик") || text.includes("повышение характеристик") || text.includes("ability score improvement")));
+}
+
+function getAsiMilestoneLevels(classGuide) {
+  const rows = classGuide?.progressionByLevel || classGuide?.raw?.progression_by_level || {};
+  const levels = Object.entries(rows || {})
+    .filter(([, row]) => rowHasAsiOpportunity(row))
+    .map(([level]) => toNumber(level, null))
+    .filter((level) => Number.isFinite(level))
+    .sort((a, b) => a - b);
+  if (levels.length) return levels;
+  return [4, 8, 12, 16, 19];
+}
+
+function getCurrentAsiContext(mode = "quick") {
+  const isEdit = mode === "edit";
+  const ctx = getFormSelectionContext(mode);
+  const fallbackLevel = unwrapValue(LSS_STATE.profile?.info?.level, 1);
+  const levelValue = getSection(isEdit ? "lssEdit_level" : "lssQuickCreateLevel")?.value || fallbackLevel;
+  const level = clampNumber(levelValue, 1, 20, 1);
+  const className = ctx.className || unwrapValue(LSS_STATE.profile?.info?.charClass, "");
+  const classGuide = getLssClassGuide(className);
+  const currentRow = getProgressionRowForLevel(classGuide, level);
+  const milestones = getAsiMilestoneLevels(classGuide);
+  const available = rowHasAsiOpportunity(currentRow);
+  const nextLevel = milestones.find((lvl) => lvl > level) || null;
+  return { className, level, classGuide, currentRow, milestones, available, nextLevel };
+}
+
+function getStatSelectOptionsHtml(selected = "") {
+  return STAT_DEFS.map(({ key, label }) => `<option value="${escapeHtml(key)}" ${key === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+}
+
+function formatFeatAbilityIncreases(feat) {
+  const parts = [];
+  (feat?.abilityIncreases || []).forEach((inc) => {
+    const amount = toNumber(inc.amount, 0);
+    const abilities = normalizeArray(inc.abilities).map((key) => STAT_LABELS[key] || key).join(" / ");
+    if (amount && abilities) parts.push(`${abilities} +${amount}`);
+    else if (inc.text) parts.push(String(inc.text));
+  });
+  return parts.join("; ");
+}
+
+function getFeatOptionsHtml(selected = "") {
+  const feats = getLssFeatList();
+  if (!feats.length) return `<option value="">Черты не загружены</option>`;
+  const chosen = normalizeGuideLookup(selected);
+  return [
+    `<option value="">Выбери черту</option>`,
+    ...feats.map((feat) => {
+      const meta = formatFeatAbilityIncreases(feat) || (feat.requirements?.length ? `треб.: ${feat.requirements.join(", ")}` : feat.sourceCode || "");
+      const label = meta ? `${feat.label} — ${meta}` : feat.label;
+      const isSelected = chosen && [feat.id, feat.label, feat.enName].some((candidate) => normalizeGuideLookup(candidate) === chosen);
+      return `<option value="${escapeHtml(feat.id)}" ${isSelected ? "selected" : ""}>${escapeHtml(label)}</option>`;
+    }),
+  ].join("");
+}
+
+function renderExistingAsiFeatSummary(profile = LSS_STATE.profile) {
+  const asi = Array.isArray(profile?.ability_improvements) ? profile.ability_improvements : [];
+  const feats = Array.isArray(profile?.feats) ? profile.feats : [];
+  if (!asi.length && !feats.length) return `<span class="muted">ещё не применялись</span>`;
+  const badges = [
+    ...asi.map((item) => {
+      const bonuses = item.bonuses ? formatStatBonusMap(item.bonuses) : "ASI";
+      return `ур. ${item.level || "?"}: ${bonuses}`;
+    }),
+    ...feats.map((item) => `черта: ${item.name || item.label || item.feat_id || "—"}`),
+  ];
+  return renderLssMiniBadges(badges, "—", { limit: 8 });
+}
+
+function renderLssAsiFeatPanel(mode = "quick") {
+  const id = mode === "edit" ? "lssEditAsiFeatPanel" : "lssQuickAsiFeatPanel";
+  const ctx = getCurrentAsiContext(mode);
+  const loadedFeats = getLssFeatList().length;
+  const classLabel = ctx.classGuide?.label || ctx.className || "класс не выбран";
+  const milestonesText = ctx.milestones.length ? ctx.milestones.map((lvl) => lvl === ctx.level ? `ур. ${lvl} сейчас` : `ур. ${lvl}`).join(" • ") : "не найдено в прогрессии";
+  const status = ctx.available
+    ? `На ${ctx.level} уровне есть Увеличение характеристик / Черта.`
+    : (ctx.nextLevel ? `Следующее окно ASI/черты: ${ctx.nextLevel} уровень.` : "Для текущего уровня окно ASI/черты не найдено.");
+  const prefix = mode === "edit" ? "lssEdit" : "lssQuick";
+  return `
+    <div id="${id}" class="lss-asi-feat-panel" style="margin:10px 0 12px; padding:12px; border:1px solid rgba(199,162,91,.22); border-radius:16px; background:linear-gradient(135deg, rgba(13,27,35,.68), rgba(5,12,18,.36));">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div style="font-weight:900; color:var(--gold,#d6b36a);">ASI / Черты</div>
+          <div class="muted" style="font-size:12px;">${escapeHtml(classLabel)} • ${escapeHtml(status)}</div>
+        </div>
+        <div class="trader-meta" style="gap:6px; justify-content:flex-end;">
+          <span class="meta-item">${escapeHtml(getLssFeatsStatusLabel())}</span>
+          <span class="meta-item">окон: ${escapeHtml(String(ctx.milestones.length))}</span>
+        </div>
+      </div>
+      <div class="profile-grid" style="gap:8px; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">
+        <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Уровни:</strong><div style="margin-top:5px;">${escapeHtml(milestonesText)}</div></div>
+        <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Уже применено:</strong><div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">${renderExistingAsiFeatSummary(mode === "edit" ? LSS_STATE.profile : null)}</div></div>
+      </div>
+      <div class="profile-grid" style="gap:8px; margin-top:10px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+        <div class="filter-group"><label>Выбор</label><select id="${prefix}AsiChoice"><option value="asi-two">+2 к одной характеристике</option><option value="asi-split">+1/+1 к двум характеристикам</option><option value="feat">Взять черту</option></select></div>
+        <div class="filter-group"><label>Характеристика 1</label><select id="${prefix}AsiStat1">${getStatSelectOptionsHtml("str")}</select></div>
+        <div class="filter-group"><label>Характеристика 2</label><select id="${prefix}AsiStat2">${getStatSelectOptionsHtml("dex")}</select></div>
+        <div class="filter-group" style="min-width:220px;"><label>Черта</label><select id="${prefix}FeatChoice" ${loadedFeats ? "" : "disabled"}>${getFeatOptionsHtml("")}</select></div>
+      </div>
+      <input id="${prefix}AppliedAsiRecords" type="hidden" value="${escapeHtml(JSON.stringify(mode === "edit" ? (LSS_STATE.profile?.ability_improvements || []) : []))}">
+      <input id="${prefix}SelectedFeats" type="hidden" value="${escapeHtml(JSON.stringify(mode === "edit" ? (LSS_STATE.profile?.feats || []) : []))}">
+      <div class="modal-actions" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" type="button" id="${prefix}ApplyAsiFeatBtn" ${ctx.available || mode === "edit" ? "" : "disabled"}>＋ Применить ASI / черту</button>
+        <span class="muted" style="font-size:12px;">${mode === "quick" ? "Запишется в создаваемый лист." : "В редакторе применяет сразу и сохраняет источник в листе."}</span>
+      </div>
+    </div>
+  `;
+}
+
+function refreshLssAsiFeatPanel(mode = "quick") {
+  const id = mode === "edit" ? "lssEditAsiFeatPanel" : "lssQuickAsiFeatPanel";
+  const panel = getSection(id);
+  if (!panel) return;
+  const temp = document.createElement("div");
+  temp.innerHTML = renderLssAsiFeatPanel(mode).trim();
+  const next = temp.firstElementChild;
+  if (next) panel.replaceWith(next);
+  bindLssConstructorRuleButtons();
+}
+
+function getCurrentFormStatValue(mode, statKey) {
+  const id = mode === "edit" ? `lssEdit_stat_${statKey}` : `lssQuickCreateStat_${statKey}`;
+  return clampNumber(getSection(id)?.value, 1, 30, 10);
+}
+
+function setCurrentFormStatValue(mode, statKey, value) {
+  const id = mode === "edit" ? `lssEdit_stat_${statKey}` : `lssQuickCreateStat_${statKey}`;
+  const input = getSection(id);
+  if (input) input.value = String(clampNumber(value, 1, 30, 10));
+}
+
+function pushJsonHiddenArray(id, item, duplicateKey = "source_key") {
+  const input = getSection(id);
+  if (!input) return [];
+  const list = safeParseJsonArray(input.value, []);
+  const key = item?.[duplicateKey];
+  if (key && list.some((old) => old?.[duplicateKey] === key)) return list;
+  list.push(item);
+  input.value = JSON.stringify(list);
+  return list;
+}
+
+function applyAsiFeatToForm(mode = "quick") {
+  const prefix = mode === "edit" ? "lssEdit" : "lssQuick";
+  const ctx = getCurrentAsiContext(mode);
+  const choice = getSection(`${prefix}AsiChoice`)?.value || "asi-two";
+  const stat1 = getSection(`${prefix}AsiStat1`)?.value || "str";
+  const stat2 = getSection(`${prefix}AsiStat2`)?.value || "dex";
+  const sourceKey = `${ctx.classGuide?.id || ctx.className || "class"}:level-${ctx.level}:asi-feat`;
+
+  if (choice === "feat") {
+    const feat = getLssFeatByValue(getSection(`${prefix}FeatChoice`)?.value || "");
+    if (!feat) {
+      showToast("Выбери черту из списка");
+      return;
+    }
+    const record = { feat_id: feat.id, name: feat.label, source: "class_level", class_id: ctx.classGuide?.id || "", level: ctx.level, source_key: `${sourceKey}:${feat.id}` };
+    const list = pushJsonHiddenArray(`${prefix}SelectedFeats`, record, "source_key");
+    if (mode === "edit" && LSS_STATE.profile) {
+      LSS_STATE.profile.feats = list;
+      const featureText = `Черта (${ctx.classGuide?.label || "класс"} ${ctx.level}): ${feat.label}`;
+      const existing = safeText(getSection("lssEdit_features")?.value, "");
+      if (getSection("lssEdit_features") && !existing.includes(featureText)) getSection("lssEdit_features").value = [existing, featureText].filter(Boolean).join("\n");
+      applyEditFormLive(`Черта применена: ${feat.label}`);
+    } else {
+      showToast(`Черта выбрана: ${feat.label}`);
+    }
+    refreshLssAsiFeatPanel(mode);
+    return;
+  }
+
+  const bonuses = {};
+  if (choice === "asi-split") {
+    bonuses[stat1] = (bonuses[stat1] || 0) + 1;
+    bonuses[stat2] = (bonuses[stat2] || 0) + 1;
+  } else {
+    bonuses[stat1] = 2;
+  }
+
+  Object.entries(bonuses).forEach(([statKey, bonus]) => {
+    setCurrentFormStatValue(mode, statKey, getCurrentFormStatValue(mode, statKey) + bonus);
+  });
+  const record = { source: "class_level", class_id: ctx.classGuide?.id || "", class_name: ctx.classGuide?.label || ctx.className || "", level: ctx.level, type: choice, bonuses, source_key: `${sourceKey}:${choice}:${Object.entries(bonuses).map(([k, v]) => `${k}${v}`).join("-")}` };
+  const list = pushJsonHiddenArray(`${prefix}AppliedAsiRecords`, record, "source_key");
+  if (mode === "edit" && LSS_STATE.profile) {
+    LSS_STATE.profile.ability_improvements = list;
+    applyEditFormLive(`ASI применено: ${formatStatBonusMap(bonuses)}`);
+  } else {
+    applyQuickDexDefaults();
+    showToast(`ASI применено: ${formatStatBonusMap(bonuses)}`);
+  }
+  refreshLssAsiFeatPanel(mode);
+}
+
+function applyQuickSourceAbilityBonuses() {
+  const bonuses = getCurrentSourceAbilityBonuses("quick");
+  if (!hasAbilityBonuses(bonuses)) {
+    showToast("Для выбранных источников нет структурных бонусов к статам");
+    return;
+  }
+  const key = getSourceBonusKey("quick");
+  if (LSS_STATE.quickAppliedAbilityBonusKey === key) {
+    showToast("Эти бонусы уже применены");
+    return;
+  }
+  STAT_DEFS.forEach(({ key: statKey }) => {
+    const input = getSection(`lssQuickCreateStat_${statKey}`);
+    const bonus = Number(bonuses[statKey] || 0);
+    if (!input || !bonus) return;
+    input.value = String(Math.max(1, Math.min(30, toNumber(input.value, 10) + bonus)));
+  });
+  LSS_STATE.quickAppliedAbilityBonusKey = key;
+  applyQuickDexDefaults();
+  showToast(`Бонусы применены: ${formatStatBonusMap(bonuses)}`);
+}
+
 function renderLssMechanicsSources(profile) {
   if (!profile) return "";
   const info = profile.info || {};
   const classGuide = getLssClassGuide(unwrapValue(info.charClass, ""));
   const raceGuide = getLssRaceGuide(unwrapValue(info.race, ""));
   const bgGuide = getLssBackgroundGuide(unwrapValue(info.background, ""));
+  const subclassGuide = getLssSubclassGuide(unwrapValue(info.charClass, ""), unwrapValue(info.charSubclass, ""));
+  const subraceGuide = getLssSubraceGuide(unwrapValue(info.race, ""), unwrapValue(info.subrace, ""));
 
   const rows = [
-    classGuide ? { label: "Класс", title: classGuide.label, body: `d${classGuide.hitDie}, спасброски: ${formatStatList(classGuide.saves)}, важны: ${formatStatList(classGuide.primaryStats)}` } : { label: "Класс", title: "не распознан", body: "выбери класс из подсказки, чтобы LSS понял механику" },
-    raceGuide ? { label: "Раса", title: raceGuide.label, body: `${raceGuide.size}, скорость ${raceGuide.speed} фт., бонусы: ${formatStatBonusMap(raceGuide.abilityBonuses)}` } : { label: "Раса", title: "не распознана", body: "пока нет механических бонусов расы" },
-    bgGuide ? { label: "Предыстория", title: bgGuide.label, body: `навыки: ${formatSkillList(bgGuide.skills)}, инструменты/языки: ${[bgGuide.tools, bgGuide.languages].filter((x) => x && x !== "—").join("; ") || "—"}` } : { label: "Предыстория", title: "не распознана", body: "пока нет навыков/владений от предыстории" },
+    classGuide ? { label: "Класс", body: `${classGuide.label} • d${classGuide.hitDie} • спасы ${formatStatList(classGuide.saves)}`, source: getLssSourceLabel(classGuide.source) } : { label: "Класс", body: "не распознан", source: "—" },
+    subclassGuide ? { label: "Подкласс", body: subclassGuide.label, source: getLssSourceLabel(subclassGuide.source) } : { label: "Подкласс", body: getSubclassHint(unwrapValue(info.charClass, ""), unwrapValue(info.level, 1)), source: "LSS rules" },
+    raceGuide ? { label: "Раса", body: `${raceGuide.label} • ${raceGuide.size} • ${raceGuide.speed} фт. • ${raceGuide.abilityBonusesRaw || formatStatBonusMap(getGuideAbilityBonuses(raceGuide))}`, source: getLssSourceLabel(raceGuide.source) } : { label: "Раса", body: "не распознана", source: "—" },
+    subraceGuide ? { label: "Подраса", body: `${subraceGuide.label}${subraceGuide.abilityBonusesRaw ? ` • ${subraceGuide.abilityBonusesRaw}` : (subraceGuide.note ? ` • ${subraceGuide.note}` : "")}`, source: getLssSourceLabel(subraceGuide.source) } : { label: "Подраса", body: "можно выбрать позже", source: "LSS rules" },
+    bgGuide ? { label: "Предыстория", body: `${bgGuide.label} • навыки: ${formatSkillList(bgGuide.skills)}`, source: getLssSourceLabel(bgGuide.source) } : { label: "Предыстория", body: "не распознана", source: "—" },
   ];
 
   return `
-    <div class="lss-mechanics-sources" style="margin:0 0 12px 0; padding:12px; border:1px solid rgba(117,203,198,.18); border-radius:14px; background:rgba(5,12,18,.38);">
-      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-bottom:8px;">
-        <div>
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted, #9fb0b8);">Источники механики</div>
-          <div style="font-weight:900; color:var(--gold, #d6b36a);">Что влияет на лист</div>
-        </div>
-        <div class="muted" style="font-size:12px; max-width:420px;">Сейчас это подсказки конструктора. Авто-сложение всех бонусов характеристик включим отдельным pass, чтобы не задваивать старые LSS-экспорты.</div>
+    <div class="lss-mechanics-sources" style="margin:10px 0 12px 0; padding:10px 12px; border:1px solid rgba(117,203,198,.16); border-radius:14px; background:rgba(5,12,18,.30);">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+        <div style="font-weight:900; color:var(--gold, #d6b36a);">Источники механики</div>
+        <div class="muted" style="font-size:12px;">${escapeHtml(getLssRulesStatusLabel())}; полный текст живёт в Бестиарии</div>
       </div>
-      <div class="profile-grid" style="gap:8px;">
-        ${rows.map((row) => `
-          <div class="meta-item" style="white-space:normal; align-items:flex-start;">
-            <strong>${escapeHtml(row.label)}:</strong> ${escapeHtml(row.title)}<br>
-            <span class="muted">${escapeHtml(row.body)}</span>
-          </div>
-        `).join("")}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px;">
+        ${rows.map((row) => `<div class="meta-item" style="white-space:normal; justify-content:flex-start; align-items:flex-start;"><strong>${escapeHtml(row.label)}:</strong>&nbsp;${escapeHtml(row.body)} <span class="muted" style="font-size:.72rem;">• ${escapeHtml(row.source)}</span></div>`).join("")}
       </div>
     </div>
   `;
@@ -1564,12 +3990,11 @@ function renderLssClassGuidanceCard(className, options = {}) {
         <span class="meta-item" style="white-space:normal;"><strong>Подкласс:</strong> ${escapeHtml(subclassHint)}</span>
       </div>
 
-      <div style="font-size:.88rem; line-height:1.38; color:var(--text, #e8eef2);">
-        <div><strong>Роль:</strong> ${escapeHtml(guide.role)}</div>
-        <div><strong>Магия:</strong> ${escapeHtml(magicLine)}</div>
-        <div><strong>1 уровень:</strong> ${escapeHtml((guide.level1 || []).join(", ") || "зависит от сборки")}</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; font-size:.84rem; line-height:1.25; color:var(--text, #e8eef2);">
+        <span class="meta-item" style="white-space:normal;"><strong>Роль:</strong> ${escapeHtml(guide.role)}</span>
+        <span class="meta-item" style="white-space:normal;"><strong>Магия:</strong> ${escapeHtml(magicLine)}</span>
       </div>
-      <div class="muted" style="margin-top:7px; font-size:.84rem; line-height:1.32;">💡 ${escapeHtml(guide.beginnerTip)}</div>
+      <div class="muted" style="margin-top:7px; font-size:.78rem; line-height:1.28;">💡 ${escapeHtml(guide.beginnerTip)}</div>
     </div>
   `;
 }
@@ -1577,6 +4002,202 @@ function renderLssClassGuidanceCard(className, options = {}) {
 function getExpectedLevelOneHp(guide, conScore = 10) {
   if (!guide) return 10;
   return Math.max(1, toNumber(guide.hitDie, 8) + statMod(toNumber(conScore, 10)));
+}
+
+const LSS_HIT_DIE_OPTIONS = ["d4", "d6", "d8", "d10", "d12"];
+
+const LSS_HP_MODE_OPTIONS = [
+  { value: "manual", label: "Вручную" },
+  { value: "average", label: "Среднее по правилам" },
+  { value: "roll", label: "Броском" },
+];
+
+const LSS_STATS_METHOD_OPTIONS = [
+  { value: "manual", label: "Вручную" },
+  { value: "standard-array", label: "Стандартный набор" },
+  { value: "point-buy", label: "Покупка очков 27" },
+  { value: "roll-4d6", label: "Броски 4к6 без меньшей" },
+];
+
+const LSS_STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+const LSS_POINT_BUY_STARTER_ARRAY = [15, 14, 13, 12, 10, 8];
+
+const LSS_MULTICLASS_RULES = {
+  barbarian: { label: "Варвар", all: [{ stat: "str", min: 13 }] },
+  bard: { label: "Бард", all: [{ stat: "cha", min: 13 }] },
+  cleric: { label: "Жрец", all: [{ stat: "wis", min: 13 }] },
+  druid: { label: "Друид", all: [{ stat: "wis", min: 13 }] },
+  fighter: { label: "Воин", any: [{ stat: "str", min: 13 }, { stat: "dex", min: 13 }] },
+  monk: { label: "Монах", all: [{ stat: "dex", min: 13 }, { stat: "wis", min: 13 }] },
+  paladin: { label: "Паладин", all: [{ stat: "str", min: 13 }, { stat: "cha", min: 13 }] },
+  ranger: { label: "Следопыт", all: [{ stat: "dex", min: 13 }, { stat: "wis", min: 13 }] },
+  rogue: { label: "Плут", all: [{ stat: "dex", min: 13 }] },
+  sorcerer: { label: "Чародей", all: [{ stat: "cha", min: 13 }] },
+  warlock: { label: "Колдун", all: [{ stat: "cha", min: 13 }] },
+  wizard: { label: "Волшебник", all: [{ stat: "int", min: 13 }] },
+  artificer: { label: "Изобретатель", all: [{ stat: "int", min: 13 }] },
+};
+
+function normalizeHitDie(value, fallback = "d8") {
+  const raw = String(unwrapValue(value, fallback) || fallback).trim().toLowerCase();
+  const match = raw.match(/d?\s*(4|6|8|10|12)/);
+  if (!match) return fallback;
+  return `d${match[1]}`;
+}
+
+function normalizeHpMode(value, fallback = "manual") {
+  const raw = String(unwrapValue(value, fallback) || fallback).trim().toLowerCase();
+  return LSS_HP_MODE_OPTIONS.some((item) => item.value === raw) ? raw : fallback;
+}
+
+function normalizeStatsMethod(value, fallback = "manual") {
+  const raw = String(unwrapValue(value, fallback) || fallback).trim().toLowerCase();
+  return LSS_STATS_METHOD_OPTIONS.some((item) => item.value === raw) ? raw : fallback;
+}
+
+function getHitDieOptionsHtml(selected = "d8") {
+  const current = normalizeHitDie(selected, "d8");
+  return LSS_HIT_DIE_OPTIONS.map((die) => `<option value="${die}" ${die === current ? "selected" : ""}>${die}</option>`).join("");
+}
+
+function getHpModeOptionsHtml(selected = "manual") {
+  const current = normalizeHpMode(selected, "manual");
+  return LSS_HP_MODE_OPTIONS.map((item) => `<option value="${item.value}" ${item.value === current ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("");
+}
+
+function getStatsMethodOptionsHtml(selected = "manual") {
+  const current = normalizeStatsMethod(selected, "manual");
+  return LSS_STATS_METHOD_OPTIONS.map((item) => `<option value="${item.value}" ${item.value === current ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("");
+}
+
+function getHitDieValue(profile) {
+  const explicit = unwrapValue(profile?.vitality?.["hit-die"], "");
+  if (explicit) return normalizeHitDie(explicit, "d8");
+  const guide = getLssClassGuide(unwrapValue(profile?.info?.charClass, ""));
+  return guide ? `d${guide.hitDie}` : "d8";
+}
+
+function getHpModeValue(profile) {
+  return normalizeHpMode(unwrapValue(profile?.vitality?.["hp-mode"], "manual"), "manual");
+}
+
+function getHitDieAverage(dieSize) {
+  const n = toNumber(dieSize, 8);
+  const fixed = { 4: 3, 6: 4, 8: 5, 10: 6, 12: 7 };
+  return fixed[n] || Math.floor(n / 2) + 1;
+}
+
+function getAverageHpForLevel(hitDie, level, conMod = 0) {
+  const dieSize = toNumber(String(hitDie || "d8").replace("d", ""), 8);
+  const lvl = Math.max(1, Math.min(20, toNumber(level, 1)));
+  const first = Math.max(1, dieSize + conMod);
+  const perLevel = Math.max(1, getHitDieAverage(dieSize) + conMod);
+  return Math.max(1, first + Math.max(0, lvl - 1) * perLevel);
+}
+
+function rollDieSize(dieSize) {
+  return Math.floor(Math.random() * Math.max(1, toNumber(dieSize, 8))) + 1;
+}
+
+function rollStat4d6DropLowest() {
+  const rolls = Array.from({ length: 4 }, () => rollDieSize(6)).sort((a, b) => b - a);
+  return rolls.slice(0, 3).reduce((sum, n) => sum + n, 0);
+}
+
+function getHpFormulaPreview(profile) {
+  const level = Math.max(1, toNumber(unwrapValue(profile?.info?.level, 1), 1));
+  const conMod = getStatModifier(profile, "con");
+  const hitDie = getHitDieValue(profile);
+  const dieSize = toNumber(hitDie.replace("d", ""), 8);
+  const expectedFirst = Math.max(1, dieSize + conMod);
+  const averageHp = getAverageHpForLevel(hitDie, level, conMod);
+  const maxHp = toNumber(unwrapValue(profile?.vitality?.["hp-max"], 0), 0);
+  const mode = getHpModeValue(profile);
+  const modeLabel = LSS_HP_MODE_OPTIONS.find((item) => item.value === mode)?.label || "Вручную";
+  return {
+    hitDie,
+    level,
+    conMod,
+    expectedFirst,
+    averageHp,
+    maxHp,
+    mode,
+    modeLabel,
+    text: level > 1
+      ? `1 ур.: ${hitDie} + Тел ${formatSigned(conMod)}; дальше среднее ${getHitDieAverage(dieSize)} + Тел за уровень ≈ ${averageHp} HP`
+      : `${hitDie} + Тел ${formatSigned(conMod)} на 1 уровне ≈ ${expectedFirst} HP`,
+  };
+}
+
+function getStatMethodValue(profile) {
+  return normalizeStatsMethod(unwrapValue(profile?.info?.statsMethod, "manual"), "manual");
+}
+
+function getSuggestedStatsForClass(className, method = "standard-array") {
+  const guide = getLssClassGuide(className);
+  const values = normalizeStatsMethod(method, "standard-array") === "point-buy"
+    ? [...LSS_POINT_BUY_STARTER_ARRAY]
+    : [...LSS_STANDARD_ARRAY];
+  const priority = [...(guide?.primaryStats || []), ...STAT_DEFS.map((item) => item.key)]
+    .filter((key, index, arr) => arr.indexOf(key) === index);
+  const result = {};
+  priority.forEach((key, index) => {
+    result[key] = values[index] ?? 10;
+  });
+  STAT_DEFS.forEach(({ key }) => {
+    if (!result[key]) result[key] = 10;
+  });
+  return result;
+}
+
+function getRolledStats() {
+  const result = {};
+  STAT_DEFS.forEach(({ key }) => {
+    result[key] = rollStat4d6DropLowest();
+  });
+  return result;
+}
+
+function formatMulticlassRequirement(req) {
+  const statKey = req.stat || req.ability;
+  return `${STAT_LABELS[statKey] || String(statKey).toUpperCase()} ${req.min}+`;
+}
+
+function getLssMulticlassRule(classId) {
+  const id = getLssClassGuide(classId)?.id || classId;
+  const rulesMap = getLssRules()?.rules?.multiclass_requirements || {};
+  const fromRules = rulesMap[id];
+  if (fromRules?.rules) {
+    const mapped = fromRules.rules.map((req) => ({ stat: req.ability || req.stat, min: req.min }));
+    const label = getLssClassGuide(id)?.label || LSS_MULTICLASS_RULES[id]?.label || id;
+    return fromRules.mode === "any" ? { label, any: mapped } : { label, all: mapped };
+  }
+  return LSS_MULTICLASS_RULES[id] || LSS_MULTICLASS_RULES[classId];
+}
+
+function getMulticlassRuleText(classId) {
+  const rule = getLssMulticlassRule(classId);
+  if (!rule) return "выбери класс, чтобы увидеть требования мультикласса";
+  if (Array.isArray(rule.any)) return rule.any.map(formatMulticlassRequirement).join(" или ");
+  return (rule.all || []).map(formatMulticlassRequirement).join(" и ");
+}
+
+function evaluateMulticlassRule(profile, classId) {
+  const rule = getLssMulticlassRule(classId);
+  if (!rule) return { ok: false, text: "нет правила" };
+  const check = (req) => getStatScore(profile, req.stat || req.ability) >= req.min;
+  const ok = Array.isArray(rule.any) ? rule.any.some(check) : (rule.all || []).every(check);
+  return { ok, text: getMulticlassRuleText(classId) };
+}
+
+function getAcFormulaPreview(profile) {
+  const dexMod = getStatModifier(profile, "dex");
+  const ac = toNumber(unwrapValue(profile?.vitality?.ac, 10), 10);
+  return {
+    ac,
+    dexMod,
+    text: `Сейчас КБ хранится итогом: ${ac}. Формулу брони подключим позже: база/броня + щит + Ловкость + бонусы.`,
+  };
 }
 
 function applyClassGuideToProfile(profile, options = {}) {
@@ -1627,6 +4248,27 @@ function applyClassGuideToProfile(profile, options = {}) {
   return profile;
 }
 
+function applySubclassGuideToProfile(profile, options = {}) {
+  const className = unwrapValue(profile?.info?.charClass, "");
+  const subclassName = unwrapValue(profile?.info?.charSubclass, "");
+  const guide = getLssClassGuide(className);
+  const subclass = getLssSubclassGuide(className, subclassName);
+  if (!profile || !guide) return profile;
+
+  profile.__lssMechanics = profile.__lssMechanics || {};
+  profile.__lssMechanics.subclass = {
+    id: subclass?.id || "",
+    label: subclass?.label || String(subclassName || ""),
+    class_id: guide.id,
+    class_label: guide.label,
+    unlock_level: getSubclassUnlockLevel(guide.id),
+    source: subclass?.source || "manual_or_pending",
+    note: subclass?.sourceGroup || subclass?.note || "",
+  };
+
+  return profile;
+}
+
 function applyRaceGuideToProfile(profile, options = {}) {
   const guide = getLssRaceGuide(unwrapValue(profile?.info?.race, ""));
   if (!profile || !guide) return profile;
@@ -1656,6 +4298,26 @@ function applyRaceGuideToProfile(profile, options = {}) {
     abilityBonuses: guide.abilityBonuses || {},
     traits: guide.traits || [],
     languages: guide.languages || "",
+  };
+
+  return profile;
+}
+
+function applySubraceGuideToProfile(profile, options = {}) {
+  const raceName = unwrapValue(profile?.info?.race, "");
+  const subraceName = unwrapValue(profile?.info?.subrace, "");
+  const raceGuide = getLssRaceGuide(raceName);
+  const subrace = getLssSubraceGuide(raceName, subraceName);
+  if (!profile || !raceGuide) return profile;
+
+  profile.__lssMechanics = profile.__lssMechanics || {};
+  profile.__lssMechanics.subrace = {
+    id: subrace?.id || "",
+    label: subrace?.label || String(subraceName || ""),
+    race_id: raceGuide.id,
+    race_label: raceGuide.label,
+    source: subrace?.source || "manual_or_pending",
+    note: subrace?.note || "",
   };
 
   return profile;
@@ -1709,6 +4371,7 @@ function toggleSkillProficiency(skillKey, enabled) {
       ...prev,
       baseStat: prev.baseStat || getSkillBaseStat(skillKey, profile),
       isProf: enabled ? 1 : 0,
+      source: enabled ? (prev.source || "manual") : prev.source,
     };
   }, enabled ? "Владение навыком включено" : "Владение навыком отключено");
 }
@@ -1991,6 +4654,8 @@ function tryLoadFromLocal() {
 }
 
 export async function loadLSS() {
+  await ensureLssConstructorRulesLoaded();
+  await ensureLssFeatRulesLoaded();
   await loadLssCharacterPool();
 
   let raw = tryLoadFromLocal();
@@ -2044,12 +4709,18 @@ function applyBasicFormToProfile(formData) {
   setLssValue(profile, "info.name", profile.name, "name");
   setLssValue(profile, "info.charClass", safeText(formData.charClass, unwrapValue(getNested(profile, "info.charClass", ""))), "charClass");
   setLssValue(profile, "info.charSubclass", safeText(formData.charSubclass, unwrapValue(getNested(profile, "info.charSubclass", ""))), "charSubclass");
+  setLssValue(profile, "info.subrace", safeText(formData.subrace, unwrapValue(getNested(profile, "info.subrace", ""))), "subrace");
   setLssValue(profile, "info.level", Math.max(1, toNumber(formData.level, unwrapValue(getNested(profile, "info.level", 1)))), "level");
   setLssValue(profile, "info.background", safeText(formData.background, unwrapValue(getNested(profile, "info.background", ""))), "background");
   setLssValue(profile, "info.race", safeText(formData.race, unwrapValue(getNested(profile, "info.race", ""))), "race");
   setLssValue(profile, "info.alignment", normalizeAlignment(safeText(formData.alignment, unwrapValue(getNested(profile, "info.alignment", "")))), "alignment");
   setLssValue(profile, "info.size", normalizeSize(formData.size || unwrapValue(getNested(profile, "info.size", "medium"))), "size");
   setLssValue(profile, "info.experience", Math.max(0, toNumber(formData.experience, unwrapValue(getNested(profile, "info.experience", 0)))), "experience");
+  setLssValue(profile, "info.statsMethod", normalizeStatsMethod(formData.statsMethod || unwrapValue(getNested(profile, "info.statsMethod", "manual"))), "statsMethod");
+  setLssValue(profile, "info.multiclass", safeText(formData.multiclass, unwrapValue(getNested(profile, "info.multiclass", ""))), "multiclass");
+  setLssValue(profile, "info.multiclassEnabled", Boolean(formData.multiclassEnabled), "multiclassEnabled");
+  profile.ability_improvements = safeParseJsonArray(formData.abilityImprovements, Array.isArray(profile.ability_improvements) ? profile.ability_improvements : []);
+  profile.feats = safeParseJsonArray(formData.feats, Array.isArray(profile.feats) ? profile.feats : []);
 
   setLssValue(profile, "subInfo.age", safeText(formData.age, unwrapValue(getNested(profile, "subInfo.age", ""))), "age");
   setLssValue(profile, "subInfo.height", safeText(formData.height, unwrapValue(getNested(profile, "subInfo.height", ""))), "height");
@@ -2063,6 +4734,9 @@ function applyBasicFormToProfile(formData) {
   profile.vitality["hp-current"] = preserveValueNode(profile.vitality["hp-current"], Math.max(0, toNumber(formData.hpCurrent, unwrapValue(profile.vitality["hp-current"], 0))));
   profile.vitality["hp-max"] = preserveValueNode(profile.vitality["hp-max"], Math.max(1, toNumber(formData.hpMax, unwrapValue(profile.vitality["hp-max"], 1))));
   profile.vitality["hp-temp"] = preserveValueNode(profile.vitality["hp-temp"], Math.max(0, toNumber(formData.hpTemp, unwrapValue(profile.vitality["hp-temp"], 0))));
+  profile.vitality["hit-die"] = preserveValueNode(profile.vitality["hit-die"], normalizeHitDie(formData.hitDie, getHitDieValue(profile)), "hit-die");
+  profile.vitality["hp-dice-current"] = preserveValueNode(profile.vitality["hp-dice-current"], Math.max(0, toNumber(formData.hitDiceCurrent, unwrapValue(profile.vitality["hp-dice-current"], 0))), "hp-dice-current");
+  profile.vitality["hp-mode"] = preserveValueNode(profile.vitality["hp-mode"], normalizeHpMode(formData.hpMode || unwrapValue(profile.vitality["hp-mode"], "manual")), "hp-mode");
   profile.vitality.ac = preserveValueNode(profile.vitality.ac, Math.max(0, toNumber(formData.ac, unwrapValue(profile.vitality.ac, 10))));
   profile.vitality.speed = preserveValueNode(profile.vitality.speed, Math.max(0, toNumber(formData.speed, unwrapValue(profile.vitality.speed, 30))));
   profile.vitality.initiative = preserveValueNode(profile.vitality.initiative, toNumber(formData.initiative, unwrapValue(profile.vitality.initiative, getDexInitiative(profile))));
@@ -2108,7 +4782,9 @@ function applyBasicFormToProfile(formData) {
   profile["notes-2"] = safeText(formData.notes2, profile["notes-2"] || "");
 
   applyClassGuideToProfile(profile, { source: "edit" });
+  applySubclassGuideToProfile(profile, { source: "edit" });
   applyRaceGuideToProfile(profile, { source: "edit" });
+  applySubraceGuideToProfile(profile, { source: "edit" });
   applyBackgroundGuideToProfile(profile, { source: "edit" });
 
   return profile;
@@ -2119,12 +4795,17 @@ function collectEditFormData() {
     "name",
     "charClass",
     "charSubclass",
+    "subrace",
     "level",
     "background",
     "race",
     "alignment",
     "size",
     "experience",
+    "statsMethod",
+    "multiclass",
+    "AppliedAsiRecords",
+    "SelectedFeats",
     "age",
     "height",
     "weight",
@@ -2135,6 +4816,9 @@ function collectEditFormData() {
     "hpCurrent",
     "hpMax",
     "hpTemp",
+    "hitDie",
+    "hitDiceCurrent",
+    "hpMode",
     "ac",
     "speed",
     "initiative",
@@ -2170,6 +4854,9 @@ function collectEditFormData() {
   fields.forEach((key) => {
     result[key] = safeText(getSection(`lssEdit_${key}`)?.value, "");
   });
+  result.multiclassEnabled = Boolean(getSection("lssEdit_multiclassEnabled")?.checked);
+  result.abilityImprovements = getSection("lssEditAppliedAsiRecords")?.value || result.AppliedAsiRecords || "[]";
+  result.feats = getSection("lssEditSelectedFeats")?.value || result.SelectedFeats || "[]";
 
   STAT_DEFS.forEach(({ key }) => {
     result.saves[key] = Boolean(getSection(`lssEdit_save_${key}`)?.checked);
@@ -2239,11 +4926,12 @@ function renderTopToolbar() {
     window: "window",
   }[String(LSS_STATE.source || "empty").toLowerCase()] || String(LSS_STATE.source || "нет данных");
 
+  const rulesLabel = getLssRulesStatusLabel();
   const characterPool = getLssCharacterPool();
   const hasProfile = Boolean(LSS_STATE.profile);
 
   return `
-    <div class="cabinet-block lss-ref-topbar lss-ref-topbar-compact">
+    <div class="cabinet-block lss-ref-topbar lss-ref-topbar-compact" style="position:static !important; top:auto !important; z-index:auto !important;">
       <div class="lss-ref-brand">
         <div class="lss-ref-mark">✦</div>
         <div>
@@ -2269,12 +4957,12 @@ function renderTopToolbar() {
         <button class="btn btn-primary" type="button" id="lssToggleImportBtn">${LSS_STATE.importPanelOpen ? "Скрыть JSON" : "📁 Загрузить"}</button>
         <button class="btn btn-secondary" type="button" id="lssToggleEditBtn">${LSS_STATE.editPanelOpen ? "Скрыть конструктор" : hasProfile ? "🛠 Конструктор" : "✨ Создать"}</button>
         <button class="btn btn-secondary" type="button" id="lssDiceToggleBtn" ${hasProfile ? "" : "disabled"}>${LSS_STATE.dicePanelOpen ? "Скрыть кубы" : "🎲 Кубы"}</button>
-        ${hasProfile ? `<button class="btn btn-success" type="button" id="lssSaveNowBtn">💾 Сохранить</button>` : ""}
-        ${hasProfile ? `<button class="btn btn-secondary" type="button" id="lssSaveAsNewBtn">＋ Копией</button>` : ""}
+        ${hasProfile ? `<button class="btn btn-success" type="button" id="lssSaveNowBtn">💾 Сохранить лист</button>` : ""}
+        ${hasProfile ? `<button class="btn btn-secondary" type="button" id="lssSaveAsNewBtn">＋ Новая копия</button>` : ""}
         ${hasProfile ? `<button class="btn btn-danger" type="button" id="lssClearDataBtn">Очистить</button>` : ""}
       </div>
 
-      <div class="lss-ref-source-pill">Источник: ${escapeHtml(sourceLabel)}</div>
+      <div class="lss-ref-source-pill" title="${escapeHtml(LSS_STATE.constructorRulesSource || "")}">Источник: ${escapeHtml(sourceLabel)} • ${escapeHtml(rulesLabel)}</div>
     </div>
   `;
 }
@@ -2361,29 +5049,48 @@ function renderLssSheetChecklist(profile) {
 
 
 function getProficiencySourceLabel(source) {
-  const map = { class: "класс", background: "предыстория", race: "раса", manual: "вручную", import: "импорт" };
+  const map = { class: "класс", background: "предыстория", race: "раса", subrace: "подраса", manual: "вручную", import: "импорт", item: "предмет" };
   return map[String(source || "").toLowerCase()] || String(source || "вручную");
+}
+
+function getProficiencySourceIcon(source, checked = false) {
+  const raw = String(source || (checked ? "manual" : "")).toLowerCase();
+  const map = { class: "🎓", background: "📜", race: "🧬", subrace: "🧬", manual: "⚙", import: "📥", item: "🎒" };
+  return map[raw] || (checked ? "⚙" : "");
 }
 
 function renderProficiencyChoice({ id, checked, label, hint = "", source = "", kind = "skill", modifier = null }) {
   const active = checked ? "btn-primary" : "btn-secondary";
-  const activeStyle = checked
-    ? "color:#06151a; font-weight:900; text-shadow:none;"
+  const sourceLabel = getProficiencySourceLabel(source || (checked ? "manual" : ""));
+  const sourceIcon = getProficiencySourceIcon(source, checked);
+  const modifierHtml = modifier !== null && modifier !== undefined
+    ? `<strong class="lss-prof-mod" style="font-size:1rem; line-height:1; ${checked ? "color:#06151a;" : "color:var(--text,#e8eef2);"}">${escapeHtml(formatSigned(modifier))}</strong>`
     : "";
-  const hintStyle = checked
-    ? "font-size:0.68rem; color:rgba(6,21,26,.72); font-weight:900;"
-    : "font-size:0.68rem;";
-  const sourcePill = source ? `<small class="meta-item" style="margin-left:auto; ${checked ? "color:#06313a; border-color:rgba(6,49,58,.22); background:rgba(255,255,255,.18);" : ""}">${escapeHtml(getProficiencySourceLabel(source))}</small>` : "";
-  const modPill = modifier !== null && modifier !== undefined ? `<strong style="margin-left:auto; min-width:42px; text-align:center; font-size:1rem; ${checked ? "color:#06151a;" : "color:var(--text,#e8eef2);"}">${escapeHtml(formatSigned(modifier))}</strong>` : "";
+  const hintHtml = hint ? `<span class="lss-prof-hint" style="font-size:0.68rem; font-weight:900; opacity:.78; ${checked ? "color:rgba(6,21,26,.78);" : ""}">${escapeHtml(hint)}</span>` : "";
+  const sourceHtml = sourceIcon ? `<span class="lss-prof-source" title="Источник: ${escapeHtml(sourceLabel)}" style="font-size:.82rem; line-height:1; opacity:.9; ${checked ? "color:rgba(6,21,26,.78);" : "color:var(--muted,#9fb0b8);"}">${escapeHtml(sourceIcon)}</span>` : "";
+
   return `
-    <label class="lss-prof-choice btn ${active}" title="${escapeHtml(label)}" style="display:flex; align-items:center; gap:8px; justify-content:flex-start; text-align:left; min-height:42px; white-space:normal; ${activeStyle}">
+    <label class="lss-prof-choice btn ${active}" title="${escapeHtml(label)} • ${escapeHtml(sourceLabel || "клик = ручное владение")}" style="display:grid; grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:'mark name mod' 'mark meta mod'; column-gap:8px; row-gap:2px; align-items:center; justify-content:stretch; text-align:left; min-height:46px; white-space:normal; padding:8px 10px; overflow:visible; ${checked ? "color:#06151a; font-weight:900; text-shadow:none;" : ""}">
       <input id="${escapeHtml(id)}" type="checkbox" style="display:none;" ${checked ? "checked" : ""} data-lss-prof-kind="${escapeHtml(kind)}">
-      <span style="font-size:1.05rem; min-width:14px;">${checked ? "✓" : "+"}</span>
-      <span style="min-width:0; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(label)}</span>
-      ${hint ? `<small class="muted" style="${hintStyle}">${escapeHtml(hint)}</small>` : ""}
-      ${modPill || sourcePill}
-      ${modPill && sourcePill ? sourcePill : ""}
+      <span style="grid-area:mark; font-size:1.05rem; min-width:16px; text-align:center;">${checked ? "✓" : "+"}</span>
+      <span style="grid-area:name; min-width:0; white-space:normal; overflow:visible; text-overflow:clip; line-height:1.12;">${escapeHtml(label)}</span>
+      <span style="grid-area:meta; min-width:0; display:flex; gap:6px; align-items:center; flex-wrap:wrap; line-height:1.05;">${hintHtml}${sourceHtml}</span>
+      <span style="grid-area:mod; min-width:36px; text-align:right;">${modifierHtml}</span>
     </label>
+  `;
+}
+
+function renderVitalsFormulaSummary(profile) {
+  const hp = getHpFormulaPreview(profile);
+  const ac = getAcFormulaPreview(profile);
+  return `
+    <div class="lss-editor-checks-block" style="margin:10px 0 12px;">
+      <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Формулы боя</div>
+      <div class="profile-grid" style="gap:8px;">
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>HP:</strong>&nbsp; ${escapeHtml(hp.text)}. Максимум сейчас: ${escapeHtml(String(hp.maxHp || "—"))}. Метод: ${escapeHtml(hp.modeLabel)}.</div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>КБ:</strong>&nbsp; ${escapeHtml(ac.text)}</div>
+      </div>
+    </div>
   `;
 }
 
@@ -2393,12 +5100,100 @@ function renderAbilityFormulaHint(profile) {
   const pb = getProficiencyBonus(p);
   return `
     <div class="lss-editor-checks-block" style="margin:10px 0 12px;">
-      <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Как считаются значения</div>
+      <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Как считаются проверки</div>
       <div class="profile-grid" style="gap:8px;">
         <div class="meta-item" style="white-space:normal;"><strong>Инициатива:</strong> Ловкость ${escapeHtml(formatSigned(dexMod))}, можно править вручную.</div>
         <div class="meta-item" style="white-space:normal;"><strong>Навык:</strong> модификатор характеристики + ${escapeHtml(formatSigned(pb))} если есть владение.</div>
         <div class="meta-item" style="white-space:normal;"><strong>Спасбросок:</strong> модификатор характеристики + владение, если отмечено.</div>
       </div>
+    </div>
+  `;
+}
+
+function renderStatsRulePanel(profile, mode = "edit") {
+  const p = profile || {};
+  const method = getStatMethodValue(p);
+  const targetPrefix = mode === "quick" ? "lssQuick" : "lssEdit";
+  return `
+    <div class="lss-editor-checks-block" style="margin:10px 0 12px; padding:10px 12px; border:1px solid rgba(117,203,198,.16); border-radius:14px; background:rgba(5,12,18,.28);">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Правила характеристик</div>
+          <div style="font-weight:900; color:var(--gold,#d6b36a);">Как получены статы</div>
+        </div>
+        <div class="modal-actions" style="gap:6px; margin:0;">
+          <button class="btn btn-secondary" type="button" id="${targetPrefix}ApplyStatsBtn">Стандарт под класс</button>
+          <button class="btn btn-secondary" type="button" id="${targetPrefix}RollStatsBtn">🎲 4к6</button>
+        </div>
+      </div>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+        <div class="filter-group"><label>Метод</label><select id="${mode === "quick" ? "lssQuickCreateStatsMethod" : "lssEdit_statsMethod"}">${getStatsMethodOptionsHtml(method)}</select></div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Стандарт:</strong>&nbsp;15, 14, 13, 12, 10, 8 — кнопка раскидывает по важным статам класса.</div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Покупка очков:</strong>&nbsp;пока сохраняем метод и даём безопасный шаблон; полный бюджет 27 отдельным data-pass.</div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Броски:</strong>&nbsp;4к6, убрать меньшую, сумма трёх. Результат сразу попадает в поля.</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderHpRulePanel(profile, mode = "edit") {
+  const hp = getHpFormulaPreview(profile);
+  const prefix = mode === "quick" ? "lssQuick" : "lssEdit";
+  return `
+    <div class="lss-editor-checks-block" style="margin:10px 0 12px; padding:10px 12px; border:1px solid rgba(199,162,91,.18); border-radius:14px; background:rgba(5,12,18,.28);">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Правила HP</div>
+          <div style="font-weight:900; color:var(--gold,#d6b36a);">Среднее / бросок / ручное</div>
+        </div>
+        <div class="modal-actions" style="gap:6px; margin:0;">
+          <button class="btn btn-secondary" type="button" id="${prefix}ApplyAverageHpBtn">≈ Среднее</button>
+          <button class="btn btn-secondary" type="button" id="${prefix}RollHpBtn">🎲 Бросить прирост</button>
+        </div>
+      </div>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+        <div class="filter-group"><label>Метод HP</label><select id="${mode === "quick" ? "lssQuickCreateHpMode" : "lssEdit_hpMode"}">${getHpModeOptionsHtml(hp.mode)}</select></div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Формула:</strong>&nbsp;${escapeHtml(hp.text)}</div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Текущий максимум:</strong>&nbsp;${escapeHtml(String(hp.maxHp || "—"))}. Метод: ${escapeHtml(hp.modeLabel)}.</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMulticlassPanel(profile) {
+  const p = profile || {};
+  const info = p.info || {};
+  const enabled = Boolean(unwrapValue(info.multiclassEnabled, false));
+  const mainGuide = getLssClassGuide(unwrapValue(info.charClass, ""));
+  const mainRule = mainGuide ? evaluateMulticlassRule(p, mainGuide.id) : null;
+  const currentText = safeText(unwrapValue(info.multiclass, ""), "");
+  const ruleRows = (getRulesClassList().length ? getRulesClassList() : LSS_CLASS_GUIDES).map((guide) => {
+    const result = evaluateMulticlassRule(p, guide.id);
+    const marker = result.ok ? "✓" : "•";
+    return `<span class="meta-item" style="white-space:normal; ${result.ok ? "border-color:rgba(134,239,172,.32);" : ""}">${marker} ${escapeHtml(guide.label)}: ${escapeHtml(result.text)}</span>`;
+  }).join("");
+
+  return `
+    <div class="lss-editor-checks-block" style="margin:10px 0 12px; padding:10px 12px; border:1px solid rgba(117,203,198,.16); border-radius:14px; background:rgba(5,12,18,.28);">
+      <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <div>
+          <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Мультикласс</div>
+          <div style="font-weight:900; color:var(--gold,#d6b36a);">Дополнительные классы</div>
+        </div>
+        <label class="btn ${enabled ? "btn-primary" : "btn-secondary"}" style="cursor:pointer;">
+          <input id="lssEdit_multiclassEnabled" type="checkbox" style="display:none;" ${enabled ? "checked" : ""}>
+          ${enabled ? "✓ Мультикласс включён" : "＋ Мультикласс"}
+        </label>
+      </div>
+      <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px;">
+        <div class="filter-group"><label>Классы и уровни</label><input id="lssEdit_multiclass" type="text" maxlength="120" data-lss-text="short" value="${escapeHtml(currentText)}" placeholder="Напр.: Воин 2 / Волшебник 3"></div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Главный класс:</strong>&nbsp;${escapeHtml(mainGuide?.label || "не выбран")} ${mainRule ? `• требования: ${escapeHtml(mainRule.text)} ${mainRule.ok ? "✓" : "не выполнены"}` : ""}</div>
+        <div class="meta-item" style="white-space:normal; align-items:flex-start;"><strong>Важно:</strong>&nbsp;сейчас это безопасная заготовка правил. Ячейки заклинаний и прогресс классов подключим после data-layer.</div>
+      </div>
+      <details style="margin-top:8px;">
+        <summary class="muted" style="cursor:pointer;">Показать требования ко всем классам</summary>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${ruleRows}</div>
+      </details>
     </div>
   `;
 }
@@ -2437,7 +5232,7 @@ function renderEditPanel(profile) {
       <div class="flex-between" style="align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
         <div>
           <h4 style="margin:0 0 6px 0;">Конструктор LSS</h4>
-          <div class="muted" style="font-size:0.82rem;">Редактирование в sheet-режиме: читаемо, секционно и без огромной стены полей.</div>
+          <div class="muted" style="font-size:0.82rem;">Конструктор: выбираем основу, а механика подтягивается из LSS-cache, совместимого с данными Бестиария.</div>
         </div>
         <div class="lss-jump-rail">
           <button class="btn btn-secondary" type="button" data-lss-jump="lssEditIdentity">Основа</button>
@@ -2449,7 +5244,6 @@ function renderEditPanel(profile) {
       </div>
 
       ${renderLssSheetChecklist(p)}
-      ${renderLssMechanicsSources(p)}
 
       <div class="lss-editor-grid">
         <section class="lss-editor-section" id="lssEditIdentity">
@@ -2462,17 +5256,21 @@ function renderEditPanel(profile) {
           </div>
           <div class="profile-grid">
             <div class="filter-group"><label>Имя</label><input id="lssEdit_name" type="text" maxlength="60" data-lss-text="name" value="${escapeHtml(safeText(unwrapValue(p.name, ""), ""))}" /></div>
-            <div class="filter-group"><label>Класс</label><input id="lssEdit_charClass" type="text" list="lssEditClassOptions" maxlength="40" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.charClass, ""), ""))}" /></div>
-            <datalist id="lssEditClassOptions">${getLssClassOptionsHtml()}</datalist>
-            <div class="filter-group"><label>Подкласс</label><input id="lssEdit_charSubclass" type="text" maxlength="60" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.charSubclass, ""), ""))}" placeholder="если уже доступен по уровню" /></div>
+            <div class="filter-group"><label>Класс</label><select id="lssEdit_charClass" data-lss-text="short">${getLssClassSelectOptionsHtml(unwrapValue(info.charClass, ""))}</select></div>
+            <div class="filter-group"><label>Подкласс</label><select id="lssEdit_charSubclass" data-lss-text="short">${getLssSubclassSelectOptionsHtml(unwrapValue(info.charClass, ""), unwrapValue(info.charSubclass, ""))}</select><div id="lssEditSubclassHint">${renderLssSubclassHint(unwrapValue(info.charClass, ""), unwrapValue(info.charSubclass, ""), unwrapValue(info.level, 1))}</div></div>
             <div class="filter-group"><label>Уровень</label><input id="lssEdit_level" ${numericInputAttrs(1, 20)} value="${escapeHtml(safeText(unwrapValue(info.level, "1"), "1"))}" /></div>
-            <div class="filter-group"><label>Раса</label><input id="lssEdit_race" type="text" list="lssEditRaceOptions" maxlength="40" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.race, ""), ""))}" /></div><datalist id="lssEditRaceOptions">${getLssRaceOptionsHtml()}</datalist>
-            <div class="filter-group"><label>Предыстория</label><input id="lssEdit_background" type="text" list="lssEditBackgroundOptions" maxlength="50" data-lss-text="short" value="${escapeHtml(safeText(unwrapValue(info.background, ""), ""))}" /></div><datalist id="lssEditBackgroundOptions">${getLssBackgroundOptionsHtml()}</datalist>
-            <div class="filter-group"><label>Мировоззрение</label><select id="lssEdit_alignment">${getAlignmentOptionsHtml(unwrapValue(info.alignment, ""))}</select></div>
+            <div class="filter-group"><label>Раса</label><select id="lssEdit_race" data-lss-text="short">${getLssRaceSelectOptionsHtml(unwrapValue(info.race, ""))}</select></div>
+            <div class="filter-group"><label>Подраса / вариант</label><select id="lssEdit_subrace" data-lss-text="short">${getLssSubraceSelectOptionsHtml(unwrapValue(info.race, ""), unwrapValue(info.subrace, ""))}</select><div id="lssEditSubraceHint">${renderLssSubraceHint(unwrapValue(info.race, ""), unwrapValue(info.subrace, ""))}</div></div>
+            <div class="filter-group"><label>Предыстория</label><select id="lssEdit_background" data-lss-text="short">${getLssBackgroundSelectOptionsHtml(unwrapValue(info.background, ""))}</select></div>
+            <div class="filter-group lss-ref-field-main"><label>Мировоззрение / моральная ось</label>${renderLssAlignmentGrid("lssEdit_alignment", unwrapValue(info.alignment, ""))}</div>
             <div class="filter-group"><label>Размер</label><select id="lssEdit_size">${getSizeOptionsHtml(unwrapValue(info.size, "medium"))}</select></div>
             <div class="filter-group"><label>Опыт</label><input id="lssEdit_experience" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(info.experience, "0"), "0"))}" /></div>
           </div>
+          ${renderMulticlassPanel(p)}
+          ${renderLssMechanicsSources(p)}
           ${renderLssClassGuidanceCard(unwrapValue(info.charClass, ""), { mode: "edit" })}
+          ${renderLssRulesProgressionPanel("edit")}
+          ${renderLssAsiFeatPanel("edit")}
 
           <div class="profile-grid" style="margin-top:12px;">
             <div class="filter-group"><label>Возраст</label><input id="lssEdit_age" type="text" inputmode="numeric" value="${escapeHtml(safeText(unwrapValue(subInfo.age, ""), ""))}" /></div>
@@ -2492,15 +5290,20 @@ function renderEditPanel(profile) {
             </div>
             <span class="meta-item">HP / AC / Init</span>
           </div>
-          <div class="profile-grid">
+          <div class="profile-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
             <div class="filter-group"><label>HP текущие</label><input id="lssEdit_hpCurrent" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-current"], "0"), "0"))}" /></div>
             <div class="filter-group"><label>HP максимум</label><input id="lssEdit_hpMax" ${numericInputAttrs(1)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-max"], "1"), "1"))}" /></div>
-            <div class="filter-group"><label>HP временные</label><input id="lssEdit_hpTemp" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], "0"), "0"))}" /></div>
-            <div class="filter-group"><label>КБ</label><input id="lssEdit_ac" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.ac, "10"), "10"))}" /></div>
+            <div class="filter-group"><label>Временные HP</label><input id="lssEdit_hpTemp" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-temp"], "0"), "0"))}" /></div>
+            <div class="filter-group"><label>Кость хитов класса</label><select id="lssEdit_hitDie">${getHitDieOptionsHtml(getHitDieValue(p))}</select><small class="muted">тип кости: d6/d8/d10...</small></div>
+            <div class="filter-group"><label>Кости отдыха</label><input id="lssEdit_hitDiceCurrent" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality["hp-dice-current"], unwrapValue(info.level, "1")), "1"))}" /><small class="muted">сколько костей хитов доступно</small></div>
+            <div class="filter-group"><label>КБ итоговая</label><input id="lssEdit_ac" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.ac, "10"), "10"))}" /></div>
             <div class="filter-group"><label>Скорость, фт.</label><input id="lssEdit_speed" ${numericInputAttrs(0)} value="${escapeHtml(safeText(unwrapValue(vitality.speed, "30"), "30"))}" /></div>
             <div class="filter-group"><label>Инициатива <small>авто от Ловкости</small></label><input id="lssEdit_initiative" type="number" inputmode="numeric" value="${escapeHtml(String(getInitiativeModifier(p)))}" data-auto-value="${escapeHtml(String(getDexInitiative(p)))}" /><input id="lssEdit_initiativeAuto" type="hidden" value="${String(unwrapValue(vitality.initiative, "")) === "" ? "1" : "0"}"><small class="muted">Авто сейчас: ${escapeHtml(formatSigned(getDexInitiative(p)))}. Можно вписать вручную.</small></div>
             <div class="filter-group"><label>Бонус владения</label><input id="lssEdit_proficiency" ${numericInputAttrs(0)} value="${escapeHtml(String(getProficiencyBonus(p)))}" /></div>
           </div>
+          ${renderHpRulePanel(p, "edit")}
+          ${renderVitalsFormulaSummary(p)}
+          ${renderStatsRulePanel(p, "edit")}
           <div class="profile-grid" style="margin-top:12px;">
             <div class="filter-group"><label>Сила <small>STR</small></label><input id="lssEdit_stat_str" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.str?.score, 10)))}" /></div>
             <div class="filter-group"><label>Ловкость <small>DEX</small></label><input id="lssEdit_stat_dex" ${numericInputAttrs(1, 30)} value="${escapeHtml(String(unwrapValue(p?.stats?.dex?.score, 10)))}" /></div>
@@ -2516,7 +5319,7 @@ function renderEditPanel(profile) {
 
           <div class="lss-editor-checks-block">
             <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Спасброски с владением</div>
-            <div class="lss-editor-check-grid lss-editor-check-grid-stats">
+            <div class="lss-editor-check-grid lss-editor-check-grid-stats" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px;">
               ${STAT_DEFS.map(({ key, label }) => renderProficiencyChoice({
                 id: `lssEdit_save_${key}`,
                 checked: hasSaveProficiency(p, key),
@@ -2530,8 +5333,8 @@ function renderEditPanel(profile) {
           </div>
 
           <div class="lss-editor-checks-block">
-            <div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Навыки с владением</div>
-            <div class="lss-editor-check-grid">
+            <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;"><div class="muted" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;">Навыки с владением</div><div class="muted" style="font-size:0.76rem;">+ добавляет владение сразу; ⚙ = вручную</div></div>
+            <div class="lss-editor-check-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
               ${Object.entries(SKILL_BASE_STATS).map(([skillKey, baseStat]) => renderProficiencyChoice({
                 id: `lssEdit_skill_${lssEditDomKey(skillKey)}`,
                 checked: isSkillProficient(p, skillKey),
@@ -2680,6 +5483,115 @@ function refreshClassGuidePanel(inputId, panelId) {
   temp.innerHTML = html.trim();
   const next = temp.firstElementChild;
   if (next) panel.replaceWith(next);
+  refreshLssDependentChoiceLists(mode);
+}
+
+function refreshLssDependentChoiceLists(mode = "edit") {
+  const isEdit = mode === "edit";
+  const classInput = getSection(isEdit ? "lssEdit_charClass" : "lssQuickCreateClass");
+  const raceInput = getSection(isEdit ? "lssEdit_race" : "lssQuickCreateRace");
+  const subclassList = getSection(isEdit ? "lssEditSubclassOptions" : "lssQuickSubclassOptions");
+  const subclassControl = getSection(isEdit ? "lssEdit_charSubclass" : "lssQuickCreateSubclass");
+  const subraceDatalist = getSection(isEdit ? "lssEditSubraceOptions" : "lssQuickSubraceOptions");
+  const subraceControl = getSection(isEdit ? "lssEdit_subrace" : "lssQuickCreateSubrace");
+
+  const className = readLssChoiceControlValue(isEdit ? "lssEdit_charClass" : "lssQuickCreateClass", "");
+  const currentSubclass = readLssChoiceControlValue(isEdit ? "lssEdit_charSubclass" : "lssQuickCreateSubclass", "");
+  if (subclassList) subclassList.innerHTML = getLssSubclassOptionsHtml(className);
+  if (subclassControl?.tagName === "SELECT") {
+    subclassControl.innerHTML = getLssSubclassSelectOptionsHtml(className, currentSubclass);
+    if (currentSubclass && !getLssSubclassGuide(className, currentSubclass)) {
+      subclassControl.value = "";
+    } else {
+      subclassControl.value = currentSubclass;
+    }
+  }
+
+  const raceName = readLssChoiceControlValue(isEdit ? "lssEdit_race" : "lssQuickCreateRace", "");
+  const currentSubrace = readLssChoiceControlValue(isEdit ? "lssEdit_subrace" : "lssQuickCreateSubrace", "");
+  if (subraceDatalist) subraceDatalist.innerHTML = getLssSubraceOptionsHtml(raceName);
+  if (subraceControl?.tagName === "SELECT") {
+    subraceControl.innerHTML = getLssSubraceSelectOptionsHtml(raceName, currentSubrace);
+    if (currentSubrace && !getLssSubraceGuide(raceName, currentSubrace)) {
+      subraceControl.value = "";
+    } else {
+      subraceControl.value = currentSubrace;
+    }
+  }
+
+  refreshLssChoiceHintBlocks(mode);
+}
+
+function refreshLssChoiceHintBlocks(mode = "quick") {
+  const isEdit = mode === "edit";
+  const ctx = getFormSelectionContext(mode);
+  const level = getLssFormLevel(mode);
+
+  const subclassHint = getSection(isEdit ? "lssEditSubclassHint" : "lssQuickSubclassHint");
+  if (subclassHint) {
+    subclassHint.innerHTML = renderLssSubclassHint(ctx.className, ctx.subclassName, level);
+  }
+
+  const subraceHint = getSection(isEdit ? "lssEditSubraceHint" : "lssQuickSubraceHint");
+  if (subraceHint) {
+    subraceHint.innerHTML = renderLssSubraceHint(ctx.raceName, ctx.subraceName);
+  }
+}
+
+function scheduleLssConstructorDerivedRefresh(mode = "quick") {
+  const key = mode === "edit" ? "editConstructorRefreshTimer" : "quickConstructorRefreshTimer";
+  if (LSS_STATE[key]) window.clearTimeout(LSS_STATE[key]);
+  LSS_STATE[key] = window.setTimeout(() => {
+    syncLssChoiceSnapshot(mode);
+    refreshLssChoiceHintBlocks(mode);
+    refreshLssSourceBonusesPanel(mode);
+    refreshLssRulesProgressionPanel(mode);
+    refreshLssAsiFeatPanel(mode);
+    LSS_STATE[key] = null;
+  }, 0);
+}
+
+function bindLssConstructorDelegatedRefresh() {
+  if (LSS_STATE.constructorDelegatedRefreshBound === "1") return;
+  LSS_STATE.constructorDelegatedRefreshBound = "1";
+  const handle = (event) => {
+    const target = event.target;
+    if (!target?.id) return;
+    const id = String(target.id);
+    const isQuick = id.startsWith("lssQuickCreate");
+    const isEdit = id.startsWith("lssEdit_");
+    if (!isQuick && !isEdit) return;
+    const mode = isEdit ? "edit" : "quick";
+
+    if (id === "lssQuickCreateClass") {
+      refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      refreshLssDependentChoiceLists("quick");
+      applyQuickClassDefaults();
+      applyQuickDexDefaults();
+      LSS_STATE.quickAppliedAbilityBonusKey = "";
+    } else if (id === "lssQuickCreateRace") {
+      LSS_STATE.quickAppliedAbilityBonusKey = "";
+      applyQuickRaceDefaults();
+    } else if (id === "lssEdit_charClass") {
+      refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      refreshLssDependentChoiceLists("edit");
+    } else if (id === "lssEdit_race") {
+      refreshLssDependentChoiceLists("edit");
+    }
+
+    scheduleLssConstructorDerivedRefresh(mode);
+  };
+  document.addEventListener("change", handle);
+  document.addEventListener("input", handle);
+}
+
+function applyEditFormLive(toastMessage = "Лист обновлён локально") {
+  if (!getSection("lssEditPanel") || !LSS_STATE.profile) return;
+  const nextProfile = normalizeLssProfileForSave(applyBasicFormToProfile(collectEditFormData()));
+  setLssData(nextProfile, { persistLocal: true, source: "manual" });
+  LSS_STATE.editPanelOpen = true;
+  renderLSS();
+  if (toastMessage) showToast(toastMessage);
 }
 
 function applyQuickClassDefaults() {
@@ -2689,6 +5601,8 @@ function applyQuickClassDefaults() {
   const proficiencyInput = getSection("lssQuickCreateProficiency");
   const hpInput = getSection("lssQuickCreateHp");
   const hpMaxInput = getSection("lssQuickCreateHpMax");
+  const hitDieSelect = getSection("lssQuickCreateHitDie");
+  const hitDiceInput = getSection("lssQuickCreateHitDiceCurrent");
   const conInput = getSection("lssQuickCreateStat_con");
 
   if (proficiencyInput) {
@@ -2697,8 +5611,19 @@ function applyQuickClassDefaults() {
 
   if (!guide) return;
 
+  if (hitDieSelect) hitDieSelect.value = `d${guide.hitDie}`;
+  if (hitDiceInput && (!String(hitDiceInput.value || "").trim() || hitDiceInput.value === "1" || hitDiceInput.dataset.autoValue === hitDiceInput.value)) {
+    const levelValue = Math.max(1, toNumber(levelInput?.value || 1, 1));
+    hitDiceInput.value = String(levelValue);
+    hitDiceInput.dataset.autoValue = String(levelValue);
+  }
+
   const conScore = toNumber(conInput?.value, 10);
-  const expectedHp = getExpectedLevelOneHp(guide, conScore);
+  const hpMode = normalizeHpMode(getSection("lssQuickCreateHpMode")?.value || "average", "average");
+  const levelValueForHp = Math.max(1, toNumber(levelInput?.value || 1, 1));
+  const expectedHp = hpMode === "average"
+    ? getAverageHpForLevel(`d${guide.hitDie}`, levelValueForHp, statMod(conScore))
+    : getExpectedLevelOneHp(guide, conScore);
   const currentClass = String(classInput?.value || "").trim();
   const previousClass = classInput?.dataset?.appliedClass || "";
   const classChanged = currentClass && currentClass !== previousClass;
@@ -2738,6 +5663,7 @@ function applyQuickRaceDefaults() {
   const raceInput = getSection("lssQuickCreateRace");
   const sizeSelect = getSection("lssQuickCreateSize");
   const speedInput = getSection("lssQuickCreateSpeed");
+  refreshLssDependentChoiceLists("quick");
   const guide = getLssRaceGuide(raceInput?.value || "");
   if (!guide) return;
 
@@ -2753,6 +5679,106 @@ function applyQuickRaceDefaults() {
       speedInput.dataset.autoValue = String(guide.speed || 30);
     }
   }
+}
+
+
+function getFormHpContext(mode = "quick") {
+  const isEdit = mode === "edit";
+  const className = getSection(isEdit ? "lssEdit_charClass" : "lssQuickCreateClass")?.value || unwrapValue(LSS_STATE.profile?.info?.charClass, "");
+  const hitDie = normalizeHitDie(getSection(isEdit ? "lssEdit_hitDie" : "lssQuickCreateHitDie")?.value || "d8", "d8");
+  const level = clampNumber(getSection(isEdit ? "lssEdit_level" : "lssQuickCreateLevel")?.value || unwrapValue(LSS_STATE.profile?.info?.level, 1), 1, 20, 1);
+  const conScore = clampNumber(getSection(isEdit ? "lssEdit_stat_con" : "lssQuickCreateStat_con")?.value || getNested(LSS_STATE.profile, "stats.con.score", 10), 1, 30, 10);
+  const guide = getLssClassGuide(className);
+  return { className, hitDie: guide ? `d${guide.hitDie}` : hitDie, level, conScore, conMod: statMod(conScore) };
+}
+
+function setFormHpValues(mode = "quick", hpMax, hpMode = "average") {
+  const isEdit = mode === "edit";
+  const hpInput = getSection(isEdit ? "lssEdit_hpCurrent" : "lssQuickCreateHp");
+  const hpMaxInput = getSection(isEdit ? "lssEdit_hpMax" : "lssQuickCreateHpMax");
+  const hpModeSelect = getSection(isEdit ? "lssEdit_hpMode" : "lssQuickCreateHpMode");
+  if (hpMaxInput) hpMaxInput.value = String(Math.max(1, toNumber(hpMax, 1)));
+  if (hpInput) hpInput.value = String(Math.max(1, toNumber(hpMax, 1)));
+  if (hpModeSelect) hpModeSelect.value = normalizeHpMode(hpMode, "average");
+  if (isEdit) applyEditFormLive(hpMode === "roll" ? "HP увеличены броском" : "HP пересчитаны по среднему");
+}
+
+function applyAverageHpToForm(mode = "quick") {
+  const ctx = getFormHpContext(mode);
+  const hp = getAverageHpForLevel(ctx.hitDie, ctx.level, ctx.conMod);
+  setFormHpValues(mode, hp, "average");
+}
+
+function rollHpGrowthToForm(mode = "quick") {
+  const ctx = getFormHpContext(mode);
+  const dieSize = toNumber(String(ctx.hitDie).replace("d", ""), 8);
+  const currentMaxInput = getSection(mode === "edit" ? "lssEdit_hpMax" : "lssQuickCreateHpMax");
+  const current = Math.max(1, toNumber(currentMaxInput?.value, getAverageHpForLevel(ctx.hitDie, Math.max(1, ctx.level - 1), ctx.conMod)));
+  const roll = rollDieSize(dieSize);
+  const gain = Math.max(1, roll + ctx.conMod);
+  setFormHpValues(mode, current + gain, "roll");
+  showToast(`HP бросок: ${ctx.hitDie}=${roll}, Тел ${formatSigned(ctx.conMod)}, прирост ${gain}`);
+}
+
+function setStatsFields(mode = "quick", stats = {}, method = "standard-array") {
+  const isEdit = mode === "edit";
+  STAT_DEFS.forEach(({ key }) => {
+    const input = getSection(isEdit ? `lssEdit_stat_${key}` : `lssQuickCreateStat_${key}`);
+    if (input && stats[key]) input.value = String(stats[key]);
+  });
+  const methodSelect = getSection(isEdit ? "lssEdit_statsMethod" : "lssQuickCreateStatsMethod");
+  if (methodSelect) methodSelect.value = normalizeStatsMethod(method, "standard-array");
+  applyQuickDexDefaults();
+  if (isEdit) applyEditFormLive(method === "roll-4d6" ? "Характеристики брошены" : "Характеристики распределены под класс");
+}
+
+function applySuggestedStatsToForm(mode = "quick") {
+  const isEdit = mode === "edit";
+  const className = getSection(isEdit ? "lssEdit_charClass" : "lssQuickCreateClass")?.value || "";
+  const method = getSection(isEdit ? "lssEdit_statsMethod" : "lssQuickCreateStatsMethod")?.value || "standard-array";
+  setStatsFields(mode, getSuggestedStatsForClass(className, method), method);
+}
+
+function rollStatsToForm(mode = "quick") {
+  setStatsFields(mode, getRolledStats(), "roll-4d6");
+}
+
+function bindLssConstructorRuleButtons() {
+  const pairs = [
+    ["lssQuickApplyAverageHpBtn", () => applyAverageHpToForm("quick")],
+    ["lssEditApplyAverageHpBtn", () => applyAverageHpToForm("edit")],
+    ["lssQuickRollHpBtn", () => rollHpGrowthToForm("quick")],
+    ["lssEditRollHpBtn", () => rollHpGrowthToForm("edit")],
+    ["lssQuickApplyStatsBtn", () => applySuggestedStatsToForm("quick")],
+    ["lssEditApplyStatsBtn", () => applySuggestedStatsToForm("edit")],
+    ["lssQuickRollStatsBtn", () => rollStatsToForm("quick")],
+    ["lssEditRollStatsBtn", () => rollStatsToForm("edit")],
+    ["lssQuickApplySourceBonusesBtn", () => applyQuickSourceAbilityBonuses()],
+    ["lssQuickApplyAsiFeatBtn", () => applyAsiFeatToForm("quick")],
+    ["lssEditApplyAsiFeatBtn", () => applyAsiFeatToForm("edit")],
+  ];
+
+  pairs.forEach(([id, handler]) => {
+    const btn = getSection(id);
+    if (!btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", handler);
+  });
+
+  const multiToggle = getSection("lssEdit_multiclassEnabled");
+  if (multiToggle && multiToggle.dataset.bound !== "1") {
+    multiToggle.dataset.bound = "1";
+    multiToggle.addEventListener("change", () => applyEditFormLive(multiToggle.checked ? "Мультикласс включён" : "Мультикласс выключен"));
+  }
+
+  ["lssQuickCreateHpMode", "lssEdit_hpMode"].forEach((id) => {
+    const select = getSection(id);
+    if (!select || select.dataset.bound === "1") return;
+    select.dataset.bound = "1";
+    select.addEventListener("change", () => {
+      if (select.value === "average") applyAverageHpToForm(id.includes("Edit") ? "edit" : "quick");
+    });
+  });
 }
 
 function bindLssInputGuards() {
@@ -2849,24 +5875,43 @@ function validateEditFormData(formData = {}) {
 }
 
 function bindLssClassGuideInputs() {
+  bindLssConstructorDelegatedRefresh();
+  syncLssChoiceSnapshot("quick");
+  syncLssChoiceSnapshot("edit");
   const quickClassInput = getSection("lssQuickCreateClass");
   const quickLevelInput = getSection("lssQuickCreateLevel");
   const quickConInput = getSection("lssQuickCreateStat_con");
   const quickRaceInput = getSection("lssQuickCreateRace");
+  const quickSubclassInput = getSection("lssQuickCreateSubclass");
+  const quickSubraceInput = getSection("lssQuickCreateSubrace");
+  const quickBackgroundInput = getSection("lssQuickCreateBackground");
   const editClassInput = getSection("lssEdit_charClass");
+  const editRaceInput = getSection("lssEdit_race");
+  const editSubclassInput = getSection("lssEdit_charSubclass");
+  const editSubraceInput = getSection("lssEdit_subrace");
   const editLevelInput = getSection("lssEdit_level");
 
   if (quickClassInput && quickClassInput.dataset.classGuideBound !== "1") {
     quickClassInput.dataset.classGuideBound = "1";
     quickClassInput.addEventListener("input", () => {
       refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      refreshLssDependentChoiceLists("quick");
       applyQuickClassDefaults();
       applyQuickDexDefaults();
+      LSS_STATE.quickAppliedAbilityBonusKey = "";
+      refreshLssSourceBonusesPanel("quick");
+      refreshLssRulesProgressionPanel("quick");
+      refreshLssAsiFeatPanel("quick");
     });
     quickClassInput.addEventListener("change", () => {
       refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
+      refreshLssDependentChoiceLists("quick");
       applyQuickClassDefaults();
       applyQuickDexDefaults();
+      LSS_STATE.quickAppliedAbilityBonusKey = "";
+      refreshLssSourceBonusesPanel("quick");
+      refreshLssRulesProgressionPanel("quick");
+      refreshLssAsiFeatPanel("quick");
     });
   }
 
@@ -2876,35 +5921,96 @@ function bindLssClassGuideInputs() {
     input.addEventListener("input", () => {
       refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
       refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      refreshLssDependentChoiceLists("edit");
       applyQuickClassDefaults();
       applyQuickDexDefaults();
+      refreshLssSourceBonusesPanel("quick");
+      refreshLssRulesProgressionPanel("quick");
+      refreshLssAsiFeatPanel("quick");
     });
     input.addEventListener("change", () => {
       refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
       refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      refreshLssDependentChoiceLists("edit");
       applyQuickClassDefaults();
       applyQuickDexDefaults();
+      refreshLssSourceBonusesPanel("quick");
+      refreshLssRulesProgressionPanel("quick");
+      refreshLssAsiFeatPanel("quick");
     });
   });
 
 
   if (quickRaceInput && quickRaceInput.dataset.raceDefaultsBound !== "1") {
     quickRaceInput.dataset.raceDefaultsBound = "1";
-    quickRaceInput.addEventListener("input", applyQuickRaceDefaults);
-    quickRaceInput.addEventListener("change", applyQuickRaceDefaults);
+    const onQuickRaceChange = () => {
+      LSS_STATE.quickAppliedAbilityBonusKey = "";
+      applyQuickRaceDefaults();
+      syncLssChoiceSnapshot("quick");
+      refreshLssSourceBonusesPanel("quick");
+      refreshLssRulesProgressionPanel("quick");
+      refreshLssAsiFeatPanel("quick");
+    };
+    quickRaceInput.addEventListener("input", onQuickRaceChange);
+    quickRaceInput.addEventListener("change", onQuickRaceChange);
+  }
+
+
+  if (quickBackgroundInput && quickBackgroundInput.dataset.backgroundChoiceBound !== "1") {
+    quickBackgroundInput.dataset.backgroundChoiceBound = "1";
+    const onQuickBackgroundChange = () => {
+      LSS_STATE.quickAppliedAbilityBonusKey = "";
+      refreshLssSourceBonusesPanel("quick");
+      refreshLssRulesProgressionPanel("quick");
+      refreshLssAsiFeatPanel("quick");
+    };
+    quickBackgroundInput.addEventListener("input", onQuickBackgroundChange);
+    quickBackgroundInput.addEventListener("change", onQuickBackgroundChange);
   }
 
 
   if (editClassInput && editClassInput.dataset.classGuideBound !== "1") {
     editClassInput.dataset.classGuideBound = "1";
-    editClassInput.addEventListener("input", () => refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide"));
-    editClassInput.addEventListener("change", () => refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide"));
+    editClassInput.addEventListener("input", () => {
+      refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      refreshLssDependentChoiceLists("edit");
+    });
+    editClassInput.addEventListener("change", () => {
+      refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
+      refreshLssDependentChoiceLists("edit");
+    });
   }
+
+  if (editRaceInput && editRaceInput.dataset.raceDefaultsBound !== "1") {
+    editRaceInput.dataset.raceDefaultsBound = "1";
+    editRaceInput.addEventListener("input", () => refreshLssDependentChoiceLists("edit"));
+    editRaceInput.addEventListener("change", () => refreshLssDependentChoiceLists("edit"));
+  }
+
+  [quickSubclassInput, quickSubraceInput, editSubclassInput, editSubraceInput].forEach((input) => {
+    if (!input || input.dataset.choiceHintBound === "1") return;
+    input.dataset.choiceHintBound = "1";
+    input.addEventListener("change", () => {
+      const mode = input.id.includes("Edit") ? "edit" : "quick";
+      if (mode === "quick") LSS_STATE.quickAppliedAbilityBonusKey = "";
+      refreshLssDependentChoiceLists(mode);
+      syncLssChoiceSnapshot(mode);
+      refreshLssSourceBonusesPanel(mode);
+      refreshLssRulesProgressionPanel(mode);
+      refreshLssAsiFeatPanel(mode);
+    });
+  });
 
   refreshClassGuidePanel("lssQuickCreateClass", "lssQuickClassGuide");
   refreshClassGuidePanel("lssEdit_charClass", "lssEditClassGuide");
   applyQuickRaceDefaults();
   applyQuickDexDefaults();
+  syncLssChoiceSnapshot("quick");
+  syncLssChoiceSnapshot("edit");
+  refreshLssSourceBonusesPanel("quick");
+  refreshLssRulesProgressionPanel("quick");
+  refreshLssAsiFeatPanel("quick");
+  refreshLssAsiFeatPanel("edit");
 }
 
 
@@ -2992,18 +6098,26 @@ function bindLssActions() {
         name,
         charClass: getSection("lssQuickCreateClass")?.value,
         charSubclass: getSection("lssQuickCreateSubclass")?.value,
+        subrace: getSection("lssQuickCreateSubrace")?.value,
         race: getSection("lssQuickCreateRace")?.value,
         level: getSection("lssQuickCreateLevel")?.value,
         background: getSection("lssQuickCreateBackground")?.value,
         alignment: getSection("lssQuickCreateAlignment")?.value,
         experience: getSection("lssQuickCreateExperience")?.value,
+        statsMethod: getSection("lssQuickCreateStatsMethod")?.value,
         proficiency: getSection("lssQuickCreateProficiency")?.value,
         hpCurrent: getSection("lssQuickCreateHp")?.value,
         hpMax: getSection("lssQuickCreateHpMax")?.value || getSection("lssQuickCreateHp")?.value,
+        hpTemp: getSection("lssQuickCreateHpTemp")?.value,
+        hitDie: getSection("lssQuickCreateHitDie")?.value,
+        hitDiceCurrent: getSection("lssQuickCreateHitDiceCurrent")?.value,
+        hpMode: getSection("lssQuickCreateHpMode")?.value,
         ac: getSection("lssQuickCreateAc")?.value,
         initiative: getSection("lssQuickCreateInitiative")?.value,
         speed: getSection("lssQuickCreateSpeed")?.value,
         size: getSection("lssQuickCreateSize")?.value || "medium",
+        abilityImprovements: getSection("lssQuickAppliedAsiRecords")?.value || "[]",
+        feats: getSection("lssQuickSelectedFeats")?.value || "[]",
       };
       STAT_DEFS.forEach(({ key }) => {
         form[`stat_${key}`] = getSection(`lssQuickCreateStat_${key}`)?.value;
@@ -3258,6 +6372,14 @@ function bindLssActions() {
     });
   });
 
+  document.querySelectorAll("[data-lss-prof-kind]").forEach((input) => {
+    if (input.dataset.bound === "1") return;
+    input.dataset.bound = "1";
+    input.addEventListener("change", () => {
+      applyEditFormLive(input.checked ? "Владение добавлено" : "Владение убрано");
+    });
+  });
+
   document.querySelectorAll("[data-lss-skill-prof]").forEach((input) => {
     if (input.dataset.bound === "1") return;
     input.dataset.bound = "1";
@@ -3314,6 +6436,8 @@ function bindLssActions() {
 
   bindLssInputGuards();
   bindLssClassGuideInputs();
+  bindLssAlignmentPickers();
+  bindLssConstructorRuleButtons();
 }
 
 // ------------------------------------------------------------
@@ -3321,34 +6445,47 @@ function bindLssActions() {
 // ------------------------------------------------------------
 function renderEmptyState() {
   return `
-    <div class="cabinet-block lss-ref-empty-state lss-ref-create-state">
-      <div class="lss-ref-empty-copy">
+    <div class="cabinet-block lss-ref-empty-state lss-ref-create-state" style="display:block;">
+      <div class="lss-ref-empty-copy" style="max-width:none; padding:14px 18px 10px; border-right:0; border-bottom:1px solid rgba(117,203,198,.12); margin-bottom:14px;">
         <div class="lss-ref-kicker">LSS constructor</div>
-        <h3>Создай игрового персонажа</h3>
-        <p>Имя персонажа станет основой для профиля игрока и пула персонажей Master Room. После создания лист сохраняется локально и синхронизируется в аккаунт, если ты авторизован.</p>
+        <h3 style="margin-bottom:6px;">Создай игрового персонажа</h3>
+        <p style="max-width:880px; margin-bottom:0;">Выбери основу персонажа — класс, расу, подрасу и предысторию. LSS берёт механику из rules JSON, а полный текст остаётся в Бестиарии.</p>
       </div>
 
-      <div class="lss-ref-starter-card">
-        <div class="lss-ref-starter-grid lss-ref-starter-grid-wide">
+      <div class="lss-ref-starter-card" style="max-width:none;">
+        <div class="lss-ref-starter-grid lss-ref-starter-grid-wide" style="align-items:start;">
           <div class="filter-group lss-ref-field-main"><label>Имя персонажа</label><input id="lssQuickCreateName" type="text" autocomplete="off" maxlength="60" data-lss-text="name" placeholder="Например: Торен"></div>
-          <div class="filter-group"><label>Класс</label><input id="lssQuickCreateClass" type="text" list="lssClassOptions" autocomplete="off" maxlength="40" data-lss-text="short" placeholder="Волшебник"></div>
-          <datalist id="lssClassOptions">${getLssClassOptionsHtml()}</datalist>
-          <div class="filter-group"><label>Подкласс</label><input id="lssQuickCreateSubclass" type="text" autocomplete="off" maxlength="60" data-lss-text="short" placeholder="можно позже"></div>
-          <div class="filter-group"><label>Раса</label><input id="lssQuickCreateRace" type="text" list="lssRaceOptions" autocomplete="off" maxlength="40" data-lss-text="short" placeholder="Человек"></div><datalist id="lssRaceOptions">${getLssRaceOptionsHtml()}</datalist>
+          <div class="filter-group"><label>Класс</label><select id="lssQuickCreateClass" data-lss-text="short">${getLssClassSelectOptionsHtml("")}</select></div>
+          <div class="filter-group"><label>Подкласс</label><select id="lssQuickCreateSubclass" data-lss-text="short">${getLssSubclassSelectOptionsHtml("", "")}</select><div id="lssQuickSubclassHint">${renderLssSubclassHint("", "", 1)}</div></div>
+          <div class="filter-group"><label>Раса</label><select id="lssQuickCreateRace" data-lss-text="short">${getLssRaceSelectOptionsHtml("")}</select></div>
+          <div class="filter-group"><label>Подраса / вариант</label><select id="lssQuickCreateSubrace" data-lss-text="short">${getLssSubraceSelectOptionsHtml("", "")}</select><div id="lssQuickSubraceHint">${renderLssSubraceHint("", "")}</div></div>
           <div class="filter-group"><label>Размер</label><select id="lssQuickCreateSize">${getSizeOptionsHtml("medium")}</select></div>
-          <div class="filter-group"><label>Предыстория</label><input id="lssQuickCreateBackground" type="text" list="lssBackgroundOptions" autocomplete="off" maxlength="50" data-lss-text="short" placeholder="Дворянин"></div><datalist id="lssBackgroundOptions">${getLssBackgroundOptionsHtml()}</datalist>
-          <div class="filter-group"><label>Мировоззрение</label><select id="lssQuickCreateAlignment">${getAlignmentOptionsHtml("")}</select></div>
-          <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" ${numericInputAttrs(1, 20)} value="1"></div>
-          <div class="filter-group"><label>Опыт</label><input id="lssQuickCreateExperience" ${numericInputAttrs(0)} value="0"></div>
-          <div class="filter-group"><label>Бонус владения</label><input id="lssQuickCreateProficiency" ${numericInputAttrs(0)} value="2"></div>
-          <div class="filter-group"><label>HP текущие</label><input id="lssQuickCreateHp" ${numericInputAttrs(1)} value="10"></div>
-          <div class="filter-group"><label>HP максимум</label><input id="lssQuickCreateHpMax" ${numericInputAttrs(1)} value="10"></div>
-          <div class="filter-group"><label>КБ</label><input id="lssQuickCreateAc" ${numericInputAttrs(1)} value="10"></div>
-          <div class="filter-group"><label>Инициатива <small>авто от Ловкости</small></label><input id="lssQuickCreateInitiative" type="number" inputmode="numeric" value="0" data-auto-value="0"><small class="muted">Можно править вручную.</small></div>
-          <div class="filter-group"><label>Скорость, фт.</label><input id="lssQuickCreateSpeed" ${numericInputAttrs(0)} value="30"></div>
+          <div class="filter-group"><label>Предыстория</label><select id="lssQuickCreateBackground" data-lss-text="short">${getLssBackgroundSelectOptionsHtml("")}</select></div>
+        </div>
+
+        <div class="lss-ref-create-core-grid" style="display:grid; grid-template-columns:minmax(280px,0.95fr) minmax(440px,1.55fr); gap:12px; align-items:start; margin-top:12px;">
+          <div class="filter-group" style="margin:0;"><label>Мировоззрение / моральная ось</label>${renderLssAlignmentGrid("lssQuickCreateAlignment", "")}</div>
+          <div class="lss-ref-starter-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; align-items:start; margin:0;">
+            <div class="filter-group"><label>Уровень</label><input id="lssQuickCreateLevel" ${numericInputAttrs(1, 20)} value="1"></div>
+            <div class="filter-group"><label>Опыт</label><input id="lssQuickCreateExperience" ${numericInputAttrs(0)} value="0"></div>
+            <div class="filter-group"><label>Бонус владения</label><input id="lssQuickCreateProficiency" ${numericInputAttrs(0)} value="2"></div>
+            <div class="filter-group"><label>HP текущие</label><input id="lssQuickCreateHp" ${numericInputAttrs(1)} value="10"></div>
+            <div class="filter-group"><label>HP максимум</label><input id="lssQuickCreateHpMax" ${numericInputAttrs(1)} value="10"></div>
+            <div class="filter-group"><label>Временные HP</label><input id="lssQuickCreateHpTemp" ${numericInputAttrs(0)} value="0"></div>
+            <div class="filter-group"><label>Кость хитов класса</label><select id="lssQuickCreateHitDie">${getHitDieOptionsHtml("d8")}</select></div>
+            <div class="filter-group"><label>Кости отдыха</label><input id="lssQuickCreateHitDiceCurrent" ${numericInputAttrs(0)} value="1"></div>
+            <div class="filter-group"><label>КБ</label><input id="lssQuickCreateAc" ${numericInputAttrs(1)} value="10"></div>
+            <div class="filter-group"><label>Инициатива <small>авто от Ловкости</small></label><input id="lssQuickCreateInitiative" type="number" inputmode="numeric" value="0" data-auto-value="0"><small class="muted">Можно править вручную.</small></div>
+            <div class="filter-group"><label>Скорость, фт.</label><input id="lssQuickCreateSpeed" ${numericInputAttrs(0)} value="30"></div>
+          </div>
         </div>
 
         ${renderLssClassGuidanceCard("", { mode: "quick" })}
+        ${renderLssSourceBonusesPanel("quick")}
+        ${renderLssRulesProgressionPanel("quick")}
+        ${renderLssAsiFeatPanel("quick")}
+        ${renderHpRulePanel({ info: { level: { value: 1 } }, vitality: { "hit-die": { value: "d8" }, "hp-mode": { value: "average" }, "hp-max": { value: 10 } }, stats: { con: { score: 10 } } }, "quick")}
+        ${renderStatsRulePanel({ info: { statsMethod: { value: "standard-array" } } }, "quick")}
 
         <div class="lss-ref-starter-stats">
           ${STAT_DEFS.map(({ key, label }) => `
@@ -3376,7 +6513,7 @@ function renderDiceDock() {
   const dieButtons = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
 
   return `
-    <div class="cabinet-block lss-ref-dice-dock" style="margin:10px 0 12px; position:relative; z-index:3;">
+    <div class="cabinet-block lss-ref-dice-dock" style="margin:10px 0 12px; position:relative; z-index:3; overflow:visible;">
       <div class="flex-between" style="gap:8px; align-items:center;">
         <div>
           <div style="font-weight:800; font-size:14px;">🎲 Кубы</div>
@@ -3384,7 +6521,7 @@ function renderDiceDock() {
         </div>
         <button class="btn btn-secondary" type="button" id="lssDiceToggleInlineBtn">Скрыть</button>
       </div>
-      <div class="cart-buttons lss-ref-dice-buttons">
+      <div class="cart-buttons lss-ref-dice-buttons" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
         ${dieButtons.map((die) => `
           <button class="btn ${LSS_STATE.diceType === die ? "btn-primary" : "btn-secondary"}" type="button" data-lss-roll-die="${die}">
             ${die.toUpperCase()}
@@ -3492,8 +6629,8 @@ function renderCombatSummary(profile) {
         <div><b>Текущие хиты:</b> ${escapeHtml(String(unwrapValue(vitality["hp-current"], "—")))}</div>
         <div><b>Максимум хитов:</b> ${escapeHtml(String(unwrapValue(vitality["hp-max"], "—")))}</div>
         <div><b>Временные хиты:</b> ${escapeHtml(String(unwrapValue(vitality["hp-temp"], "0")))}</div>
-        <div><b>Кость хитов:</b> ${escapeHtml(String(unwrapValue(vitality["hit-die"], "—")))}</div>
-        <div><b>Кости хитов (тек.):</b> ${escapeHtml(String(unwrapValue(vitality["hp-dice-current"], "0")))}</div>
+        <div><b>Кость класса:</b> ${escapeHtml(String(unwrapValue(vitality["hit-die"], "—")))}</div>
+        <div><b>Кости отдыха:</b> ${escapeHtml(String(unwrapValue(vitality["hp-dice-current"], "0")))}</div>
         <div><b>Бонус мастерства:</b> ${escapeHtml(formatSigned(getProficiencyBonus(profile)))}</div>
         <div><b>Пассивное восприятие:</b> ${escapeHtml(String(getPassivePerception(profile)))}</div>
         <div><b>Спасброски от смерти:</b> ${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</div>
@@ -3798,50 +6935,36 @@ function renderStatsCompact(profile) {
 
 
 function renderSkillsFlat(profile) {
+  const skillRows = Object.entries(SKILL_BASE_STATS).map(([skillKey, baseStat]) => {
+    const skillLabel = SKILL_LABELS[skillKey] || capitalizeRu(skillKey);
+    const value = getSkillModifier(profile, skillKey);
+    const prof = isSkillProficient(profile, skillKey);
+    const statLabel = getStatShortLabel(baseStat);
+    const source = getNested(profile, `skills.${skillKey}.source`, prof ? "manual" : "");
+    const sourceIcon = getProficiencySourceIcon(source, prof);
+    const sourceTitle = getProficiencySourceLabel(source || (prof ? "manual" : ""));
+    return `
+      <label class="inline-checkbox" title="${escapeHtml(skillLabel)} • ${escapeHtml(sourceTitle || "клик = ручное владение")}" style="display:grid; grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:'check name value' 'check meta value'; column-gap:9px; row-gap:2px; align-items:center; min-height:46px; padding:8px 10px; border-radius:13px; border:1px solid ${prof ? "rgba(117,203,198,.42)" : "rgba(255,255,255,0.06)"}; background:${prof ? "linear-gradient(135deg, rgba(117,203,198,.28), rgba(117,203,198,.12))" : "rgba(255,255,255,0.03)"}; cursor:pointer;">
+        <input type="checkbox" data-lss-skill-prof="${escapeHtml(skillKey)}" ${prof ? "checked" : ""} style="grid-area:check;">
+        <span style="grid-area:name; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:800;">${escapeHtml(skillLabel)}</span>
+        <span class="muted" style="grid-area:meta; font-size:12px; display:flex; gap:6px; align-items:center; min-width:0; overflow:hidden;"><b>${escapeHtml(statLabel)}</b>${sourceIcon ? `<span title="Источник: ${escapeHtml(sourceTitle)}">${escapeHtml(sourceIcon)}</span>` : ""}</span>
+        <strong style="grid-area:value; font-size:16px; text-align:right;">${escapeHtml(formatSigned(value))}</strong>
+      </label>
+    `;
+  }).join("");
+
   return `
     <div class="cabinet-block" style="padding:12px;">
       <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <div>
           <h3 style="margin:0 0 4px 0;">Навыки</h3>
-          <div class="muted" style="font-size:12px;">✓ = владение; клик по навыку переключает ручное владение</div>
+          <div class="muted" style="font-size:12px;">клик по навыку сразу переключает ручное владение; источник показан значком</div>
         </div>
+        <span class="meta-item">⚙ ручное • 📜 предыстория • 🎓 класс</span>
       </div>
 
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; align-items:start;">
-        ${STAT_DEFS.map(({ key, label }) => {
-          const statMod = getStatModifier(profile, key);
-          const skills = getSkillsByStat(profile, key);
-          const profCount = skills.filter(([skillKey]) => isSkillProficient(profile, skillKey)).length;
-          return `
-            <div class="stat-box" style="padding:10px; min-width:0; border-radius:16px; min-height:auto;">
-              <div class="flex-between" style="align-items:flex-start; gap:8px; margin-bottom:8px;">
-                <div>
-                  <div style="font-weight:800; line-height:1.1;">${escapeHtml(label)}</div>
-                  <div class="muted" style="font-size:12px; margin-top:3px;">мод. ${escapeHtml(formatSigned(statMod))} • знач. ${escapeHtml(String(getStatScore(profile, key)))}</div>
-                </div>
-                <span class="quality-badge" style="padding:2px 7px; min-height:auto;">владений ${escapeHtml(String(profCount))}</span>
-              </div>
-              ${skills.length ? `
-                <div style="display:flex; flex-direction:column; gap:6px; min-width:0;">
-                  ${skills.map(([skillKey]) => {
-                    const skillLabel = SKILL_LABELS[skillKey] || capitalizeRu(skillKey);
-                    const value = getSkillModifier(profile, skillKey);
-                    const prof = isSkillProficient(profile, skillKey);
-                    return `
-                      <label class="inline-checkbox" style="display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:auto; padding:7px 9px; border-radius:10px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03); cursor:pointer;">
-                        <span style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
-                          <input type="checkbox" data-lss-skill-prof="${escapeHtml(skillKey)}" ${prof ? "checked" : ""} />
-                          <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(skillLabel)}</span>
-                        </span>
-                        <strong style="font-size:15px;">${escapeHtml(formatSigned(value))}</strong>
-                      </label>
-                    `;
-                  }).join("")}
-                </div>
-              ` : `<div class="muted" style="font-size:13px;">Нет навыков на этой характеристике.</div>`}
-            </div>
-          `;
-        }).join("")}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; align-items:start;">
+        ${skillRows}
       </div>
     </div>
   `;
@@ -3877,8 +7000,8 @@ function renderStatesAndResources(profile) {
       <h4 style="margin:0 0 10px 0;">Состояния и ресурсы</h4>
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:8px;">
         <div class="stat-box lss-mini-box"><div class="muted">Врем. HP</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-temp"], "0")))}</div></div>
-        <div class="stat-box lss-mini-box"><div class="muted">Кость хитов</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hit-die"], "—")))}</div></div>
-        <div class="stat-box lss-mini-box"><div class="muted">Кости</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-dice-current"], "0")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Кость класса</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hit-die"], "—")))}</div></div>
+        <div class="stat-box lss-mini-box"><div class="muted">Кости отдыха</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(unwrapValue(vitality["hp-dice-current"], "0")))}</div></div>
         <div class="stat-box lss-mini-box"><div class="muted">Смерть</div><div style="font-size:16px;font-weight:800;">${escapeHtml(String(deathSuccesses))} / ${escapeHtml(String(deathFails))}</div></div>
       </div>
       ${(conditions || coins) ? `
@@ -4261,6 +7384,8 @@ export function clearLssData(options = {}) {
 }
 
 export async function initLSS() {
+  await ensureLssConstructorRulesLoaded();
+  await ensureLssFeatRulesLoaded();
   await loadLSS();
   renderLSS();
 }
