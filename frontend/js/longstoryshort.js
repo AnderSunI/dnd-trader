@@ -1,6 +1,10 @@
 // ============================================================
 // frontend/js/longstoryshort.js
 // Long Story Short (LSS)
+// Round 20: original LSS spell bridge + parsed spell catalog.
+// External spell ObjectIds are preserved, readable names are restored from the sheet,
+// and our parsed spell datasets can be searched/added directly to the character.
+// Raw Mongo-like IDs are never shown as spell names.
 // - просмотр персонажа
 // - импорт JSON / файла
 // - локальное сохранение
@@ -38,7 +42,21 @@ const LSS_STATE = {
   constructorFeats: [],
   constructorFeatsStatus: "fallback",
   constructorFeatsSource: "не загружено",
+  parsedSpellCatalog: [],
+  parsedSpellCatalogStatus: "idle",
+  parsedSpellCatalogSource: "",
+  parsedSpellCatalogLoadedAt: null,
+  spellCatalogQuery: "",
+  spellCatalogLimit: 36,
   quickAppliedAbilityBonusKey: "",
+  externalSpellBridge: {
+    status: "idle",
+    source: "",
+    externalCount: 0,
+    resolvedCount: 0,
+    hintCount: 0,
+    unresolvedIds: [],
+  },
 };
 
 // ------------------------------------------------------------
@@ -151,8 +169,26 @@ const LSS_FEATS_URLS = [
   "frontend/static/data/feats_bestiari_preview.json",
 ];
 
+// Our parsed spell sources. The first existing/valid file wins.
+// spells_bestiari_preview.json is the source already used by the rules builder;
+// spells.master.json is supported for the later canonical pipeline.
+const LSS_PARSED_SPELL_URLS = [
+  "static/data/spells.master.json",
+  "/static/data/spells.master.json",
+  "frontend/static/data/spells.master.json",
+  "static/data/spells_bestiari_preview.json",
+  "/static/data/spells_bestiari_preview.json",
+  "frontend/static/data/spells_bestiari_preview.json",
+  "static/data/spells_master.json",
+  "/static/data/spells_master.json",
+  "frontend/static/data/spells_master.json",
+];
+
 let LSS_CONSTRUCTOR_RULES_LOAD_PROMISE = null;
 let LSS_FEATS_LOAD_PROMISE = null;
+let LSS_PARSED_SPELL_LOAD_PROMISE = null;
+let LSS_SPELL_INDEX_CACHE = null;
+let LSS_SPELL_SEARCH_TIMER = null;
 
 function validateLssConstructorRules(data) {
   return Boolean(
@@ -204,6 +240,523 @@ async function ensureLssConstructorRulesLoaded() {
   return loadLssConstructorRules();
 }
 
+
+
+function looksLikeParsedSpell(entry) {
+  if (!entry || typeof entry !== "object") return false;
+  const data = entry.spell_data && typeof entry.spell_data === "object" ? entry.spell_data : entry;
+  const name = data.ru_name || data.name || data.title || entry.title || data.en_name;
+  return Boolean(name && (data.level !== undefined || data.school || data.casting_time || data.classes || entry.mechanics));
+}
+
+function flattenParsedSpellPayload(payload) {
+  const candidates = [
+    payload?.spells,
+    payload?.entries,
+    payload?.items,
+    payload?.results,
+    payload?.data?.spells,
+    payload?.data?.entries,
+    payload?.data?.items,
+    payload?.data,
+    payload,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (Array.isArray(candidate)) {
+      const list = candidate.filter(looksLikeParsedSpell);
+      if (list.length) return list;
+    }
+    if (typeof candidate === "object") {
+      const list = Object.entries(candidate)
+        .map(([key, value]) => value && typeof value === "object" ? { __catalogKey: key, ...value } : null)
+        .filter(looksLikeParsedSpell);
+      if (list.length) return list;
+    }
+  }
+  return [];
+}
+
+function normalizeParsedSpellSourceEntry(entry = {}, index = 0) {
+  const data = entry.spell_data && typeof entry.spell_data === "object" ? entry.spell_data : entry;
+  const mechanics = entry.mechanics && typeof entry.mechanics === "object" ? entry.mechanics : {};
+  const components = data.components && typeof data.components === "object" ? data.components : {};
+  const id = String(data.id || entry.id || entry._id || entry.__catalogKey || `parsed-spell-${index}`).trim();
+  const name = safeText(data.ru_name || data.name || entry.title || data.title || data.label || data.en_name, "").trim();
+  if (!name) return null;
+  return {
+    ...entry,
+    ...data,
+    id,
+    ru_name: name,
+    en_name: safeText(data.en_name || entry.en_name || entry.enName, ""),
+    level: data.level ?? data.circle ?? data.spell_level ?? 0,
+    school: data.school || data.school_ru || "",
+    casting_time: data.casting_time || data.castingTime || data.time || "",
+    range: data.range || data.distance || "",
+    duration: data.duration || "",
+    components_display: data.components_display || components.display || "",
+    components,
+    concentration: Boolean(data.concentration),
+    ritual: Boolean(data.ritual),
+    classes: normalizeArray(data.classes || mechanics.classes || []),
+    subclasses: normalizeArray(data.subclasses || mechanics.subclasses || []),
+    damage_types: normalizeArray(mechanics.damage_types || data.damage_types || []),
+    conditions: normalizeArray(mechanics.conditions || data.conditions || []),
+    saving_throws: normalizeArray(mechanics.saving_throws || data.saving_throws || []),
+    summary: safeText(entry.summary || mechanics.short_rules || data.summary || data.description, ""),
+    source: data.source || entry.source || "parsed-spells",
+    source_url: entry.source_url || data.source_url || "",
+    source_kind: "parsed-spell-catalog",
+  };
+}
+
+async function loadLssParsedSpellCatalog() {
+  if (LSS_PARSED_SPELL_LOAD_PROMISE) return LSS_PARSED_SPELL_LOAD_PROMISE;
+  LSS_PARSED_SPELL_LOAD_PROMISE = (async () => {
+    LSS_STATE.parsedSpellCatalogStatus = "loading";
+    for (const url of LSS_PARSED_SPELL_URLS) {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) continue;
+        const payload = await response.json();
+        const entries = flattenParsedSpellPayload(payload)
+          .map(normalizeParsedSpellSourceEntry)
+          .filter(Boolean);
+        if (!entries.length) continue;
+        LSS_STATE.parsedSpellCatalog = entries;
+        LSS_STATE.parsedSpellCatalogStatus = "loaded";
+        LSS_STATE.parsedSpellCatalogSource = url;
+        LSS_STATE.parsedSpellCatalogLoadedAt = new Date().toISOString();
+        LSS_SPELL_INDEX_CACHE = null;
+        return entries;
+      } catch (_) {
+        // Try the next known path. LSS remains usable without the optional full catalog.
+      }
+    }
+    // Compact rules still contain our parsed spell subset, so this is a grounded fallback.
+    const rulesEntries = asSpellCatalogEntries(LSS_STATE.constructorRules?.spells)
+      .map(normalizeParsedSpellSourceEntry)
+      .filter(Boolean);
+    LSS_STATE.parsedSpellCatalog = rulesEntries;
+    LSS_STATE.parsedSpellCatalogStatus = rulesEntries.length ? "rules-fallback" : "missing";
+    LSS_STATE.parsedSpellCatalogSource = rulesEntries.length ? (LSS_STATE.constructorRulesSource || "lss_constructor_rules.json") : "каталог не найден";
+    LSS_STATE.parsedSpellCatalogLoadedAt = rulesEntries.length ? new Date().toISOString() : null;
+    LSS_SPELL_INDEX_CACHE = null;
+    return rulesEntries;
+  })();
+  return LSS_PARSED_SPELL_LOAD_PROMISE;
+}
+
+async function ensureLssParsedSpellCatalogLoaded() {
+  return loadLssParsedSpellCatalog();
+}
+
+// ------------------------------------------------------------
+// 🔗 ORIGINAL LSS SPELL-ID BRIDGE
+// ------------------------------------------------------------
+// Original Long Story Short exports may keep only Mongo-like spell IDs in the
+// outer `spells.prepared/book` block. The exported character body contains slots,
+// but often no expanded cards. We resolve only against grounded local data:
+// 1) direct/legacy IDs from lss_constructor_rules.json;
+// 2) an optional user map in localStorage;
+// 3) exact spell-name hints preserved in rich-text blocks.
+// Unknown IDs stay in bridge diagnostics and are not rendered as fake names.
+const LSS_EXTERNAL_SPELL_MAP_STORAGE_KEY = "dnd_trader_lss_external_spell_map";
+
+function normalizeLssSpellLookup(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[«»„“”\"'`]/g, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isOriginalLssSpellObjectId(value) {
+  return /^[a-f\d]{24}$/i.test(String(value || "").trim());
+}
+
+function asSpellCatalogEntries(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "object") return Object.values(value).filter((item) => item && typeof item === "object");
+  return [];
+}
+
+function collectLssSpellAliasIds(spell = {}) {
+  const out = [];
+  const push = (value) => {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      value.forEach(push);
+      return;
+    }
+    if (typeof value === "object") {
+      [value.id, value._id, value.value, value.key, value.external_id, value.lss_id].forEach(push);
+      return;
+    }
+    const text = String(value).trim();
+    if (text && !out.includes(text)) out.push(text);
+  };
+  [
+    spell.id,
+    spell._id,
+    spell.spell_id,
+    spell.external_id,
+    spell.externalId,
+    spell.lss_id,
+    spell.lssId,
+    spell.mongo_id,
+    spell.mongoId,
+    spell.legacy_id,
+    spell.legacyId,
+    spell.legacy_ids,
+    spell.legacyIds,
+    spell.external_ids,
+    spell.externalIds,
+    spell.alias_ids,
+    spell.aliasIds,
+    spell.aliases,
+    spell.source_ids,
+    spell.sourceIds,
+  ].forEach(push);
+  return out;
+}
+
+function getLssSpellCatalogIndexes() {
+  const rules = LSS_STATE.constructorRules;
+  const parsed = Array.isArray(LSS_STATE.parsedSpellCatalog) ? LSS_STATE.parsedSpellCatalog : [];
+  if (LSS_SPELL_INDEX_CACHE?.rules === rules && LSS_SPELL_INDEX_CACHE?.parsed === parsed) return LSS_SPELL_INDEX_CACHE;
+
+  const rulesEntries = asSpellCatalogEntries(rules?.spells).map(normalizeParsedSpellSourceEntry).filter(Boolean);
+  const entries = [];
+  const dedupe = new Map();
+  [...rulesEntries, ...parsed].forEach((spell) => {
+    const key = String(spell.id || normalizeLssSpellLookup(spell.ru_name || spell.name || spell.en_name));
+    if (!key) return;
+    const previous = dedupe.get(key);
+    // Prefer the richer parsed master/preview entry over the compact rules copy.
+    dedupe.set(key, previous ? { ...previous, ...spell } : spell);
+  });
+  entries.push(...dedupe.values());
+
+  const byId = new Map();
+  const byName = new Map();
+  entries.forEach((spell) => {
+    collectLssSpellAliasIds(spell).forEach((id) => byId.set(String(id), spell));
+    [spell.ru_name, spell.name, spell.title, spell.label, spell.en_name, spell.enName]
+      .map(normalizeLssSpellLookup)
+      .filter(Boolean)
+      .forEach((name) => byName.set(name, spell));
+  });
+
+  const sources = [
+    parsed.length ? LSS_STATE.parsedSpellCatalogSource : "",
+    rulesEntries.length ? (LSS_STATE.constructorRulesSource || "lss_constructor_rules.json") : "",
+  ].filter(Boolean);
+  LSS_SPELL_INDEX_CACHE = {
+    rules,
+    parsed,
+    entries,
+    byId,
+    byName,
+    source: sources.join(" + ") || "каталог заклинаний не загружен",
+  };
+  return LSS_SPELL_INDEX_CACHE;
+}
+
+function findCatalogSpellByHint(indexes, hint) {
+  const lookup = normalizeLssSpellLookup(hint?.lookup || hint?.name || hint);
+  if (!lookup) return null;
+  const exact = indexes.byName.get(lookup);
+  if (exact) return exact;
+  const candidates = indexes.entries.filter((spell) => {
+    const names = [spell.ru_name, spell.name, spell.title, spell.en_name].map(normalizeLssSpellLookup).filter(Boolean);
+    return names.some((name) => name === lookup || (lookup.length >= 5 && (name.startsWith(lookup) || lookup.startsWith(name))));
+  });
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+function readExternalLssSpellMap(profile = {}) {
+  const result = {};
+  const merge = (value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    Object.entries(value).forEach(([externalId, target]) => {
+      const key = String(externalId || "").trim();
+      if (key && target !== null && target !== undefined && target !== "") result[key] = target;
+    });
+  };
+  merge(profile?.spellsMeta?.externalResolved);
+  merge(profile?.spellsMeta?.external_resolved);
+  merge(profile?.externalSpellMap);
+  merge(profile?.__lssRoot?.spells?.externalResolved);
+  try {
+    const stored = JSON.parse(localStorage.getItem(LSS_EXTERNAL_SPELL_MAP_STORAGE_KEY) || "{}");
+    merge(stored);
+  } catch (_) {}
+  return result;
+}
+
+function getRichTextPlainLines(node, options = {}) {
+  const onlyMarked = options.onlyMarked || "";
+  const lines = [];
+  const walk = (value, current = []) => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach((item) => walk(item, current));
+      return;
+    }
+    if (typeof value !== "object") return;
+    const marks = Array.isArray(value.marks) ? value.marks.map((mark) => String(mark?.type || "")) : [];
+    if (value.type === "text" && value.text) {
+      if (!onlyMarked || marks.includes(onlyMarked)) current.push(String(value.text));
+    }
+    if (Array.isArray(value.content)) {
+      const local = [];
+      value.content.forEach((item) => walk(item, local));
+      const text = local.join("").replace(/\s+/g, " ").trim();
+      if (text && ["paragraph", "listItem", "heading"].includes(String(value.type || ""))) lines.push(text);
+      if (text && !["paragraph", "listItem", "heading"].includes(String(value.type || ""))) current.push(text);
+    }
+  };
+  walk(node, []);
+  return Array.from(new Set(lines.map((line) => line.trim()).filter(Boolean)));
+}
+
+function getRichTextMarkedTexts(node, markType = "italic") {
+  const out = [];
+  const walk = (value) => {
+    if (!value) return;
+    if (Array.isArray(value)) return value.forEach(walk);
+    if (typeof value !== "object") return;
+    const marks = Array.isArray(value.marks) ? value.marks.map((mark) => String(mark?.type || "")) : [];
+    if (value.type === "text" && value.text && marks.includes(markType)) {
+      const text = String(value.text).replace(/\s+/g, " ").trim();
+      if (text && !out.includes(text)) out.push(text);
+    }
+    if (Array.isArray(value.content)) value.content.forEach(walk);
+  };
+  walk(node);
+  return out;
+}
+
+function getOriginalLssSpellNameHints(profile = {}) {
+  const textBlocks = profile?.text && typeof profile.text === "object" ? profile.text : {};
+  const hints = [];
+  const push = (name, level = null, source = "text") => {
+    const cleaned = String(name || "")
+      .replace(/^[-–—•\s]+/, "")
+      .replace(/\s+[-–—:].*$/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const lookup = normalizeLssSpellLookup(cleaned);
+    if (!lookup || cleaned.length < 2 || cleaned.length > 90) return;
+    // In prose blocks a lowercase italic fragment is usually a reference
+    // (for example “огненного шара”), not another spell owned by the character.
+    if (source === "text.attacks" && /^[а-яёa-z]/.test(cleaned)) return;
+    if (!hints.some((item) => item.lookup === lookup)) hints.push({ name: cleaned, lookup, level, source });
+  };
+
+  Object.entries(textBlocks).forEach(([key, block]) => {
+    const match = String(key).match(/^spells-level-(\d+)$/i);
+    if (!match) return;
+    const level = Number(match[1]);
+    const doc = block?.value?.data || block?.data || block;
+    getRichTextPlainLines(doc).forEach((line) => push(line, level, key));
+  });
+
+  // Old/original sheets often kept a readable personal spell list in the
+  // "attacks" text block even when card mode exported only ObjectIds.
+  const attacksDoc = textBlocks?.attacks?.value?.data || textBlocks?.attacks?.data || textBlocks?.attacks;
+  getRichTextMarkedTexts(attacksDoc, "italic").forEach((line) => push(line, null, "text.attacks"));
+
+  return hints.slice(0, 48);
+}
+
+function normalizeCatalogSpellForLss(spell = {}, options = {}) {
+  const externalId = String(options.externalId || spell.external_id || spell.id || spell._id || "").trim();
+  const level = Math.max(0, toNumber(options.level ?? spell.level ?? spell.circle ?? spell.spell_level, 0));
+  const name = safeText(spell.ru_name || spell.name || spell.title || spell.label || spell.en_name, "Заклинание");
+  const damageTypes = Array.isArray(spell.damage_types) ? spell.damage_types.join(", ") : safeText(spell.damage_type, "");
+  return {
+    id: externalId || String(spell.id || spell._id || `spell-${normalizeLssSpellLookup(name)}`),
+    catalog_id: String(spell.id || spell._id || ""),
+    external_id: options.externalId ? String(options.externalId) : "",
+    name,
+    ru_name: name,
+    en_name: safeText(spell.en_name || spell.enName, ""),
+    level,
+    school: safeText(spell.school || spell.school_ru, ""),
+    casting_time: safeText(spell.casting_time || spell.castingTime || spell.time, ""),
+    time: safeText(spell.casting_time || spell.castingTime || spell.time, ""),
+    range: safeText(spell.range || spell.distance, ""),
+    duration: safeText(spell.duration, ""),
+    components: safeText(spell.components_display || spell.components?.display || spell.components, ""),
+    description: safeText(spell.description || spell.summary || spell.text || spell.short_rules, ""),
+    summary: safeText(spell.summary || spell.description, ""),
+    damage_type: damageTypes,
+    concentration: Boolean(spell.concentration),
+    ritual: Boolean(spell.ritual),
+    prepared: Boolean(options.prepared),
+    source_kind: options.sourceKind || "lss_catalog_bridge",
+    bridge_confidence: options.confidence || "catalog",
+  };
+}
+
+function collectOriginalSpellIdArray(profile, key) {
+  const roots = [
+    profile?.spellsMeta,
+    profile?.__lssRoot?.spells,
+    LSS_STATE.raw?.spells,
+    profile?.externalSpells,
+  ];
+  const out = [];
+  roots.forEach((root) => {
+    const values = root && Array.isArray(root[key]) ? root[key] : [];
+    values.forEach((value) => {
+      const id = String(value || "").trim();
+      if (id && !out.includes(id)) out.push(id);
+    });
+  });
+  return out;
+}
+
+function hydrateOriginalLssSpellExport(profile) {
+  if (!profile || typeof profile !== "object") return profile;
+  const meta = profile.spellsMeta && typeof profile.spellsMeta === "object" ? profile.spellsMeta : {};
+  const prepared = collectOriginalSpellIdArray(profile, "prepared");
+  const book = collectOriginalSpellIdArray(profile, "book");
+  const externalIds = Array.from(new Set([...prepared, ...book].filter(isOriginalLssSpellObjectId)));
+  const indexes = getLssSpellCatalogIndexes();
+  const manual = readExternalLssSpellMap(profile);
+  const preparedSet = new Set(prepared);
+  const hints = getOriginalLssSpellNameHints(profile);
+  const cards = [];
+  const unresolvedIds = [];
+  const existingLists = [
+    profile.spellCards,
+    profile.spellsCards,
+    meta.cards,
+    meta.preparedExpanded,
+    meta.bookExpanded,
+    profile.preparedSpellsExpanded,
+    profile.bookSpellsExpanded,
+    profile.spellsExpanded,
+    profile.spellbook,
+    profile.spellsList,
+  ];
+  const addCard = (card) => {
+    if (!card || typeof card !== "object") return;
+    const normalized = card.name || card.ru_name || card.title || card.en_name
+      ? normalizeCatalogSpellForLss(card, {
+          externalId: card.external_id || "",
+          prepared: Boolean(card.prepared),
+          confidence: card.bridge_confidence || "existing-card",
+          sourceKind: card.source_kind || "existing-card",
+        })
+      : null;
+    if (!normalized?.name) return;
+    const catalogKey = String(normalized.catalog_id || card.catalog_id || "");
+    const externalKey = String(normalized.external_id || card.external_id || "");
+    const nameKey = normalizeLssSpellLookup(normalized.name);
+    const foundIndex = cards.findIndex((item) => {
+      if (catalogKey && String(item.catalog_id || "") === catalogKey) return true;
+      if (externalKey && String(item.external_id || "") === externalKey) return true;
+      return normalizeLssSpellLookup(item.name) === nameKey;
+    });
+    if (foundIndex >= 0) cards[foundIndex] = { ...cards[foundIndex], ...normalized, prepared: cards[foundIndex].prepared || normalized.prepared };
+    else cards.push(normalized);
+  };
+
+  existingLists.forEach((list) => {
+    if (Array.isArray(list)) list.forEach(addCard);
+  });
+
+  externalIds.forEach((externalId) => {
+    let spell = indexes.byId.get(externalId);
+    let confidence = spell ? "legacy-id" : "";
+    const mapped = manual[externalId];
+    if (!spell && mapped !== undefined) {
+      if (mapped && typeof mapped === "object") {
+        spell = mapped;
+        confidence = "manual-card";
+      } else {
+        const target = String(mapped || "").trim();
+        spell = indexes.byId.get(target) || indexes.byName.get(normalizeLssSpellLookup(target));
+        confidence = spell ? "manual-map" : "";
+      }
+    }
+    if (spell) addCard(normalizeCatalogSpellForLss(spell, { externalId, prepared: preparedSet.has(externalId), confidence }));
+    else unresolvedIds.push(externalId);
+  });
+
+  // Text hints are useful even after the old ObjectIds were already lost by a
+  // previous local save. This is the key fallback for existing installations.
+  const canOrderMap = unresolvedIds.length > 0 && hints.length === unresolvedIds.length;
+  hints.forEach((hint, index) => {
+    const catalogSpell = findCatalogSpellByHint(indexes, hint);
+    const linkedExternalId = canOrderMap ? unresolvedIds[index] : "";
+    if (catalogSpell) {
+      addCard(normalizeCatalogSpellForLss(catalogSpell, {
+        externalId: linkedExternalId,
+        prepared: linkedExternalId ? preparedSet.has(linkedExternalId) : true,
+        level: hint.level ?? catalogSpell.level,
+        sourceKind: "lss_text_catalog_hint",
+        confidence: linkedExternalId ? "ordered-text-hint" : "exact-name-hint",
+      }));
+    } else {
+      addCard({
+        id: linkedExternalId || `lss-text-${hint.lookup.replace(/\s+/g, "-")}`,
+        external_id: linkedExternalId,
+        name: hint.name,
+        ru_name: hint.name,
+        level: Math.max(0, toNumber(hint.level, 0)),
+        prepared: linkedExternalId ? preparedSet.has(linkedExternalId) : true,
+        source_kind: "lss_text_hint",
+        bridge_confidence: linkedExternalId ? "ordered-text-hint" : "text-only",
+        description: `Название сохранено в ${hint.source}; механическая карточка пока не сопоставлена с нашим каталогом.`,
+      });
+    }
+  });
+
+  const linkedIds = new Set(cards.map((card) => String(card.external_id || "")).filter(Boolean));
+  const stillUnresolved = unresolvedIds.filter((id) => !linkedIds.has(id));
+  const resolvedPrepared = cards.filter((card) => card.prepared || preparedSet.has(String(card.external_id || card.id)));
+  const nextMeta = {
+    ...meta,
+    mode: meta.mode || profile?.__lssRoot?.spells?.mode || "cards",
+    prepared,
+    book,
+    cards,
+    preparedExpanded: resolvedPrepared,
+    bookExpanded: cards,
+    externalBridge: {
+      source: indexes.source,
+      external_count: externalIds.length,
+      resolved_count: cards.length,
+      hint_count: hints.length,
+      unresolved_ids: stillUnresolved,
+      catalog_count: indexes.entries.length,
+      note: "ObjectId оригинального LSS не считается названием. Карточки берутся из нашего parsed-каталога или из читаемых подсказок листа.",
+    },
+  };
+  profile.spellsMeta = nextMeta;
+  profile.spellCards = cards;
+  profile.spellsExpanded = cards;
+  LSS_STATE.externalSpellBridge = {
+    status: stillUnresolved.length ? (cards.length ? "partial" : "unresolved") : (cards.length ? "resolved" : "idle"),
+    source: indexes.source,
+    externalCount: externalIds.length,
+    resolvedCount: cards.length,
+    hintCount: hints.length,
+    unresolvedIds: stillUnresolved,
+  };
+  return profile;
+}
+
 function validateLssFeatPayload(data) {
   return Boolean(data && typeof data === "object" && Array.isArray(data.entries));
 }
@@ -229,6 +782,33 @@ function normalizeLssFeatEntry(entry = {}) {
     summary: entry.summary || shortRules[0] || "",
     raw: entry,
   };
+}
+
+function normalizeLssRulesFeatEntry(entry = {}) {
+  const raw = entry || {};
+  const shortRules = normalizeArray(raw.short_rules || raw.shortRules || raw.rules).slice(0, 5);
+  return {
+    id: raw.id || normalizeGuideLookup(raw.ru_name || raw.label || raw.name || raw.en_name),
+    label: raw.ru_name || raw.label || raw.name || raw.title || raw.id || "Черта",
+    enName: raw.en_name || raw.enName || "",
+    source: raw.source_url || raw.source || "lss_constructor_rules.json",
+    sourceCode: raw.source_code || raw.sourceCode || "",
+    requirements: normalizeArray(raw.requirements),
+    affects: normalizeArray(raw.affects),
+    abilityIncreases: normalizeArray(raw.ability_increases || raw.abilityIncreases),
+    shortRules,
+    sourceGrants: normalizeArray(raw.source_grants || raw.sourceGrants),
+    summary: raw.summary || shortRules[0] || "",
+    raw,
+  };
+}
+
+function getLssRulesFeatList() {
+  const rules = getLssRules();
+  const feats = rules?.feats;
+  if (!feats || typeof feats !== "object") return [];
+  const values = Array.isArray(feats) ? feats : Object.values(feats);
+  return values.map(normalizeLssRulesFeatEntry).filter((feat) => feat.id && feat.label);
 }
 
 async function loadLssConstructorFeats() {
@@ -264,6 +844,8 @@ async function ensureLssFeatRulesLoaded() {
 }
 
 function getLssFeatList() {
+  const rulesFeats = getLssRulesFeatList();
+  if (rulesFeats.length) return rulesFeats;
   return Array.isArray(LSS_STATE.constructorFeats) ? LSS_STATE.constructorFeats : [];
 }
 
@@ -276,6 +858,8 @@ function getLssFeatByValue(value) {
 }
 
 function getLssFeatsStatusLabel() {
+  const rulesFeats = getLssRulesFeatList();
+  if (rulesFeats.length) return `черты: ${rulesFeats.length}`;
   if (LSS_STATE.constructorFeatsStatus === "loaded") return `черты: ${getLssFeatList().length}`;
   if (LSS_STATE.constructorFeatsStatus === "loading") return "черты: загрузка";
   return "черты: fallback";
@@ -369,6 +953,7 @@ function rulesClassToGuide(item) {
     role: item.role || prof.skills_text || "см. полное описание класса в Бестиарии",
     beginnerTip: item.beginner_tip || "LSS подтянул механику класса из rules JSON; полный текст класса открыт в Бестиарии.",
     level1,
+    sourceGrants: normalizeArray(item.source_grants || item.grants || []),
     subclassChoiceLevel: toNumber(item.subclass_choice_level, null),
     subclasses: Array.isArray(item.subclasses) ? item.subclasses : [],
     progressionByLevel: item.progression_by_level || {},
@@ -395,6 +980,7 @@ function rulesRaceToGuide(item) {
     abilityBonusesRaw: asi.raw || "",
     languages,
     traits,
+    sourceGrants: normalizeArray(item.source_grants || item.grants || []),
     subraces: getRulesSubraceOptionsFromRaceItem(item, { source: sourceFromRulesItem(item) }),
     source: sourceFromRulesItem(item),
     sourceKind: "rules-json",
@@ -414,6 +1000,7 @@ function rulesBackgroundToGuide(item) {
     languages: normalizeArray(item.languages).join(", ") || "—",
     feature: item.feature?.name || item.feature || "—",
     equipment: item.equipment_raw || "",
+    sourceGrants: normalizeArray(item.source_grants || item.grants || []),
     source: sourceFromRulesItem(item),
     sourceKind: "rules-json",
     raw: item,
@@ -432,6 +1019,7 @@ function rulesSubclassToGuide(item, classGuide = null) {
     abilityBonuses: normalizeAbilityBonusMap(item.ability_bonuses || extractAbilityBonusesFromText(item.ability_score_increase?.raw || item.ability_score_increase || "")),
     abilityBonusesRaw: item.ability_score_increase?.raw || item.ability_score_increase || "",
     featuresByLevel: item.features_by_level || {},
+    sourceGrants: normalizeArray(item.source_grants || item.grants || []),
     raw: item,
   };
 }
@@ -452,6 +1040,8 @@ function rulesSubraceToGuide(item, raceGuide = null) {
     abilityBonuses: normalizeAbilityBonusMap(asi.fixed || extractAbilityBonusesFromText(asi.raw || "")),
     abilityBonusesRaw: asi.raw || "",
     traits,
+    sourceGrants: normalizeArray(fullItem.source_grants || item.source_grants || fullItem.grants || item.grants || []),
+    reviewFlags: normalizeArray(fullItem.review_flags || item.review_flags || []),
     raw: fullItem || item,
   };
 }
@@ -1703,9 +2293,23 @@ function hasAbilityBonuses(map = {}) {
   return Object.values(map || {}).some((value) => Number(value) !== 0);
 }
 
+function getGuideSourceAbilityBonuses(guide) {
+  const result = {};
+  getGuideSourceGrants(guide).forEach((grant) => {
+    if (!grant || grant.type !== "ability_bonus") return;
+    const statKey = normalizeStatKeyFromText(grant.ability || grant.stat || grant.name || "");
+    const value = Number(grant.value);
+    if (!statKey || !Number.isFinite(value) || value === 0) return;
+    result[statKey] = (result[statKey] || 0) + value;
+  });
+  return normalizeAbilityBonusMap(result);
+}
+
 function getGuideAbilityBonuses(guide) {
   if (!guide) return {};
-  return mergeAbilityBonusMaps(guide.abilityBonuses || {}, extractAbilityBonusesFromText(guide.abilityBonusesRaw || ""));
+  const structured = mergeAbilityBonusMaps(guide.abilityBonuses || {}, getGuideSourceAbilityBonuses(guide));
+  if (hasAbilityBonuses(structured)) return structured;
+  return extractAbilityBonusesFromText(guide.abilityBonusesRaw || "");
 }
 
 const LSS_RACE_GUIDES = [
@@ -3390,32 +3994,193 @@ function getSourceBonusKey(mode = "quick") {
   return [guides.raceName, guides.subraceName, guides.backgroundName, guides.subclassName, JSON.stringify(bonuses)].join("|");
 }
 
+const LSS_GRANT_TYPE_LABELS = {
+  ability_bonus: "Характеристика",
+  ability_bonus_choice: "Характеристика на выбор",
+  skill_proficiency: "Навык",
+  saving_throw_proficiency: "Спасбросок",
+  armor_proficiency: "Броня",
+  weapon_proficiency: "Оружие",
+  tool_proficiency: "Инструмент",
+  language: "Язык",
+  hit_die: "Кость хитов",
+  spellcasting: "Заклинания",
+  size: "Размер",
+  speed: "Скорость",
+  movement: "Передвижение",
+  background_feature: "Особенность",
+  equipment_raw: "Снаряжение",
+  class_feature: "Фича класса",
+  subclass_feature: "Фича подкласса",
+  spell_grant: "Заклинание",
+  feat_rule: "Черта",
+};
+
+const LSS_DIRECT_MECHANICAL_GRANT_TYPES = new Set([
+  "ability_bonus",
+  "ability_bonus_choice",
+  "skill_proficiency",
+  "saving_throw_proficiency",
+  "armor_proficiency",
+  "weapon_proficiency",
+  "tool_proficiency",
+  "language",
+  "hit_die",
+  "spellcasting",
+  "size",
+  "speed",
+  "movement",
+  "background_feature",
+  "equipment_raw",
+  "class_feature",
+  "subclass_feature",
+  "spell_grant",
+  "feat_rule",
+]);
+
+const LSS_LORE_ONLY_HINT_RE = /(сходство|идея владения|блестящ|заключение пугает|возраст|мировоззрение|характер|имена|рост|вес|внешн|обыча|культура|общество|описание|происхождени[ея])/i;
+const LSS_MECHANICAL_TEXT_HINT_RE = /(увелич|\+\s*\d|скорост|летать|пол[её]т|плаван|лазань|т[её]мное зрение|видение|сопротив|владе|владение|урон|атака|заклин|сотвор|наклады|спасброс|преимуществ|помех|действие|бонусным действием|реакци|язык|навык|инструмент|доспех|оруж|размер|класс доспеха|кб|хит|исцел|состояни)/i;
+
+function getGuideSourceGrants(guide) {
+  if (!guide) return [];
+  const raw = guide.raw || {};
+  return normalizeArray([
+    ...normalizeArray(guide.sourceGrants),
+    ...normalizeArray(raw.source_grants),
+    ...normalizeArray(raw.grants),
+  ]);
+}
+
+function lssGrantLooksMechanical(grant) {
+  if (!grant) return false;
+  const type = String(grant.type || "").trim();
+  if (LSS_DIRECT_MECHANICAL_GRANT_TYPES.has(type) && type !== "feature") return true;
+  const name = String(grant.name || "").trim();
+  const raw = String(grant.raw || grant.text || grant.text_preview || "").trim();
+  const confidence = String(grant.confidence || "").toLowerCase();
+  const kind = String(grant.kind || "").toLowerCase();
+  if (type === "feature") {
+    if (["age", "alignment", "personality", "lore", "description", "culture"].includes(kind)) return false;
+    if (/^у вас, как/i.test(name)) return false;
+    if (LSS_LORE_ONLY_HINT_RE.test(name) && !LSS_MECHANICAL_TEXT_HINT_RE.test(raw)) return false;
+    return LSS_MECHANICAL_TEXT_HINT_RE.test(`${name} ${raw}`) || confidence === "structured";
+  }
+  return LSS_MECHANICAL_TEXT_HINT_RE.test(`${name} ${raw}`);
+}
+
+function lssGrantReviewHint(grant) {
+  const flags = normalizeArray(grant?.review_flags || grant?.flags);
+  const confidence = String(grant?.confidence || grant?.candidate_confidence || "");
+  if (flags.length || /review|candidate|low/i.test(confidence)) return " ⚠";
+  return "";
+}
+
+function formatLssGrantLabel(grant) {
+  if (!grant) return "";
+  const type = String(grant.type || "feature");
+  const name = String(grant.name || grant.value || grant.raw || "").trim();
+  const value = grant.value ?? grant.raw ?? "";
+  if (type === "ability_bonus") {
+    const stat = STAT_LABELS[grant.ability] || String(grant.ability || "Характеристика").toUpperCase();
+    const bonus = Number(grant.value || 0);
+    return `${stat} ${bonus >= 0 ? "+" : ""}${bonus}${lssGrantReviewHint(grant)}`;
+  }
+  if (type === "ability_bonus_choice") return `+${escapeHtml(String(grant.value || 1))} к характеристике на выбор${lssGrantReviewHint(grant)}`;
+  if (type === "size") return `Размер: ${normalizeSize(value || "medium")}${lssGrantReviewHint(grant)}`;
+  if (type === "speed") return `Скорость: ${grant.walk_ft || grant.value || value || "—"} фт.${lssGrantReviewHint(grant)}`;
+  if (type === "movement") return `${name || "Передвижение"}${lssGrantReviewHint(grant)}`;
+  if (type === "saving_throw_proficiency") return `Спасбросок: ${STAT_LABELS[grant.ability] || name || value}${lssGrantReviewHint(grant)}`;
+  if (type === "skill_proficiency") return `Навык: ${SKILL_LABELS[normalizeSkillKeyFromAny(value || name)] || name || value}${lssGrantReviewHint(grant)}`;
+  if (type === "armor_proficiency") return `Броня: ${name || value}${lssGrantReviewHint(grant)}`;
+  if (type === "weapon_proficiency") return `Оружие: ${name || value}${lssGrantReviewHint(grant)}`;
+  if (type === "tool_proficiency") return `Инструмент: ${name || value}${lssGrantReviewHint(grant)}`;
+  if (type === "language") {
+    const text = String(name || value || "").trim();
+    const normalized = normalizeGuideLookup(text);
+    if (!text || normalized === "языки" || normalized === "язык" || normalized.includes("выберите")) {
+      return `Язык: требуется выбор${lssGrantReviewHint(grant)}`;
+    }
+    return `Язык: ${text}${lssGrantReviewHint(grant)}`;
+  }
+  if (type === "hit_die") return `Кость хитов: ${name === "Кость хитов" ? value : (value || name)}${lssGrantReviewHint(grant)}`;
+  if (type === "spellcasting") return `Заклинания: ${STAT_LABELS[grant.ability] || grant.ability || name || "есть"}${lssGrantReviewHint(grant)}`;
+  if (type === "background_feature") return `Особенность: ${name || "предыстории"}${lssGrantReviewHint(grant)}`;
+  if (type === "equipment_raw") return `Снаряжение: ${String(value || name).slice(0, 80)}${String(value || name).length > 80 ? "…" : ""}${lssGrantReviewHint(grant)}`;
+  if (type === "class_feature" || type === "subclass_feature") return `${name || LSS_GRANT_TYPE_LABELS[type]}${lssGrantReviewHint(grant)}`;
+  if (type === "spell_grant") return `Заклинание: ${name || value}${lssGrantReviewHint(grant)}`;
+  if (type === "feat_rule") return `${name || "Правило черты"}${lssGrantReviewHint(grant)}`;
+  return `${name || LSS_GRANT_TYPE_LABELS[type] || type}${lssGrantReviewHint(grant)}`;
+}
+
+function getLssMechanicalGrants(guide, options = {}) {
+  const limit = options.limit || 16;
+  const includeReviewCandidates = Boolean(options.includeReviewCandidates);
+  const grants = getGuideSourceGrants(guide)
+    .filter((grant) => lssGrantLooksMechanical(grant))
+    .filter((grant) => includeReviewCandidates || !/low_order_based_review/i.test(String(grant.candidate_confidence || "")) || grant.type === "ability_bonus");
+  const seen = new Set();
+  const list = [];
+  grants.forEach((grant) => {
+    const label = formatLssGrantLabel(grant);
+    const key = normalizeGuideLookup(String(label).replace(/\s*⚠\s*$/g, ""));
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    list.push({ ...grant, label });
+  });
+  return list.slice(0, limit);
+}
+
+function getLssReviewGrantCount(guide) {
+  return getGuideSourceGrants(guide).filter((grant) => {
+    const flags = normalizeArray(grant?.review_flags || grant?.flags);
+    const confidence = String(grant?.confidence || grant?.candidate_confidence || "").toLowerCase();
+    return flags.length || confidence.includes("review") || confidence.includes("candidate") || confidence.includes("low");
+  }).length;
+}
+
+function renderLssGrantBadges(guide, empty = "механика не распознана", options = {}) {
+  const list = getLssMechanicalGrants(guide, options);
+  if (!list.length) {
+    const reviewCount = getLssReviewGrantCount(guide);
+    const suffix = reviewCount ? ` • ${reviewCount} спорн. в audit` : "";
+    return `<span class="muted">${escapeHtml(empty + suffix)}</span>`;
+  }
+  return list.map((grant) => `<span class="meta-item" title="${escapeHtml(grant.raw || grant.text_preview || grant.name || "")}" style="white-space:normal; justify-content:flex-start; align-items:flex-start;">${escapeHtml(grant.label)}</span>`).join("");
+}
+
+function renderLssSourceGrantCard(title, guide, empty, options = {}) {
+  const label = guide?.label || options.fallbackLabel || "—";
+  const reviewCount = getLssReviewGrantCount(guide);
+  const reviewBadge = reviewCount ? `<span class="muted" style="font-size:11px;">${reviewCount} review</span>` : "";
+  return `
+    <div class="meta-item" style="white-space:normal; display:block; padding:9px 10px; border-radius:13px;">
+      <div style="display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:6px;"><strong>${escapeHtml(title)}:</strong><span class="muted" style="font-size:11px;">${escapeHtml(label)}</span>${reviewBadge}</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">${renderLssGrantBadges(guide, empty, options)}</div>
+    </div>
+  `;
+}
+
 function renderLssSourceBonusesPanel(mode = "quick") {
   const guides = getSelectedMechanicsGuides(mode);
   const bonuses = getCurrentSourceAbilityBonuses(mode);
-  const bonusText = hasAbilityBonuses(bonuses) ? formatStatBonusMap(bonuses) : "структурных бонусов к статам пока нет или они только в raw-тексте";
-  const raceRaw = guides.raceGuide?.abilityBonusesRaw || "";
-  const subraceRaw = guides.subraceGuide?.abilityBonusesRaw || "";
-  const rows = [
-    { label: "Класс", text: guides.classGuide ? `${guides.classGuide.label}: кость d${guides.classGuide.hitDie}, спасы ${formatStatList(guides.classGuide.saves)}` : "выбери класс" },
-    { label: "Подкласс", text: guides.subclassGuide ? `${guides.subclassGuide.label}: фичи подтянем по уровням следующим pass` : "выбирается по уровню класса" },
-    { label: "Раса", text: guides.raceGuide ? `${guides.raceGuide.label}: ${guides.raceGuide.size}, ${guides.raceGuide.speed} фт.; ${raceRaw || formatStatBonusMap(getGuideAbilityBonuses(guides.raceGuide))}` : "выбери расу" },
-    { label: "Подраса", text: guides.subraceGuide ? `${guides.subraceGuide.label}: ${subraceRaw || guides.subraceGuide.note || "вариант выбран"}` : "если у расы есть варианты — выбери" },
-    { label: "Предыстория", text: guides.backgroundGuide ? `${guides.backgroundGuide.label}: навыки ${formatSkillList(guides.backgroundGuide.skills)}` : "выбери предысторию" },
-  ];
+  const bonusText = hasAbilityBonuses(bonuses) ? formatStatBonusMap(bonuses) : "нет безопасных структурных бонусов";
   return `
     <div id="${mode === "edit" ? "lssEditSourceBonuses" : "lssQuickSourceBonuses"}" class="lss-source-bonus-panel" style="margin:10px 0 12px; padding:12px; border:1px solid rgba(117,203,198,.18); border-radius:16px; background:rgba(5,12,18,.34);">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
         <div>
-          <div style="font-weight:900; color:var(--gold, #d6b36a);">Бонусы и источники</div>
-          <div class="muted" style="font-size:12px;">Показывает, что дают выбранные раса/подраса/класс. Автоприменение — только по кнопке.</div>
+          <div style="font-weight:900; color:var(--gold, #d6b36a);">Что даёт выбор</div>
+          <div class="muted" style="font-size:12px;">LSS показывает только механические grants из compact rules JSON. Лор и сомнительные куски остаются в Бестиарии/audit.</div>
         </div>
         <div class="meta-item" style="white-space:normal; justify-content:flex-start;"><strong>Статы:</strong>&nbsp;${escapeHtml(bonusText)}</div>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:7px;">
-        ${rows.map((row) => `<div class="meta-item" style="white-space:normal; justify-content:flex-start; align-items:flex-start;"><strong>${escapeHtml(row.label)}:</strong>&nbsp;${escapeHtml(row.text)}</div>`).join("")}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:8px;">
+        ${renderLssSourceGrantCard("Класс", guides.classGuide, "выбери класс")}
+        ${renderLssSourceGrantCard("Подкласс", guides.subclassGuide, guides.subclassGuide ? "фичи подкласса пока только текстом" : "выбери подкласс или дождись уровня выбора", { fallbackLabel: getSubclassHint(guides.className, getLssFormLevel(mode)) })}
+        ${renderLssSourceGrantCard("Раса", guides.raceGuide, "выбери расу")}
+        ${renderLssSourceGrantCard("Подраса", guides.subraceGuide, guides.subraceGuide ? "для варианта нет безопасной механики" : "если у расы есть варианты — выбери")}
+        ${renderLssSourceGrantCard("Предыстория", guides.backgroundGuide, "выбери предысторию")}
       </div>
-      ${mode === "quick" ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;"><button class="btn btn-secondary" type="button" id="lssQuickApplySourceBonusesBtn" ${hasAbilityBonuses(bonuses) ? "" : "disabled"}>＋ Применить бонусы к статам</button><span class="muted" style="font-size:12px;">Защита от дубля: повторно те же бонусы не накидываются.</span></div>` : `<div class="muted" style="font-size:12px; margin-top:8px;">В редакторе бонусы пока не применяются автоматически, чтобы не задвоить старые импортированные листы.</div>`}
+      ${mode === "quick" ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;"><button class="btn btn-secondary" type="button" id="lssQuickApplySourceBonusesBtn" ${hasAbilityBonuses(bonuses) ? "" : "disabled"}>＋ Применить бонусы к статам</button><span class="muted" style="font-size:12px;">Автоприменение выключено: сначала показываем источник, затем применяем по кнопке.</span></div>` : `<div class="muted" style="font-size:12px; margin-top:8px;">В редакторе источники показываются без автоприменения, чтобы не задвоить импортированные листы.</div>`}
     </div>
   `;
 }
@@ -3621,8 +4386,6 @@ function renderLssRulesProgressionPanel(mode = "quick") {
   const currentFeatures = getCurrentClassLevelFeatures(guides.classGuide, level);
   const nextFeatures = getNextClassLevelFeatures(guides.classGuide, level);
   const subclassRows = getSubclassFeaturesUpToLevel(guides.subclassGuide, level);
-  const raceTraits = normalizeArray(guides.raceGuide?.traits).map((trait) => typeof trait === "string" ? trait : trait?.name).filter(Boolean).slice(0, 8);
-  const subraceTraits = normalizeArray(guides.subraceGuide?.traits).map((trait) => typeof trait === "string" ? trait : trait?.name).filter(Boolean).slice(0, 8);
   const backgroundSkills = guides.backgroundGuide?.skills?.map((skill) => SKILL_LABELS[skill] || skill) || [];
   const backgroundFeature = guides.backgroundGuide?.feature && guides.backgroundGuide.feature !== "—" ? guides.backgroundGuide.feature : "черта/особенность предыстории в Бестиарии";
   const spells = getLssKnownClassSpells(guides.classGuide, level, 14);
@@ -3634,7 +4397,7 @@ function renderLssRulesProgressionPanel(mode = "quick") {
     ? `
       <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;">
         <strong>База:</strong> ${escapeHtml(STAT_LABELS[guides.classGuide.spellAbility] || guides.classGuide.spellAbility || "—")} • максимум сейчас: ${maxSpellLevel <= 0 ? "заговоры/особое" : escapeHtml(`${maxSpellLevel} круг`)}
-        <div class="muted" style="font-size:12px; margin-top:4px;">Берём из ${escapeHtml(spellSource)} → rules.spells; список класса через class.spell_links (${escapeHtml(String(classSpellLinks))} ссылок).</div>
+        <div class="muted" style="font-size:12px; margin-top:4px;">Доступно по списку класса: ${escapeHtml(String(classSpellLinks))} ссылок. Показаны заговоры и круги до текущего уровня.</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:7px;">
           ${spells.length ? spells.map((spell) => `<span class="meta-item" style="white-space:normal;">${escapeHtml(spell.ru_name || spell.en_name || spell.id)} <span class="muted">${escapeHtml(formatLssSpellLevel(spell.level))}</span></span>`).join("") : `<span class="muted">список заклинаний пока не найден в rules.spells/class.spell_links</span>`}
         </div>
@@ -3662,11 +4425,11 @@ function renderLssRulesProgressionPanel(mode = "quick") {
           </details>
         </div>
         <div style="display:grid; gap:7px; align-content:start;">
-          <div style="font-weight:900;">Подкласс / раса / происхождение</div>
+          <div style="font-weight:900;">Источники персонажа</div>
           <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Подкласс:</strong> ${escapeHtml(guides.subclassGuide?.label || getSubclassHint(guides.className, level))}<div style="display:grid; gap:6px; margin-top:7px;">${formatLssProgressionRows(subclassRows, "выбери подкласс или дождись уровня выбора")}</div></div>
-          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Раса:</strong> ${escapeHtml(guides.raceGuide?.label || "—")} • ${escapeHtml(guides.raceGuide?.size || "—")} • ${escapeHtml(String(guides.raceGuide?.speed || "—"))} фт.<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(raceTraits, "черты не распознаны")}</div></div>
-          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Подраса:</strong> ${escapeHtml(guides.subraceGuide?.label || "—")}<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(subraceTraits, guides.subraceGuide ? "черты подрасы не распознаны" : "не выбрана")}</div></div>
-          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Предыстория:</strong> ${escapeHtml(guides.backgroundGuide?.label || "—")} • ${escapeHtml(backgroundFeature)}<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(backgroundSkills, "навыки не распознаны")}</div></div>
+          ${renderLssSourceGrantCard("Раса", guides.raceGuide, "выбери расу", { limit: 8 })}
+          ${renderLssSourceGrantCard("Подраса", guides.subraceGuide, guides.subraceGuide ? "нет безопасной механики" : "не выбрана", { limit: 8 })}
+          <div class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px;"><strong>Предыстория:</strong> ${escapeHtml(guides.backgroundGuide?.label || "—")} • ${escapeHtml(backgroundFeature)}<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssGrantBadges(guides.backgroundGuide, backgroundSkills.length ? "" : "навыки/фичи не распознаны", { limit: 8 })}</div></div>
         </div>
         <div style="display:grid; gap:7px; align-content:start;">
           <div style="font-weight:900;">Заклинания</div>
@@ -3758,6 +4521,37 @@ function getFeatOptionsHtml(selected = "") {
   ].join("");
 }
 
+function renderLssSelectedFeatPreview(prefix = "lssQuick") {
+  const featId = getSection(`${prefix}FeatChoice`)?.value || "";
+  const feat = getLssFeatByValue(featId);
+  if (!feat) return `<div id="${prefix}FeatPreview" class="muted" style="font-size:12px; margin-top:6px;">Выбери черту — здесь появится краткое “что даёт”.</div>`;
+  const requirements = normalizeArray(feat.requirements).join(", ") || "без явных требований в данных";
+  const ability = formatFeatAbilityIncreases(feat);
+  const rawRules = normalizeArray(feat.shortRules || feat.short_rules || feat.rules || feat.raw?.short_rules).slice(0, 4);
+  const grants = normalizeArray(feat.sourceGrants || feat.raw?.source_grants)
+    .filter(lssGrantLooksMechanical)
+    .map(formatLssGrantLabel)
+    .filter(Boolean)
+    .filter((label, index, array) => array.findIndex((other) => normalizeGuideLookup(other) === normalizeGuideLookup(label)) === index)
+    .slice(0, 7);
+  const badges = grants.length ? grants : [ability, ...rawRules].filter(Boolean).slice(0, 7);
+  return `
+    <div id="${prefix}FeatPreview" class="meta-item" style="white-space:normal; display:block; padding:8px 10px; border-radius:12px; margin-top:6px;">
+      <strong>${escapeHtml(feat.label)}:</strong> <span class="muted">требования: ${escapeHtml(requirements)}</span>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">${renderLssMiniBadges(badges, "механика черты пока не распознана", { limit: 7 })}</div>
+    </div>
+  `;
+}
+
+function refreshLssSelectedFeatPreview(prefix = "lssQuick") {
+  const preview = getSection(`${prefix}FeatPreview`);
+  if (!preview) return;
+  const temp = document.createElement("div");
+  temp.innerHTML = renderLssSelectedFeatPreview(prefix).trim();
+  const next = temp.firstElementChild;
+  if (next) preview.replaceWith(next);
+}
+
 function renderExistingAsiFeatSummary(profile = LSS_STATE.profile) {
   const asi = Array.isArray(profile?.ability_improvements) ? profile.ability_improvements : [];
   const feats = Array.isArray(profile?.feats) ? profile.feats : [];
@@ -3776,12 +4570,13 @@ function renderLssAsiFeatPanel(mode = "quick") {
   const id = mode === "edit" ? "lssEditAsiFeatPanel" : "lssQuickAsiFeatPanel";
   const ctx = getCurrentAsiContext(mode);
   const loadedFeats = getLssFeatList().length;
+  const prefix = mode === "edit" ? "lssEdit" : "lssQuick";
+  const selectedFeatValue = getSection(`${prefix}FeatChoice`)?.value || "";
   const classLabel = ctx.classGuide?.label || ctx.className || "класс не выбран";
   const milestonesText = ctx.milestones.length ? ctx.milestones.map((lvl) => lvl === ctx.level ? `ур. ${lvl} сейчас` : `ур. ${lvl}`).join(" • ") : "не найдено в прогрессии";
   const status = ctx.available
     ? `На ${ctx.level} уровне есть Увеличение характеристик / Черта.`
     : (ctx.nextLevel ? `Следующее окно ASI/черты: ${ctx.nextLevel} уровень.` : "Для текущего уровня окно ASI/черты не найдено.");
-  const prefix = mode === "edit" ? "lssEdit" : "lssQuick";
   return `
     <div id="${id}" class="lss-asi-feat-panel" style="margin:10px 0 12px; padding:12px; border:1px solid rgba(199,162,91,.22); border-radius:16px; background:linear-gradient(135deg, rgba(13,27,35,.68), rgba(5,12,18,.36));">
       <div class="flex-between" style="align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
@@ -3802,8 +4597,9 @@ function renderLssAsiFeatPanel(mode = "quick") {
         <div class="filter-group"><label>Выбор</label><select id="${prefix}AsiChoice"><option value="asi-two">+2 к одной характеристике</option><option value="asi-split">+1/+1 к двум характеристикам</option><option value="feat">Взять черту</option></select></div>
         <div class="filter-group"><label>Характеристика 1</label><select id="${prefix}AsiStat1">${getStatSelectOptionsHtml("str")}</select></div>
         <div class="filter-group"><label>Характеристика 2</label><select id="${prefix}AsiStat2">${getStatSelectOptionsHtml("dex")}</select></div>
-        <div class="filter-group" style="min-width:220px;"><label>Черта</label><select id="${prefix}FeatChoice" ${loadedFeats ? "" : "disabled"}>${getFeatOptionsHtml("")}</select></div>
+        <div class="filter-group" style="min-width:220px;"><label>Черта</label><select id="${prefix}FeatChoice" ${loadedFeats ? "" : "disabled"}>${getFeatOptionsHtml(selectedFeatValue)}</select></div>
       </div>
+      ${renderLssSelectedFeatPreview(prefix)}
       <input id="${prefix}AppliedAsiRecords" type="hidden" value="${escapeHtml(JSON.stringify(mode === "edit" ? (LSS_STATE.profile?.ability_improvements || []) : []))}">
       <input id="${prefix}SelectedFeats" type="hidden" value="${escapeHtml(JSON.stringify(mode === "edit" ? (LSS_STATE.profile?.feats || []) : []))}">
       <div class="modal-actions" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
@@ -4544,22 +5340,55 @@ function normalizeSpellCard(card, index = 0) {
   }
 
   return {
-    id: card.id || card._id || card.slug || `spell-${index}`,
-    name: card.name || card.title || card.label || `Заклинание ${index + 1}`,
-    level: card.level ?? card.circle ?? card.tier ?? "",
-    school: card.school || card.schoolName || card.type || "",
-    time: card.castingTime || card.time || card.castTime || "",
+    id: card.id || card.external_id || card._id || card.slug || `spell-${index}`,
+    catalogId: card.catalog_id || card.id || card._id || "",
+    externalId: card.external_id || "",
+    name: card.name || card.ru_name || card.title || card.label || card.en_name || `Заклинание ${index + 1}`,
+    level: card.level ?? card.circle ?? card.tier ?? card.spell_level ?? "",
+    school: card.school || card.schoolName || card.school_ru || card.type || "",
+    time: card.casting_time || card.castingTime || card.time || card.castTime || "",
     range: card.range || card.distance || "",
     duration: card.duration || card.length || "",
-    components: joinNonEmpty([card.components, card.materials]),
-    description: card.description || card.text || card.effect || card.body || "",
-    notes: card.notes || card.meta || "",
+    components: joinNonEmpty([card.components_display, card.components?.display, card.components, card.materials]),
+    description: card.description || card.summary || card.text || card.effect || card.body || "",
+    notes: card.notes || card.meta || (card.bridge_confidence ? `bridge: ${card.bridge_confidence}` : ""),
+    prepared: Boolean(card.prepared),
+    sourceKind: card.source_kind || "",
   };
 }
 
 // ------------------------------------------------------------
 // 🔄 NORMALIZATION
 // ------------------------------------------------------------
+function extractOriginalLssSpellMeta(rawProfile) {
+  if (!rawProfile || typeof rawProfile !== "object") return {};
+  const roots = [
+    rawProfile.spellsMeta,
+    rawProfile.spells,
+    rawProfile.__lssRoot?.spells,
+  ];
+  if (typeof rawProfile.data === "string") roots.unshift(rawProfile.spells);
+  const result = {};
+  roots.forEach((root) => {
+    if (!root || typeof root !== "object" || Array.isArray(root)) return;
+    if (Array.isArray(root.prepared)) result.prepared = Array.from(new Set([...(result.prepared || []), ...root.prepared.map(String)]));
+    if (Array.isArray(root.book)) result.book = Array.from(new Set([...(result.book || []), ...root.book.map(String)]));
+    if (root.mode && !result.mode) result.mode = root.mode;
+    if (root.edition && !result.edition) result.edition = root.edition;
+    if (Array.isArray(root.cards)) result.cards = root.cards;
+    if (Array.isArray(root.preparedExpanded)) result.preparedExpanded = root.preparedExpanded;
+    if (Array.isArray(root.bookExpanded)) result.bookExpanded = root.bookExpanded;
+  });
+  return result;
+}
+
+function mergeOriginalLssSpellMeta(profile, rawProfile) {
+  if (!profile || typeof profile !== "object") return profile;
+  const extracted = extractOriginalLssSpellMeta(rawProfile);
+  profile.spellsMeta = { ...(profile.spellsMeta || {}), ...extracted };
+  return profile;
+}
+
 function normalizeProfile(rawProfile) {
   if (!rawProfile || typeof rawProfile !== "object") return null;
 
@@ -4580,7 +5409,7 @@ function normalizeProfile(rawProfile) {
     if (parsed && typeof parsed === "object") {
       return {
         ...parsed,
-        spellsMeta: rawProfile.spells || {},
+        spellsMeta: { ...(parsed.spellsMeta || {}), ...extractOriginalLssSpellMeta(rawProfile) },
         exportMeta: {
           tags: rawProfile.tags || [],
           edition: rawProfile.edition || "",
@@ -4655,6 +5484,7 @@ function tryLoadFromLocal() {
 
 export async function loadLSS() {
   await ensureLssConstructorRulesLoaded();
+  await ensureLssParsedSpellCatalogLoaded();
   await ensureLssFeatRulesLoaded();
   await loadLssCharacterPool();
 
@@ -4678,7 +5508,7 @@ export async function loadLSS() {
     return;
   }
 
-  const profile = normalizeProfile(raw);
+  const profile = hydrateOriginalLssSpellExport(mergeOriginalLssSpellMeta(normalizeProfile(raw), raw));
   const characterId = getProfileCharacterId(profile);
   if (characterId) LSS_STATE.selectedCharacterId = String(characterId);
 
@@ -5779,6 +6609,16 @@ function bindLssConstructorRuleButtons() {
       if (select.value === "average") applyAverageHpToForm(id.includes("Edit") ? "edit" : "quick");
     });
   });
+
+  [
+    ["lssQuickFeatChoice", "lssQuick"],
+    ["lssEditFeatChoice", "lssEdit"],
+  ].forEach(([id, prefix]) => {
+    const select = getSection(id);
+    if (!select || select.dataset.featPreviewBound === "1") return;
+    select.dataset.featPreviewBound = "1";
+    select.addEventListener("change", () => refreshLssSelectedFeatPreview(prefix));
+  });
 }
 
 function bindLssInputGuards() {
@@ -6054,6 +6894,54 @@ async function saveCurrentLssProfile(options = {}) {
   } else {
     showToast(syncResult.error ? "LSS сохранён локально, но аккаунт не синхронизирован" : "Персонаж сохранён в профиль и пул Master Room");
   }
+}
+
+function bindLssSpellCatalogActions() {
+  const search = getSection("lssSpellCatalogSearch");
+  if (search && search.dataset.bound !== "1") {
+    search.dataset.bound = "1";
+    search.addEventListener("input", () => {
+      LSS_STATE.spellCatalogQuery = search.value || "";
+      clearTimeout(LSS_SPELL_SEARCH_TIMER);
+      LSS_SPELL_SEARCH_TIMER = setTimeout(() => {
+        const results = getSection("lssSpellCatalogResults");
+        if (!results || !LSS_STATE.profile) return;
+        results.innerHTML = renderParsedSpellCatalogResults(LSS_STATE.profile, LSS_STATE.spellCatalogQuery);
+        bindLssSpellCatalogActions();
+      }, 140);
+    });
+  }
+
+  document.querySelectorAll("[data-lss-spell-add]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const ok = addCatalogSpellToProfile(btn.dataset.lssSpellAdd, btn.dataset.lssSpellPrepared === "1");
+      if (!ok) return showToast("Заклинание не найдено в нашем каталоге");
+      renderLSS();
+      showToast(btn.dataset.lssSpellPrepared === "1" ? "Заклинание добавлено и подготовлено" : "Заклинание добавлено в книгу");
+    });
+  });
+
+  document.querySelectorAll("[data-lss-spell-toggle-prepared]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      toggleProfileSpellPrepared(btn.dataset.lssSpellTogglePrepared);
+      renderLSS();
+    });
+  });
+
+  document.querySelectorAll("[data-lss-spell-remove]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      if (!confirm("Удалить это заклинание из книги и подготовленных?")) return;
+      removeProfileSpell(btn.dataset.lssSpellRemove);
+      renderLSS();
+      showToast("Заклинание удалено");
+    });
+  });
 }
 
 function bindLssActions() {
@@ -6438,6 +7326,7 @@ function bindLssActions() {
   bindLssClassGuideInputs();
   bindLssAlignmentPickers();
   bindLssConstructorRuleButtons();
+  bindLssSpellCatalogActions();
 }
 
 // ------------------------------------------------------------
@@ -7169,7 +8058,8 @@ function renderNotes(profile) {
       ${
         notes.length
           ? `
-            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
+            ${bridgeStatus}
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
               ${notes
                 .map(
                   (note) => `
@@ -7231,62 +8121,218 @@ function renderSpellcasting(profile) {
 }
 
 
-function renderSpellCards(profile) {
-  const expanded = getSpellCardsExpanded(profile).map(normalizeSpellCard);
-  const prepared = getPreparedSpellIds(profile);
-  const book = getBookSpellIds(profile);
+function getSpellCatalogClassNeedles(profile) {
+  return [
+    unwrapValue(profile?.info?.charClass, ""),
+    unwrapValue(profile?.info?.charSubclass, ""),
+  ].map(normalizeLssSpellLookup).filter(Boolean);
+}
 
-  if (expanded.length) {
+function getSpellCatalogSuggestions(profile, query = "", limit = null) {
+  const indexes = getLssSpellCatalogIndexes();
+  const lookup = normalizeLssSpellLookup(query);
+  const classNeedles = getSpellCatalogClassNeedles(profile);
+  const level = Math.max(1, toNumber(unwrapValue(profile?.info?.level, 1), 1));
+  const maxLevel = Math.max(0, Math.min(9, Math.ceil(level / 2)));
+  const prepared = new Set(getPreparedSpellIds(profile).map(String));
+  const book = new Set(getBookSpellIds(profile).map(String));
+  return indexes.entries
+    .map((spell) => {
+      const name = safeText(spell.ru_name || spell.name || spell.title || spell.en_name, "");
+      const haystack = normalizeLssSpellLookup([name, spell.en_name, spell.school, ...(spell.classes || [])].join(" "));
+      const classes = normalizeArray(spell.classes).map(normalizeLssSpellLookup);
+      const classMatch = classNeedles.some((needle) => classes.some((cls) => cls.includes(needle) || needle.includes(cls)));
+      const spellLevel = normalizeSpellLevelValue(spell.level) ?? 0;
+      const score = (classMatch ? 30 : 0) + (spellLevel <= maxLevel ? 10 : 0) + (prepared.has(String(spell.id)) ? 4 : 0) + (book.has(String(spell.id)) ? 3 : 0);
+      return { spell, name, haystack, classMatch, spellLevel, score };
+    })
+    .filter((item) => item.name && (!lookup || item.haystack.includes(lookup)))
+    .sort((a, b) => {
+      if (lookup) {
+        const aExact = normalizeLssSpellLookup(a.name) === lookup ? 1 : 0;
+        const bExact = normalizeLssSpellLookup(b.name) === lookup ? 1 : 0;
+        if (aExact !== bExact) return bExact - aExact;
+      }
+      if (a.score !== b.score) return b.score - a.score;
+      if (a.spellLevel !== b.spellLevel) return a.spellLevel - b.spellLevel;
+      return a.name.localeCompare(b.name, "ru");
+    })
+    .slice(0, limit || LSS_STATE.spellCatalogLimit || 36);
+}
+
+function isSpellAlreadyInProfile(profile, spell) {
+  const ids = new Set([...getBookSpellIds(profile), ...getPreparedSpellIds(profile)].map(String));
+  if (ids.has(String(spell.id))) return true;
+  const lookup = normalizeLssSpellLookup(spell.ru_name || spell.name || spell.en_name);
+  return getSpellCardsExpanded(profile).some((card) => normalizeLssSpellLookup(card.name || card.ru_name || card.title) === lookup);
+}
+
+function renderParsedSpellCatalogResults(profile, query = LSS_STATE.spellCatalogQuery) {
+  const suggestions = getSpellCatalogSuggestions(profile, query);
+  if (!suggestions.length) return `<div class="muted" style="padding:10px 2px;">По запросу ничего не найдено в нашем parsed-каталоге.</div>`;
+  return suggestions.map(({ spell, name, spellLevel }) => {
+    const exists = isSpellAlreadyInProfile(profile, spell);
+    const classes = normalizeArray(spell.classes).slice(0, 4).join(", ");
     return `
-      <div class="cabinet-block" style="padding:12px;">
-        <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-          <h3 style="margin:0;">Карточки заклинаний</h3>
-          <div class="trader-meta" style="gap:6px;">
-            <span class="meta-item">Подготовлено: ${escapeHtml(String(prepared.length))}</span>
-            <span class="meta-item">В книге: ${escapeHtml(String(book.length))}</span>
-          </div>
+      <div class="lss-rich-block" style="padding:9px 10px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center;">
+        <div style="min-width:0;">
+          <div style="font-weight:900; overflow-wrap:anywhere;">${escapeHtml(name)}</div>
+          <div class="muted" style="font-size:12px; margin-top:3px;">${spellLevel === 0 ? "заговор" : `${escapeHtml(String(spellLevel))} круг`}${spell.school ? ` • ${escapeHtml(String(spell.school))}` : ""}${classes ? ` • ${escapeHtml(classes)}` : ""}</div>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
-          ${expanded
-            .map(
-              (spell) => `
-                <div class="lss-rich-block" style="padding:10px 12px;">
-                  <div class="flex-between" style="align-items:flex-start; gap:8px; margin-bottom:8px;">
-                    <h4 style="margin:0;">${escapeHtml(String(spell.name))}</h4>
-                    ${prepared.includes(spell.id) ? `<span class="quality-badge" style="padding:2px 7px; min-height:auto;">подготовлено</span>` : ``}
-                  </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+          ${exists ? `<span class="meta-item">уже добавлено</span>` : `
+            <button class="btn btn-secondary" type="button" data-lss-spell-add="${escapeHtml(String(spell.id))}" data-lss-spell-prepared="0">В книгу</button>
+            <button class="btn btn-primary" type="button" data-lss-spell-add="${escapeHtml(String(spell.id))}" data-lss-spell-prepared="1">＋ Подготовить</button>
+          `}
+        </div>
+      </div>`;
+  }).join("");
+}
 
-                  <div class="inv-item-details" style="margin-bottom:8px; gap:6px;">
-                    ${spell.level !== "" ? `<span>Круг: ${escapeHtml(String(spell.level))}</span>` : ""}
-                    ${spell.school ? `<span>${escapeHtml(String(spell.school))}</span>` : ""}
-                    ${spell.time ? `<span>${escapeHtml(String(spell.time))}</span>` : ""}
-                    ${spell.range ? `<span>${escapeHtml(String(spell.range))}</span>` : ""}
-                    ${spell.duration ? `<span>${escapeHtml(String(spell.duration))}</span>` : ""}
-                  </div>
-
-                  ${spell.components ? `<div class="muted" style="margin-bottom:8px; font-size:12px;">${escapeHtml(String(spell.components))}</div>` : ""}
-                  ${spell.description ? `<div style="font-size:14px; line-height:1.45;">${escapeHtml(String(spell.description))}</div>` : `<div class="muted">Описание пока не загружено.</div>`}
-                  ${spell.notes ? `<div class="muted" style="margin-top:8px; font-size:12px;">${escapeHtml(String(spell.notes))}</div>` : ""}
-                </div>
-              `
-            )
-            .join("")}
+function renderParsedSpellCatalog(profile) {
+  const indexes = getLssSpellCatalogIndexes();
+  const statusLabel = LSS_STATE.parsedSpellCatalogStatus === "loaded"
+    ? `parsed-каталог: ${indexes.entries.length}`
+    : LSS_STATE.parsedSpellCatalogStatus === "rules-fallback"
+      ? `compact rules: ${indexes.entries.length}`
+      : LSS_STATE.parsedSpellCatalogStatus === "loading" ? "каталог загружается…" : "каталог не найден";
+  return `
+    <details class="cabinet-block" id="lssParsedSpellCatalogPanel" open style="padding:12px; margin-top:12px;">
+      <summary style="cursor:pointer; font-weight:900; color:var(--gold,#d6b36a);">Наши парсенные заклинания <span class="muted" style="font-weight:600;">• ${escapeHtml(statusLabel)}</span></summary>
+      <div style="margin-top:10px;">
+        <div class="muted" style="font-size:12px; margin-bottom:8px;">Источник: ${escapeHtml(LSS_STATE.parsedSpellCatalogSource || "—")}. Добавленные карточки сразу уходят в combat profile и Master Room.</div>
+        <input id="lssSpellCatalogSearch" class="input" type="search" autocomplete="off" placeholder="Название, школа, класс…" value="${escapeHtml(LSS_STATE.spellCatalogQuery || "")}" style="width:100%; margin-bottom:10px;">
+        <div id="lssSpellCatalogResults" style="display:grid; gap:8px; max-height:520px; overflow:auto; padding-right:4px;">
+          ${renderParsedSpellCatalogResults(profile)}
         </div>
       </div>
-    `;
-  }
+    </details>`;
+}
+
+function findProfileSpellCard(profile, id) {
+  const raw = String(id || "");
+  return getSpellCardsExpanded(profile).find((card) => [card.id, card.catalog_id, card.external_id, card._id].map(String).includes(raw)) || null;
+}
+
+function addCatalogSpellToProfile(spellId, prepared = false) {
+  const indexes = getLssSpellCatalogIndexes();
+  const spell = indexes.byId.get(String(spellId)) || indexes.entries.find((entry) => String(entry.id) === String(spellId));
+  if (!spell || !LSS_STATE.profile) return false;
+  const profile = cloneData(LSS_STATE.profile);
+  const card = normalizeCatalogSpellForLss(spell, { prepared, sourceKind: "parsed-spell-catalog", confidence: "catalog-selected" });
+  profile.spellsMeta = profile.spellsMeta && typeof profile.spellsMeta === "object" ? profile.spellsMeta : {};
+  const cards = getSpellCardsExpanded(profile).map((item) => ({ ...item }));
+  const lookup = normalizeLssSpellLookup(card.name);
+  const existingIndex = cards.findIndex((item) => String(item.catalog_id || item.id || "") === String(card.catalog_id || card.id) || normalizeLssSpellLookup(item.name || item.ru_name) === lookup);
+  if (existingIndex >= 0) cards[existingIndex] = { ...cards[existingIndex], ...card, prepared: Boolean(prepared || cards[existingIndex].prepared) };
+  else cards.push(card);
+  const book = Array.from(new Set([...(profile.spellsMeta.book || []).map(String), String(card.catalog_id || card.id)]));
+  const preparedIds = Array.from(new Set([...(profile.spellsMeta.prepared || []).map(String), ...(prepared ? [String(card.catalog_id || card.id)] : [])]));
+  profile.spellsMeta = { ...profile.spellsMeta, cards, bookExpanded: cards, preparedExpanded: cards.filter((item) => item.prepared || preparedIds.includes(String(item.catalog_id || item.id))), book, prepared: preparedIds };
+  profile.spellCards = cards;
+  profile.spellsExpanded = cards;
+  setLssData(profile, { persistLocal: true, source: "manual" });
+  return true;
+}
+
+function toggleProfileSpellPrepared(spellId) {
+  if (!LSS_STATE.profile) return;
+  const profile = cloneData(LSS_STATE.profile);
+  const card = findProfileSpellCard(profile, spellId);
+  if (!card) return;
+  profile.spellsMeta = profile.spellsMeta && typeof profile.spellsMeta === "object" ? profile.spellsMeta : {};
+  const canonicalId = String(card.catalog_id || card.id || card.external_id || spellId);
+  const prepared = new Set((profile.spellsMeta.prepared || []).map(String));
+  const isPrepared = prepared.has(canonicalId) || Boolean(card.prepared);
+  if (isPrepared) prepared.delete(canonicalId); else prepared.add(canonicalId);
+  const cards = getSpellCardsExpanded(profile).map((item) => {
+    const itemId = String(item.catalog_id || item.id || item.external_id || "");
+    return itemId === canonicalId ? { ...item, prepared: !isPrepared } : item;
+  });
+  profile.spellsMeta = { ...profile.spellsMeta, prepared: Array.from(prepared), cards, preparedExpanded: cards.filter((item) => item.prepared || prepared.has(String(item.catalog_id || item.id || item.external_id || ""))), bookExpanded: cards };
+  profile.spellCards = cards;
+  profile.spellsExpanded = cards;
+  setLssData(profile, { persistLocal: true, source: "manual" });
+}
+
+function removeProfileSpell(spellId) {
+  if (!LSS_STATE.profile) return;
+  const profile = cloneData(LSS_STATE.profile);
+  const card = findProfileSpellCard(profile, spellId);
+  if (!card) return;
+  const canonicalIds = new Set([card.id, card.catalog_id, card.external_id, spellId].filter(Boolean).map(String));
+  const cards = getSpellCardsExpanded(profile).filter((item) => ![item.id, item.catalog_id, item.external_id].filter(Boolean).map(String).some((id) => canonicalIds.has(id)));
+  profile.spellsMeta = profile.spellsMeta && typeof profile.spellsMeta === "object" ? profile.spellsMeta : {};
+  profile.spellsMeta = {
+    ...profile.spellsMeta,
+    cards,
+    book: (profile.spellsMeta.book || []).map(String).filter((id) => !canonicalIds.has(id)),
+    prepared: (profile.spellsMeta.prepared || []).map(String).filter((id) => !canonicalIds.has(id)),
+    preparedExpanded: cards.filter((item) => item.prepared),
+    bookExpanded: cards,
+  };
+  profile.spellCards = cards;
+  profile.spellsExpanded = cards;
+  setLssData(profile, { persistLocal: true, source: "manual" });
+}
+
+function renderSpellCards(profile) {
+  const expanded = getSpellCardsExpanded(profile).map(normalizeSpellCard);
+  const prepared = getPreparedSpellIds(profile).map(String);
+  const book = getBookSpellIds(profile).map(String);
+  const bridge = profile?.spellsMeta?.externalBridge || {};
+  const unresolvedCount = Array.isArray(bridge.unresolved_ids) ? bridge.unresolved_ids.length : 0;
+  const bridgeStatus = (bridge.external_count || bridge.hint_count)
+    ? `<div class="lss-rich-block" style="padding:9px 11px; margin-bottom:10px; border-style:dashed;">
+         <strong>Совместимость с оригинальным LSS:</strong> ${escapeHtml(String(bridge.resolved_count || 0))} карточек восстановлено.
+         <div class="muted" style="margin-top:5px;">Внешних ID: ${escapeHtml(String(bridge.external_count || 0))} • читаемых подсказок: ${escapeHtml(String(bridge.hint_count || 0))} • наш каталог: ${escapeHtml(String(bridge.catalog_count || getLssSpellCatalogIndexes().entries.length))}.</div>
+         ${unresolvedCount ? `<div class="muted" style="margin-top:5px;">Не сопоставлено ID: ${escapeHtml(String(unresolvedCount))}. Они сохранены, но не показываются как названия.</div>` : ""}
+       </div>`
+    : "";
+
+  const cardsBlock = expanded.length ? `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:10px;">
+      ${expanded.map((spell) => {
+        const canonicalId = String(spell.catalogId || spell.id || spell.externalId);
+        const isPrepared = spell.prepared || prepared.includes(canonicalId) || (spell.externalId && prepared.includes(String(spell.externalId)));
+        return `
+          <div class="lss-rich-block" style="padding:10px 12px; display:flex; flex-direction:column; min-height:180px;">
+            <div class="flex-between" style="align-items:flex-start; gap:8px; margin-bottom:8px;">
+              <h4 style="margin:0; overflow-wrap:anywhere;">${escapeHtml(String(spell.name))}</h4>
+              ${isPrepared ? `<span class="quality-badge" style="padding:2px 7px; min-height:auto;">подготовлено</span>` : `<span class="meta-item" style="padding:2px 7px; min-height:auto;">в книге</span>`}
+            </div>
+            <div class="inv-item-details" style="margin-bottom:8px; gap:6px;">
+              ${spell.level !== "" ? `<span>${Number(spell.level) === 0 ? "Заговор" : `Круг: ${escapeHtml(String(spell.level))}`}</span>` : ""}
+              ${spell.school ? `<span>${escapeHtml(String(spell.school))}</span>` : ""}
+              ${spell.time ? `<span>${escapeHtml(String(spell.time))}</span>` : ""}
+              ${spell.range ? `<span>${escapeHtml(String(spell.range))}</span>` : ""}
+              ${spell.duration ? `<span>${escapeHtml(String(spell.duration))}</span>` : ""}
+            </div>
+            ${spell.components ? `<div class="muted" style="margin-bottom:8px; font-size:12px;">${escapeHtml(String(spell.components))}</div>` : ""}
+            ${spell.description ? `<div style="font-size:14px; line-height:1.45; flex:1;">${escapeHtml(String(spell.description))}</div>` : `<div class="muted" style="flex:1;">Описание пока не загружено.</div>`}
+            ${spell.notes ? `<div class="muted" style="margin-top:8px; font-size:11px;">${escapeHtml(String(spell.notes))}</div>` : ""}
+            <div style="display:flex; gap:7px; flex-wrap:wrap; margin-top:10px;">
+              <button class="btn btn-secondary" type="button" data-lss-spell-toggle-prepared="${escapeHtml(canonicalId)}">${isPrepared ? "Убрать из подготовленных" : "Подготовить"}</button>
+              <button class="btn btn-secondary" type="button" data-lss-spell-remove="${escapeHtml(canonicalId)}">Удалить</button>
+            </div>
+          </div>`;
+      }).join("")}
+    </div>` : `<div class="muted">Карточек пока нет. Ниже можно восстановить читаемые названия из оригинального листа или добавить заклинания из нашего parsed-каталога.</div>`;
 
   return `
     <div class="cabinet-block" style="padding:12px;">
       <div class="flex-between" style="align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <h3 style="margin:0;">Карточки заклинаний</h3>
         <div class="trader-meta" style="gap:6px;">
+          <span class="meta-item">Карточек: ${escapeHtml(String(expanded.length))}</span>
           <span class="meta-item">Подготовлено: ${escapeHtml(String(prepared.length))}</span>
           <span class="meta-item">В книге: ${escapeHtml(String(book.length))}</span>
         </div>
       </div>
-      <div class="muted">Развёрнутые карточки пока не загружены.</div>
+      ${bridgeStatus}
+      ${cardsBlock}
     </div>
+    ${renderParsedSpellCatalog(profile)}
   `;
 }
 
@@ -7356,9 +8402,11 @@ export function setLssData(raw, options = {}) {
     source = "manual",
   } = options || {};
 
-  const normalizedRaw = normalizeLssProfileForSave(normalizeProfile(cloneData(raw)) || cloneData(raw));
+  const inputRaw = cloneData(raw);
+  const normalizedProfile = mergeOriginalLssSpellMeta(normalizeProfile(inputRaw) || inputRaw, inputRaw);
+  const normalizedRaw = normalizeLssProfileForSave(normalizedProfile);
   LSS_STATE.raw = cloneData(normalizedRaw);
-  LSS_STATE.profile = normalizeProfile(cloneData(normalizedRaw));
+  LSS_STATE.profile = hydrateOriginalLssSpellExport(mergeOriginalLssSpellMeta(normalizeProfile(cloneData(normalizedRaw)), inputRaw));
   LSS_STATE.source = source;
   broadcastLssProfile(LSS_STATE.profile);
   if (!LSS_TAB_DEFS.some((tab) => tab.key === LSS_STATE.activeTab)) {
@@ -7367,6 +8415,19 @@ export function setLssData(raw, options = {}) {
 
   if (persistLocal) {
     saveLocalLssRaw(LSS_STATE.raw);
+  }
+
+  // setLssData remains synchronous for compatibility. The richer parsed catalog
+  // hydrates in a second safe pass when it was not loaded yet.
+  if (LSS_STATE.parsedSpellCatalogStatus === "idle" || LSS_STATE.parsedSpellCatalogStatus === "loading") {
+    ensureLssParsedSpellCatalogLoaded().then(() => {
+      if (!LSS_STATE.profile) return;
+      LSS_STATE.profile = hydrateOriginalLssSpellExport(LSS_STATE.profile);
+      LSS_STATE.raw = normalizeLssProfileForSave(LSS_STATE.profile);
+      if (persistLocal) saveLocalLssRaw(LSS_STATE.raw);
+      broadcastLssProfile(LSS_STATE.profile);
+      if (LSS_STATE.activeTab === "spells") renderLSS();
+    }).catch(() => {});
   }
 }
 
